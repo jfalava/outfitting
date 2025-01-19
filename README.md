@@ -13,7 +13,7 @@ Single command package install
 > [!TIP]
 > Run this on an elevated permissions PowerShell window for an unattended installation.  
 
-> [!NOTE]
+> [!IMPORTANT]
 > You might need to execute `Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process` if you have permission issues.
 
 ```powershell
