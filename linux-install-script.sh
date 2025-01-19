@@ -57,4 +57,4 @@ brew install zsh-autosuggestions
 echo "📎 Copying .zshrc profile locally"
 curl -o ~/.zshrc "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/.config/.zshrc"
 ## end message
-echo "✅ All installations complete."
+echo "✅ All installations complete. You may now execute \"source .zshrc\" or open a new terminal tab or window."

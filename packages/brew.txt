@@ -9,4 +9,3 @@ fastfetch
 ffmpeg
 optipng
 zig
-ansible
