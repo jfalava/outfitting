@@ -15,13 +15,11 @@ PATH=$PATH:/home/$USER/go/bin
 PATH=$PATH:/home/$USER/.local/bin
 export HOMEBREW_NO_AUTO_UPDATE=1
 ## Aliases
-alias auto-update='sudo apt update && sudo apt upgrade && brew update && brew upgrade && brew cleanup'
+alias update-all='sudo apt update && sudo apt upgrade && brew update && brew upgrade && brew cleanup'
 alias cls='clear'
 alias ff='fastfetch'
 alias l='eza --color=always --long --git --no-filesize --icons=always'
 alias ls='eza --color=always --long --git --no-filesize --icons=always --all'
-alias ssh='ssh.exe'
-alias ssh-add='ssh-add.exe'
 ## Sources
 eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
 eval "$(oh-my-posh init zsh --config https://raw.githubusercontent.com/JanDeDobbeleer/oh-my-posh/refs/heads/main/themes/wopian.omp.json)"

@@ -22,6 +22,9 @@ irm win.jfa.dev | iex
 
 #### Linux
 
+> [!NOTE]
+> This is made exclusively for `apt` Linux distros.
+
 > [!WARNING]
 > Do **not** run this as `sudo` as this uses Homebrew as package manager.
 
@@ -39,3 +42,4 @@ curl -L linux.jfa.dev | bash
 * [ ] Fonts
 * [ ] System preferences
 * [ ] Shell preferences
+* [ ] Support more package managers
