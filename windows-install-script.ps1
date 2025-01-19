@@ -41,5 +41,8 @@ Install-WingetPackages -filePath $msStorePackagesFile
 # cleanup temporary files
 Remove-Item $wingetPackagesFile -ErrorAction SilentlyContinue
 Remove-Item $msStorePackagesFile -ErrorAction SilentlyContinue
+# copy pwsh profile to documents
+New-Item -Path "$env:USERPROFILE\Documents\PowerShell" -ItemType Directory -Force; curl.exe -o "$env:USERPROFILE\Documents\PowerShell\Microsoft.PowerShell_profile.ps1" "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/.config/Microsoft.PowerShell_profile.ps1"
+New-Item -Path "$env:USERPROFILE\Documents\WindowsPowerShell" -ItemType Directory -Force; curl.exe -o "$env:USERPROFILE\Documents\PowerShell\Microsoft.PowerShell_profile.ps1" "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/.config/Microsoft.PowerShell_profile.ps1"
 ## end message
 Write-Host "✅ All installations complete."

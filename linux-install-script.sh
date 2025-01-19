@@ -40,18 +40,20 @@ curl -fsSL "$BREW_LIST_URL" -o /tmp/brew-packages.txt || {
 }
 # install each brew package
 while IFS= read -r package || [ -n "$package" ]; do
-    # Trim whitespace and skip empty lines or comments
+    # rim whitespace and skip empty lines or comments
     package=$(echo "$package" | tr -d '[:space:]')
     if [[ -n "$package" && ! "$package" =~ ^# ]]; then
         echo "❖ Installing Brew package: $package ❖"
         brew install "$package"
     fi
 done < /tmp/brew-packages.txt
-## install ohmyposh
+# install ohmyposh
 sudo chsh -s $(which zsh) $USER
 echo "💻 Installing OhMyPosh"
 curl -s https://ohmyposh.dev/install.sh | bash -s
 brew install zsh-syntax-highlighting
 brew install zsh-autosuggestions
+# copy .zshrc profile to local
+curl -o ~/.zshrc "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/.config/.zshrc"
 ## end message
 echo "✅ All installations complete."
