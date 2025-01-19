@@ -47,7 +47,6 @@ AppWork.JDownloader
 OBSProject.OBSStudio
 CrystalDewWorld.CrystalDiskInfo
 Mp3tag.Mp3tag
-Bin-Huang.Chatbox
 KDE.Krita
 ModernFlyouts.ModernFlyouts
 Microsoft.PowerToys
