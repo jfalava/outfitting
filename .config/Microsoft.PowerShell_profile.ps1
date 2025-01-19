@@ -3,15 +3,9 @@
 # -------------------------------
 $pathList = @(
     "C:\Program Files\Go\bin",
-    "C:\Users\jfalava\AppData\Local\Programs\oh-my-posh\bin",
-    "C:\Users\jfalava\scoop\apps",
-    "F:\Dev\bin"
+    "$env:LOCALAPPDATA\Programs\oh-my-posh\bin",
+    "$env:USERPROFILE\scoop\apps",
 )
-foreach ($path in $pathList) {
-    if ($env:PATH -notlike "*$path*") {
-        $env:PATH += ";$path"
-    }
-}
 
 # -------------------------------
 # Aliases and Functions
