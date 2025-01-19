@@ -53,8 +53,5 @@ echo "💻 Installing OhMyPosh"
 curl -s https://ohmyposh.dev/install.sh | bash -s
 brew install zsh-syntax-highlighting
 brew install zsh-autosuggestions
-# copy .zshrc profile to local
-echo "📎 Copying .zshrc profile locally"
-curl -o ~/.zshrc "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/.config/.zshrc"
 ## end message
 echo "✅ All installations complete."
