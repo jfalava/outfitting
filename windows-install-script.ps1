@@ -1,5 +1,5 @@
 # check and accept Winget terms of use
-Write-Host "Checking Winget terms of use..."
+Write-Host "❔ Checking Winget terms of use..."
 winget --info
 # define URLs and local paths
 $wingetPackagesUrl = "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/packages/winget.txt"
@@ -28,9 +28,9 @@ function Install-WingetPackages {
     $packages = Get-Content $filePath | Where-Object { -Not ($_ -match '^\s*$') -and -Not ($_ -match '^#') }
 
     foreach ($package in $packages) {
-        Write-Host "❖❖"
-        Write-Host "❖ Installing $package..."
-        Write-Host "❖❖"
+        Write-Host "❖❖❖❖❖❖❖❖❖❖❖❖❖❖❖❖❖❖❖"
+        Write-Host "❖ Installing $package... ❖"
+        Write-Host "❖❖❖❖❖❖❖❖❖❖❖❖❖❖❖❖❖❖❖"
         winget install --id $package --accept-source-agreements --accept-package-agreements -e
     }
 }

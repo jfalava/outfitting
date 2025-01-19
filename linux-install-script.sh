@@ -14,9 +14,9 @@ while IFS= read -r package || [ -n "$package" ]; do
     # trim whitespace and skip empty lines or comments (thank you claude)
     package=$(echo "$package" | tr -d '[:space:]')
     if [[ -n "$package" && ! "$package" =~ ^# ]]; then
-        echo "❖❖"
-        echo "❖ Installing APT package: $package"
-        echo "❖❖"
+        echo "❖❖❖❖❖❖❖❖❖❖❖❖❖❖❖❖❖❖❖"
+        echo "❖ Installing apt package: $package ❖"
+        echo "❖❖❖❖❖❖❖❖❖❖❖❖❖❖❖❖❖❖❖"
         sudo apt install -y "$package"
     fi
 done < /tmp/apt-packages.txt
@@ -45,9 +45,9 @@ while IFS= read -r package || [ -n "$package" ]; do
     # Trim whitespace and skip empty lines or comments
     package=$(echo "$package" | tr -d '[:space:]')
     if [[ -n "$package" && ! "$package" =~ ^# ]]; then
-        echo "❖❖"
-        echo "❖ Installing Brew package: $package"
-        echo "❖❖"
+        echo "❖❖❖❖❖❖❖❖❖❖❖❖❖❖❖❖❖❖❖"
+        echo "❖ Installing Brew package: $package ❖"
+        echo "❖❖❖❖❖❖❖❖❖❖❖❖❖❖❖❖❖❖❖"
         brew install "$package"
     fi
 done < /tmp/brew-packages.txt
