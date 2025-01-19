@@ -1,9 +1,9 @@
 export default {
   async fetch(request: Request): Promise<Response> {
     const linuxScriptUrl =
-      'https://raw.githubusercontent.com/jfalava/dotfiles-and-such/main/linux-install-script.sh';
+      'https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/linux-install-script.sh';
     const windowsScriptUrl =
-      'https://raw.githubusercontent.com/jfalava/dotfiles-and-such/main/windows-install-script.ps1';
+      'https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/windows-install-script.ps1';
 
     const url = new URL(request.url);
     const hostname = url.hostname;

@@ -4,8 +4,8 @@ winget --info
 
 # Proceed with the rest of the script after acceptance
 # Define file paths for packages and Microsoft Store packages
-$wingetPackagesFile = "https://raw.githubusercontent.com/jfalava/dotfiles-and-such/refs/heads/main/packages/winget.txt"
-$msStorePackagesFile = "https://raw.githubusercontent.com/jfalava/dotfiles-and-such/refs/heads/main/packages/msstore-winget.txt"
+$wingetPackagesFile = "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/packages/winget.txt"
+$msStorePackagesFile = "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/packages/msstore-winget.txt"
 
 # Function to install packages from a given file
 function Install-WingetPackages {

@@ -2,7 +2,7 @@
 ## Update Packages ##
 sudo apt update -y && sudo apt upgrade -y && sudo apt install curl
 # Fetch the list of APT packages from GitHub
-APT_LIST_URL="https://raw.githubusercontent.com/jfalava/dotfiles-and-such/refs/heads/main/packages/apt.txt"
+APT_LIST_URL="https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/packages/apt.txt"
 echo "❖ Fetching APT package list from $APT_LIST_URL..."
 curl -fsSL "$APT_LIST_URL" -o /tmp/apt-packages.txt || {
 echo "❖ Failed to fetch APT package list. Exiting..."
@@ -66,7 +66,7 @@ fi
 sudo apt update -qq && sudo apt install -y terraform packer
 ## Homebrew Packages #
 echo "❖ Installing Homebrew packages"
-BREW_LIST_URL="https://raw.githubusercontent.com/jfalava/dotfiles-and-such/refs/heads/main/packages/brew.txt"
+BREW_LIST_URL="https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/packages/brew.txt"
 curl -fsSL "$BREW_LIST_URL" -o /tmp/brew-packages.txt
 # Install each brew package
 while read -r package; do
