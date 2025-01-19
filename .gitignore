@@ -1,2 +1,12 @@
+# environment variables
+.env
+.env.production
+
+# macOS-specific files
 .DS_Store
+
+# Windows files
 Thumbs.db
+
+# jetbrains setting folder
+.idea/

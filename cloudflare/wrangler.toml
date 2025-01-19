@@ -1,0 +1,15 @@
+name = "jfa-install-redirects"
+main = "src/index.ts"
+compatibility_date = "2025-01-04"
+compatibility_flags = ["nodejs_compat"]
+workers_dev = false
+routes = [
+	{ pattern = "linux.jfa.dev", custom_domain = true },
+	{ pattern = "win.jfa.dev", custom_domain = true },
+]
+
+[observability]
+enabled = true
+
+[placement]
+mode = "smart"

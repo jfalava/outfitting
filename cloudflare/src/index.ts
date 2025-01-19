@@ -1,0 +1,56 @@
+export default {
+  async fetch(request: Request): Promise<Response> {
+    const linuxScriptUrl =
+      'https://raw.githubusercontent.com/jfalava/dotfiles-and-such/main/linux-install-script.sh';
+    const windowsScriptUrl =
+      'https://raw.githubusercontent.com/jfalava/dotfiles-and-such/main/windows-install-script.ps1';
+
+    const url = new URL(request.url);
+    const hostname = url.hostname;
+
+    let scriptUrl: string;
+    if (hostname.includes('linux.jfa.dev')) {
+      scriptUrl = linuxScriptUrl;
+    } else if (hostname.includes('win.jfa.dev')) {
+      scriptUrl = windowsScriptUrl;
+    } else {
+			return new Response('you should be `curl -L`-ing this instead', {
+					status: 418,
+					headers: { 
+							'Content-Type': 'text/plain',
+							'Allow': 'GET' 
+					},
+			});
+	}
+
+    // fetch with specific headers
+    const response = await fetch(scriptUrl, {
+      headers: {
+        'Accept': 'text/plain',
+        'User-Agent': 'CloudflareWorker',
+      },
+      redirect: 'follow', // explicitly follow redirects
+    });
+
+    // check if the fetch was successful
+    if (!response.ok) {
+      return new Response(`Failed to fetch the script (${response.status})`, {
+        status: 500,
+        headers: { 'Content-Type': 'text/plain' },
+      });
+    }
+
+    const scriptContent = await response.text();
+    const contentType = hostname.includes('winstall.jfa.dev') 
+      ? 'application/x-powershell' 
+      : 'text/x-shellscript';
+
+    return new Response(scriptContent, {
+      headers: {
+        'Content-Type': contentType,
+        'Cache-Control': 'no-cache',
+        'Access-Control-Allow-Origin': '*',
+      },
+    });
+  },
+};

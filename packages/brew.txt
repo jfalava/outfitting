@@ -1,0 +1,12 @@
+gcc
+golang
+node
+zenith
+bat
+zoxide
+eza
+fastfetch
+ffmpeg
+optipng
+zig
+ansible

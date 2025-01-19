@@ -1,0 +1,11 @@
+{
+    "keymap": "vscode",
+    "theme": "sync-with-os",
+    "editor.fontFamily": "Geist Mono",
+    "editor.fontWeight": 500,
+    "editor.fontSize": 18.0,
+    "terminal.fontFamily": "GeistMono NFP",
+    "terminal.fontSize": 15.0,
+    "terminal.fontWeight": 300,
+    "editor.softWrapEnabled": true
+}
