@@ -1,20 +1,20 @@
 # Outfitting
 
-Scripts, dotfiles and lambdas for the automatic outfitting of my personal machines and VMs
+Scripts, dotfiles and lambdas for the automatic outfitting of my personal machines and VMs.
 
-## Automatic package and profiles install
+## Automatic Package and Profile Installation
 
-Single command package install
+Single command package installation.
 
-### How to run
+### How to Run
 
 #### Windows
 
 > [!TIP]
-> Run this on an elevated permissions PowerShell window for an unattended installation.  
+> Run this in an elevated PowerShell window for unattended installation.
 
 > [!IMPORTANT]
-> You might need to execute `Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process` if you have permission issues.
+> You might need to execute `Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process` if you encounter permission issues.
 
 ```powershell
 irm win.jfa.dev | iex
@@ -23,23 +23,23 @@ irm win.jfa.dev | iex
 #### Linux
 
 > [!NOTE]
-> This is made exclusively for `apt` Linux distros.
+> This is designed exclusively for `apt`-based Linux distributions.
 
 > [!WARNING]
-> Do **not** run this as `sudo` as this uses Homebrew as package manager.
+> Do **not** run this as `sudo` as it uses Homebrew as the package manager.
 
 ```bash
 curl -L linux.jfa.dev | bash
 ```
 
-## How it works
+## How It Works
 
-* The [Cloudflare Worker](/cloudflare/src/index.ts) has multiple [subdomains](/cloudflare/wrangler.toml) binded as custom domains that will return a given script depending on which domain was called.
-* Each subdomain will call a different script that will update and install packages and CLI shell profiles.
+* A [Cloudflare Worker](/cloudflare/src/index.ts) has multiple [subdomains](/cloudflare/wrangler.toml) bound as custom domains that return specific scripts based on the called domain.
+* Each subdomain triggers a different script that updates and installs packages and CLI shell profiles.
 
 ## TODO
 
 * [ ] Fonts
 * [ ] System preferences
 * [ ] Shell preferences
-* [ ] Support more package managers
+* [ ] Support for additional package managers
