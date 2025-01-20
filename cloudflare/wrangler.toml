@@ -1,4 +1,4 @@
-name = "jfa-install-redirects"
+name = "outfitting-redirects"
 main = "src/index.ts"
 compatibility_date = "2025-01-04"
 compatibility_flags = ["nodejs_compat"]
