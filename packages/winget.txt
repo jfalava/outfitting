@@ -62,6 +62,8 @@ Proton.ProtonPass
 NordVPN.NordVPN
 ProtonTechnologies.ProtonVPN
 Proton.ProtonMailBridge
+VladimirYakovlev.ElectronMail
+Mozilla.Thunderbird.es-ES
 Proton.ProtonVPN
 Fortinet.FortiClientVPN
 OpenJS.NodeJS
