@@ -40,7 +40,7 @@ curl -fsSL "$BREW_LIST_URL" -o /tmp/brew-packages.txt || {
 }
 # install each brew package
 while IFS= read -r package || [ -n "$package" ]; do
-    # rim whitespace and skip empty lines or comments
+    # trim whitespace and skip empty lines or comments (thank you claude)
     package=$(echo "$package" | tr -d '[:space:]')
     if [[ -n "$package" && ! "$package" =~ ^# ]]; then
         echo "❖ Installing Brew package: $package ❖"

@@ -14,7 +14,8 @@ Single command package installation.
 > Run this in an elevated PowerShell window for unattended installation.
 
 > [!IMPORTANT]
-> You might need to execute `Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process` if you encounter permission issues.
+> You may need to install [WinGet](https://learn.microsoft.com/en-us/windows/package-manager/winget/#install-winget).  
+> You may also need to execute `Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process` if you encounter elevation issues.  
 
 ```powershell
 irm win.jfa.dev | iex
@@ -26,7 +27,7 @@ irm win.jfa.dev | iex
 > This is designed exclusively for `apt`-based Linux distributions.
 
 > [!WARNING]
-> Do **not** run this as `sudo` as it uses Homebrew as the package manager.
+> Do **not** run this as `sudo` as it uses Homebrew as one of the package managers.
 
 ```bash
 curl -L linux.jfa.dev | bash
@@ -34,7 +35,7 @@ curl -L linux.jfa.dev | bash
 
 ## How It Works
 
-* A [Cloudflare Worker](/cloudflare/src/index.ts) has multiple [subdomains](/cloudflare/wrangler.toml) bound as custom domains that return specific scripts based on the called domain.
+* A [Cloudflare Worker](/cloudflare/src/index.ts) has multiple [subdomains](/cloudflare/wrangler.toml) bound that return specific scripts based on the called domain.
 * Each subdomain triggers a different script that updates and installs packages and CLI shell profiles.
 
 ## TODO
