@@ -36,7 +36,7 @@ ChatterinoTeam.Chatterino
 Telegram.TelegramDesktop
 Mega.MEGASync
 HaystackSoftwareLLC.Arq7
-Gyan.FFmpeg
+BtbN.FFmpeg.GPL
 M2Team.NanaZip
 bozbez.WinCaptureAudio.beta
 REALiX.HWiNFO
