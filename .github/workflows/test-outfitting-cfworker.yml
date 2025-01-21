@@ -1,0 +1,36 @@
+name: Test and Deploy Worker
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  test-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "node"
+
+      - name: Install Dependencies
+        run: |
+          npm install
+          npm install -g pnpm
+
+      - name: Run Tests
+        run: |
+          cd cloudflare/tests
+          pnpm vitest run
+
+      - name: Deploy to Cloudflare
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          cd ..
+          pnpx wrangler deploy

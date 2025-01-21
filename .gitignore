@@ -10,3 +10,4 @@ Thumbs.db
 
 # jetbrains setting folder
 .idea/
+.fleet/
