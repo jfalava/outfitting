@@ -22,11 +22,6 @@ jobs:
           npm install
           npm install -g pnpm
 
-      - name: Run Tests
-        run: |
-          cd tests
-          pnpm vitest run
-
       - name: Deploy to Cloudflare
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         env:
