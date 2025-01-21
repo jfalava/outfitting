@@ -30,4 +30,5 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           pwd
+          cd cloudflare
           pnpx wrangler deploy
