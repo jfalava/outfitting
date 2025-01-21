@@ -18,12 +18,13 @@ jobs:
 
       - name: Install Dependencies
         run: |
+          cd cloudflare
           npm install
           npm install -g pnpm
 
       - name: Run Tests
         run: |
-          cd cloudflare/tests
+          cd tests
           pnpm vitest run
 
       - name: Deploy to Cloudflare
