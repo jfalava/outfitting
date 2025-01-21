@@ -18,6 +18,7 @@ jobs:
 
       - name: Install Dependencies
         run: |
+          pwd
           cd cloudflare
           npm install
           npm install -g pnpm
@@ -28,4 +29,5 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
+          pwd
           pnpx wrangler deploy
