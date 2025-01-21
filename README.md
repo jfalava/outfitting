@@ -35,8 +35,9 @@ curl -L linux.jfa.dev | bash
 
 ## How It Works
 
-* A [Cloudflare Worker](/cloudflare/src/index.ts) has multiple [subdomains](/cloudflare/wrangler.toml) bound that return specific scripts based on the called domain.
-* Each subdomain triggers a different script that updates and installs packages and CLI shell profiles.
+* This [Cloudflare Worker](/cloudflare/src/index.ts) serves platform-specific installation scripts based on the request [hostname](/cloudflare/wrangler.toml).  
+* The scripts are fetched from GitHub and returned with appropriate content types.  
+* Then, the scripts are executed, installing and updating packages, settings and profiles.
 
 ## TODO
 
