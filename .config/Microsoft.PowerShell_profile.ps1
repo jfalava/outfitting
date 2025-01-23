@@ -8,6 +8,22 @@ $pathList = @(
 )
 
 # -------------------------------
+# History
+# -------------------------------
+$HistoryFilePath = "$env:USERPROFILE\powershell_history.txt"
+
+# Save history on exit
+Register-EngineEvent PowerShell.Exiting -Action {
+    Get-History | Export-Clixml -Path $HistoryFilePath
+}
+
+# Load history on start
+if (Test-Path $HistoryFilePath) {
+    Import-Clixml -Path $HistoryFilePath | ForEach-Object { Add-History $_ }
+}
+
+
+# -------------------------------
 # Aliases and Functions
 # -------------------------------
 function ezals {
