@@ -37,9 +37,9 @@
     "font_family": "GeistMono Nerd Font Propo",
     "font_size": 14,
     "font_weight": 400,
-    "shell": {
-      "with_arguments": { "program": "pwsh", "args": [] }
-    }
+    "shell": {                                            ///
+      "with_arguments": { "program": "pwsh", "args": [] } /// remove section if not windows
+    }                                                     ///
   },
   "theme": {
     "mode": "system",
