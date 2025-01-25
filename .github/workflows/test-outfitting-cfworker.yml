@@ -1,4 +1,4 @@
-name: Test and Deploy Worker
+name: Deploy Cloudflare Worker
 
 on:
   push:

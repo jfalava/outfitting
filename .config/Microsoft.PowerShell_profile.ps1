@@ -4,24 +4,35 @@
 $pathList = @(
     "C:\Program Files\Go\bin",
     "$env:LOCALAPPDATA\Programs\oh-my-posh\bin",
-    "$env:USERPROFILE\scoop\apps",
+    "$env:USERPROFILE\scoop\apps"
 )
-
-# -------------------------------
-# History
-# -------------------------------
-$HistoryFilePath = "$env:USERPROFILE\powershell_history.txt"
-
-# Save history on exit
-Register-EngineEvent PowerShell.Exiting -Action {
-    Get-History | Export-Clixml -Path $HistoryFilePath
+foreach ($path in $pathList) {
+    if ($env:PATH -notlike "*$path*") {
+        $env:PATH += ";$path"
+    }
 }
 
-# Load history on start
-if (Test-Path $HistoryFilePath) {
-    Import-Clixml -Path $HistoryFilePath | ForEach-Object { Add-History $_ }
-}
+# -------------------------------
+# History Configuration
+# -------------------------------
+$MaximumHistoryCount = 10000
 
+if (Get-Module -ListAvailable -Name PSReadLine) {
+    Import-Module PSReadLine
+    $HistoryFilePath = Join-Path $env:USERPROFILE 'powershell_history'
+    Set-PSReadLineOption -HistorySavePath $HistoryFilePath -HistorySaveStyle SaveIncrementally
+} else {
+    $HistoryFilePath = "$env:USERPROFILE\powershell_history"
+    
+    Register-EngineEvent -SourceIdentifier PowerShell.Exiting -Action {
+        Get-History -Count $MaximumHistoryCount | Export-Clixml -Path $HistoryFilePath
+    } | Out-Null
+
+    if (Test-Path $HistoryFilePath) {
+        $loadedHistory = Import-Clixml -Path $HistoryFilePath
+        $loadedHistory | ForEach-Object { Add-History -CommandLine $_.CommandLine }
+    }
+}
 
 # -------------------------------
 # Aliases and Functions
@@ -46,8 +57,35 @@ Import-Module posh-git
 oh-my-posh init pwsh --config 'https://raw.githubusercontent.com/JanDeDobbeleer/oh-my-posh/main/themes/wopian.omp.json' | Invoke-Expression
 Invoke-Expression (& { (zoxide init powershell | Out-String) })
 
-# PowerToys CommandNotFound Module
-Import-Module -Name Microsoft.WinGet.CommandNotFound
+# -------------------------------
+# Profile Sync
+# -------------------------------
+$slaveProfiles = @(
+    "$env:USERPROFILE\Documents\PowerShell\Microsoft.VSCode_profile.ps1",
+    "$env:USERPROFILE\Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1"
+)
+
+$masterProfilePath = $PROFILE.CurrentUserAllHosts
+
+if ($masterProfilePath -eq "$env:USERPROFILE\Documents\PowerShell\Microsoft.PowerShell_profile.ps1") { ## this one is the master
+    foreach ($slaveProfile in $slaveProfiles) {
+        if (Test-Path $slaveProfile) {
+            $masterContent = Get-Content -Path $masterProfilePath -Raw
+            $slaveContent = Get-Content -Path $slaveProfile -Raw
+
+            if ($masterContent -ne $slaveContent) {
+                Copy-Item -Path $masterProfilePath -Destination $slaveProfile -Force
+            }
+        } else {
+            Copy-Item -Path $masterProfilePath -Destination $slaveProfile -Force
+        }
+    }
+}
+
+# -------------------------------
+# Reload the profile
+# -------------------------------
+. $PROFILE
 
 # -------------------------------
 # Final Setup

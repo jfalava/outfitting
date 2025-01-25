@@ -1,1 +1,2 @@
 posh-git
+PSReadLine
