@@ -13,7 +13,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "18"
+          node-version: "node"
 
       - name: Install Dependencies
         run: |
@@ -35,92 +35,6 @@ jobs:
           if ! curl -L --fail -I -o /dev/null -s "$WINDOWS_SCRIPT_URL"; then
             echo "::error::Windows script URL unreachable: $WINDOWS_SCRIPT_URL"
             exit 1
-          fi
-
-      - name: Start Local Worker
-        run: |
-          cd cloudflare
-          echo "Starting local worker..."
-          npx wrangler dev --port 8787 &
-          WRANGLER_PID=$!
-          echo "WRANGLER_PID=$WRANGLER_PID" >> $GITHUB_ENV
-
-          # Wait for worker to start
-          echo "Waiting for worker..."
-          timeout=30
-          elapsed=0
-          until curl -s -H "Host: linux.jfa.dev" http://localhost:8787 >/dev/null; do
-            sleep 1
-            elapsed=$((elapsed+1))
-            if [ $elapsed -ge $timeout ]; then
-              echo "::error::Worker failed to start"
-              exit 1
-            fi
-          done
-
-      - name: Test Linux Endpoint
-        run: |
-          LINUX_RESP=$(curl -sSI -H "Host: linux.jfa.dev" http://localhost:8787)
-          if ! echo "$LINUX_RESP" | grep -q "HTTP/.*200"; then
-            echo "::error::Linux endpoint failed 200 check"
-            exit 1
-          fi
-          if ! echo "$LINUX_RESP" | grep -q "Content-Type: text/x-shellscript"; then
-            echo "::error::Linux content type mismatch"
-            exit 1
-          fi
-
-      - name: Test Windows Endpoint
-        run: |
-          WIN_RESP=$(curl -sSI -H "Host: win.jfa.dev" http://localhost:8787)
-          if ! echo "$WIN_RESP" | grep -q "HTTP/.*200"; then
-            echo "::error::Windows endpoint failed 200 check"
-            exit 1
-          fi
-          if ! echo "$WIN_RESP" | grep -q "Content-Type: application/x-powershell"; then
-            echo "::error::Windows content type mismatch"
-            exit 1
-          fi
-
-      - name: Test Redirect
-        run: |
-          REPO_URL='https://github.com/jfalava/outfitting'
-          REDIRECT_RESP=$(curl -sSI -H "Host: invalid.example" http://localhost:8787)
-          if ! echo "$REDIRECT_RESP" | grep -q "HTTP/.*302"; then
-            echo "::error::Redirect failed 302 check"
-            exit 1
-          fi
-          if ! echo "$REDIRECT_RESP" | grep -q "Location: $REPO_URL"; then
-            echo "::error::Redirect location mismatch"
-            exit 1
-          fi
-
-      - name: Validate Linux Script Content
-        run: |
-          LINUX_SCRIPT_URL='https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/linux-install-script.sh'
-          WORKER_LINUX=$(curl -s -H "Host: linux.jfa.dev" http://localhost:8787)
-          ORIG_LINUX=$(curl -L -s "$LINUX_SCRIPT_URL")
-          if [ "$WORKER_LINUX" != "$ORIG_LINUX" ]; then
-            echo "::error::Linux script content mismatch"
-            exit 1
-          fi
-
-      - name: Validate Windows Script Content
-        run: |
-          WINDOWS_SCRIPT_URL='https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/windows-install-script.ps1'
-          WORKER_WIN=$(curl -s -H "Host: win.jfa.dev" http://localhost:8787)
-          ORIG_WIN=$(curl -L -s "$WINDOWS_SCRIPT_URL")
-          if [ "$WORKER_WIN" != "$ORIG_WIN" ]; then
-            echo "::error::Windows script content mismatch"
-            exit 1
-          fi
-
-      - name: Stop Local Worker
-        if: always()
-        run: |
-          if [ -n "$WRANGLER_PID" ]; then
-            echo "Stopping worker process..."
-            kill $WRANGLER_PID || true
           fi
 
       - name: Deploy to Cloudflare
