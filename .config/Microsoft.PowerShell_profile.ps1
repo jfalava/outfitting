@@ -13,12 +13,17 @@ foreach ($path in $pathList) {
 }
 
 # -------------------------------
+# Modules
+# -------------------------------
+Import-Module posh-git
+Import-Module PSReadLine
+
+# -------------------------------
 # History Configuration
 # -------------------------------
 $MaximumHistoryCount = 10000
 
 if (Get-Module -ListAvailable -Name PSReadLine) {
-    Import-Module PSReadLine
     $HistoryFilePath = Join-Path $env:USERPROFILE 'powershell_history'
     Set-PSReadLineOption -HistorySavePath $HistoryFilePath -HistorySaveStyle SaveIncrementally
 } else {
@@ -38,7 +43,7 @@ if (Get-Module -ListAvailable -Name PSReadLine) {
 # Aliases and Functions
 # -------------------------------
 function ezals {
-    eza --color=always --long --git --no-filesize --icons=always
+    eza --color=always --long --git --bytes --icons=always
 }
 Set-Alias l ezals
 
@@ -51,7 +56,7 @@ function whichwin {
 Set-Alias which whichwin
 
 # -------------------------------
-# Modules
+# Expressions
 # -------------------------------
 Import-Module posh-git
 oh-my-posh init pwsh --config 'https://raw.githubusercontent.com/JanDeDobbeleer/oh-my-posh/main/themes/wopian.omp.json' | Invoke-Expression
@@ -81,11 +86,6 @@ if ($masterProfilePath -eq "$env:USERPROFILE\Documents\PowerShell\Microsoft.Powe
         }
     }
 }
-
-# -------------------------------
-# Reload the profile
-# -------------------------------
-. $PROFILE
 
 # -------------------------------
 # Final Setup

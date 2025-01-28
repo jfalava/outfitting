@@ -17,7 +17,7 @@ while IFS= read -r package || [ -n "$package" ]; do
         echo "❖ Installing apt package: $package ❖"
         sudo apt install -y "$package"
     fi
-done < /tmp/apt-packages.txt
+done </tmp/apt-packages.txt
 ## add hashicorp repos
 echo "🏗️ Adding HashiCorp repository and installing packages..."
 if ! grep -q hashicorp /etc/apt/sources.list.d/hashicorp.list; then
@@ -28,7 +28,10 @@ sudo apt update -qq && sudo apt install -y terraform packer
 ## install homebrew
 echo "🍺 Installing Homebrew"
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-(echo; echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"') >> ~/.bashrc
+(
+    echo
+    echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"'
+) >>~/.bashrc
 eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
 source ~/.bashrc
 ## install homebrew packages
@@ -46,7 +49,7 @@ while IFS= read -r package || [ -n "$package" ]; do
         echo "❖ Installing Brew package: $package ❖"
         brew install "$package"
     fi
-done < /tmp/brew-packages.txt
+done </tmp/brew-packages.txt
 # install ohmyposh
 sudo chsh -s $(which zsh) $USER
 echo "💻 Installing OhMyPosh"
@@ -56,5 +59,10 @@ brew install zsh-autosuggestions
 # copy .zshrc profile to local
 echo "📎 Copying .zshrc profile locally"
 curl -o ~/.zshrc "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/.config/.zshrc"
+# copy to authorized_keys my personal ssh key
+touch "$HOME/.ssh/authorized_keys" && chmod 600 "$HOME/.ssh/authorized_keys" && cat <<EOF >"$HOME/.ssh/authorized_keys"
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH/ZCjYpPjJfn/kvGDwpHSGJ6WHR655PpQQij06APHuT
+
+EOF
 ## end message
 echo "✅ All installations complete. You may now execute \"source .zshrc\" or open a new terminal tab or window."
