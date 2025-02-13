@@ -6,23 +6,23 @@ HISTSIZE=10000
 # Maximum number of lines in memory before writing to the file
 SAVEHIST=10000
 # History options
-setopt APPEND_HISTORY             # Append history instead of overwriting
-setopt SHARE_HISTORY              # Share history across multiple terminals
-setopt HIST_IGNORE_DUPS           # Ignore duplicate commands
-setopt HIST_IGNORE_SPACE          # Ignore commands starting with a space
-setopt HIST_VERIFY                # Let you edit history before executing
+setopt APPEND_HISTORY    # Append history instead of overwriting
+setopt SHARE_HISTORY     # Share history across multiple terminals
+setopt HIST_IGNORE_DUPS  # Ignore duplicate commands
+setopt HIST_IGNORE_SPACE # Ignore commands starting with a space
+setopt HIST_VERIFY       # Let you edit history before executing
 # ---- Navigation ----
 # Ctrl + Arrow Keys (word-wise navigation)
-bindkey "^[[1;5C" forward-word       # Ctrl + Right
-bindkey "^[[1;5D" backward-word      # Ctrl + Left
+bindkey "^[[1;5C" forward-word  # Ctrl + Right
+bindkey "^[[1;5D" backward-word # Ctrl + Left
 # Shift + Arrow Keys (character-wise navigation)
-bindkey "^[[1;2C" forward-char       # Shift + Right
-bindkey "^[[1;2D" backward-char      # Shift + Left
+bindkey "^[[1;2C" forward-char  # Shift + Right
+bindkey "^[[1;2D" backward-char # Shift + Left
 # Home/End
-bindkey "^[[H" beginning-of-line     # Home
-bindkey "^[[F" end-of-line           # End
+bindkey "^[[H" beginning-of-line # Home
+bindkey "^[[F" end-of-line       # End
 # Delete
-bindkey "^[[3~" delete-char          # Delete
+bindkey "^[[3~" delete-char # Delete
 # ---- Paths ----
 PATH=$PATH:/home/$USER/go/bin
 PATH=$PATH:/home/$USER/.local/bin
@@ -31,6 +31,7 @@ export HOMEBREW_NO_AUTO_UPDATE=1
 alias update-all='sudo apt update && sudo apt upgrade && brew update && brew upgrade && brew cleanup'
 alias cls='clear'
 alias ff='fastfetch'
+alias tf='terraform'
 alias l='eza --color=always --long --git --no-filesize --icons=always'
 alias ls='eza --color=always --long --git --no-filesize --icons=always --all'
 # ---- Sources ----

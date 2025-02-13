@@ -84,12 +84,15 @@ Remove-Item $psModulesFile -ErrorAction SilentlyContinue
 
 # copy pwsh profile to documents
 Write-Host "📎 Copying the PowerShell profile locally..."
-New-Item -Path "$env:USERPROFILE\Documents\PowerShell" -ItemType Directory -Force; curl.exe -o "$env:USERPROFILE\Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1" "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/.config/Microsoft.PowerShell_profile.ps1"
+New-Item -Path "$env:USERPROFILE\Documents\PowerShell" -ItemType Directory -Force; curl.exe -o "$env:USERPROFILE\Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1" "https://   raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/.config/Microsoft.PowerShell_profile.ps1"
 New-Item -Path "$env:USERPROFILE\Documents\WindowsPowerShell" -ItemType Directory -Force; curl.exe -o "$env:USERPROFILE\Documents\PowerShell\Microsoft.PowerShell_profile.ps1" "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/.config/Microsoft.PowerShell_profile.ps1"
 New-Item -Path "$env:USERPROFILE\Documents\WindowsPowerShell" -ItemType Directory -Force; curl.exe -o "$env:USERPROFILE\Documents\PowerShell\Microsoft.VSCode_profile.ps1" "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/.config/Microsoft.PowerShell_profile.ps1"
 
 # install scoop
 Invoke-RestMethod -Uri https://get.scoop.sh | Invoke-Expression
+
+# other packages
+irm https://deno.land/install.ps1 | iex
 
 ## end message
 Write-Host "✅ All installations complete."

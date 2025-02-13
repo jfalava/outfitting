@@ -9,3 +9,4 @@ fastfetch
 ffmpeg
 optipng
 zig
+ripgrep
