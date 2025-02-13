@@ -1,0 +1,80 @@
+{
+  "icon_theme": "VSCode Icons (Dark)",
+  "features": {
+    "edit_prediction_provider": "none"
+  },
+  "base_keymap": "VSCode",
+  "confirm_quit": true,
+  "auto_install_extensions": {
+    "html": true,
+    "astro": true,
+    "catpuccin-themes": true,
+    "git-firefly": true,
+    "powershell": true,
+    "ini": true,
+    "toml": true,
+    "sql": true,
+    "terraform": true,
+    "env": true,
+    "emmet": true
+  },
+  "assistant": {
+    "dock": "right",
+    "default_model": {
+      "provider": "zed.dev",
+      "model": "claude-3-5-sonnet-latest"
+    },
+    "version": "2"
+  },
+  "project_panel": {
+    "dock": "right"
+  },
+  "soft_wrap": "editor_width",
+  "ui_font_size": 16,
+  "ui_font_family": "Geist",
+  "buffer_font_features": {
+    "calt": true
+  },
+  "buffer_font_size": 16.0,
+  "buffer_font_weight": 400,
+  "buffer_font_family": "Geist Mono",
+  "terminal": {
+    "font_family": "GeistMono Nerd Font Propo",
+    "font_size": 14,
+    "font_weight": 400,
+    "shell": {
+      "with_arguments": { "program": "pwsh", "args": [] }
+    }
+  },
+  "theme": {
+    "mode": "system",
+    "light": "Catppuccin Latte",
+    "dark": "Catppuccin Macchiato"
+  },
+  "lsp": {
+    "emmet-language-server": {
+      "binary": {
+        "path": "C:\\Program Files\\nodejs\\node.exe",
+        "arguments": [
+          "C:\\Users\\jalava\\AppData\\Local\\Zed\\extensions\\work\\emmet\\node_modules\\@olrtg\\emmet-language-server\\dist\\index.js",
+          "--stdio"
+        ]
+      }
+    },
+    "astro-language-server": {
+      "binary": {
+        "path": "C:\\Program Files\\nodejs\\node.exe",
+        "arguments": [
+          "C:\\Users\\jalava\\AppData\\Local\\Zed\\extensions\\work\\emmet\\node_modules\\@astrojs\\language-server\\dist\\index.js",
+          "--stdio"
+        ]
+      }
+    }
+  },
+  "jupyter": {
+    "kernel_selections": {
+      "typescript": "deno",
+      "javascript": "deno"
+    }
+  }
+}

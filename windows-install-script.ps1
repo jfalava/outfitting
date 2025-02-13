@@ -91,5 +91,8 @@ New-Item -Path "$env:USERPROFILE\Documents\WindowsPowerShell" -ItemType Director
 # install scoop
 Invoke-RestMethod -Uri https://get.scoop.sh | Invoke-Expression
 
+# other packages
+irm https://deno.land/install.ps1 | iex
+
 ## end message
 Write-Host "✅ All installations complete."
