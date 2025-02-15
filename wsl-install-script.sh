@@ -65,4 +65,4 @@ ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH/ZCjYpPjJfn/kvGDwpHSGJ6WHR655PpQQij06APHuT
 
 EOF
 ## end message
-echo "✅ All installations complete. You may now execute \"source .zshrc\" or open a new terminal tab or window."
+echo "✅ All installations complete. You may now open a new terminal tab or window."

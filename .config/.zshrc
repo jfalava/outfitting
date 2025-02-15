@@ -12,6 +12,7 @@ setopt HIST_IGNORE_DUPS  # Ignore duplicate commands
 setopt HIST_IGNORE_SPACE # Ignore commands starting with a space
 setopt HIST_VERIFY       # Let you edit history before executing
 # ---- Navigation ----
+# Note: remove this when using anything but Windows Terminal
 # Ctrl + Arrow Keys (word-wise navigation)
 bindkey "^[[1;5C" forward-word  # Ctrl + Right
 bindkey "^[[1;5D" backward-word # Ctrl + Left
@@ -28,7 +29,7 @@ PATH=$PATH:/home/$USER/go/bin
 PATH=$PATH:/home/$USER/.local/bin
 export HOMEBREW_NO_AUTO_UPDATE=1
 # ---- Aliases ----
-alias update-all='sudo apt update && sudo apt upgrade && brew update && brew upgrade && brew cleanup'
+alias update-all='sudo apt update && sudo apt upgrade && sudo apt autoremove && brew update && brew upgrade && brew cleanup'
 alias cls='clear'
 alias ff='fastfetch'
 alias tf='terraform'

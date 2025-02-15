@@ -6,6 +6,7 @@ workers_dev = false
 routes = [
 	{ pattern = "linux.jfa.dev", custom_domain = true },
 	{ pattern = "win.jfa.dev", custom_domain = true },
+	{ pattern = "wsl.jfa.dev", custom_domain = true },
 ]
 
 [observability]

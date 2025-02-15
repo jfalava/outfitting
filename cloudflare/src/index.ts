@@ -1,9 +1,11 @@
 export default {
   async fetch(request: Request): Promise<Response> {
-    const linuxScriptUrl =
-      "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/linux-install-script.sh";
+    const wslScriptUrl =
+      "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/wsl-install-script.sh";
     const windowsScriptUrl =
       "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/windows-install-script.ps1";
+    const linuxScriptUrl =
+      "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/linux-install-script.ps1";
     const repoUrl = "https://github.com/jfalava/outfitting";
 
     const url = new URL(request.url);
@@ -12,7 +14,9 @@ export default {
     console.log("Host Header:", hostHeader);
 
     let scriptUrl: string;
-    if (hostHeader.includes("linux.jfa.dev")) {
+    if (hostHeader.includes("wsl.jfa.dev")) {
+      scriptUrl = wslScriptUrl;
+    } else if (hostHeader.includes("linux.jfa.dev")) {
       scriptUrl = linuxScriptUrl;
     } else if (hostHeader.includes("win.jfa.dev")) {
       scriptUrl = windowsScriptUrl;
