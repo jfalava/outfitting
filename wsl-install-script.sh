@@ -18,7 +18,7 @@ while IFS= read -r package || [ -n "$package" ]; do
         sudo apt install -y "$package"
     fi
 done </tmp/apt-packages.txt
-## add hashicorp repos
+## add hashicorp repo
 echo "🏗️ Adding HashiCorp repository and installing packages..."
 if ! grep -q hashicorp /etc/apt/sources.list.d/hashicorp.list; then
     wget -qO- https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg

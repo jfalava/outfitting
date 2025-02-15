@@ -12,7 +12,6 @@ setopt HIST_IGNORE_DUPS  # Ignore duplicate commands
 setopt HIST_IGNORE_SPACE # Ignore commands starting with a space
 setopt HIST_VERIFY       # Let you edit history before executing
 # ---- Navigation ----
-# Note: remove this when using anything but Windows Terminal
 # Ctrl + Arrow Keys (word-wise navigation)
 bindkey "^[[1;5C" forward-word  # Ctrl + Right
 bindkey "^[[1;5D" backward-word # Ctrl + Left

@@ -5,7 +5,7 @@ export default {
     const windowsScriptUrl =
       "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/windows-install-script.ps1";
     const linuxScriptUrl =
-      "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/linux-install-script.ps1";
+      "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/aptdesktop-install-script.sh";
     const repoUrl = "https://github.com/jfalava/outfitting";
 
     const url = new URL(request.url);
