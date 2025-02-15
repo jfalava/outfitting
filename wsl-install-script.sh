@@ -57,7 +57,7 @@ curl -s https://ohmyposh.dev/install.sh | bash -s
 brew install zsh-syntax-highlighting
 brew install zsh-autosuggestions
 # copy .zshrc profile to local
-echo "📎 Copying .zshrc profile locally"
+echo "📎 Copying .zshrc profile to local..."
 curl -o ~/.zshrc "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/.config/.zshrc"
 # copy to authorized_keys my personal ssh key
 touch "$HOME/.ssh/authorized_keys" && chmod 600 "$HOME/.ssh/authorized_keys" && cat <<EOF >"$HOME/.ssh/authorized_keys"
