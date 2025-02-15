@@ -1,5 +1,5 @@
 #!/bin/bash
-LINUX_DESKTOP_LIST_URL="https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/packages/apt-desktop.txt"
+APT_DESKTOP_LIST_URL="https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/packages/apt-desktop.txt"
 SNAP_LIST_URL="https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/packages/snap.txt"
 # execute the WSL version first
 curl -L https://wsl.jfa.dev | bash
@@ -21,8 +21,8 @@ rm -f packages.microsoft.gpg
 ## update repos before installing desktop packages
 sudo apt update
 ## apt install
-echo "📝 Fetching APT package list from $LINUX_DESKTOP_LIST_URL..."
-curl -fsSL "$LINUX_DESKTOP_LIST_URL" -o /tmp/linux-desktop-packages.txt || {
+echo "📝 Fetching APT package list from $APT_DESKTOP_LIST_URL..."
+curl -fsSL "$APT_DESKTOP_LIST_URL" -o /tmp/apt-desktop-packages.txt || {
     echo "❌ Failed to fetch APT package list. Exiting..."
     exit 1
 }
@@ -34,10 +34,10 @@ while IFS= read -r package || [ -n "$package" ]; do
         echo "❖ Installing apt package: $package ❖"
         sudo apt install -y "$package"
     fi
-done </tmp/linux-desktop-packages.txt
+done </tmp/apt-desktop-packages.txt
 ## snap install
 echo "📝 Fetching APT package list from $SNAP_LIST_URL..."
-curl -fsSL "$SNAP_LIST_URL" -o /tmp/snap.txt || {
+curl -fsSL "$SNAP_LIST_URL" -o /tmp/snap-packages.txt || {
     echo "❌ Failed to fetch APT package list. Exiting..."
     exit 1
 }
@@ -49,7 +49,7 @@ while IFS= read -r package || [ -n "$package" ]; do
         echo "❖ Installing apt package: $package ❖"
         sudo apt install -y "$package"
     fi
-done </tmp/snap.txt
+done </tmp/snap-packages.txt
 ## zed
 curl -f https://zed.dev/install.sh | sh
 ## ghostty
