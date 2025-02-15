@@ -24,8 +24,8 @@ jobs:
       - name: Verify WSL Script URL
         run: |
           LINUX_SCRIPT_URL='https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/wsl-install-script.sh'
-          if ! curl -L --fail -I -o /dev/null -s "$LINUX_SCRIPT_URL"; then
-            echo "::error::Linux script URL unreachable: $LINUX_SCRIPT_URL"
+          if ! curl -L --fail -I -o /dev/null -s "$WSL_SCRIPT_URL"; then
+            echo "::error::Linux script URL unreachable: $WSL_SCRIPT_URL"
             exit 1
           fi
 
@@ -34,6 +34,14 @@ jobs:
           WINDOWS_SCRIPT_URL='https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/windows-install-script.ps1'
           if ! curl -L --fail -I -o /dev/null -s "$WINDOWS_SCRIPT_URL"; then
             echo "::error::Windows script URL unreachable: $WINDOWS_SCRIPT_URL"
+            exit 1
+          fi
+
+      - name: Verify Desktop Linux Script URL
+        run: |
+          WINDOWS_SCRIPT_URL='https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/linux-desktop-install-script.sh'
+          if ! curl -L --fail -I -o /dev/null -s "$LINUX_SCRIPT_URL"; then
+            echo "::error::Windows script URL unreachable: $LINUX_SCRIPT_URL"
             exit 1
           fi
 

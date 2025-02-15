@@ -6,9 +6,9 @@ Scripts, dotfiles and lambdas for the automatic outfitting of my personal machin
 
 Single command package installation.
 
-### How to Run
+## How to run the automatic installation scripts
 
-#### Windows
+### Windows
 
 > [!TIP]
 > Run this in an elevated PowerShell window for unattended installation.
@@ -21,23 +21,28 @@ Single command package installation.
 irm win.jfa.dev | iex
 ```
 
-#### Linux
+### Linux
 
 > [!NOTE]
-> For now this is designed exclusively for `apt`-based Linux distributions.
+> This is designed exclusively for `apt`-based Linux distributions.
 
-> [!WARNING]
+> [!CAUTION]
 > Do **not** run this as `sudo` as it uses Homebrew as one of the package managers.
+
+#### WSL
 
 ```bash
 curl -L wsl.jfa.dev | bash
 ```
 
-## How It Works
+#### Desktop
 
-* This [Cloudflare Worker](/cloudflare/src/index.ts) serves platform-specific installation scripts based on the request [hostname](/cloudflare/wrangler.toml).
-* The scripts are fetched from GitHub and returned with appropriate content types.
-* Then, the scripts are executed, installing and updating packages, settings and profiles.
+> [!NOTE]
+> This script will piggyback from the WSL script, as it installs basic and CLI packages.
+
+```bash
+curl -L linux.jfa.dev | bash
+```
 
 ## TODO
 
