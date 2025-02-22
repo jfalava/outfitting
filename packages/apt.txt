@@ -16,6 +16,7 @@ libxml2-dev
 libxslt1-dev
 libgtk-4-dev
 libadwaita-1-dev
+libfuse2t64
 git
 unzip
 wget
