@@ -10,3 +10,4 @@ ffmpeg
 optipng
 zig
 ripgrep
+lazygit

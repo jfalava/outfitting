@@ -67,3 +67,4 @@ Mozilla.Thunderbird.es-ES
 Proton.ProtonVPN
 Fortinet.FortiClientVPN
 OpenJS.NodeJS
+JesseDuffield.lazygit
