@@ -72,9 +72,11 @@ echo "📎 Copying Zed .config file to local..."
 curl -o ~/.config/zed/settings.json "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/.config/.zed_settings.jsonc"
 ## ghostty
 curl -f https://raw.githubusercontent.com/mkasberg/ghostty-ubuntu/HEAD/install.sh | bash
-# copy .zshrc profile to local
-echo "📎 Copying Ghostty .config file to local..."
-curl -o ~/.config/ghostty "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/.config/.ghostty"
+# bun
+curl -fsSL https://bun.sh/install | bash
 ## deno
 curl -fsSL https://deno.land/install.sh | sh
 deno jupyter --install
+# copy .zshrc profile to local
+echo "📎 Copying Ghostty .config file to local..."
+curl -o ~/.config/ghostty "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/.config/.ghostty"
