@@ -32,12 +32,13 @@
     "vscode-icons": true,
     "xcode-themes": true,
     "xml": true,
+    "zed-legacy-extensions": true,
   },
   "icon_theme": "VSCode Icons (Dark)",
   "theme": {
     "mode": "system",
     "light": "Tokyo Night Light",
-    "dark": "Xcode Classic Darker",
+    "dark": "Zed Legacy:  Andromeda",
   },
   "base_keymap": "VSCode",
   "confirm_quit": true,
@@ -53,23 +54,19 @@
     "dock": "right",
   },
   "soft_wrap": "editor_width",
-  "ui_font_size": 18,
+  "ui_font_size": 16,
   "ui_font_family": "Pretendard Variable",
   "buffer_font_features": {
     "calt": true,
   },
-  "buffer_font_size": 15.0,
+  "buffer_font_size": 17.0,
   "buffer_font_weight": 400,
   "buffer_font_family": "Geist Mono",
   "terminal": {
-    "dock": "right",
+    "dock": "left",
     "font_family": "GeistMono Nerd Font Propo",
     "font_size": 14,
     "font_weight": 400,
-    // "shell": {
-    //   "with_arguments": { "program": "pwsh", "args": [] },
-    // },
-    // uncomment if windows
   },
   "jupyter": {
     "kernel_selections": {
@@ -77,57 +74,4 @@
       "javascript": "deno",
     },
   },
-  // uncomment if windows
-  // "lsp": {
-  //   "astro-language-server": {
-  //     "binary": {
-  //       "path": "C:\\Program Files\\nodejs\\node.exe",
-  //       "arguments": [
-  //         "C:\\Users\\jfalava\\AppData\\Local\\Zed\\extensions\\work\\astro\\node_modules\\@astrojs\\language-server\\bin\\nodeServer.js",
-  //         "--stdio"
-  //       ]
-  //     },
-  //     "initialization_options": {
-  //       "typescript": {
-  //         "tsdk": "C:\\Users\\jfalava\\AppData\\Local\\Zed\\extensions\\work\\astro\\node_modules\\typescript\\lib"
-  //       }
-  //     }
-  //   },
-  //   "vscode-html-language-server": {
-  //     "binary": {
-  //       "path": "C:\\Program Files\\nodejs\\node.exe",
-  //       "arguments": [
-  //         "C:\\Users\\jfalava\\AppData\\Local\\Zed\\extensions\\work\\html\\node_modules\\@zed-industries\\vscode-langservers-extracted\\bin\\vscode-html-language-server",
-  //         "--stdio"
-  //       ]
-  //     }
-  //   },
-  //   "emmet-language-server": {
-  //     "binary": {
-  //       "path": "C:\\Program Files\\nodejs\\node.exe",
-  //       "arguments": [
-  //         "C:\\Users\\jfalava\\AppData\\Local\\Zed\\extensions\\work\\emmet\\node_modules\\.bin\\emmet-language-server",
-  //         "--stdio"
-  //       ]
-  //     }
-  //   },
-  //   "unocss-language-server": {
-  //     "binary": {
-  //       "path": "C:\\Program Files\\nodejs\\node.exe",
-  //       "arguments": [
-  //         "C:\\Users\\jfalava\\AppData\\Local\\Zed\\extensions\\work\\unocss\\node_modules\\unocss-language-server\\bin\\index.js",
-  //         "--stdio"
-  //       ]
-  //     }
-  //   },
-  //   "docker-compose": {
-  //     "binary": {
-  //       "path": "C:\\Program Files\\nodejs\\node.exe",
-  //       "arguments": [
-  //         "C:\\Users\\jfalava\\AppData\\Local\\Zed\\extensions\\work\\docker-compose\\node_modules\\.bin\\docker-compose-langserver",
-  //         "--stdio"
-  //       ]
-  //     }
-  //   }
-  // }
 }
