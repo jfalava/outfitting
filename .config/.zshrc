@@ -1,3 +1,5 @@
+# Add deno completions to search path
+if [[ ":$FPATH:" != *":/home/jfalava/.zsh/completions:"* ]]; then export FPATH="/home/jfalava/.zsh/completions:$FPATH"; fi
 # ---- History ----
 # Location of the history file
 HISTFILE=~/.zsh_history
@@ -28,7 +30,7 @@ PATH=$PATH:/home/$USER/go/bin
 PATH=$PATH:/home/$USER/.local/bin
 export HOMEBREW_NO_AUTO_UPDATE=1
 # ---- Aliases ----
-alias update-all='sudo apt update && sudo apt upgrade && sudo apt autoremove -y && brew update && brew upgrade && brew cleanup'
+alias update-all='sudo apt update && sudo apt upgrade && sudo apt autoremove && brew update && brew upgrade && brew cleanup'
 alias cls='clear'
 alias ff='fastfetch'
 alias tf='terraform'
@@ -40,3 +42,4 @@ eval "$(oh-my-posh init zsh --config https://raw.githubusercontent.com/JanDeDobb
 source /home/linuxbrew/.linuxbrew/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
 source $(brew --prefix)/share/zsh-autosuggestions/zsh-autosuggestions.zsh
 eval "$(zoxide init zsh)"
+. "/home/jfalava/.deno/env"
