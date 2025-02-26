@@ -56,6 +56,11 @@ echo "💻 Installing OhMyPosh"
 curl -s https://ohmyposh.dev/install.sh | bash -s
 brew install zsh-syntax-highlighting
 brew install zsh-autosuggestions
+# bun
+curl -fsSL https://bun.sh/install | bash
+## deno
+curl -fsSL https://deno.land/install.sh | sh
+deno jupyter --install
 # copy .zshrc profile to local
 echo "📎 Copying .zshrc profile to local..."
 curl -o ~/.zshrc "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/.config/.zshrc"

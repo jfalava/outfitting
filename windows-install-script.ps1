@@ -4,15 +4,18 @@ winget --info
 $wingetPackagesUrl = "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/packages/winget.txt"
 $msStorePackagesUrl = "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/packages/msstore-winget.txt"
 $psModulesUrl = "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/packages/pwsh-modules.txt"
+$scoopPackagesUrl = "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/packages/scoop.txt"
 $wingetPackagesFile = "$env:TEMP\winget.txt"
 $msStorePackagesFile = "$env:TEMP\msstore-winget.txt"
 $psModulesFile = "$env:TEMP\psmodules.txt"
+$scoopPackagesFile = "$env:TEMP\scoop.txt"
 
 # download the files
 try {
     Invoke-WebRequest -Uri $wingetPackagesUrl -OutFile $wingetPackagesFile
     Invoke-WebRequest -Uri $msStorePackagesUrl -OutFile $msStorePackagesFile
     Invoke-WebRequest -Uri $psModulesUrl -OutFile $psModulesFile
+    Invoke-WebRequest -Uri $scoopPackagesUrl -OutFile $scoopPackagesFile
 } catch {
     Write-Host "❌ Failed to download package lists: $_" -ForegroundColor Red
     exit 1
@@ -77,6 +80,13 @@ Install-WingetPackages -filePath $msStorePackagesFile
 Write-Host "📦 Installing PowerShell modules..."
 Install-PSModules -filePath $psModulesFile
 
+# install scoop
+Invoke-RestMethod -Uri https://get.scoop.sh | Invoke-Expression
+
+# other packages
+irm https://deno.land/install.ps1 | iex
+powershell -c "irm bun.sh/install.ps1 | iex"
+
 # cleanup temporary files
 Remove-Item $wingetPackagesFile -ErrorAction SilentlyContinue
 Remove-Item $msStorePackagesFile -ErrorAction SilentlyContinue
@@ -87,12 +97,6 @@ Write-Host "📎 Copying the PowerShell profile locally..."
 New-Item -Path "$env:USERPROFILE\Documents\PowerShell" -ItemType Directory -Force; curl.exe -o "$env:USERPROFILE\Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1" "https://   raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/.config/Microsoft.PowerShell_profile.ps1"
 New-Item -Path "$env:USERPROFILE\Documents\WindowsPowerShell" -ItemType Directory -Force; curl.exe -o "$env:USERPROFILE\Documents\PowerShell\Microsoft.PowerShell_profile.ps1" "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/.config/Microsoft.PowerShell_profile.ps1"
 New-Item -Path "$env:USERPROFILE\Documents\WindowsPowerShell" -ItemType Directory -Force; curl.exe -o "$env:USERPROFILE\Documents\PowerShell\Microsoft.VSCode_profile.ps1" "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/.config/Microsoft.PowerShell_profile.ps1"
-
-# install scoop
-Invoke-RestMethod -Uri https://get.scoop.sh | Invoke-Expression
-
-# other packages
-irm https://deno.land/install.ps1 | iex
 
 ## end message
 Write-Host "✅ All installations complete."
