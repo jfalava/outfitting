@@ -1,9 +1,10 @@
 {
+  "show_edit_predictions": false,
   "notification_panel": {
     "dock": "left",
   },
   "features": {
-    "edit_prediction_provider": "none",
+    "edit_prediction_provider": "zed",
   },
   "auto_install_extensions": {
     "astro": true,
@@ -16,24 +17,27 @@
     "git-firefly": true,
     "html": true,
     "nginx": true,
+    "ini": true,
     "php": true,
     "powershell": true,
     "pylsp": true,
     "rainbow-csv": true,
     "sql": true,
+    "symbols": true,
     "terraform": true,
     "tmux": true,
     "tokyo-night": true,
     "toml": true,
     "unocss": true,
     "vscode-icons": true,
+    "xcode-themes": true,
     "xml": true,
   },
   "icon_theme": "VSCode Icons (Dark)",
   "theme": {
     "mode": "system",
     "light": "Tokyo Night Light",
-    "dark": "Tokyo Night",
+    "dark": "Xcode Classic Darker",
   },
   "base_keymap": "VSCode",
   "confirm_quit": true,
@@ -41,7 +45,7 @@
     "dock": "left",
     "default_model": {
       "provider": "zed.dev",
-      "model": "claude-3-5-sonnet-latest",
+      "model": "claude-3-7-sonnet-latest",
     },
     "version": "2",
   },
@@ -49,12 +53,12 @@
     "dock": "right",
   },
   "soft_wrap": "editor_width",
-  "ui_font_size": 20,
+  "ui_font_size": 18,
   "ui_font_family": "Pretendard Variable",
   "buffer_font_features": {
     "calt": true,
   },
-  "buffer_font_size": 16.0,
+  "buffer_font_size": 15.0,
   "buffer_font_weight": 400,
   "buffer_font_family": "Geist Mono",
   "terminal": {
@@ -73,39 +77,57 @@
       "javascript": "deno",
     },
   },
+  // uncomment if windows
   // "lsp": {
-  //   "emmet-language-server": {
-  //     "binary": {
-  //       "path": "C:\\Program Files\\nodejs\\node.exe",
-  //       "arguments": [
-  //         "C:\\Users\\jfalava\\AppData\\Local\\Zed\\extensions\\work\\emmet\\node_modules\\@olrtg\\emmet-language-server\\dist\\index.js",
-  //         "--stdio",
-  //       ],
-  //     },
-  //   },
   //   "astro-language-server": {
   //     "binary": {
   //       "path": "C:\\Program Files\\nodejs\\node.exe",
   //       "arguments": [
   //         "C:\\Users\\jfalava\\AppData\\Local\\Zed\\extensions\\work\\astro\\node_modules\\@astrojs\\language-server\\bin\\nodeServer.js",
-  //         "--stdio",
-  //       ],
+  //         "--stdio"
+  //       ]
   //     },
   //     "initialization_options": {
   //       "typescript": {
-  //         "tsdk": "C:\\Users\\jfalava\\AppData\\Local\\Zed\\extensions\\work\\astro\\node_modules\\typescript\\lib",
-  //       },
-  //     },
+  //         "tsdk": "C:\\Users\\jfalava\\AppData\\Local\\Zed\\extensions\\work\\astro\\node_modules\\typescript\\lib"
+  //       }
+  //     }
+  //   },
+  //   "vscode-html-language-server": {
+  //     "binary": {
+  //       "path": "C:\\Program Files\\nodejs\\node.exe",
+  //       "arguments": [
+  //         "C:\\Users\\jfalava\\AppData\\Local\\Zed\\extensions\\work\\html\\node_modules\\@zed-industries\\vscode-langservers-extracted\\bin\\vscode-html-language-server",
+  //         "--stdio"
+  //       ]
+  //     }
+  //   },
+  //   "emmet-language-server": {
+  //     "binary": {
+  //       "path": "C:\\Program Files\\nodejs\\node.exe",
+  //       "arguments": [
+  //         "C:\\Users\\jfalava\\AppData\\Local\\Zed\\extensions\\work\\emmet\\node_modules\\.bin\\emmet-language-server",
+  //         "--stdio"
+  //       ]
+  //     }
   //   },
   //   "unocss-language-server": {
   //     "binary": {
   //       "path": "C:\\Program Files\\nodejs\\node.exe",
   //       "arguments": [
   //         "C:\\Users\\jfalava\\AppData\\Local\\Zed\\extensions\\work\\unocss\\node_modules\\unocss-language-server\\bin\\index.js",
-  //         "--stdio",
-  //       ],
-  //     },
+  //         "--stdio"
+  //       ]
+  //     }
   //   },
-  // },
-  // uncomment if windows
+  //   "docker-compose": {
+  //     "binary": {
+  //       "path": "C:\\Program Files\\nodejs\\node.exe",
+  //       "arguments": [
+  //         "C:\\Users\\jfalava\\AppData\\Local\\Zed\\extensions\\work\\docker-compose\\node_modules\\.bin\\docker-compose-langserver",
+  //         "--stdio"
+  //       ]
+  //     }
+  //   }
+  // }
 }

@@ -28,7 +28,7 @@ PATH=$PATH:/home/$USER/go/bin
 PATH=$PATH:/home/$USER/.local/bin
 export HOMEBREW_NO_AUTO_UPDATE=1
 # ---- Aliases ----
-alias update-all='sudo apt update && sudo apt upgrade && sudo apt autoremove && brew update && brew upgrade && brew cleanup'
+alias update-all='sudo apt update && sudo apt upgrade && sudo apt autoremove -y && brew update && brew upgrade && brew cleanup'
 alias cls='clear'
 alias ff='fastfetch'
 alias tf='terraform'
