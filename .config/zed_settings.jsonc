@@ -74,4 +74,11 @@
       "javascript": "deno",
     },
   },
+  // "lsp": {
+  //   "powershell-es": {
+  //     "binary": {
+  //       "path": "/usr/bin/pwsh" // uncomment if linux
+  //     }
+  //   }
+  // }
 }
