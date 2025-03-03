@@ -78,7 +78,58 @@
   //   "powershell-es": {
   //     "binary": {
   //       "path": "/usr/bin/pwsh" // uncomment if linux
+  //       "path": "C:\\Program Files\\PowerShell\\7\\pwsh.exe" // uncomment if windows
   //     }
+  //   }
+  // }
+  //     "astro-language-server": { // uncomment if windows
+  //   "binary": {
+  //     "path": "C:\\Program Files\\nodejs\\node.exe",
+  //     "arguments": [
+  //       "C:\\Users\\jfalava\\AppData\\Local\\Zed\\extensions\\work\\astro\\node_modules\\@astrojs\\language-server\\bin\\nodeServer.js",
+  //       "--stdio"
+  //     ]
+  //   },
+  //   "initialization_options": {
+  //     "typescript": {
+  //       "tsdk": "C:\\Users\\jfalava\\AppData\\Local\\Zed\\extensions\\work\\astro\\node_modules\\typescript\\lib"
+  //     }
+  //   }
+  // },
+  // "vscode-html-language-server": { // uncomment if windows
+  //   "binary": {
+  //     "path": "C:\\Program Files\\nodejs\\node.exe",
+  //     "arguments": [
+  //       "C:\\Users\\jfalava\\AppData\\Local\\Zed\\extensions\\work\\html\\node_modules\\@zed-industries\\vscode-langservers-extracted\\bin\\vscode-html-language-server",
+  //       "--stdio"
+  //     ]
+  //   }
+  // },
+  // "emmet-language-server": { // uncomment if windows
+  //   "binary": {
+  //     "path": "C:\\Program Files\\nodejs\\node.exe",
+  //     "arguments": [
+  //       "C:\\Users\\jfalava\\AppData\\Local\\Zed\\extensions\\work\\emmet\\node_modules\\.bin\\emmet-language-server",
+  //       "--stdio"
+  //     ]
+  //   }
+  // },
+  // "unocss-language-server": { // uncomment if windows
+  //   "binary": {
+  //     "path": "C:\\Program Files\\nodejs\\node.exe",
+  //     "arguments": [
+  //       "C:\\Users\\jfalava\\AppData\\Local\\Zed\\extensions\\work\\unocss\\node_modules\\unocss-language-server\\bin\\index.js",
+  //       "--stdio"
+  //     ]
+  //   }
+  // },
+  // "docker-compose": { // uncomment if windows
+  //   "binary": {
+  //     "path": "C:\\Program Files\\nodejs\\node.exe",
+  //     "arguments": [
+  //       "C:\\Users\\jfalava\\AppData\\Local\\Zed\\extensions\\work\\docker-compose\\node_modules\\.bin\\docker-compose-langserver",
+  //       "--stdio"
+  //     ]
   //   }
   // }
 }
