@@ -42,7 +42,7 @@
   "theme": {
     "mode": "system",
     "light": "Xcode Bare",
-    "dark": "Zed Legacy: Andromeda",
+    "dark": "Zed Legacy:  Andromeda",
   },
   "base_keymap": "VSCode",
   "confirm_quit": true,
