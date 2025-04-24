@@ -35,10 +35,10 @@ alias cls='clear'
 alias ff='fastfetch'
 alias tf='terraform'
 alias l='eza --color=always --long --git --no-filesize --icons=always'
-alias ls='eza --color=always --long --git --no-filesize --icons=always --all'
+alias ls='eza --color=always --long --git --no-filesize --icons=always --all --color-scale-mode=gradient'
 # ---- Sources ----
 eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-eval "$(oh-my-posh init zsh --config https://raw.githubusercontent.com/JanDeDobbeleer/oh-my-posh/refs/heads/main/themes/wopian.omp.json)"
+eval "$(oh-my-posh init zsh --config https://raw.githubusercontent.com/JanDeDobbeleer/oh-my-posh/refs/heads/main/themes/avit.omp.json)"
 source /home/linuxbrew/.linuxbrew/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
 source $(brew --prefix)/share/zsh-autosuggestions/zsh-autosuggestions.zsh
 eval "$(zoxide init zsh)"
@@ -51,3 +51,6 @@ case ":$PATH:" in
   *) export PATH="$PNPM_HOME:$PATH" ;;
 esac
 # pnpm end
+# Initialize zsh completions (added by deno install script)
+autoload -Uz compinit
+compinit

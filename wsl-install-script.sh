@@ -61,6 +61,12 @@ curl -fsSL https://bun.sh/install | bash
 ## deno
 curl -fsSL https://deno.land/install.sh | sh
 deno jupyter --install
+## pnpm
+curl -fsSL https://get.pnpm.io/install.sh | sh -
+## eza colors
+mkdir -p ~/.config/eza
+touch ~/.config/theme.yml
+curl -sL https://raw.githubusercontent.com/eza-community/eza-themes/refs/heads/main/themes/tokyonight.yml > ~/.config/eza/theme.yml
 # copy .zshrc profile to local
 echo "📎 Copying .zshrc profile to local..."
 curl -o ~/.zshrc "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/.config/.zshrc"
