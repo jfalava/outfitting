@@ -51,7 +51,9 @@ while IFS= read -r package || [ -n "$package" ]; do
     fi
 done </tmp/snap-packages.txt
 ## zed
+echo "🖊 Installing Zed..."
 curl -f https://zed.dev/install.sh | sh
+curl -o ~/.config/zed/settings.json "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/.config/.zed_settings.jsonc"
 ### make it the default plain text editor
 sudo touch /usr/share/applications/zed.desktop && sudo chmod +x /usr/share/applications/zed.desktop && sudo cat <<EOF >"/usr/share/applications/zed.desktop"
 [Desktop Entry]
@@ -67,16 +69,15 @@ StartupNotify=true
 EOF
 sudo mkdir /usr/share/icons/app-icons && sudo mkdir /usr/share/icons/app-icons/zed && sudo curl -o /usr/share/icons/app-icons/zed/zed-icon.png "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/.config/icons/zed-icon.png" && sudo chmod 644 zed-icon.png
 xdg-mime default zed.desktop text/plain
-# copy .zshrc profile to local
-echo "📎 Copying Zed .config file to local..."
-curl -o ~/.config/zed/settings.json "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/.config/.zed_settings.jsonc"
 ## ghostty
+echo "🖊 Installing Ghostty..."
 curl -f https://raw.githubusercontent.com/mkasberg/ghostty-ubuntu/HEAD/install.sh | bash
-# bun
-curl -fsSL https://bun.sh/install | bash
-## deno
-curl -fsSL https://deno.land/install.sh | sh
-deno jupyter --install
-# copy .zshrc profile to local
 echo "📎 Copying Ghostty .config file to local..."
 curl -o ~/.config/ghostty "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/.config/.ghostty"
+## bun
+echo "🐇 Installing Bun..."
+curl -fsSL https://bun.sh/install | bash
+## deno
+echo "🦕 Installing Deno..."
+curl -fsSL https://deno.land/install.sh | sh
+deno jupyter --install

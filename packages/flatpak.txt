@@ -1,2 +1,0 @@
-org.telegram.desktop
-app.zen_browser.zen

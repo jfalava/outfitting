@@ -35,10 +35,13 @@ irm win.jfa.dev | iex
 curl -L wsl.jfa.dev | bash
 ```
 
-#### Desktop
+#### Ubuntu/Debian
 
 > [!NOTE]
 > This script will piggyback from the WSL script, as it installs basic and CLI packages.
+
+> [!NOTE]
+> This has been only tested on Ubuntu 24.
 
 ```bash
 curl -L linux.jfa.dev | bash

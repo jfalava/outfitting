@@ -1,5 +1,15 @@
 {
-  "show_edit_predictions": false,
+  "edit_predictions": {
+    "mode": "subtle",
+    "copilot": {
+      "proxy": null,
+      "proxy_no_verify": null,
+    },
+    "enabled_in_assistant": false,
+  },
+  "git_panel": {
+    "dock": "right",
+  },
   "notification_panel": {
     "dock": "left",
   },
@@ -50,7 +60,7 @@
     "dock": "left",
     "default_model": {
       "provider": "zed.dev",
-      "model": "claude-3-7-sonnet-latest",
+      "model": "claude-3-5-sonnet-latest",
     },
     "version": "2",
   },
@@ -92,64 +102,5 @@
   "telemetry": {
     "diagnostics": true,
     "metrics": true,
-  },
-  "lsp": {
-    "powershell-es": {
-      "binary": {
-        // "path": "C:\\Program Files\\PowerShell\\7\\pwsh.exe", // uncomment on windows
-        // "path": "/usr/bin/pwsh" // uncomment on linux
-      },
-    },
-    // uncomment on windows
-    // "astro-language-server": {
-    //   "binary": {
-    //     "path": "C:\\Program Files\\nodejs\\node.exe",
-    //     "arguments": [
-    //       "C:\\Users\\jalava\\AppData\\Local\\Zed\\extensions\\work\\astro\\node_modules\\@astrojs\\language-server\\bin\\nodeServer.js",
-    //       "--stdio",
-    //     ],
-    //   },
-    //   "initialization_options": {
-    //     "typescript": {
-    //       "tsdk": "C:\\Users\\jalava\\AppData\\Local\\Zed\\extensions\\work\\astro\\node_modules\\typescript\\lib",
-    //     },
-    //   },
-    // },
-    // "vscode-html-language-server": {
-    //   "binary": {
-    //     "path": "C:\\Program Files\\nodejs\\node.exe",
-    //     "arguments": [
-    //       "C:\\Users\\jalava\\AppData\\Local\\Zed\\extensions\\work\\html\\node_modules\\@zed-industries\\vscode-langservers-extracted\\bin\\vscode-html-language-server",
-    //       "--stdio",
-    //     ],
-    //   },
-    // },
-    // "emmet-language-server": {
-    //   "binary": {
-    //     "path": "C:\\Program Files\\nodejs\\node.exe",
-    //     "arguments": [
-    //       "C:\\Users\\jalava\\AppData\\Local\\Zed\\extensions\\work\\emmet\\node_modules\\.bin\\emmet-language-server",
-    //       "--stdio",
-    //     ],
-    //   },
-    // },
-    // "unocss-language-server": {
-    //   "binary": {
-    //     "path": "C:\\Program Files\\nodejs\\node.exe",
-    //     "arguments": [
-    //       "C:\\Users\\jalava\\AppData\\Local\\Zed\\extensions\\work\\unocss\\node_modules\\unocss-language-server\\bin\\index.js",
-    //       "--stdio",
-    //     ],
-    //   },
-    // },
-    // "docker-compose": {
-    //   "binary": {
-    //     "path": "C:\\Program Files\\nodejs\\node.exe",
-    //     "arguments": [
-    //       "C:\\Users\\jalava\\AppData\\Local\\Zed\\extensions\\work\\docker-compose\\node_modules\\.bin\\docker-compose-langserver",
-    //       "--stdio",
-    //     ],
-    //   },
-    // },
   },
 }
