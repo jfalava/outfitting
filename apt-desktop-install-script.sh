@@ -54,26 +54,12 @@ done </tmp/snap-packages.txt
 echo "🖊 Installing Zed..."
 curl -f https://zed.dev/install.sh | sh
 curl -o ~/.config/zed/settings.json "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/.config/.zed_settings.jsonc"
-### make it the default plain text editor
-sudo touch /usr/share/applications/zed.desktop && sudo chmod +x /usr/share/applications/zed.desktop && sudo cat <<EOF >"/usr/share/applications/zed.desktop"
-[Desktop Entry]
-Name=Zed
-Comment=Code at the speed of thought
-Exec=/home/jfalava/.local/bin/zed %F
-Icon=/usr/share/icons/app-icons/zed/zed-icon.png
-Terminal=false
-Type=Application
-Categories=Utility;TextEditor;
-MimeType=text/plain;
-StartupNotify=true
-EOF
-sudo mkdir /usr/share/icons/app-icons && sudo mkdir /usr/share/icons/app-icons/zed && sudo curl -o /usr/share/icons/app-icons/zed/zed-icon.png "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/.config/icons/zed-icon.png" && sudo chmod 644 zed-icon.png
-xdg-mime default zed.desktop text/plain
 ## ghostty
 echo "🖊 Installing Ghostty..."
 curl -f https://raw.githubusercontent.com/mkasberg/ghostty-ubuntu/HEAD/install.sh | bash
 echo "📎 Copying Ghostty .config file to local..."
 curl -o ~/.config/ghostty "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/.config/.ghostty"
+gsettings set org.gnome.desktop.default-applications.terminal exec 'ghostty'
 ## bun
 echo "🐇 Installing Bun..."
 curl -fsSL https://bun.sh/install | bash
