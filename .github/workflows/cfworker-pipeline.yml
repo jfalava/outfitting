@@ -39,9 +39,9 @@ jobs:
 
       - name: Verify Desktop Linux Script URL
         run: |
-          LINUX_SCRIPT_URL='https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/linux-desktop-install-script.sh'
-          if ! curl -L --fail -I -o /dev/null -s "$LINUX_SCRIPT_URL"; then
-            echo "::error::Windows script URL unreachable: $LINUX_SCRIPT_URL"
+          APT_SCRIPT_URL='https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/apt-desktop-install-script.sh'
+          if ! curl -L --fail -I -o /dev/null -s "$APT_SCRIPT_URL"; then
+            echo "::error::Windows script URL unreachable: $APT_SCRIPT_URL"
             exit 1
           fi
 

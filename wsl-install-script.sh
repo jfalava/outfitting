@@ -73,8 +73,7 @@ curl -o ~/.zshrc "https://raw.githubusercontent.com/jfalava/outfitting/refs/head
 # copy .zshrc profile to local
 echo "📎 Copying OhMyPosh profile to local..."
 mkdir -p ~/.config/ohmyposh
-curl -o ~/.config/ohmyposh/schema.json "https://raw.githubusercontent.com/JanDeDobbeleer/oh-my-posh/main/themes/schema.json"
-curl -o ~/.config/ohmyposh/profile.omp.json "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/.config/profile.omp.json"
+curl -sL https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/.config/profile.omp.json > ~/.config/ohmyposh/profile.omp.json
 # copy to authorized_keys my personal ssh key
 touch "$HOME/.ssh/authorized_keys" && chmod 600 "$HOME/.ssh/authorized_keys" && cat <<EOF >"$HOME/.ssh/authorized_keys"
 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH/ZCjYpPjJfn/kvGDwpHSGJ6WHR655PpQQij06APHuT
