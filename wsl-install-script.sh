@@ -67,6 +67,9 @@ curl -fsSL https://get.pnpm.io/install.sh | sh -
 mkdir -p ~/.config/eza
 touch ~/.config/theme.yml
 curl -sL https://raw.githubusercontent.com/eza-community/eza-themes/refs/heads/main/themes/tokyonight.yml > ~/.config/eza/theme.yml
+# copy .gitconfig profile to local
+echo "📎 Copying .gitconfig profile to local..."
+curl -o ~/.gitconfig "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/.config/.gitconfig"
 # copy .zshrc profile to local
 echo "📎 Copying .zshrc profile to local..."
 curl -o ~/.zshrc "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/.config/.zshrc"
@@ -75,9 +78,11 @@ echo "📎 Copying OhMyPosh profile to local..."
 mkdir -p ~/.config/ohmyposh
 curl -sL https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/.config/profile.omp.json > ~/.config/ohmyposh/profile.omp.json
 # copy to authorized_keys my personal ssh key
+mkdir -p ~/.ssh
 touch "$HOME/.ssh/authorized_keys" && chmod 600 "$HOME/.ssh/authorized_keys" && cat <<EOF >"$HOME/.ssh/authorized_keys"
 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH/ZCjYpPjJfn/kvGDwpHSGJ6WHR655PpQQij06APHuT
 
 EOF
+touch ~/.ssh/jfalava-gitSign-elliptic.pem
 ## end message
 echo "✅ All installations complete. You may now open a new terminal tab or window."

@@ -1,26 +1,26 @@
-[user]
-  name = Jorge Fernando Álava
-  email = git@jfa.dev
-	signingkey = /home/jfalava/.ssh/jfalava-gitSign-elliptic.pem
-[alias]
-  undo = reset --soft HEAD^
-[gpg]
-	format = ssh
-[commit]
-	gpgsign = true
-
 ; [user]
-; name = Jorge Fernando Álava
-; email = git@jfa.dev
-; 		signingkey = ~\.ssh\jfalava-gitSign-elliptic.pem
+;   name = Jorge Fernando Álava
+;   email = git@jfa.dev
+; 	signingkey = /home/jfalava/.ssh/jfalava-gitSign-elliptic.pem
 ; [alias]
 ;   undo = reset --soft HEAD^
 ; [gpg]
-; 		format = ssh
+; 	format = ssh
 ; [commit]
-; 		gpgsign = true
+; 	gpgsign = true
+
+; [user]
+;     name = Jorge Fernando Álava
+;     email = git@jfa.dev
+;     signingkey = "C:\\Users\\jfalava\\.ssh\\jfalava-gitSign-elliptic.pem"
+; [alias]
+;     undo = reset --soft HEAD^
+; [gpg]
+;     format = ssh
+; [commit]
+;     gpgsign = true
 ; [filter "lfs"]
-; required = true
-; clean = git-lfs clean -- %f
-; smudge = git-lfs smudge -- %f
-; process = git-lfs filter-process
+;     required = true
+;     clean = git-lfs clean -- %f
+;     smudge = git-lfs smudge -- %f
+;     process = git-lfs filter-process
