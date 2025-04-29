@@ -5,7 +5,7 @@ export default {
     const windowsScriptUrl =
       "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/windows-install-script.ps1";
     const linuxScriptUrl =
-      "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/linux-desktop-install-script.sh";
+      "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/apt-desktop-install-script.sh";
     const repoUrl = "https://github.com/jfalava/outfitting";
 
     const url = new URL(request.url);
@@ -16,7 +16,7 @@ export default {
     let scriptUrl: string;
     if (hostHeader.includes("wsl.jfa.dev")) {
       scriptUrl = wslScriptUrl;
-    } else if (hostHeader.includes("linux.jfa.dev")) {
+    } else if (hostHeader.includes("apt.jfa.dev")) {
       scriptUrl = linuxScriptUrl;
     } else if (hostHeader.includes("win.jfa.dev")) {
       scriptUrl = windowsScriptUrl;
