@@ -54,3 +54,5 @@ esac
 # Initialize zsh completions (added by deno install script)
 autoload -Uz compinit
 compinit
+# SSH
+export SSH_AUTH_SOCK=$XDG_RUNTIME_DIR/gcr/ssh

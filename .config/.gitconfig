@@ -1,8 +1,10 @@
 [user]
   name = Jorge Fernando Álava
   email = git@jfa.dev
-	signingkey = /home/jfalava/.ssh/jfalava-gitSign-elliptic.pub
+	signingkey = /home/jfalava/.ssh/jfalava-gitSign-elliptic.pem
 [alias]
   undo = reset --soft HEAD^
 [gpg]
 	format = ssh
+[commit]
+	gpgsign = true
