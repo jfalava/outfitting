@@ -44,7 +44,7 @@ curl -L wsl.jfa.dev | bash
 > This has been only tested on Ubuntu 24.
 
 ```bash
-curl -L linux.jfa.dev | bash
+curl -L apt.jfa.dev | bash
 ```
 
 ## TODO
