@@ -41,6 +41,12 @@
       "segments": [
         {
           "foreground": "#007ACC",
+          "style": "powerline",
+          "template": "{{ .Icon }}",
+          "type": "os"
+        },
+        {
+          "foreground": "#007ACC",
           "style": "plain",
           "template": "\u279c",
           "type": "text"
