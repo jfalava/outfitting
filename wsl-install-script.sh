@@ -60,13 +60,14 @@ brew install zsh-autosuggestions
 curl -fsSL https://bun.sh/install | bash
 ## deno
 curl -fsSL https://deno.land/install.sh | sh
+source .bashrc
 deno jupyter --install
 ## pnpm
 curl -fsSL https://get.pnpm.io/install.sh | sh -
 ## eza colors
 mkdir -p ~/.config/eza
 touch ~/.config/theme.yml
-curl -sL https://raw.githubusercontent.com/eza-community/eza-themes/refs/heads/main/themes/tokyonight.yml > ~/.config/eza/theme.yml
+curl -sL https://raw.githubusercontent.com/eza-community/eza-themes/refs/heads/main/themes/tokyonight.yml >~/.config/eza/theme.yml
 # copy .gitconfig profile to local
 echo "📎 Copying .gitconfig profile to local..."
 curl -o ~/.gitconfig "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/.config/.gitconfig"
@@ -76,7 +77,7 @@ curl -o ~/.zshrc "https://raw.githubusercontent.com/jfalava/outfitting/refs/head
 # copy .zshrc profile to local
 echo "📎 Copying OhMyPosh profile to local..."
 mkdir -p ~/.config/ohmyposh
-curl -sL https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/.config/profile.omp.json > ~/.config/ohmyposh/profile.omp.json
+curl -sL https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/.config/profile.omp.json >~/.config/ohmyposh/profile.omp.json
 # copy to authorized_keys my personal ssh key
 mkdir -p ~/.ssh
 touch "$HOME/.ssh/authorized_keys" && chmod 600 "$HOME/.ssh/authorized_keys" && cat <<EOF >"$HOME/.ssh/authorized_keys"
@@ -84,5 +85,18 @@ ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH/ZCjYpPjJfn/kvGDwpHSGJ6WHR655PpQQij06APHuT
 
 EOF
 touch ~/.ssh/jfalava-gitSign-elliptic.pem
+## docker (why haven't i done this earlier lmao)
+echo "🚢 Installing Docker..."
+for pkg in docker.io docker-doc docker-compose docker-compose-v2 podman-docker containerd runc; do sudo apt-get remove $pkg; done
+sudo apt-get install ca-certificates curl
+sudo install -m 0755 -d /etc/apt/keyrings
+sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+sudo chmod a+r /etc/apt/keyrings/docker.asc
+echo \
+    "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+  $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}") stable" |
+    sudo tee /etc/apt/sources.list.d/docker.list >/dev/null
+sudo apt-get update
+sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 ## end message
 echo "✅ All installations complete. You may now open a new terminal tab or window."
