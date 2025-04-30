@@ -44,7 +44,7 @@
         {
           "foreground": "#C94A16",
           "style": "plain",
-          "template": "x{{ reason .Code }} ",
+          "template": "\uec03\uea87{{ reason .Code }} ",
           "type": "status"
         }
       ],
