@@ -38,6 +38,16 @@ alias l='eza --color=always --long --git --no-filesize --icons=always'
 alias ls='eza --color=always --long --git --no-filesize --icons=always --all --color-scale-mode=gradient'
 # ---- Sources ----
 eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+# pnpm
+export PNPM_HOME="$HOME/.local/share/pnpm"
+case ":$PATH:" in
+  *":$PNPM_HOME:"*) ;;
+  *) export PATH="$PNPM_HOME:$PATH" ;;
+esac
+# pnpm end
+# Initialize zsh completions (added by deno install script)
+autoload -Uz compinit
+compinit
 # ---- Dynamic Terminal Themes ----
 # Retrieve the current GTK theme
 theme=$(gsettings get org.gnome.desktop.interface gtk-theme)
@@ -54,16 +64,17 @@ source /home/linuxbrew/.linuxbrew/share/zsh-syntax-highlighting/zsh-syntax-highl
 source $(brew --prefix)/share/zsh-autosuggestions/zsh-autosuggestions.zsh
 eval "$(zoxide init zsh)"
 . "$HOME/.deno/env"
-
-# pnpm
-export PNPM_HOME="$HOME/.local/share/pnpm"
-case ":$PATH:" in
-  *":$PNPM_HOME:"*) ;;
-  *) export PATH="$PNPM_HOME:$PATH" ;;
-esac
-# pnpm end
-# Initialize zsh completions (added by deno install script)
-autoload -Uz compinit
-compinit
+# eza Theme
+export EZA_CONFIG_DIR="$HOME/.config/eza"
+# Detect system theme using gsettings
+theme=$(gsettings get org.gnome.desktop.interface color-scheme)
+# Remove existing theme.yml symlink if it exists
+rm -f "$EZA_CONFIG_DIR/theme.yml"
+# Create symlink based on detected theme
+if [[ "$theme" == *'dark'* ]]; then
+  ln -s "$EZA_CONFIG_DIR/dark_mode-theme.yml" "$EZA_CONFIG_DIR/theme.yml"
+else
+  ln -s "$EZA_CONFIG_DIR/light_mode-theme.yml" "$EZA_CONFIG_DIR/theme.yml"
+fi
 # SSH
 export SSH_AUTH_SOCK=$XDG_RUNTIME_DIR/gcr/ssh

@@ -66,8 +66,10 @@ deno jupyter --install
 curl -fsSL https://get.pnpm.io/install.sh | sh -
 ## eza colors
 mkdir -p ~/.config/eza
-touch ~/.config/theme.yml
-curl -sL https://raw.githubusercontent.com/eza-community/eza-themes/refs/heads/main/themes/tokyonight.yml >~/.config/eza/theme.yml
+touch ~/.config/light_mode-theme.yml
+touch ~/.config/dark_mode-theme.yml
+curl -sL https://raw.githubusercontent.com/eza-community/eza-themes/refs/heads/main/themes/rose-pine-dawn.yml >~/.config/eza/light_mode-theme.yml
+curl -sL https://raw.githubusercontent.com/eza-community/eza-themes/refs/heads/main/themes/tokyonight.yml >~/.config/eza/dark_mode-theme.yml
 # copy .gitconfig profile to local
 echo "📎 Copying .gitconfig profile to local..."
 curl -o ~/.gitconfig "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/.config/.gitconfig"
