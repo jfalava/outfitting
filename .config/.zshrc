@@ -1,5 +1,5 @@
 # Add deno completions to search path
-if [[ ":$FPATH:" != *":/home/jfalava/.zsh/completions:"* ]]; then export FPATH="/home/jfalava/.zsh/completions:$FPATH"; fi
+if [[ ":$FPATH:" != *":$HOME/.zsh/completions:"* ]]; then export FPATH="$HOME/.zsh/completions:$FPATH"; fi
 # ---- History ----
 # Location of the history file
 HISTFILE=~/.zsh_history
@@ -38,14 +38,25 @@ alias l='eza --color=always --long --git --no-filesize --icons=always'
 alias ls='eza --color=always --long --git --no-filesize --icons=always --all --color-scale-mode=gradient'
 # ---- Sources ----
 eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-eval "$(oh-my-posh init zsh --config https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/.config/profile.omp.json)"
+# ---- Dynamic Terminal Themes ----
+# Retrieve the current GTK theme
+theme=$(gsettings get org.gnome.desktop.interface gtk-theme)
+# Determine if the theme is dark
+if [[ "$theme" == *"dark"* ]]; then
+  THEME_PATH="https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/.config/dark-mode.omp.json"
+else
+  THEME_PATH="https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/.config/light-mode.omp.json"
+fi
+# Initialize Oh My Posh with the selected theme
+eval "$(oh-my-posh init zsh --config $THEME_PATH)"
+# ---- ZSH Extras ----
 source /home/linuxbrew/.linuxbrew/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
 source $(brew --prefix)/share/zsh-autosuggestions/zsh-autosuggestions.zsh
 eval "$(zoxide init zsh)"
-. "/home/jfalava/.deno/env"
+. "$HOME/.deno/env"
 
 # pnpm
-export PNPM_HOME="/home/jfalava/.local/share/pnpm"
+export PNPM_HOME="$HOME/.local/share/pnpm"
 case ":$PATH:" in
   *":$PNPM_HOME:"*) ;;
   *) export PATH="$PNPM_HOME:$PATH" ;;
