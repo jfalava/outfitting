@@ -1,35 +1,9 @@
 # ---- Fonts ----
-
+window-inherit-font-size = false
 font-family = "Berkeley Mono Variable"
+font-size = 15
+font-synthetic-style = "bold"
 font-family = "GeistMono NFP"
 font-synthetic-style = "bold"
-
-# ---- Navigation (Windows Terminal Emulation) ----
-
-# Ctrl+Arrow keys for word movement (send ESC b/f)
-keybind = ctrl+left=esc:b
-keybind = ctrl+right=esc:f
-
-# Alt+Arrow keys for word movement (send ESC b/f - same as Ctrl)
-# Some users prefer Alt, some Ctrl. This covers both.
-keybind = alt+left=esc:b
-keybind = alt+right=esc:f
-
-# Alt+Backspace = delete previous word (send ESC DEL)
-keybind = alt+backspace=text:\x1b\x7f
-
-# Alt+Delete = delete next word (send ESC [ 3 ~)
-# Note: ESC [ 3 ~ is often the standard Delete key sequence.
-# Alt+Delete sending this might conflict if you need plain Delete sometimes.
-# An alternative for Alt+Delete could be ESC d (text:\x1bd) if ESC [ 3 ~ causes issues.
-keybind = alt+delete=text:\x1b[3~
-
-# Home / End (move to start or end of line)
-# Send standard terminal codes ESC [ H and ESC [ F
-keybind = home=esc:[H
-keybind = end=esc:[F
-
-# Ctrl+Home / Ctrl+End (often same as Home/End in terminals)
-# Send standard terminal codes ESC [ H and ESC [ F
-keybind = ctrl+home=esc:[H
-keybind = ctrl+end=esc:[F
+# ---- Theme ----
+theme = dark:Andromeda,light:Github
