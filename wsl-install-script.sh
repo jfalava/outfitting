@@ -84,7 +84,6 @@ touch "$HOME/.ssh/authorized_keys" && chmod 600 "$HOME/.ssh/authorized_keys" && 
 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH/ZCjYpPjJfn/kvGDwpHSGJ6WHR655PpQQij06APHuT
 
 EOF
-touch ~/.ssh/jfalava-gitSign-elliptic.pem
 ## docker (why haven't i done this earlier lmao)
 echo "🚢 Installing Docker..."
 for pkg in docker.io docker-doc docker-compose docker-compose-v2 podman-docker containerd runc; do sudo apt-get remove $pkg; done

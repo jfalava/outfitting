@@ -44,19 +44,7 @@
         {
           "foreground": "#C94A16",
           "style": "plain",
-          "template": "\uea87",
-          "type": "text"
-        },
-        {
-          "foreground": "#007ACC",
-          "style": "plain",
-          "template": "\uec03",
-          "type": "text"
-        },
-        {
-          "foreground": "#C94A16",
-          "style": "plain",
-          "template": "{{ reason .Code }} ",
+          "template": "\uea87\uec03{{ reason .Code }} ",
           "type": "status"
         }
       ],

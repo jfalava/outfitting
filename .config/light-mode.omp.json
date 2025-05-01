@@ -16,7 +16,7 @@
         },
         {
           "style": "plain",
-          "foreground": "p:closer",
+          "foreground": "#013e61",
           "template": "\uf105",
           "type": "text"
         },
