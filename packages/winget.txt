@@ -56,7 +56,6 @@ Logitech.GHUB
 qBittorrent.qBittorrent
 Mozilla.Firefox
 Zen-Team.Zen-Browser
-TheBrowserCompany.Arc
 AgileBits.1Password
 Proton.ProtonPass
 NordVPN.NordVPN
