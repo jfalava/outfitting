@@ -27,7 +27,7 @@ irm win.jfa.dev | iex
 > This is designed exclusively for `apt`-based Linux distributions.
 
 > [!NOTE]
-> You need `cURL` to execute this commands; you may install them by executing `sudo apt install curl`.
+> You need `cURL` to execute this commands; you may install it by running `sudo apt install curl`.
 
 > [!CAUTION]
 > Do **not** run this as `sudo` as it uses Homebrew as one of the package managers.
