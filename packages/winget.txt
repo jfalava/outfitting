@@ -35,7 +35,6 @@ VideoLAN.VLC
 ChatterinoTeam.Chatterino
 Telegram.TelegramDesktop
 Mega.MEGASync
-HaystackSoftwareLLC.Arq7
 BtbN.FFmpeg.GPL
 M2Team.NanaZip
 bozbez.WinCaptureAudio.beta
@@ -67,3 +66,5 @@ Proton.ProtonVPN
 Fortinet.FortiClientVPN
 OpenJS.NodeJS
 JesseDuffield.lazygit
+OpenVPNTechnologies.OpenVPN
+Microsoft.Edit
