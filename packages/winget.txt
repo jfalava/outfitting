@@ -1,6 +1,10 @@
+Microsoft.DotNet.DesktopRuntime.Preview
 Microsoft.DotNet.DesktopRuntime.3_1
 Microsoft.DotNet.DesktopRuntime.5
 Microsoft.DotNet.DesktopRuntime.6
+Microsoft.DotNet.DesktopRuntime.7
+Microsoft.DotNet.DesktopRuntime.8
+Microsoft.DotNet.DesktopRuntime.9
 Microsoft.VCRedist.2005.x64
 Microsoft.VCRedist.2008.x64
 Microsoft.VCRedist.2010.x86
@@ -69,3 +73,4 @@ JesseDuffield.lazygit
 OpenVPNTechnologies.OpenVPN
 Microsoft.Edit
 pnpm.pnpm
+aristocratos.btop4win
