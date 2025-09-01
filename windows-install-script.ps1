@@ -80,9 +80,6 @@ Install-WingetPackages -filePath $msStorePackagesFile
 Write-Host "📦 Installing PowerShell modules..."
 Install-PSModules -filePath $psModulesFile
 
-# install scoop
-Invoke-RestMethod -Uri https://get.scoop.sh | Invoke-Expression
-
 # other packages
 irm https://deno.land/install.ps1 | iex
 powershell -c "irm bun.sh/install.ps1 | iex"
@@ -99,4 +96,6 @@ New-Item -Path "$env:USERPROFILE\Documents\WindowsPowerShell" -ItemType Director
 New-Item -Path "$env:USERPROFILE\Documents\WindowsPowerShell" -ItemType Directory -Force; curl.exe -o "$env:USERPROFILE\Documents\PowerShell\Microsoft.VSCode_profile.ps1" "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/.config/Microsoft.PowerShell_profile.ps1"
 
 ## end message
+### install scoop message
+Write-Host "Execute: Invoke-RestMethod -Uri https://get.scoop.sh | Invoke-Expression to install scoop while not on Admin"
 Write-Host "✅ All installations complete."
