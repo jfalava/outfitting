@@ -95,9 +95,15 @@ New-Item -Path "$env:USERPROFILE\Documents\PowerShell" -ItemType Directory -Forc
 New-Item -Path "$env:USERPROFILE\Documents\WindowsPowerShell" -ItemType Directory -Force; curl.exe -o "$env:USERPROFILE\Documents\PowerShell\Microsoft.PowerShell_profile.ps1" "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/.config/Microsoft.PowerShell_profile.ps1"
 New-Item -Path "$env:USERPROFILE\Documents\WindowsPowerShell" -ItemType Directory -Force; curl.exe -o "$env:USERPROFILE\Documents\PowerShell\Microsoft.VSCode_profile.ps1" "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/.config/Microsoft.PowerShell_profile.ps1"
 
-## end message
-### install scoop message
+## end messages
 Write-Host "❖ Execute:"
+Write-Host "❖"
 Write-Host "❖ Invoke-RestMethod -Uri https://get.scoop.sh | Invoke-Expression"
-Write-Host "❖ To install scoop while not on Admin, else you good dood!"
+Write-Host "❖ pnpm install -g opencode-ai"
+Write-Host "❖ pnpm install -g @google/gemini-cli"
+Write-Host "❖ pnpm install -g @qwen-code/qwen-code@latest"
+Write-Host "❖"
+Write-Host "❖ In a new PowerShell window to install the missing, uninstallable on Admin elevation packages or that requires a source-like command."
+Write-Host "❖"
+Write-Host ""
 Write-Host "✅ All installations complete."

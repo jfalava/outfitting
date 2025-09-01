@@ -93,5 +93,9 @@ echo \
     sudo tee /etc/apt/sources.list.d/docker.list >/dev/null
 sudo apt-get update
 sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+##
+pnpm install -g @google/gemini-cli
+pnpm install -g @qwen-code/qwen-code@latest
+pnpm install -g opencode-ai
 ## end message
 echo "✅ All installations complete. You may now open a new terminal tab or window."

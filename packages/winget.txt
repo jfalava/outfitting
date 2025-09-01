@@ -68,3 +68,4 @@ OpenJS.NodeJS
 JesseDuffield.lazygit
 OpenVPNTechnologies.OpenVPN
 Microsoft.Edit
+pnpm.pnpm

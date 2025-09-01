@@ -4,13 +4,18 @@
 $pathList = @(
     "C:\Program Files\Go\bin",
     "$env:LOCALAPPDATA\Programs\oh-my-posh\bin",
-    "$env:USERPROFILE\scoop\apps"
+    "$env:USERPROFILE\scoop\apps",
+    "$env:LOCALAPPDATA\pnpm\",
+    "$env:USERPROFILE\.local\share\"
 )
 foreach ($path in $pathList) {
     if ($env:PATH -notlike "*$path*") {
         $env:PATH += ";$path"
     }
 }
+
+# PNPM_HOME
+$env:PNPM_HOME = "$env:USERPROFILE\AppData\Local\pnpm"
 
 # -------------------------------
 # Modules

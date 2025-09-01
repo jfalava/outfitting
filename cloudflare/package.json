@@ -1,13 +1,18 @@
 {
-	"name": "outfitting-redirects",
-	"version": "0.2",
-	"private": true,
-	"scripts": {
-		"deploy": "wrangler deploy",
-		"cf-typegen": "wrangler types"
-	},
-	"devDependencies": {
-		"@cloudflare/workers-types": "^4.20250831.0",
-		"typescript": "^5.9.2"
-	}
+  "name": "outfitting-redirects",
+  "version": "0.2",
+  "private": true,
+  "scripts": {
+    "deploy": "pnpm run cf-typegen && wrangler deploy",
+    "cf-typegen": "wrangler types",
+    "dry-build": "pnpm run tsc --noEmit"
+  },
+  "dependencies": {
+    "hono": "^4.9.5",
+    "vitest": "^3.2.4"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250831.0",
+    "typescript": "^5.9.2"
+  }
 }

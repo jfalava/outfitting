@@ -11,3 +11,4 @@ optipng
 zig
 ripgrep
 lazygit
+pnpm

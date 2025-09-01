@@ -1,60 +1,57 @@
-export default {
-  async fetch(request: Request): Promise<Response> {
-    const wslScriptUrl =
-      "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/wsl-install-script.sh";
-    const windowsScriptUrl =
-      "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/windows-install-script.ps1";
-    const linuxScriptUrl =
-      "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/apt-desktop-install-script.sh";
-    const repoUrl = "https://github.com/jfalava/outfitting";
+import { Hono } from "hono";
 
-    const url = new URL(request.url);
-    const hostHeader = request.headers.get("Host") || "";
+const app = new Hono();
 
-    console.log("Host Header:", hostHeader);
+app.get("*", async (c) => {
+  const wslScriptUrl =
+    "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/wsl-install-script.sh";
+  const windowsScriptUrl =
+    "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/windows-install-script.ps1";
+  const linuxScriptUrl =
+    "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/apt-desktop-install-script.sh";
+  const repoUrl = "https://github.com/jfalava/outfitting";
 
-    let scriptUrl: string;
-    if (hostHeader.includes("wsl.jfa.dev")) {
-      scriptUrl = wslScriptUrl;
-    } else if (hostHeader.includes("apt.jfa.dev")) {
-      scriptUrl = linuxScriptUrl;
-    } else if (hostHeader.includes("win.jfa.dev")) {
-      scriptUrl = windowsScriptUrl;
-    } else {
-      return Response.redirect(repoUrl, 302);
-    }
+  const hostHeader = c.req.header("Host") || "";
+  console.log("Host Header:", hostHeader);
 
-    console.log("Script URL:", scriptUrl);
+  let scriptUrl: string;
+  if (hostHeader.includes("wsl.jfa.dev")) {
+    scriptUrl = wslScriptUrl;
+  } else if (hostHeader.includes("apt.jfa.dev")) {
+    scriptUrl = linuxScriptUrl;
+  } else if (hostHeader.includes("win.jfa.dev")) {
+    scriptUrl = windowsScriptUrl;
+  } else {
+    return c.redirect(repoUrl, 302);
+  }
 
-    const response = await fetch(scriptUrl, {
-      headers: {
-        Accept: "text/plain",
-        "User-Agent": "CloudflareWorker",
-      },
-      redirect: "follow",
-    });
+  console.log("Script URL:", scriptUrl);
 
-    if (!response.ok) {
-      return new Response(`Failed to fetch the script (${response.status})`, {
-        status: 500,
-        headers: { "Content-Type": "text/plain" },
-      });
-    }
+  const response = await fetch(scriptUrl, {
+    headers: {
+      Accept: "text/plain",
+      "User-Agent": "CloudflareWorker",
+    },
+    redirect: "follow",
+  });
 
-    const scriptContent = await response.text();
-    const contentType =
-      scriptUrl === windowsScriptUrl
-        ? "application/x-powershell"
-        : "text/x-shellscript";
+  if (!response.ok) {
+    return c.text(`Failed to fetch the script (${response.status})`, 500);
+  }
 
-    console.log("Content-Type:", contentType);
+  const scriptContent = await response.text();
+  const contentType =
+    scriptUrl === windowsScriptUrl
+      ? "application/x-powershell"
+      : "text/x-shellscript";
 
-    return new Response(scriptContent, {
-      headers: {
-        "Content-Type": contentType,
-        "Cache-Control": "no-cache",
-        "Access-Control-Allow-Origin": "*",
-      },
-    });
-  },
-};
+  console.log("Content-Type:", contentType);
+
+  c.header("Content-Type", contentType);
+  c.header("Cache-Control", "no-cache");
+  c.header("Access-Control-Allow-Origin", "*");
+
+  return c.body(scriptContent);
+});
+
+export default app;

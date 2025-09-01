@@ -7,49 +7,58 @@ jobs:
   test-and-deploy:
     runs-on: ubuntu-latest
 
-    steps:
-      - uses: actions/checkout@v4
+    defaults:
+      run:
+        working-directory: ./cloudflare
 
-      - name: Setup Node.js
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js Latest
         uses: actions/setup-node@v4
         with:
           node-version: "node"
 
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: latest
+          run_install: false
+
       - name: Install Dependencies
-        run: |
-          cd cloudflare
-          npm install
-          npm install -g pnpm
+        run: pnpm install
 
       - name: Verify WSL Script URL
         run: |
-          WSL_SCRIPT_URL='https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/wsl-install-script.sh'
-          if ! curl -L --fail -I -o /dev/null -s "$WSL_SCRIPT_URL"; then
-            echo "::error::Linux script URL unreachable: $WSL_SCRIPT_URL"
+          URL="https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/wsl-install-script.sh"
+          if ! curl -L --fail -I -o /dev/null -s "$URL"; then
+            echo "::error::WSL script URL unreachable: $URL"
             exit 1
           fi
+          echo "Successfully verified $URL"
 
       - name: Verify Windows Script URL
         run: |
-          WINDOWS_SCRIPT_URL='https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/windows-install-script.ps1'
-          if ! curl -L --fail -I -o /dev/null -s "$WINDOWS_SCRIPT_URL"; then
-            echo "::error::Windows script URL unreachable: $WINDOWS_SCRIPT_URL"
+          URL="https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/windows-install-script.ps1"
+          if ! curl -L --fail -I -o /dev/null -s "$URL"; then
+            echo "::error::Windows script URL unreachable: $URL"
             exit 1
           fi
+          echo "Successfully verified $URL"
 
-      - name: Verify Desktop Linux Script URL
+      - name: Verify Linux Script URL
         run: |
-          APT_SCRIPT_URL='https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/apt-desktop-install-script.sh'
-          if ! curl -L --fail -I -o /dev/null -s "$APT_SCRIPT_URL"; then
-            echo "::error::Windows script URL unreachable: $APT_SCRIPT_URL"
+          URL="https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/apt-desktop-install-script.sh"
+          if ! curl -L --fail -I -o /dev/null -s "$URL"; then
+            echo "::error::Linux script URL unreachable: $URL"
             exit 1
           fi
+          echo "Successfully verified $URL"
 
       - name: Deploy to Cloudflare
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: |
-          cd cloudflare
-          pnpx wrangler deploy
+        run: pnpm run deploy
