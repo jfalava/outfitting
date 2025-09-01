@@ -80,16 +80,10 @@ curl -o ~/.zshrc "https://raw.githubusercontent.com/jfalava/outfitting/refs/head
 echo "📎 Copying OhMyPosh profile to local..."
 mkdir -p ~/.config/ohmyposh
 curl -sL https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/.config/profile.omp.json >~/.config/ohmyposh/profile.omp.json
-# copy to authorized_keys my personal ssh key
-mkdir -p ~/.ssh
-touch "$HOME/.ssh/authorized_keys" && chmod 600 "$HOME/.ssh/authorized_keys" && cat <<EOF >"$HOME/.ssh/authorized_keys"
-ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH/ZCjYpPjJfn/kvGDwpHSGJ6WHR655PpQQij06APHuT
-
-EOF
 ## docker (why haven't i done this earlier lmao)
 echo "🚢 Installing Docker..."
 for pkg in docker.io docker-doc docker-compose docker-compose-v2 podman-docker containerd runc; do sudo apt-get remove $pkg; done
-sudo apt-get install ca-certificates curl
+sudo apt-get install ca-certificates
 sudo install -m 0755 -d /etc/apt/keyrings
 sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
 sudo chmod a+r /etc/apt/keyrings/docker.asc

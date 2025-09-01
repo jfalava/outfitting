@@ -97,5 +97,7 @@ New-Item -Path "$env:USERPROFILE\Documents\WindowsPowerShell" -ItemType Director
 
 ## end message
 ### install scoop message
-Write-Host "Execute: Invoke-RestMethod -Uri https://get.scoop.sh | Invoke-Expression to install scoop while not on Admin"
+Write-Host "❖ Execute:"
+Write-Host "❖ Invoke-RestMethod -Uri https://get.scoop.sh | Invoke-Expression"
+Write-Host "❖ To install scoop while not on Admin, else you good dood!"
 Write-Host "✅ All installations complete."
