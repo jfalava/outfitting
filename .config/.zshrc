@@ -36,7 +36,6 @@ alias ff='fastfetch'
 alias tf='terraform'
 alias l='eza --color=always --long --git --no-filesize --icons=always'
 alias ls='eza --color=always --long --git --no-filesize --icons=always --all --color-scale-mode=gradient'
-alias tf='terraform'
 # ---- Sources ----
 eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
 # pnpm
@@ -49,16 +48,8 @@ esac
 # Initialize zsh completions (added by deno install script)
 autoload -Uz compinit
 compinit
-# ---- Dynamic Terminal Themes ----
-# Retrieve the current GTK theme
-theme=$(gsettings get org.gnome.desktop.interface gtk-theme)
-# Determine if the theme is dark
-if [[ "$theme" == *"dark"* ]]; then
-  THEME_PATH="https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/.config/dark-mode.omp.json"
-else
-  THEME_PATH="https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/.config/light-mode.omp.json"
-fi
-# Initialize Oh My Posh with the selected theme
+# ---- Terminal Themes ----
+THEME_PATH="https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/.config/dark-mode.omp.json"
 eval "$(oh-my-posh init zsh --config $THEME_PATH)"
 # ---- ZSH Extras ----
 source /home/linuxbrew/.linuxbrew/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
@@ -67,15 +58,9 @@ eval "$(zoxide init zsh)"
 . "$HOME/.deno/env"
 # eza Theme
 export EZA_CONFIG_DIR="$HOME/.config/eza"
-# Detect system theme using gsettings
-theme=$(gsettings get org.gnome.desktop.interface color-scheme)
 # Remove existing theme.yml symlink if it exists
 rm -f "$EZA_CONFIG_DIR/theme.yml"
-# Create symlink based on detected theme
-if [[ "$theme" == *'dark'* ]]; then
-  ln -s "$EZA_CONFIG_DIR/dark_mode-theme.yml" "$EZA_CONFIG_DIR/theme.yml"
-else
-  ln -s "$EZA_CONFIG_DIR/light_mode-theme.yml" "$EZA_CONFIG_DIR/theme.yml"
-fi
+# Always use dark mode theme
+ln -s "$EZA_CONFIG_DIR/dark_mode-theme.yml" "$EZA_CONFIG_DIR/theme.yml"
 # SSH
 export SSH_AUTH_SOCK=$XDG_RUNTIME_DIR/gcr/ssh

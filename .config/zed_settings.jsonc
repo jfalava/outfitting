@@ -39,6 +39,9 @@
     "font_family": "GeistMono Nerd Font Propo",
     "font_size": 15,
     "font_weight": 300,
+    "shell": {
+      "program": "pwsh.exe",
+    },
   },
   "theme": {
     "mode": "system",
