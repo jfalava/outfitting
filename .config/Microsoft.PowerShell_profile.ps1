@@ -15,13 +15,7 @@ foreach ($path in $pathList) {
 }
 
 # PNPM_HOME
-$env:PNPM_HOME = "$env:USERPROFILE\AppData\Local\pnpm"
-
-# -------------------------------
-# Modules
-# -------------------------------
-Import-Module posh-git
-Import-Module PSReadLine
+$env:PNPM_HOME = "$env:LOCALAPPDATA\Local\pnpm"
 
 # -------------------------------
 # History Configuration
@@ -63,7 +57,6 @@ Set-Alias which whichwin
 # -------------------------------
 # Expressions
 # -------------------------------
-Import-Module posh-git
 oh-my-posh init pwsh --config 'https://raw.githubusercontent.com/JanDeDobbeleer/oh-my-posh/main/themes/wopian.omp.json' | Invoke-Expression
 Invoke-Expression (& { (zoxide init powershell | Out-String) })
 
