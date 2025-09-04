@@ -15,10 +15,6 @@
   "placement": { "mode": "smart" },
   "routes": [
     {
-      "pattern": "apt.jfa.dev",
-      "custom_domain": true
-    },
-    {
       "pattern": "win.jfa.dev",
       "custom_domain": true
     },

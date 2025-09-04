@@ -47,15 +47,6 @@ jobs:
           fi
           echo "Successfully verified $URL"
 
-      - name: Verify Linux Script URL
-        run: |
-          URL="https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/apt-desktop-install-script.sh"
-          if ! curl -L --fail -I -o /dev/null -s "$URL"; then
-            echo "::error::Linux script URL unreachable: $URL"
-            exit 1
-          fi
-          echo "Successfully verified $URL"
-
       - name: Deploy to Cloudflare
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         env:
