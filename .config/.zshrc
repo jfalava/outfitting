@@ -63,4 +63,6 @@ rm -f "$EZA_CONFIG_DIR/theme.yml"
 # Always use dark mode theme
 ln -s "$EZA_CONFIG_DIR/dark_mode-theme.yml" "$EZA_CONFIG_DIR/theme.yml"
 # SSH
-export SSH_AUTH_SOCK=$XDG_RUNTIME_DIR/gcr/ssh
+if [ -z "$SSH_AUTH_SOCK" ] || [ ! -S "$SSH_AUTH_SOCK" ]; then
+    eval "$(ssh-agent -s)"
+fi
