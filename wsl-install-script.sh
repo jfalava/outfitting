@@ -93,9 +93,18 @@ echo \
     sudo tee /etc/apt/sources.list.d/docker.list >/dev/null
 sudo apt-get update
 sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin -y
-##
+## Update bash profile for pnpm
+(
+export PNPM_HOME="$HOME/.local/share/pnpm"
+case ":$PATH:" in
+*":$PNPM_HOME:"*) ;;
+*) export PATH="$PNPM_HOME:$PATH" ;;
+esac
+) >>~/.bashrc
+source ~/.bashrc
 pnpm install -g @google/gemini-cli
 pnpm install -g @qwen-code/qwen-code@latest
 pnpm install -g opencode-ai
+pnpm install -g @anthropic-ai/claude-code
 ## end message
 echo "✅ All installations complete. You may now open a new terminal tab or window."
