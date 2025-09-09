@@ -2,9 +2,8 @@
 
 Scripts, dotfiles and lambdas for the automatic outfitting of my personal machines and VMs.
 
-## Automatic Package and Profile Installation
-
-Single command package installation.
+> [!WARNING]
+> Are you installing an LTSC version of Windows? Those are missing the Microsoft Store app, install it along WinGet with [this](https://github.com/kkkgo/LTSC-Add-MicrosoftStore).
 
 ## How to run the automatic installation scripts
 
