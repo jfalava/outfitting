@@ -23,7 +23,7 @@ irm win.jfa.dev | iex
 ### Linux
 
 > [!NOTE]
-> This is designed exclusively for `apt`-based Linux distributions.
+> This is designed **exclusively** for `apt`-based Linux distributions.
 
 > [!NOTE]
 > You need `cURL` to execute this commands; you may install it by running `sudo apt install curl`.
@@ -35,18 +35,6 @@ irm win.jfa.dev | iex
 
 ```bash
 curl -L wsl.jfa.dev | bash
-```
-
-#### Ubuntu/Debian
-
-> [!NOTE]
-> This script will piggyback from the WSL script, as it installs base packages.
-
-> [!NOTE]
-> This has been only tested on Ubuntu 24.
-
-```bash
-curl -L apt.jfa.dev | bash
 ```
 
 ## TODO
