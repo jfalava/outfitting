@@ -106,5 +106,6 @@ pnpm install -g @google/gemini-cli
 pnpm install -g @qwen-code/qwen-code@latest
 pnpm install -g opencode-ai
 pnpm install -g @anthropic-ai/claude-code
+pnpm install -g @openai/codex
 ## end message
 echo "✅ All installations complete. You may now open a new terminal tab or window."
