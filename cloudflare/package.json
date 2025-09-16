@@ -1,6 +1,6 @@
 {
   "name": "outfitting-redirects",
-  "version": "0.2",
+  "version": "0.2-20250916",
   "private": true,
   "scripts": {
     "deploy": "pnpm run cf-typegen && wrangler deploy",
@@ -8,10 +8,10 @@
     "dry-build": "pnpm run tsc --noEmit"
   },
   "dependencies": {
-    "hono": "^4.9.6"
+    "hono": "^4.9.7"
   },
   "devDependencies": {
     "typescript": "^5.9.2",
-    "wrangler": "^4.34.0"
+    "wrangler": "^4.37.1"
   }
 }
