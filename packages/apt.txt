@@ -21,3 +21,4 @@ git
 unzip
 wget
 zsh
+golang

@@ -6,9 +6,8 @@ sudo apt update -y && sudo apt upgrade -y && sudo apt install curl
 ## install apt packages
 #####
 APT_LIST_URL="https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/packages/apt.txt"
-echo "📝 Fetching APT package list from $APT_LIST_URL..."
 curl -fsSL "$APT_LIST_URL" -o /tmp/apt-packages.txt || {
-    echo "❌ Failed to fetch APT package list. Exiting..."
+    echo "Failed to fetch APT package list. Exiting..."
     exit 1
 }
 while IFS= read -r package || [ -n "$package" ]; do
@@ -28,18 +27,30 @@ if ! grep -q hashicorp /etc/apt/sources.list.d/hashicorp.list; then
     wget -qO- https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
     echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
 fi
+## install terraform and packer
 sudo apt update -qq && sudo apt install -y terraform packer
 echo "HashiCorp Done"
 
 #####
-## install nix
+## nix
 #####
+## install nix
 curl -L https://nixos.org/nix/install | sh
 source ~/.nix-profile/etc/profile.d/nix.sh
 (
     echo
     echo 'source ~/.nix-profile/etc/profile.d/nix.sh'
 ) >> ~/.bashrc
+## install packages from flake
+nix profile install github:jfalava/outfitting?dir=packages
+sudo mkdir -p /etc/nix
+sudo tee /etc/nix/nix.conf > /dev/null << 'EOF'
+experimental-features = nix-command flakes
+substituters = https://cache.nixos.org/ https://nix-community.cachix.org
+trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs=
+auto-optimise-store = true
+max-jobs = auto
+EOF
 echo "Nix Done"
 
 #####
@@ -56,7 +67,6 @@ echo "Runtimes Done"
 ## terminal
 #####
 sudo chsh -s $(which zsh) $USER
-curl -sS https://starship.rs/install.sh | sh # install starship
 curl -o ~/.gitconfig "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/.config/.gitconfig" # copy .gitconfig profile to local
 echo "Terminal Done"
 
