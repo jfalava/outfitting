@@ -1,6 +1,3 @@
-# Add deno completions to search path
-if [[ ":$FPATH:" != *":/home/jfalava/.zsh/completions:"* ]]; then export FPATH="/home/jfalava/.zsh/completions:$FPATH"; fi
-. "/home/jfalava/.deno/env"
 # ---- History ----
 # Location of the history file
 HISTFILE=~/.zsh_history
@@ -25,22 +22,35 @@ alias tf='terraform'
 alias l='eza --color=always --long --git --no-filesize --icons=always'
 alias ls='eza --color=always --long --git --no-filesize --icons=always --all --color-scale-mode=gradient'
 # ---- Sources ----
-eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+# nix
+source ~/.nix-profile/etc/profile.d/nix.sh
+. /home/jfalava/.nix-profile/etc/profile.d/nix.sh
 # pnpm
 export PNPM_HOME="$HOME/.local/share/pnpm"
 case ":$PATH:" in
 *":$PNPM_HOME:"*) ;;
 *) export PATH="$PNPM_HOME:$PATH" ;;
 esac
-# pnpm end
+# bun
+export BUN_INSTALL="$HOME/.bun"
+export PATH="$BUN_INSTALL/bin:$PATH"
+# opencode
+export PATH=/home/jfalava/.opencode/bin:$PATH
+# zoxide
 eval "$(zoxide init zsh)"
+# deno
 . "$HOME/.deno/env"
+export DENO_INSTALL="$HOME/.deno"
+export PATH="$PNPM_HOME:$DENO_INSTALL/bin:$PATH"
 # SSH
 if [ -z "$SSH_AUTH_SOCK" ] || [ ! -S "$SSH_AUTH_SOCK" ]; then
     eval "$(ssh-agent -s)"
 fi
 # Starship
 eval "$(starship init zsh)"
+# Add deno completions to search path
+if [[ ":$FPATH:" != *":/home/jfalava/.zsh/completions:"* ]]; then export FPATH="/home/jfalava/.zsh/completions:$FPATH"; fi
+. "/home/jfalava/.deno/env"
 # Initialize zsh completions (added by deno install script)
 autoload -Uz compinit
 compinit

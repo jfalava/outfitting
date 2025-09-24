@@ -6,7 +6,8 @@ $pathList = @(
     "$env:LOCALAPPDATA\Programs\oh-my-posh\bin",
     "$env:USERPROFILE\scoop\apps",
     "$env:LOCALAPPDATA\pnpm\",
-    "$env:USERPROFILE\.local\share\"
+    "$env:USERPROFILE\.local\share\",
+    "$env:LOCALAPPDATA\Microsoft\WinGet\Links\"
 )
 foreach ($path in $pathList) {
     if ($env:PATH -notlike "*$path*") {
@@ -15,7 +16,13 @@ foreach ($path in $pathList) {
 }
 
 # PNPM_HOME
-$env:PNPM_HOME = "$env:LOCALAPPDATA\Local\pnpm"
+$env:PNPM_HOME = "$env:LOCALAPPDATA\Microsoft\WinGet\Links\"
+
+# -------------------------------
+# Modules
+# -------------------------------
+Import-Module PSReadLine
+Import-Module posh-git
 
 # -------------------------------
 # History Configuration
@@ -27,7 +34,7 @@ if (Get-Module -ListAvailable -Name PSReadLine) {
     Set-PSReadLineOption -HistorySavePath $HistoryFilePath -HistorySaveStyle SaveIncrementally
 } else {
     $HistoryFilePath = "$env:USERPROFILE\powershell_history"
-    
+
     Register-EngineEvent -SourceIdentifier PowerShell.Exiting -Action {
         Get-History -Count $MaximumHistoryCount | Export-Clixml -Path $HistoryFilePath
     } | Out-Null
@@ -84,8 +91,3 @@ if ($masterProfilePath -eq "$env:USERPROFILE\Documents\PowerShell\Microsoft.Powe
         }
     }
 }
-
-# -------------------------------
-# Final Setup
-# -------------------------------
-Clear-Host

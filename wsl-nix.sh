@@ -1,5 +1,6 @@
 #!/bin/bash
-## update packages
+
+## init
 sudo apt update -y && sudo apt upgrade -y && sudo apt install curl
 
 #####
@@ -14,11 +15,10 @@ while IFS= read -r package || [ -n "$package" ]; do
     # trim whitespace and skip empty lines or comments (thank you claude)
     package=$(echo "$package" | tr -d '[:space:]')
     if [[ -n "$package" && ! "$package" =~ ^# ]]; then
-        echo "❖ Installing apt package: $package ❖"
+        echo "Installing apt package: $package"
         sudo apt install -y "$package"
     fi
 done </tmp/apt-packages.txt
-echo "APT Done"
 
 #####
 ## add hashicorp repo
@@ -29,7 +29,6 @@ if ! grep -q hashicorp /etc/apt/sources.list.d/hashicorp.list; then
 fi
 ## install terraform and packer
 sudo apt update -qq && sudo apt install -y terraform packer
-echo "HashiCorp Done"
 
 ## cleanup
 sudo apt autoremove -y
@@ -57,31 +56,28 @@ EOF
 source ~/.bashrc
 ## install packages from flake
 if command -v nix &> /dev/null; then
-    if ! nix profile install --extra-experimental-features 'nix-command flakes' --no-write-lock-file "github:jfalava/outfitting/main?dir=packages"; then
+    if ! nix profile add --extra-experimental-features 'nix-command flakes' --no-write-lock-file "github:jfalava/outfitting/main?dir=packages"; then
         echo "Warning: Flake installation failed."
         echo "After script completion, you can try: nix profile install 'git+https://github.com/jfalava/outfitting?dir=packages'"
     fi
 else
     echo "Nix not found, skipping flake installation"
 fi
-echo "Nix Done"
 
 #####
 ## runtimes
 #####
 curl -fsSL https://bun.sh/install | bash
-curl -fsSL https://deno.land/install.sh | sh -s -- --no-modify-path
-source ~/.bashrc
+# Install Deno without modifying shell configuration by exiting the script before interactive prompts
+curl -fsSL https://deno.land/install.sh | sed '/Deno was installed successfully/a exit 0' | sh
 # deno jupyter --install # not working
 curl -fsSL https://get.pnpm.io/install.sh | sh -
-echo "Runtimes Done"
 
 #####
 ## terminal
 #####
 sudo chsh -s $(which zsh) $USER
 curl -o ~/.gitconfig "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/.config/.gitconfig" # copy .gitconfig profile to local
-echo "Terminal Done"
 
 #####
 ## docker
@@ -97,7 +93,6 @@ echo \
     sudo tee /etc/apt/sources.list.d/docker.list >/dev/null
 sudo apt update
 sudo apt install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin -y
-echo "Docker Done"
 
 #####
 ## update bash profile for pnpm and deno, so LLM CLIs can be installed
@@ -114,8 +109,9 @@ source ~/.bashrc
 #####
 ## LLM CLIs
 #####
-# Ensure pnpm is in PATH for this session
 source ~/.bashrc || true
+export PNPM_HOME="$HOME/.local/share/pnpm"
+export PATH="$PNPM_HOME:$PATH"
 # Verify pnpm is available before installing packages
 if command -v pnpm &> /dev/null; then
     pnpm install -g @google/gemini-cli
@@ -123,8 +119,10 @@ if command -v pnpm &> /dev/null; then
     pnpm install -g @anthropic-ai/claude-code
     pnpm install -g @openai/codex
 else
-    echo "Warning: pnpm not found in PATH. It may not be available until after opening a new terminal."
+    echo "warning: pnpm not found in PATH. it may not be available until after opening a new terminal."
 fi
 curl -fsSL https://opencode.ai/install | bash
+echo "run pnpm approve-builds -g to finish"
+
 ## end message
-echo "✅ All installations complete. You may now open a new terminal tab or window."
+echo "installation complete"
