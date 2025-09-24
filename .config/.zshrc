@@ -10,12 +10,10 @@ setopt HIST_IGNORE_SPACE # Ignore commands starting with a space
 setopt HIST_VERIFY       # Let you edit history before executing
 
 # ---- Keybindings ----
-# Setup keybindings to emulate Windows Terminal behavior for navigation and selection.
-
-# Ctrl + Arrow keys for word-by-word navigation
+# ctrl + arrow keys for word-by-word navigation
 bindkey '\e[1;5C' forward-word
 bindkey '\e[1;5D' backward-word
-# Shift + Arrow keys for character selection
+# Shift + arrow keys for character selection
 _shift_select_forward () {
     if ((REGION_ACTIVE)); then
         zle .forward-char
@@ -34,7 +32,7 @@ _shift_select_backward () {
 zle -N _shift_select_backward
 bindkey '\e[1;2C' _shift_select_forward
 bindkey '\e[1;2D' _shift_select_backward
-# Ctrl + Shift + Arrow keys for word selection
+# ctrl + Shift + arrow keys for word selection
 _shift_select_forward_word () {
     if ((REGION_ACTIVE)); then
         zle .forward-word
@@ -43,7 +41,6 @@ _shift_select_forward_word () {
     fi
 }
 zle -N _shift_select_forward_word
-
 _shift_select_backward_word () {
     if ((REGION_ACTIVE)); then
         zle .backward-word
@@ -79,7 +76,7 @@ alias l='eza --color=always --long --git --no-filesize --icons=always'
 alias ls='eza --color=always --long --git --no-filesize --icons=always --all --color-scale-mode=gradient'
 
 # ---- Sources ----
-# zsh
+# zsh plugins
 if [ -f $HOME/.nix-profile/share/zsh-autosuggestions/zsh-autosuggestions.zsh ]; then
   source $HOME/.nix-profile/share/zsh-autosuggestions/zsh-autosuggestions.zsh
 fi
