@@ -1,8 +1,0 @@
-gnome-shell-extensions
-gnome-shell-extension-appindicator
-gnome-tweaks
-flatpak
-code
-proton-vpn-gnome-desktop
-libayatana-appindicator3-1
-gir1.2-ayatanaappindicator3-0.1
