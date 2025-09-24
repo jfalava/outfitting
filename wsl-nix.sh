@@ -124,5 +124,11 @@ fi
 curl -fsSL https://opencode.ai/install | bash
 echo "run pnpm approve-builds -g to finish"
 
+#####
+## copy config files to local
+#####
+curl -o ~/.gitconfig "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/.config/.gitconfig"
+curl -o ~/.zshrc "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/.config/.zshrc"
+
 ## end message
 echo "installation complete"
