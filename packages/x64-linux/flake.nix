@@ -10,6 +10,7 @@
       name = "jfalava-wsl";
       paths = with nixpkgs.legacyPackages.x86_64-linux; [
         bat
+        deno
         eza
         nodejs_latest
         python3

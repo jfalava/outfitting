@@ -56,9 +56,9 @@ EOF
 source ~/.bashrc
 ## install packages from flake
 if command -v nix &> /dev/null; then
-    if ! nix profile add --extra-experimental-features 'nix-command flakes' --no-write-lock-file "github:jfalava/outfitting/main?dir=packages"; then
+    if ! nix profile add --extra-experimental-features 'nix-command flakes' --no-write-lock-file "github:jfalava/outfitting/main?dir=packages/x64-linux"; then
         echo "Warning: Flake installation failed."
-        echo "After script completion, you can try: nix profile install 'git+https://github.com/jfalava/outfitting?dir=packages'"
+        echo "After script completion, you can try: nix profile install 'git+https://github.com/jfalava/outfitting?dir=packages/x64-linux'"
     fi
 else
     echo "Nix not found, skipping flake installation"
@@ -68,9 +68,7 @@ fi
 ## runtimes
 #####
 curl -fsSL https://bun.sh/install | bash
-# Install Deno without modifying shell configuration by exiting the script before interactive prompts
-curl -fsSL https://deno.land/install.sh | sed '/Deno was installed successfully/a exit 0' | sh
-# deno jupyter --install # not working
+deno jupyter --install # if the deno flake fails to install, this will fail gracefully
 curl -fsSL https://get.pnpm.io/install.sh | sh -
 
 #####
