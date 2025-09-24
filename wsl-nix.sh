@@ -36,13 +36,13 @@ echo "HashiCorp Done"
 #####
 ## install nix
 curl -L https://nixos.org/nix/install | sh
-source ~/.nix-profile/etc/profile.d/nix.sh
+source ~/.nix-profile/etc/profile.d/nix.sh || true
 (
     echo
     echo 'source ~/.nix-profile/etc/profile.d/nix.sh'
 ) >> ~/.bashrc
-## install packages from flake
-nix profile install github:jfalava/outfitting?dir=packages
+echo ". /home/$USER/.nix-profile/etc/profile.d/nix.sh" >> ~/.bashrc
+# Create nix configuration before running nix commands
 sudo mkdir -p /etc/nix
 sudo tee /etc/nix/nix.conf > /dev/null << 'EOF'
 experimental-features = nix-command flakes
@@ -51,6 +51,17 @@ trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDS
 auto-optimise-store = true
 max-jobs = auto
 EOF
+source ~/.bashrc
+## install packages from flake
+if command -v nix &> /dev/null; then
+    # Attempt direct installation - may fail due to non-standard flakes.nix filename
+    if ! nix profile install --extra-experimental-features 'nix-command flake' "github:jfalava/outfitting/main?dir=packages"; then
+        echo "Warning: Direct flake installation failed. The flakes.nix filename may require manual installation."
+        echo "After script completion, you can try: nix profile install 'git+https://github.com/jfalava/outfitting?dir=packages'"
+    fi
+else
+    echo "Nix not found, skipping flake installation"
+fi
 echo "Nix Done"
 
 #####
@@ -58,8 +69,8 @@ echo "Nix Done"
 #####
 curl -fsSL https://bun.sh/install | bash
 curl -fsSL https://deno.land/install.sh | sh
-source .bashrc # for the jupyter installation
-deno jupyter --install
+source ~/.bashrc # for the jupyter installation
+# deno jupyter --install # not working
 curl -fsSL https://get.pnpm.io/install.sh | sh -
 echo "Runtimes Done"
 
@@ -73,8 +84,8 @@ echo "Terminal Done"
 #####
 ## docker
 #####
-for pkg in docker.io docker-doc docker-compose docker-compose-v2 podman-docker containerd runc; do sudo apt-get remove $pkg; done
-sudo apt-get install ca-certificates
+for pkg in docker.io docker-doc docker-compose docker-compose-v2 podman-docker containerd runc; do sudo apt remove $pkg; done
+sudo apt install ca-certificates
 sudo install -m 0755 -d /etc/apt/keyrings
 sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
 sudo chmod a+r /etc/apt/keyrings/docker.asc
@@ -82,30 +93,38 @@ echo \
     "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
     $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}") stable" |
     sudo tee /etc/apt/sources.list.d/docker.list >/dev/null
-sudo apt-get update
-sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin -y
+sudo apt update
+sudo apt install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin -y
 echo "Docker Done"
 
 #####
 ## update bash profile for pnpm, so LLM CLIs can be installed
 #####
 (
-export PNPM_HOME="$HOME/.local/share/pnpm"
-case ":$PATH:" in
-*":$PNPM_HOME:"*) ;;
-*) export PATH="$PNPM_HOME:$PATH" ;;
-esac
-) >>~/.bashrc
+echo
+echo 'export PNPM_HOME="$HOME/.local/share/pnpm"'
+echo 'case ":$PATH:" in'
+echo '*":$PNPM_HOME:"*) ;;'
+echo '*) export PATH="$PNPM_HOME:$PATH" ;;'
+echo 'esac'
+) >> ~/.bashrc
 source ~/.bashrc
 #####
 
 #####
 ## LLM CLIs
 #####
-pnpm install -g @google/gemini-cli
-pnpm install -g @qwen-code/qwen-code@latest
-pnpm install -g @anthropic-ai/claude-code
-pnpm install -g @openai/codex
+# Ensure pnpm is in PATH for this session
+source ~/.bashrc || true
+# Verify pnpm is available before installing packages
+if command -v pnpm &> /dev/null; then
+    pnpm install -g @google/gemini-cli
+    pnpm install -g @qwen-code/qwen-code@latest
+    pnpm install -g @anthropic-ai/claude-code
+    pnpm install -g @openai/codex
+else
+    echo "Warning: pnpm not found in PATH. It may not be available until after opening a new terminal."
+fi
 curl -fsSL https://opencode.ai/install | bash
 ## end message
 echo "✅ All installations complete. You may now open a new terminal tab or window."

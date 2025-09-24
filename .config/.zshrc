@@ -1,5 +1,6 @@
 # Add deno completions to search path
-if [[ ":$FPATH:" != *":$HOME/.zsh/completions:"* ]]; then export FPATH="$HOME/.zsh/completions:$FPATH"; fi
+if [[ ":$FPATH:" != *":/home/jfalava/.zsh/completions:"* ]]; then export FPATH="/home/jfalava/.zsh/completions:$FPATH"; fi
+. "/home/jfalava/.deno/env"
 # ---- History ----
 # Location of the history file
 HISTFILE=~/.zsh_history
@@ -40,3 +41,6 @@ if [ -z "$SSH_AUTH_SOCK" ] || [ ! -S "$SSH_AUTH_SOCK" ]; then
 fi
 # Starship
 eval "$(starship init zsh)"
+# Initialize zsh completions (added by deno install script)
+autoload -Uz compinit
+compinit
