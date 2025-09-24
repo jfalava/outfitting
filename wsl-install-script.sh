@@ -44,7 +44,7 @@ source ~/.nix-profile/etc/profile.d/nix.sh || true
     echo 'source ~/.nix-profile/etc/profile.d/nix.sh'
 ) >> ~/.bashrc
 echo ". /home/$USER/.nix-profile/etc/profile.d/nix.sh" >> ~/.bashrc
-# Create nix configuration before running nix commands
+# create nix configuration before running nix commands
 sudo mkdir -p /etc/nix
 sudo tee /etc/nix/nix.conf > /dev/null << 'EOF'
 experimental-features = nix-command flakes

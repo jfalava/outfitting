@@ -3,7 +3,7 @@
 Scripts, dotfiles and lambdas for the automatic outfitting of my personal machines and VMs.
 
 > [!WARNING]
-> Are you installing an LTSC version of Windows? Those are missing the Microsoft Store app, install it along WinGet with [this](https://github.com/kkkgo/LTSC-Add-MicrosoftStore).
+> Are you installing a LTSC version of Windows? Those are missing the Microsoft Store app, install it along WinGet with [this tool](https://github.com/kkkgo/LTSC-Add-MicrosoftStore).
 
 ## How to run the automatic installation scripts
 
@@ -27,9 +27,6 @@ irm win.jfa.dev | iex
 
 > [!NOTE]
 > You need `cURL` to execute this commands; you may install it by running `sudo apt install curl`.
-
-> [!CAUTION]
-> Do **not** run this as `sudo` as it uses Homebrew as one of the package managers.
 
 #### WSL
 
