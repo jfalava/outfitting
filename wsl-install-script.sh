@@ -1,111 +1,132 @@
 #!/bin/bash
-## update packages
+
+## init
 sudo apt update -y && sudo apt upgrade -y && sudo apt install curl
-# fetch the list of apt packages from GitHub
+
+#####
+## install apt packages
+#####
 APT_LIST_URL="https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/packages/apt.txt"
-echo "📝 Fetching APT package list from $APT_LIST_URL..."
 curl -fsSL "$APT_LIST_URL" -o /tmp/apt-packages.txt || {
-    echo "❌ Failed to fetch APT package list. Exiting..."
+    echo "Failed to fetch APT package list. Exiting..."
     exit 1
 }
-# install apt packages
-echo "📦 Installing APT packages..."
 while IFS= read -r package || [ -n "$package" ]; do
     # trim whitespace and skip empty lines or comments (thank you claude)
     package=$(echo "$package" | tr -d '[:space:]')
     if [[ -n "$package" && ! "$package" =~ ^# ]]; then
-        echo "❖ Installing apt package: $package ❖"
+        echo "Installing apt package: $package"
         sudo apt install -y "$package"
     fi
 done </tmp/apt-packages.txt
+
+#####
 ## add hashicorp repo
-echo "🏗️ Adding HashiCorp repository and installing packages..."
+#####
 if ! grep -q hashicorp /etc/apt/sources.list.d/hashicorp.list; then
     wget -qO- https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
     echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
 fi
+## install hashipackages
 sudo apt update -qq && sudo apt install -y terraform packer
-## install homebrew
-echo "🍺 Installing Homebrew"
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+## cleanup
+sudo apt autoremove -y
+
+#####
+## nix
+#####
+## install nix
+curl -L https://nixos.org/nix/install | sh
+source ~/.nix-profile/etc/profile.d/nix.sh || true
 (
     echo
-    echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"'
-) >>~/.bashrc
-eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+    echo 'source ~/.nix-profile/etc/profile.d/nix.sh'
+) >> ~/.bashrc
+echo ". /home/$USER/.nix-profile/etc/profile.d/nix.sh" >> ~/.bashrc
+# Create nix configuration before running nix commands
+sudo mkdir -p /etc/nix
+sudo tee /etc/nix/nix.conf > /dev/null << 'EOF'
+experimental-features = nix-command flakes
+substituters = https://cache.nixos.org/ https://nix-community.cachix.org
+trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs=
+auto-optimise-store = true
+max-jobs = auto
+EOF
 source ~/.bashrc
-## install homebrew packages
-echo "🍺 Installing Homebrew packages"
-BREW_LIST_URL="https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/packages/brew.txt"
-curl -fsSL "$BREW_LIST_URL" -o /tmp/brew-packages.txt || {
-    echo "❌ Failed to fetch Brew package list. Exiting..."
-    exit 1
-}
-# install each brew package
-while IFS= read -r package || [ -n "$package" ]; do
-    # trim whitespace and skip empty lines or comments (thank you claude)
-    package=$(echo "$package" | tr -d '[:space:]')
-    if [[ -n "$package" && ! "$package" =~ ^# ]]; then
-        echo "❖ Installing Brew package: $package ❖"
-        brew install "$package"
+## install packages from flake
+if command -v nix &> /dev/null; then
+    if ! nix profile add --extra-experimental-features 'nix-command flakes' --no-write-lock-file "github:jfalava/outfitting/main?dir=packages/x64-linux"; then
+        echo "Warning: Flake installation failed."
+        echo "After script completion, you can try: nix profile install 'git+https://github.com/jfalava/outfitting?dir=packages/x64-linux'"
     fi
-done </tmp/brew-packages.txt
-# install ohmyposh
-sudo chsh -s $(which zsh) $USER
-echo "💻 Installing OhMyPosh"
-curl -s https://ohmyposh.dev/install.sh | bash -s
-brew install zsh-syntax-highlighting
-brew install zsh-autosuggestions
-# bun
+else
+    echo "Nix not found, skipping flake installation"
+fi
+
+#####
+## runtimes
+#####
 curl -fsSL https://bun.sh/install | bash
-## deno
-curl -fsSL https://deno.land/install.sh | sh
-source .bashrc
-deno jupyter --install
-## pnpm
+deno jupyter --install # if the deno flake fails to install, this will fail gracefully
 curl -fsSL https://get.pnpm.io/install.sh | sh -
-## eza colors
-mkdir -p ~/.config/eza
-touch ~/.config/light_mode-theme.yml
-touch ~/.config/dark_mode-theme.yml
-curl -sL https://raw.githubusercontent.com/eza-community/eza-themes/refs/heads/main/themes/rose-pine-dawn.yml >~/.config/eza/light_mode-theme.yml
-curl -sL https://raw.githubusercontent.com/eza-community/eza-themes/refs/heads/main/themes/tokyonight.yml >~/.config/eza/dark_mode-theme.yml
-# copy .gitconfig profile to local
-echo "📎 Copying .gitconfig profile to local..."
-curl -o ~/.gitconfig "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/.config/.gitconfig"
-# copy .zshrc profile to local
-echo "📎 Copying .zshrc profile to local..."
-curl -o ~/.zshrc "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/.config/.zshrc"
-# copy .zshrc profile to local
-echo "📎 Copying OhMyPosh profile to local..."
-mkdir -p ~/.config/ohmyposh
-curl -sL https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/.config/profile.omp.json >~/.config/ohmyposh/profile.omp.json
-## docker (why haven't i done this earlier lmao)
-echo "🚢 Installing Docker..."
-for pkg in docker.io docker-doc docker-compose docker-compose-v2 podman-docker containerd runc; do sudo apt-get remove $pkg; done
-sudo apt-get install ca-certificates
+
+#####
+## terminal
+#####
+sudo chsh -s $(which zsh) $USER
+curl -o ~/.gitconfig "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/.config/.gitconfig" # copy .gitconfig profile to local
+
+#####
+## docker
+#####
+for pkg in docker.io docker-doc docker-compose docker-compose-v2 podman-docker containerd runc; do sudo apt remove -y $pkg; done
+sudo apt install ca-certificates
 sudo install -m 0755 -d /etc/apt/keyrings
 sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
 sudo chmod a+r /etc/apt/keyrings/docker.asc
 echo \
     "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
-  $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}") stable" |
+    $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}") stable" |
     sudo tee /etc/apt/sources.list.d/docker.list >/dev/null
-sudo apt-get update
-sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin -y
-## Update bash profile for pnpm
+sudo apt update
+sudo apt install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin -y
+
+#####
+## update bash profile for pnpm and deno, so LLM CLIs can be installed
+#####
 (
-export PNPM_HOME="$HOME/.local/share/pnpm"
-case ":$PATH:" in
-*":$PNPM_HOME:"*) ;;
-*) export PATH="$PNPM_HOME:$PATH" ;;
-esac
-) >>~/.bashrc
+echo
+echo 'export PNPM_HOME="$HOME/.local/share/pnpm"'
+echo 'export DENO_INSTALL="$HOME/.deno"'
+echo 'export PATH="$PNPM_HOME:$DENO_INSTALL/bin:$PATH"'
+) >> ~/.bashrc
 source ~/.bashrc
-pnpm install -g @google/gemini-cli
-pnpm install -g @qwen-code/qwen-code@latest
-pnpm install -g opencode-ai
-pnpm install -g @anthropic-ai/claude-code
-pnpm install -g @openai/codex
+#####
+
+#####
+## LLM CLIs
+#####
+source ~/.bashrc || true
+export PNPM_HOME="$HOME/.local/share/pnpm"
+export PATH="$PNPM_HOME:$PATH"
+# Verify pnpm is available before installing packages
+if command -v pnpm &> /dev/null; then
+    pnpm install -g @google/gemini-cli
+    pnpm install -g @qwen-code/qwen-code@latest
+    pnpm install -g @anthropic-ai/claude-code
+    pnpm install -g @openai/codex
+else
+    echo "warning: pnpm not found in PATH. it may not be available until after opening a new terminal."
+fi
+curl -fsSL https://opencode.ai/install | bash
+echo "run pnpm approve-builds -g to finish"
+
+#####
+## copy config files to local
+#####
+curl -o ~/.gitconfig "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/.config/.gitconfig"
+curl -o ~/.zshrc "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/.config/.zshrc-wsl"
+
 ## end message
-echo "✅ All installations complete. You may now open a new terminal tab or window."
+echo "installation complete"

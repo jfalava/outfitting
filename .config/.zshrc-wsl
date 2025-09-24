@@ -93,9 +93,6 @@ if [ -z "$SSH_AUTH_SOCK" ] || [ ! -S "$SSH_AUTH_SOCK" ]; then
 fi
 # starship
 eval "$(starship init zsh)"
-# add deno completions to search path
-if [[ ":$FPATH:" != *":/home/jfalava/.zsh/completions:"* ]]; then export FPATH="/home/jfalava/.zsh/completions:$FPATH"; fi
-. "/home/jfalava/.deno/env"
-# Initialize zsh completions (added by deno install script)
+# initialize zsh completions
 autoload -Uz compinit
 compinit
