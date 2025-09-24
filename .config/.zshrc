@@ -9,6 +9,52 @@ setopt HIST_IGNORE_DUPS  # Ignore duplicate commands
 setopt HIST_IGNORE_SPACE # Ignore commands starting with a space
 setopt HIST_VERIFY       # Let you edit history before executing
 
+# ---- Keybindings ----
+# Setup keybindings to emulate Windows Terminal behavior for navigation and selection.
+
+# Ctrl + Arrow keys for word-by-word navigation
+bindkey '\e[1;5C' forward-word
+bindkey '\e[1;5D' backward-word
+# Shift + Arrow keys for character selection
+_shift_select_forward () {
+    if ((REGION_ACTIVE)); then
+        zle .forward-char
+    else
+        zle .set-mark-command && zle .forward-char
+    fi
+}
+zle -N _shift_select_forward
+_shift_select_backward () {
+    if ((REGION_ACTIVE)); then
+        zle .backward-char
+    else
+        zle .set-mark-command && zle .backward-char
+    fi
+}
+zle -N _shift_select_backward
+bindkey '\e[1;2C' _shift_select_forward
+bindkey '\e[1;2D' _shift_select_backward
+# Ctrl + Shift + Arrow keys for word selection
+_shift_select_forward_word () {
+    if ((REGION_ACTIVE)); then
+        zle .forward-word
+    else
+        zle .set-mark-command && zle .forward-word
+    fi
+}
+zle -N _shift_select_forward_word
+
+_shift_select_backward_word () {
+    if ((REGION_ACTIVE)); then
+        zle .backward-word
+    else
+        zle .set-mark-command && zle .backward-word
+    fi
+}
+zle -N _shift_select_backward_word
+bindkey '\e[1;6C' _shift_select_forward_word
+bindkey '\e[1;6D' _shift_select_backward_word
+
 # ---- Paths ----
 PATH=$PATH:/home/$USER/go/bin
 PATH=$PATH:/home/$USER/.local/bin
@@ -18,9 +64,6 @@ case ":$PATH:" in
 *":$PNPM_HOME:"*) ;;
 *) export PATH="$PNPM_HOME:$PATH" ;;
 esac
-# deno
-export DENO_INSTALL="$HOME/.deno"
-export PATH="$PNPM_HOME:$DENO_INSTALL/bin:$PATH"
 # bun
 export BUN_INSTALL="$HOME/.bun"
 export PATH="$BUN_INSTALL/bin:$PATH"
