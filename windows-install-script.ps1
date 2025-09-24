@@ -83,6 +83,7 @@ Install-PSModules -filePath $psModulesFile
 # other packages
 irm https://deno.land/install.ps1 | iex
 powershell -c "irm bun.sh/install.ps1 | iex"
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
 
 # cleanup temporary files
 Remove-Item $wingetPackagesFile -ErrorAction SilentlyContinue

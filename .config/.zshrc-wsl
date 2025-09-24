@@ -74,6 +74,15 @@ alias ff='fastfetch'
 alias tf='terraform'
 alias l='eza --color=always --long --git --no-filesize --icons=always'
 alias ls='eza --color=always --long --git --no-filesize --icons=always --all --color-scale-mode=gradient'
+nix-install() {
+  nix profile install "nixpkgs#$1"
+}
+nix-uninstall() {
+  nix profile remove "nixpkgs#$1"
+}
+nix-search() {
+  nix search nixpkgs "$1"
+}
 
 # ---- Sources ----
 # zsh plugins

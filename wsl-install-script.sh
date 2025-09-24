@@ -70,6 +70,7 @@ fi
 curl -fsSL https://bun.sh/install | bash
 deno jupyter --install # if the deno flake fails to install, this will fail gracefully
 curl -fsSL https://get.pnpm.io/install.sh | sh -
+curl -LsSf https://astral.sh/uv/install.sh | sh
 
 #####
 ## terminal
