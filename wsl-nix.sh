@@ -31,6 +31,9 @@ fi
 sudo apt update -qq && sudo apt install -y terraform packer
 echo "HashiCorp Done"
 
+## cleanup
+sudo apt autoremove -y
+
 #####
 ## nix
 #####
@@ -54,9 +57,8 @@ EOF
 source ~/.bashrc
 ## install packages from flake
 if command -v nix &> /dev/null; then
-    # Attempt direct installation - may fail due to non-standard flakes.nix filename
-    if ! nix profile install --extra-experimental-features 'nix-command flake' "github:jfalava/outfitting/main?dir=packages"; then
-        echo "Warning: Direct flake installation failed. The flakes.nix filename may require manual installation."
+    if ! nix profile install --extra-experimental-features 'nix-command flakes' --no-write-lock-file "github:jfalava/outfitting/main?dir=packages"; then
+        echo "Warning: Flake installation failed."
         echo "After script completion, you can try: nix profile install 'git+https://github.com/jfalava/outfitting?dir=packages'"
     fi
 else
@@ -68,8 +70,8 @@ echo "Nix Done"
 ## runtimes
 #####
 curl -fsSL https://bun.sh/install | bash
-curl -fsSL https://deno.land/install.sh | sh
-source ~/.bashrc # for the jupyter installation
+curl -fsSL https://deno.land/install.sh | sh -s -- --no-modify-path
+source ~/.bashrc
 # deno jupyter --install # not working
 curl -fsSL https://get.pnpm.io/install.sh | sh -
 echo "Runtimes Done"
@@ -84,7 +86,7 @@ echo "Terminal Done"
 #####
 ## docker
 #####
-for pkg in docker.io docker-doc docker-compose docker-compose-v2 podman-docker containerd runc; do sudo apt remove $pkg; done
+for pkg in docker.io docker-doc docker-compose docker-compose-v2 podman-docker containerd runc; do sudo apt remove -y $pkg; done
 sudo apt install ca-certificates
 sudo install -m 0755 -d /etc/apt/keyrings
 sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
@@ -98,15 +100,13 @@ sudo apt install docker-ce docker-ce-cli containerd.io docker-buildx-plugin dock
 echo "Docker Done"
 
 #####
-## update bash profile for pnpm, so LLM CLIs can be installed
+## update bash profile for pnpm and deno, so LLM CLIs can be installed
 #####
 (
 echo
 echo 'export PNPM_HOME="$HOME/.local/share/pnpm"'
-echo 'case ":$PATH:" in'
-echo '*":$PNPM_HOME:"*) ;;'
-echo '*) export PATH="$PNPM_HOME:$PATH" ;;'
-echo 'esac'
+echo 'export DENO_INSTALL="$HOME/.deno"'
+echo 'export PATH="$PNPM_HOME:$DENO_INSTALL/bin:$PATH"'
 ) >> ~/.bashrc
 source ~/.bashrc
 #####
