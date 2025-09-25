@@ -10,6 +10,8 @@ setopt HIST_IGNORE_SPACE # Ignore commands starting with a space
 setopt HIST_VERIFY       # Let you edit history before executing
 
 # ---- Keybindings ----
+# Delete key fix
+bindkey '\e[3~' delete-char
 # ctrl + arrow keys for word-by-word navigation
 bindkey '\e[1;5C' forward-word
 bindkey '\e[1;5D' backward-word
@@ -75,7 +77,7 @@ alias tf='terraform'
 alias l='eza --color=always --long --git --no-filesize --icons=always'
 alias ls='eza --color=always --long --git --no-filesize --icons=always --all --color-scale-mode=gradient'
 nix-install() {
-  nix profile install "nixpkgs#$1"
+  nix profile add "nixpkgs#$1"
 }
 nix-uninstall() {
   nix profile remove "nixpkgs#$1"
