@@ -249,5 +249,5 @@ try {
 ## end messages
 Write-Host "`n"
 Write-Host "❖ Main installation complete." -ForegroundColor Green
-Write-Host "❖ Execute in a new, non-admin PowerShell window:" -ForegroundColor Green
+Write-Host "❖ Execute in a new, non-admin PowerShell window:"
 Write-Host "  - irm win.jfa.dev/post-install | iex" -ForegroundColor Green

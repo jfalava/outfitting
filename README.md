@@ -20,6 +20,13 @@ Scripts, dotfiles and lambdas for the automatic outfitting of my personal machin
 irm win.jfa.dev | iex
 ```
 
+> [!IMPORTANT]
+> The post install script **requires** a non-elevated PowerShell session.
+
+```powershell
+irm win.jfa.dev/post-install | iex
+```
+
 ### Linux
 
 > [!NOTE]
@@ -38,5 +45,7 @@ curl -L wsl.jfa.dev | bash
 
 - [ ] Fonts
 - [ ] System preferences
-- [ ] Shell preferences
-- [ ] Support for additional package managers
+  - [x] Windows Registry
+  - [ ] Windows Settings (like mouse acceleration)
+- [x] Shell preferences
+- [ ] ~~Support for additional package managers~~
