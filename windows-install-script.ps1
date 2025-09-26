@@ -63,7 +63,7 @@ function Install-WingetPackages {
             Write-Host "❖ Installed package: $package" -ForegroundColor Green
         } catch {
             Write-Host "❖ Failed to install package:" -ForegroundColor Red
-            Write-Host "  - $package: $_" -ForegroundColor Red
+            Write-Host "  - ${package}: $_" -ForegroundColor Red
             # Continue to next package
         }
     }
@@ -88,7 +88,7 @@ function Install-PSModules {
             }
             catch {
                 Write-Host "❖ Failed to install PowerShell module(s):" -ForegroundColor Red
-                Write-Host "  - $module: $_" -ForegroundColor Red
+                Write-Host "  - ${module}: $_" -ForegroundColor Red
             }
         } else {
             Write-Host "❖ PowerShell module already available: $module" -ForegroundColor Yellow
@@ -133,7 +133,7 @@ try {
                     $validRegFiles += [PSCustomObject]@{ Name = $fileName; Content = $response.Content; Url = $url; Path = $path }
                 }
             } catch {
-                Write-Host "❖ Failed to fetch registry file $path: $_" -ForegroundColor Red
+                Write-Host "❖ Failed to fetch registry file ${path}: $_" -ForegroundColor Red
             }
         }
 

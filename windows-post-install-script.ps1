@@ -20,7 +20,7 @@ function Install-ScoopPackages {
             Write-Host "❖ Installed Scoop package: $package" -ForegroundColor Green
         } catch {
             Write-Host "❖ Failed to install Scoop package:" -ForegroundColor Red
-            Write-Host "  - $package: $_" -ForegroundColor Red
+            Write-Host "  - ${package}: $_" -ForegroundColor Red
             # Continue to next package, but don't exit here
         }
     }
@@ -44,7 +44,7 @@ function Install-PnpmPackages {
             Write-Host "❖ Installed Pnpm package: $package" -ForegroundColor Green
         } catch {
             Write-Host "❖ Failed to install Pnpm package:" -ForegroundColor Red
-            Write-Host "  - $package: $_" -ForegroundColor Red
+            Write-Host "  - ${package}: $_" -ForegroundColor Red
             # Continue to next package, but don't exit here
         }
     }
