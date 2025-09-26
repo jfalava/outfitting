@@ -19,10 +19,10 @@ $scoopPackagesFile = "$env:TEMP\scoop.txt"
 ######
 try {
     Invoke-WebRequest -Uri $wingetPackagesUrl -OutFile $wingetPackagesFile
-    Write-Host "Winget packages list downloaded." -ForegroundColor Green
+    Write-Host "❖ Winget packages list downloaded." -ForegroundColor Green
 } catch {
     Write-Host "❖ Failed to download Winget package list:" -ForegroundColor Red
-    Write-Host "- $_" -ForegroundColor Red
+    Write-Host "  - $_" -ForegroundColor Red
     exit 1 # don't continue
 }
 try {
@@ -30,14 +30,14 @@ try {
     Write-Host "Microsoft Store packages list downloaded." -ForegroundColor Green
 } catch {
     Write-Host "❖ Failed to download Microsoft Store package list:" -ForegroundColor Red
-    Write-Host "- $_" -ForegroundColor Red
+    Write-Host "  - $_" -ForegroundColor Red
 }
 try {
     Invoke-WebRequest -Uri $psModulesUrl -OutFile $psModulesFile
     Write-Host "PSModules list downloaded." -ForegroundColor Green
 } catch {
     Write-Host "❖ Failed to download PSModules list:" -ForegroundColor Red
-    Write-Host "- $_" -ForegroundColor Red
+    Write-Host "  - $_" -ForegroundColor Red
 }
 
 #####
@@ -60,10 +60,10 @@ function Install-WingetPackages {
     foreach ($package in $packages) {
         try {
             winget install --id $package --accept-source-agreements --accept-package-agreements -e
-            Write-Host "Installed Winget package: $package" -ForegroundColor Green
+            Write-Host "❖ Installed Winget package: $package" -ForegroundColor Green
         } catch {
             Write-Host "❖ Failed to install Winget package:" -ForegroundColor Red
-            Write-Host "- $package: $_" -ForegroundColor Red
+            Write-Host "  - $package`: $_" -ForegroundColor Red
             # Continue to next package
         }
     }
@@ -104,6 +104,112 @@ Install-WingetPackages -filePath $msStorePackagesFile
 Install-PSModules -filePath $psModulesFile
 
 #####
+## install registry tweaks interactively (dynamic discovery via GitHub API)
+#####
+$baseRegUrl = "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main"
+$githubApiUrl = "https://api.github.com/repos/jfalava/outfitting/git/trees/main?recursive=1"
+$regFilePaths = @()
+$validRegFiles = @()
+
+try {
+    $apiResponse = Invoke-RestMethod -Uri $githubApiUrl -Method Get -Headers @{ "User-Agent" = "PowerShellScript" }
+    $treeItems = $apiResponse.tree
+    $regFilePaths = $treeItems | Where-Object { $_.path -like "windows-registry/*.reg" -and $_.type -eq "blob" } | ForEach-Object { $_.path }
+
+    if ($regFilePaths.Count -gt 0) {
+        Write-Host "❖ `nDiscovered $($regFilePaths.Count) registry tweak(s) from GitHub repo:" -ForegroundColor Cyan
+        foreach ($path in $regFilePaths) {
+            $fileName = Split-Path $path -Leaf
+            Write-Host "  - $fileName" -ForegroundColor Yellow
+        }
+
+        # Fetch content for each discovered file
+        foreach ($path in $regFilePaths) {
+            $url = "$baseRegUrl/$path"
+            try {
+                $response = Invoke-WebRequest -Uri $url -ErrorAction Stop
+                if ($response.StatusCode -eq 200) {
+                    $fileName = Split-Path $path -Leaf
+                    $validRegFiles += [PSCustomObject]@{ Name = $fileName; Content = $response.Content; Url = $url; Path = $path }
+                }
+            } catch {
+                Write-Host "❖ Failed to fetch registry file: $path ($_)" -ForegroundColor Red
+            }
+        }
+
+        if ($validRegFiles.Count -gt 0) {
+            Write-Host "❖ `nFound $($validRegFiles.Count) valid registry tweak(s) to install:" -ForegroundColor Cyan
+            foreach ($file in $validRegFiles) {
+                Write-Host "  - $($file.Name)" -ForegroundColor Yellow
+            }
+            $globalChoice = Read-Host "`nChoose: (A)ll, (N)one, or (R)eview each? [A/N/R] (default: A)"
+            $globalChoice = if ([string]::IsNullOrWhiteSpace($globalChoice)) { "A" } else { $globalChoice.ToUpper() }
+
+            switch ($globalChoice) {
+                "A" {
+                    foreach ($file in $validRegFiles) {
+                        $tempRegPath = "$env:TEMP\$($file.Name)"
+                        $file.Content | Out-File -FilePath $tempRegPath -Encoding UTF8
+                        & reg import $tempRegPath
+                        if ($LASTEXITCODE -eq 0) {
+                            Write-Host "❖ Imported: $($file.Name)" -ForegroundColor Green
+                        } else {
+                            Write-Host "❖ Failed to import $($file.Name)" -ForegroundColor Red
+                        }
+                        Remove-Item $tempRegPath -ErrorAction SilentlyContinue
+                    }
+                }
+                "N" {
+                    Write-Host "❖ Skipping all registry tweaks." -ForegroundColor Yellow
+                }
+                "R" {
+                    foreach ($file in $validRegFiles) {
+                        Write-Host "`n--- $($file.Name) ---" -ForegroundColor Cyan
+                        $file.Content | ForEach-Object { Write-Host $_ -ForegroundColor Gray }
+                        $perChoice = Read-Host "Install this tweak? [Y/N] (default: N)"
+                        $perChoice = if ([string]::IsNullOrWhiteSpace($perChoice)) { "N" } else { $perChoice.ToUpper() }
+                        if ($perChoice -eq "Y") {
+                            $tempRegPath = "$env:TEMP\$($file.Name)"
+                            $file.Content | Out-File -FilePath $tempRegPath -Encoding UTF8
+                            & reg import $tempRegPath
+                            if ($LASTEXITCODE -eq 0) {
+                                Write-Host "❖ Imported: $($file.Name)" -ForegroundColor Green
+                            } else {
+                                Write-Host "❖ Failed to import $($file.Name)" -ForegroundColor Red
+                            }
+                            Remove-Item $tempRegPath -ErrorAction SilentlyContinue
+                        } else {
+                            Write-Host "❖ Skipped: $($file.Name)" -ForegroundColor Yellow
+                        }
+                    }
+                }
+                default {
+                    Write-Host "Invalid choice, defaulting to All." -ForegroundColor Yellow
+                    foreach ($file in $validRegFiles) {
+                        $tempRegPath = "$env:TEMP\$($file.Name)"
+                        $file.Content | Out-File -FilePath $tempRegPath -Encoding UTF8
+                        & reg import $tempRegPath
+                        if ($LASTEXITCODE -eq 0) {
+                            Write-Host "❖ Imported: $($file.Name)" -ForegroundColor Green
+                        } else {
+                            Write-Host "❖ Failed to import $($file.Name)" -ForegroundColor Red
+                        }
+                        Remove-Item $tempRegPath -ErrorAction SilentlyContinue
+                    }
+                }
+            }
+        } else {
+            Write-Host "No valid .reg files fetched from discovered paths." -ForegroundColor Yellow
+        }
+    } else {
+        Write-Host "No .reg files discovered in windows-registry/ directory." -ForegroundColor Yellow
+    }
+} catch {
+    Write-Host "❖ Failed to discover registry files via GitHub API: $_" -ForegroundColor Red
+    Write-Host "Skipping registry tweaks." -ForegroundColor Yellow
+}
+
+#####
 ## cleanup temporary files
 #####
 Remove-Item $wingetPackagesFile -ErrorAction SilentlyContinue
@@ -136,11 +242,12 @@ try {
     }
 } catch {
     Write-Host "❖ Failed to set up PowerShell profiles:" -ForegroundColor Red
-    Write-Host "- $_" -ForegroundColor Red
+    Write-Host "  - $_" -ForegroundColor Red
     exit 1
 }
 
 ## end messages
+Write-Host " "
 Write-Host "❖ Main installation complete." -ForegroundColor Green
 Write-Host "❖ Execute in a new, non-admin PowerShell window:" -ForegroundColor Yellow
-Write-Host "❖ irm win.jfa.dev/post-install | iex" -ForegroundColor Green
+Write-Host "  - irm win.jfa.dev/post-install | iex" -ForegroundColor Green
