@@ -8,18 +8,28 @@ app.get("*", async (c) => {
 
   const allowedHosts = ["wsl.jfa.dev", "win.jfa.dev"];
   const isAllowedHost = allowedHosts.some((allowedHost) =>
-    host.includes(allowedHost)
+    host.includes(allowedHost),
   );
 
-  if (isAllowedHost && pathname === "/") {
+  if (
+    isAllowedHost &&
+    ((host.includes("wsl.jfa.dev") && pathname === "/") ||
+      (host.includes("win.jfa.dev") &&
+        (pathname === "/" || pathname === "/post-install")))
+  ) {
     const wslScriptUrl =
       "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/wsl-install-script.sh";
     const windowsScriptUrl =
       "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/windows-install-script.ps1";
 
+    const windowsPostInstallScriptUrl =
+      "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/windows-post-install-script.ps1";
+
     let scriptUrl: string;
     if (host.includes("wsl.jfa.dev")) {
       scriptUrl = wslScriptUrl;
+    } else if (pathname === "/post-install") {
+      scriptUrl = windowsPostInstallScriptUrl;
     } else {
       scriptUrl = windowsScriptUrl;
     }
@@ -40,9 +50,9 @@ app.get("*", async (c) => {
 
     const scriptContent = await response.text();
     const contentType =
-      scriptUrl === windowsScriptUrl
-        ? "application/x-powershell"
-        : "text/x-shellscript";
+      scriptUrl === wslScriptUrl
+        ? "text/x-shellscript"
+        : "application/x-powershell";
 
     console.log("Content-Type:", contentType);
 

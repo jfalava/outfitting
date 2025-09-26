@@ -3,11 +3,10 @@
 # -------------------------------
 $pathList = @(
     "C:\Program Files\Go\bin",
-    "$env:LOCALAPPDATA\Programs\oh-my-posh\bin",
-    "$env:USERPROFILE\scoop\apps",
+    "$env:USERPROFILE\scoop",
     "$env:LOCALAPPDATA\pnpm\",
     "$env:USERPROFILE\.local\share\",
-    "$env:LOCALAPPDATA\Microsoft\WinGet\Links\"
+    "$env:LOCALAPPDATA\Microsoft\WinGet\Links"
 )
 foreach ($path in $pathList) {
     if ($env:PATH -notlike "*$path*") {
@@ -15,7 +14,9 @@ foreach ($path in $pathList) {
     }
 }
 
-# PNPM_HOME
+# -------------------------------
+# ENV
+# -------------------------------
 $env:PNPM_HOME = "$env:LOCALAPPDATA\Microsoft\WinGet\Links\"
 
 # -------------------------------
@@ -64,7 +65,7 @@ Set-Alias which whichwin
 # -------------------------------
 # Expressions
 # -------------------------------
-oh-my-posh init pwsh --config 'https://raw.githubusercontent.com/JanDeDobbeleer/oh-my-posh/main/themes/wopian.omp.json' | Invoke-Expression
+Invoke-Expression (&starship init powershell)
 Invoke-Expression (& { (zoxide init powershell | Out-String) })
 
 # -------------------------------

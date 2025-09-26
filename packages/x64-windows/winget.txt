@@ -26,7 +26,7 @@ WeakAuras.WeakAurasCompanion
 WowUp.Wowup
 NexusMods.Vortex
 Microsoft.VisualStudioCode
-JanDeDobbeleer.OhMyPosh
+Starship.Starship
 Microsoft.Git
 BurntSushi.ripgrep.MSVC
 sharkdp.bat
@@ -74,3 +74,7 @@ OpenVPNTechnologies.OpenVPN
 Microsoft.Edit
 pnpm.pnpm
 aristocratos.btop4win
+SST.opencode
+DenoLand.Deno
+Oven-sh.Bun
+astral-sh.uv

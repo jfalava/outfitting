@@ -6,13 +6,12 @@ sudo apt update -y && sudo apt upgrade -y && sudo apt install curl
 #####
 ## install apt packages
 #####
-APT_LIST_URL="https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/packages/apt.txt"
+APT_LIST_URL="https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/packages/x64-linux/apt.txt"
 curl -fsSL "$APT_LIST_URL" -o /tmp/apt-packages.txt || {
     echo "Failed to fetch APT package list. Exiting..."
     exit 1
 }
 while IFS= read -r package || [ -n "$package" ]; do
-    # trim whitespace and skip empty lines or comments (thank you claude)
     package=$(echo "$package" | tr -d '[:space:]')
     if [[ -n "$package" && ! "$package" =~ ^# ]]; then
         echo "Installing apt package: $package"

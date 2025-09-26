@@ -24,6 +24,11 @@
     "dock": "right",
   },
   "agent": {
+    "default_model": {
+      "provider": "openrouter",
+      "model": "x-ai/grok-4-fast:free",
+    },
+    "single_file_review": false,
     "dock": "left",
   },
   "project_panel": {
@@ -45,7 +50,7 @@
   },
   "theme": {
     "mode": "system",
-    "light": "poimandres white",
+    "light": "Github Light",
     "dark": "poimandres blurry",
   },
 }

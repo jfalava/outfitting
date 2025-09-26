@@ -1,9 +1,0 @@
-# ---- Fonts ----
-window-inherit-font-size = false
-font-family = "Berkeley Mono Variable"
-font-size = 15
-font-synthetic-style = "bold"
-font-family = "GeistMono NFP"
-font-synthetic-style = "bold"
-# ---- Theme ----
-theme = dark:Andromeda,light:Github
