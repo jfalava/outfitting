@@ -117,7 +117,7 @@ try {
     $regFilePaths = $treeItems | Where-Object { $_.path -like "windows-registry/*.reg" -and $_.type -eq "blob" } | ForEach-Object { $_.path }
 
     if ($regFilePaths.Count -gt 0) {
-        Write-Host "❖ `nDiscovered $($regFilePaths.Count) registry tweak(s) from GitHub repo:" -ForegroundColor Cyan
+        Write-Host "`n❖ Discovered $($regFilePaths.Count) registry tweak(s) from GitHub repo:" -ForegroundColor Cyan
         foreach ($path in $regFilePaths) {
             $fileName = Split-Path $path -Leaf
             Write-Host "  - $fileName" -ForegroundColor Yellow
@@ -138,7 +138,7 @@ try {
         }
 
         if ($validRegFiles.Count -gt 0) {
-            Write-Host "❖ `nFound $($validRegFiles.Count) valid registry tweak(s) to install:" -ForegroundColor Cyan
+            Write-Host "`n❖ Found $($validRegFiles.Count) valid registry tweak(s) to install:" -ForegroundColor Cyan
             foreach ($file in $validRegFiles) {
                 Write-Host "  - $($file.Name)" -ForegroundColor Yellow
             }
