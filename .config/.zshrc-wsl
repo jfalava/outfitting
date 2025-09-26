@@ -70,7 +70,7 @@ export PATH="$BUN_INSTALL/bin:$PATH"
 export PATH=/home/jfalava/.opencode/bin:$PATH
 
 # ---- Aliases ----
-alias update-all="sudo apt update && sudo apt upgrade && sudo apt autoremove && nix profile upgrade '.*' && nix-collect-garbage -d"
+alias update-all="sudo apt update && sudo apt upgrade && sudo apt autoremove && (nix profile list &>/dev/null && nix profile upgrade --all || echo 'No Nix packages to upgrade') && nix-collect-garbage -d"
 alias cls='clear'
 alias ff='fastfetch'
 alias tf='terraform'

@@ -8,11 +8,9 @@ winget --info
 $wingetPackagesUrl = "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/packages/x64-windows/winget.txt"
 $msStorePackagesUrl = "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/packages/x64-windows/msstore-winget.txt"
 $psModulesUrl = "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/packages/x64-windows/pwsh-modules.txt"
-$scoopPackagesUrl = "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/packages/x64-windows/scoop.txt"
 $wingetPackagesFile = "$env:TEMP\winget.txt"
 $msStorePackagesFile = "$env:TEMP\msstore-winget.txt"
 $psModulesFile = "$env:TEMP\psmodules.txt"
-$scoopPackagesFile = "$env:TEMP\scoop.txt"
 
 #####
 # download the package lists
