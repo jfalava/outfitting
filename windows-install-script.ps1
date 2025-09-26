@@ -1,5 +1,5 @@
 ## init
-Write-Host "Checking Winget terms of use..."
+Write-Host "❖ Checking Winget terms of use..." -ForegroundColor Cyan
 winget --info
 
 #####
@@ -27,16 +27,16 @@ try {
 }
 try {
     Invoke-WebRequest -Uri $msStorePackagesUrl -OutFile $msStorePackagesFile
-    Write-Host "Microsoft Store packages list downloaded." -ForegroundColor Green
+    Write-Host "❖ Microsoft Store packages list downloaded." -ForegroundColor Green
 } catch {
     Write-Host "❖ Failed to download Microsoft Store package list:" -ForegroundColor Red
     Write-Host "  - $_" -ForegroundColor Red
 }
 try {
     Invoke-WebRequest -Uri $psModulesUrl -OutFile $psModulesFile
-    Write-Host "PSModules list downloaded." -ForegroundColor Green
+    Write-Host "❖ PowerShell modules list downloaded." -ForegroundColor Green
 } catch {
-    Write-Host "❖ Failed to download PSModules list:" -ForegroundColor Red
+    Write-Host "❖ Failed to download PowerShell modules list:" -ForegroundColor Red
     Write-Host "  - $_" -ForegroundColor Red
 }
 
@@ -49,8 +49,8 @@ function Install-WingetPackages {
     )
 
     if (-Not (Test-Path $filePath)) {
-        Write-Host "❖ Installation failed: the Winget package list was not found:" -ForegroundColor Red
-        Write-Host "❖ $filePath" -ForegroundColor Red
+        Write-Host "❖ Installation failed: the package list was not found:" -ForegroundColor Red
+        Write-Host "  - $filePath" -ForegroundColor Red
         Write-Host "❖ And the script cannot continue." -ForegroundColor Red
         exit 1
     }
@@ -60,10 +60,10 @@ function Install-WingetPackages {
     foreach ($package in $packages) {
         try {
             winget install --id $package --accept-source-agreements --accept-package-agreements -e
-            Write-Host "❖ Installed Winget package: $package" -ForegroundColor Green
+            Write-Host "❖ Installed package: $package" -ForegroundColor Green
         } catch {
-            Write-Host "❖ Failed to install Winget package:" -ForegroundColor Red
-            Write-Host "  - $package`: $_" -ForegroundColor Red
+            Write-Host "❖ Failed to install package:" -ForegroundColor Red
+            Write-Host "  - $package: $_" -ForegroundColor Red
             # Continue to next package
         }
     }
@@ -84,14 +84,14 @@ function Install-PSModules {
         if (!(Get-Module -ListAvailable -Name $module)) {
             try {
                 Install-Module -Name $module -Scope CurrentUser -Force -AllowClobber
-                Write-Host "Installed PSModule: $module" -ForegroundColor Green
+                Write-Host "❖ Installed PowerShell module: $module" -ForegroundColor Green
             }
             catch {
-                Write-Host "❖ Failed to install PSModule/s:" -ForegroundColor Red
-                Write-Host "- ${module}: $_" -ForegroundColor Red
+                Write-Host "❖ Failed to install PowerShell module(s):" -ForegroundColor Red
+                Write-Host "  - $module: $_" -ForegroundColor Red
             }
         } else {
-            Write-Host "PSModule already available: $module" -ForegroundColor Yellow
+            Write-Host "❖ PowerShell module already available: $module" -ForegroundColor Yellow
         }
     }
 }
@@ -133,7 +133,7 @@ try {
                     $validRegFiles += [PSCustomObject]@{ Name = $fileName; Content = $response.Content; Url = $url; Path = $path }
                 }
             } catch {
-                Write-Host "❖ Failed to fetch registry file: $path ($_)" -ForegroundColor Red
+                Write-Host "❖ Failed to fetch registry file $path: $_" -ForegroundColor Red
             }
         }
 
@@ -152,9 +152,9 @@ try {
                         $file.Content | Out-File -FilePath $tempRegPath -Encoding UTF8
                         & reg import $tempRegPath
                         if ($LASTEXITCODE -eq 0) {
-                            Write-Host "❖ Imported: $($file.Name)" -ForegroundColor Green
+                            Write-Host "❖ Imported registry tweak: $($file.Name)" -ForegroundColor Green
                         } else {
-                            Write-Host "❖ Failed to import $($file.Name)" -ForegroundColor Red
+                            Write-Host "❖ Failed to import registry tweak: $($file.Name)" -ForegroundColor Red
                         }
                         Remove-Item $tempRegPath -ErrorAction SilentlyContinue
                     }
@@ -164,7 +164,7 @@ try {
                 }
                 "R" {
                     foreach ($file in $validRegFiles) {
-                        Write-Host "`n--- $($file.Name) ---" -ForegroundColor Cyan
+                        Write-Host "`n❖ --- $($file.Name) ---" -ForegroundColor Cyan
                         $file.Content | ForEach-Object { Write-Host $_ -ForegroundColor Gray }
                         $perChoice = Read-Host "Install this tweak? [Y/N] (default: N)"
                         $perChoice = if ([string]::IsNullOrWhiteSpace($perChoice)) { "N" } else { $perChoice.ToUpper() }
@@ -173,40 +173,40 @@ try {
                             $file.Content | Out-File -FilePath $tempRegPath -Encoding UTF8
                             & reg import $tempRegPath
                             if ($LASTEXITCODE -eq 0) {
-                                Write-Host "❖ Imported: $($file.Name)" -ForegroundColor Green
+                                Write-Host "❖ Imported registry tweak: $($file.Name)" -ForegroundColor Green
                             } else {
-                                Write-Host "❖ Failed to import $($file.Name)" -ForegroundColor Red
+                                Write-Host "❖ Failed to import registry tweak: $($file.Name)" -ForegroundColor Red
                             }
                             Remove-Item $tempRegPath -ErrorAction SilentlyContinue
                         } else {
-                            Write-Host "❖ Skipped: $($file.Name)" -ForegroundColor Yellow
+                            Write-Host "❖ Skipped registry tweak: $($file.Name)" -ForegroundColor Yellow
                         }
                     }
                 }
                 default {
-                    Write-Host "Invalid choice, defaulting to All." -ForegroundColor Yellow
+                    Write-Host "❖ Invalid choice, defaulting to All." -ForegroundColor Yellow
                     foreach ($file in $validRegFiles) {
                         $tempRegPath = "$env:TEMP\$($file.Name)"
                         $file.Content | Out-File -FilePath $tempRegPath -Encoding UTF8
                         & reg import $tempRegPath
                         if ($LASTEXITCODE -eq 0) {
-                            Write-Host "❖ Imported: $($file.Name)" -ForegroundColor Green
+                            Write-Host "❖ Imported registry tweak: $($file.Name)" -ForegroundColor Green
                         } else {
-                            Write-Host "❖ Failed to import $($file.Name)" -ForegroundColor Red
+                            Write-Host "❖ Failed to import registry tweak: $($file.Name)" -ForegroundColor Red
                         }
                         Remove-Item $tempRegPath -ErrorAction SilentlyContinue
                     }
                 }
             }
         } else {
-            Write-Host "No valid .reg files fetched from discovered paths." -ForegroundColor Yellow
+            Write-Host "❖ No valid .reg files fetched from discovered paths." -ForegroundColor Yellow
         }
     } else {
-        Write-Host "No .reg files discovered in windows-registry/ directory." -ForegroundColor Yellow
+        Write-Host "❖ No .reg files discovered in windows-registry/ directory." -ForegroundColor Yellow
     }
 } catch {
     Write-Host "❖ Failed to discover registry files via GitHub API: $_" -ForegroundColor Red
-    Write-Host "Skipping registry tweaks." -ForegroundColor Yellow
+    Write-Host "❖ Skipping registry tweaks." -ForegroundColor Yellow
 }
 
 #####
@@ -233,12 +233,12 @@ try {
 
     # download master profile
     Invoke-WebRequest -Uri $profileUrl -OutFile $masterProfilePath
-    Write-Host "Downloaded master profile to: $masterProfilePath" -ForegroundColor Green
+    Write-Host "❖ Downloaded master profile to: $masterProfilePath" -ForegroundColor Green
 
     # copy to slaves
     foreach ($slavePath in $slaveProfiles) {
         Copy-Item -Path $masterProfilePath -Destination $slavePath -Force
-        Write-Host "Copied profile to: $slavePath" -ForegroundColor Green
+        Write-Host "❖ Copied profile to: $slavePath" -ForegroundColor Green
     }
 } catch {
     Write-Host "❖ Failed to set up PowerShell profiles:" -ForegroundColor Red
@@ -247,7 +247,7 @@ try {
 }
 
 ## end messages
-Write-Host " "
+Write-Host "`n"
 Write-Host "❖ Main installation complete." -ForegroundColor Green
-Write-Host "❖ Execute in a new, non-admin PowerShell window:" -ForegroundColor Yellow
+Write-Host "❖ Execute in a new, non-admin PowerShell window:" -ForegroundColor Green
 Write-Host "  - irm win.jfa.dev/post-install | iex" -ForegroundColor Green
