@@ -19,7 +19,7 @@ function Install-ScoopPackages {
             scoop install $package
         } catch {
             Write-Host "❖ Failed to install Scoop package:" -ForegroundColor Red
-            Write-Host "- $package: $_"  -ForegroundColor Red
+            Write-Host "- $package`: $_"  -ForegroundColor Red
             # Continue to next package, but don't exit here
         }
     }
@@ -42,7 +42,7 @@ function Install-PnpmPackages {
             pnpm install -g $package
         } catch {
             Write-Host "❖ Failed to install pnpm package:" -ForegroundColor Red
-            Write-Host "- $package: $_" -ForegroundColor Red
+            Write-Host "- $package`: $_" -ForegroundColor Red
             # Continue to next package, but don't exit here
         }
     }
@@ -100,7 +100,7 @@ Remove-Item $scoopPackagesFile -ErrorAction SilentlyContinue
 # verify profile is working (pnpm PATH added) and pnpm is available
 $pnpmPath = "$env:LOCALAPPDATA\pnpm"
 $pathArray = $env:PATH -split ';'
-if (-not ($pathArray -contains $pnpmPath) -or !(Get-Command pnpm -ErrorAction SilentlyContinue)) {
+if (-not (Test-Path $pnpmPath) -or !(Get-Command pnpm -ErrorAction SilentlyContinue)) {
     Write-Host "❖ Installation incomplete: PowerShell profile may not be loaded, or pnpm is not installed/not on PATH." -ForegroundColor Red
     Write-Host "   - Expected pnpm PATH: $pnpmPath" -ForegroundColor Yellow
     Write-Host "   - Run in a new PowerShell session and verify profile at: $PROFILE" -ForegroundColor Yellow
