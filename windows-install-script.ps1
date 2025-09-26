@@ -19,6 +19,7 @@ $scoopPackagesFile = "$env:TEMP\scoop.txt"
 ######
 try {
     Invoke-WebRequest -Uri $wingetPackagesUrl -OutFile $wingetPackagesFile
+    Write-Host "Winget packages list downloaded." -ForegroundColor Green
 } catch {
     Write-Host "❖ Failed to download Winget package list:" -ForegroundColor Red
     Write-Host "- $_" -ForegroundColor Red
@@ -26,12 +27,14 @@ try {
 }
 try {
     Invoke-WebRequest -Uri $msStorePackagesUrl -OutFile $msStorePackagesFile
+    Write-Host "Microsoft Store packages list downloaded." -ForegroundColor Green
 } catch {
     Write-Host "❖ Failed to download Microsoft Store package list:" -ForegroundColor Red
     Write-Host "- $_" -ForegroundColor Red
 }
 try {
     Invoke-WebRequest -Uri $psModulesUrl -OutFile $psModulesFile
+    Write-Host "PSModules list downloaded." -ForegroundColor Green
 } catch {
     Write-Host "❖ Failed to download PSModules list:" -ForegroundColor Red
     Write-Host "- $_" -ForegroundColor Red
@@ -55,7 +58,14 @@ function Install-WingetPackages {
     $packages = Get-Content $filePath | Where-Object { -Not ($_ -match '^\s*$') -and -Not ($_ -match '^#') }
 
     foreach ($package in $packages) {
-        winget install --id $package --accept-source-agreements --accept-package-agreements -e
+        try {
+            winget install --id $package --accept-source-agreements --accept-package-agreements -e
+            Write-Host "Installed Winget package: $package" -ForegroundColor Green
+        } catch {
+            Write-Host "❖ Failed to install Winget package:" -ForegroundColor Red
+            Write-Host "- $package: $_" -ForegroundColor Red
+            # Continue to next package
+        }
     }
 }
 function Install-PSModules {
@@ -74,11 +84,14 @@ function Install-PSModules {
         if (!(Get-Module -ListAvailable -Name $module)) {
             try {
                 Install-Module -Name $module -Scope CurrentUser -Force -AllowClobber
+                Write-Host "Installed PSModule: $module" -ForegroundColor Green
             }
             catch {
                 Write-Host "❖ Failed to install PSModule/s:" -ForegroundColor Red
                 Write-Host "- ${module}: $_" -ForegroundColor Red
             }
+        } else {
+            Write-Host "PSModule already available: $module" -ForegroundColor Yellow
         }
     }
 }
@@ -100,11 +113,34 @@ Remove-Item $psModulesFile -ErrorAction SilentlyContinue
 #####
 ## copy pwsh profile to documents
 #####
-New-Item -Path "$env:USERPROFILE\Documents\PowerShell" -ItemType Directory -Force; curl.exe -o "$env:USERPROFILE\Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1" "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/.config/Microsoft.PowerShell_profile.ps1"
-New-Item -Path "$env:USERPROFILE\Documents\WindowsPowerShell" -ItemType Directory -Force; curl.exe -o "$env:USERPROFILE\Documents\PowerShell\Microsoft.PowerShell_profile.ps1" "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/.config/Microsoft.PowerShell_profile.ps1"
-New-Item -Path "$env:USERPROFILE\Documents\WindowsPowerShell" -ItemType Directory -Force; curl.exe -o "$env:USERPROFILE\Documents\PowerShell\Microsoft.VSCode_profile.ps1" "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/.config/Microsoft.PowerShell_profile.ps1"
+$masterProfilePath = "$env:USERPROFILE\Documents\PowerShell\Microsoft.PowerShell_profile.ps1"
+$slaveProfiles = @(
+    "$env:USERPROFILE\Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1",
+    "$env:USERPROFILE\Documents\PowerShell\Microsoft.VSCode_profile.ps1"
+)
+$profileUrl = "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/.config/Microsoft.PowerShell_profile.ps1"
+
+try {
+    # create directories if needed
+    New-Item -Path "$env:USERPROFILE\Documents\PowerShell" -ItemType Directory -Force | Out-Null
+    New-Item -Path "$env:USERPROFILE\Documents\WindowsPowerShell" -ItemType Directory -Force | Out-Null
+
+    # download master profile
+    Invoke-WebRequest -Uri $profileUrl -OutFile $masterProfilePath
+    Write-Host "Downloaded master profile to: $masterProfilePath" -ForegroundColor Green
+
+    # copy to slaves
+    foreach ($slavePath in $slaveProfiles) {
+        Copy-Item -Path $masterProfilePath -Destination $slavePath -Force
+        Write-Host "Copied profile to: $slavePath" -ForegroundColor Green
+    }
+} catch {
+    Write-Host "❖ Failed to set up PowerShell profiles:" -ForegroundColor Red
+    Write-Host "- $_" -ForegroundColor Red
+    exit 1
+}
 
 ## end messages
-Write-Host "❖ Execute:"
+Write-Host "❖ Main installation complete." -ForegroundColor Green
+Write-Host "❖ Execute in a new, non-admin PowerShell window:" -ForegroundColor Yellow
 Write-Host "❖ irm win.jfa.dev/post-install | iex" -ForegroundColor Green
-Write-Host "❖ In a new, non-admin elevated PowerShell window to launch the post-installation script that will finish the installation."

@@ -1,36 +1,4 @@
 #####
-## scoop installation (please migrate to winget i beg)
-#####
-if (!(Get-Command scoop -ErrorAction SilentlyContinue)) {
-    try {
-        Invoke-RestMethod -Uri https://get.scoop.sh | Invoke-Expression
-    } catch {
-        Write-Host "Failed to install Scoop:"
-        Write-Host "- $_" -ForegroundColor Red
-        exit 1
-    }
-} else {
-    Write-Host "Scoop is already installed, continuing..." -ForegroundColor Green
-}
-## add buckets (cuz ofc you need more steps right)
-scoop bucket add extras
-scoop bucket add versions
-
-#####
-## download Scoop packages list
-#####
-$scoopPackagesUrl = "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/packages/x64-windows/scoop.txt"
-$scoopPackagesFile = "$env:TEMP\scoop.txt"
-
-try {
-    Invoke-WebRequest -Uri $scoopPackagesUrl -OutFile $scoopPackagesFile
-} catch {
-    Write-Host "❖ Failed to download Scoop packages list:" -ForegroundColor Red
-    Write-Host "- $_" -ForegroundColor Red
-    return
-}
-
-#####
 ## functions
 #####
 function Install-ScoopPackages {
@@ -41,7 +9,7 @@ function Install-ScoopPackages {
     if (-Not (Test-Path $filePath)) {
         Write-Host "❖ Scoop package list file not found:" -ForegroundColor Red
         Write-Host "$filePath" -ForegroundColor Red
-        return
+        exit 1
     }
 
     $packages = Get-Content $filePath | Where-Object { -Not ($_ -match '^\s*$') -and -Not ($_ -match '^#') }
@@ -50,8 +18,9 @@ function Install-ScoopPackages {
         try {
             scoop install $package
         } catch {
-            Write-Host "❖ Failed to install Scoop packages:" -ForegroundColor Red
+            Write-Host "❖ Failed to install Scoop package:" -ForegroundColor Red
             Write-Host "- $package: $_"  -ForegroundColor Red
+            # Continue to next package, but don't exit here
         }
     }
 }
@@ -61,8 +30,9 @@ function Install-PnpmPackages {
     )
 
     if (-Not (Test-Path $filePath)) {
-        Write-Host "File not found: $filePath" -ForegroundColor Red
-        return
+        Write-Host "❖ Pnpm package list file not found:" -ForegroundColor Red
+        Write-Host "$filePath" -ForegroundColor Red
+        exit 1
     }
 
     $packages = Get-Content $filePath | Where-Object { -Not ($_ -match '^\s*$') -and -Not ($_ -match '^#') }
@@ -71,9 +41,50 @@ function Install-PnpmPackages {
         try {
             pnpm install -g $package
         } catch {
-            Write-Host "Failed to install $package: $_" -ForegroundColor Red
+            Write-Host "❖ Failed to install pnpm package:" -ForegroundColor Red
+            Write-Host "- $package: $_" -ForegroundColor Red
+            # Continue to next package, but don't exit here
         }
     }
+}
+
+#####
+## scoop installation (please migrate to winget i beg)
+#####
+if (!(Get-Command scoop -ErrorAction SilentlyContinue)) {
+    try {
+        Invoke-RestMethod -Uri https://get.scoop.sh | Invoke-Expression
+        Write-Host "Scoop installed successfully." -ForegroundColor Green
+    } catch {
+        Write-Host "Failed to install Scoop:" -ForegroundColor Red
+        Write-Host "- $_" -ForegroundColor Red
+        exit 1
+    }
+}
+
+## add buckets
+try {
+    scoop bucket add extras
+    scoop bucket add versions
+} catch {
+    Write-Host "Failed to add Scoop buckets:" -ForegroundColor Red
+    Write-Host "- $_" -ForegroundColor Red
+    exit 1
+}
+
+#####
+## download Scoop packages list
+#####
+$scoopPackagesUrl = "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/packages/x64-windows/scoop.txt"
+$scoopPackagesFile = "$env:TEMP\scoop.txt"
+
+try {
+    Invoke-WebRequest -Uri $scoopPackagesUrl -OutFile $scoopPackagesFile
+    Write-Host "Scoop packages list downloaded." -ForegroundColor Green
+} catch {
+    Write-Host "❖ Failed to download Scoop packages list:" -ForegroundColor Red
+    Write-Host "- $_" -ForegroundColor Red
+    exit 1
 }
 
 #####
@@ -82,15 +93,18 @@ function Install-PnpmPackages {
 Install-ScoopPackages -filePath $scoopPackagesFile
 
 #####
-## cleanups
+## scoop temp files cleanup
 #####
 Remove-Item $scoopPackagesFile -ErrorAction SilentlyContinue
 
-# Test if the profile is working and if pnpm is on PATH
-if (!(which pnpm -ErrorAction SilentlyContinue)) {
-    Write-Host "❖ Installation incomplete: either the PowerShell profile is missing or pnpm is not installed/not on PATH" -ForegroundColor Red
-    Remove-Item $pnpmPackagesFile -ErrorAction SilentlyContinue
-    exit 1 # no need to continue
+# verify profile is working (pnpm PATH added) and pnpm is available
+$pnpmPath = "$env:LOCALAPPDATA\pnpm"
+$pathArray = $env:PATH -split ';'
+if (-not ($pathArray -contains $pnpmPath) -or !(Get-Command pnpm -ErrorAction SilentlyContinue)) {
+    Write-Host "❖ Installation incomplete: PowerShell profile may not be loaded, or pnpm is not installed/not on PATH." -ForegroundColor Red
+    Write-Host "   - Expected pnpm PATH: $pnpmPath" -ForegroundColor Yellow
+    Write-Host "   - Run in a new PowerShell session and verify profile at: $PROFILE" -ForegroundColor Yellow
+    exit 1
 }
 
 #####
@@ -104,7 +118,7 @@ try {
 } catch {
     Write-Host "❖ Failed to download pnpm packages list:" -ForegroundColor Red
     Write-Host "- $_" -ForegroundColor Red
-    return
+    exit 1
 }
 
 #####
@@ -113,7 +127,9 @@ try {
 Install-PnpmPackages -filePath $pnpmPackagesFile
 
 #####
-## cleanups
+## pnpm temp files cleanup
 #####
 Remove-Item $pnpmPackagesFile -ErrorAction SilentlyContinue
+
+## end message
 Write-Host "❖ Installation complete" -ForegroundColor Green
