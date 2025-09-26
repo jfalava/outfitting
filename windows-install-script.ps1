@@ -15,26 +15,41 @@ $psModulesFile = "$env:TEMP\psmodules.txt"
 $scoopPackagesFile = "$env:TEMP\scoop.txt"
 
 #####
-# download the files
+# download the package lists
 ######
 try {
     Invoke-WebRequest -Uri $wingetPackagesUrl -OutFile $wingetPackagesFile
-    Invoke-WebRequest -Uri $msStorePackagesUrl -OutFile $msStorePackagesFile
-    Invoke-WebRequest -Uri $psModulesUrl -OutFile $psModulesFile
-    Invoke-WebRequest -Uri $scoopPackagesUrl -OutFile $scoopPackagesFile
 } catch {
-    Write-Host "Failed to download package lists: $_" -ForegroundColor Red
-    exit 1
+    Write-Host "❖ Failed to download Winget package list:" -ForegroundColor Red
+    Write-Host "- $_" -ForegroundColor Red
+    exit 1 # don't continue
 }
-# install packages from a given file
+try {
+    Invoke-WebRequest -Uri $msStorePackagesUrl -OutFile $msStorePackagesFile
+} catch {
+    Write-Host "❖ Failed to download Microsoft Store package list:" -ForegroundColor Red
+    Write-Host "- $_" -ForegroundColor Red
+}
+try {
+    Invoke-WebRequest -Uri $psModulesUrl -OutFile $psModulesFile
+} catch {
+    Write-Host "❖ Failed to download PSModules list:" -ForegroundColor Red
+    Write-Host "- $_" -ForegroundColor Red
+}
+
+#####
+## installation functions
+#####
 function Install-WingetPackages {
     param (
         [string]$filePath
     )
 
     if (-Not (Test-Path $filePath)) {
-        Write-Host "File not found: $filePath" -ForegroundColor Red
-        return
+        Write-Host "❖ Installation failed: the Winget package list was not found:" -ForegroundColor Red
+        Write-Host "❖ $filePath" -ForegroundColor Red
+        Write-Host "❖ And the script cannot continue." -ForegroundColor Red
+        exit 1
     }
 
     $packages = Get-Content $filePath | Where-Object { -Not ($_ -match '^\s*$') -and -Not ($_ -match '^#') }
@@ -43,50 +58,36 @@ function Install-WingetPackages {
         winget install --id $package --accept-source-agreements --accept-package-agreements -e
     }
 }
-#####
-## function to install pwsh modules
-#####
 function Install-PSModules {
     param (
         [string]$filePath
     )
 
     if (-Not (Test-Path $filePath)) {
-        Write-Host "File not found: $filePath" -ForegroundColor Red
+        Write-Host "❖ PSModules package list file not found: $filePath" -ForegroundColor Red
         return
     }
 
     $modules = Get-Content $filePath | Where-Object { -Not ($_ -match '^\s*$') -and -Not ($_ -match '^#') }
 
     foreach ($module in $modules) {
-        Write-Host "📦 Installing PowerShell module: $module..."
         if (!(Get-Module -ListAvailable -Name $module)) {
             try {
                 Install-Module -Name $module -Scope CurrentUser -Force -AllowClobber
-                Write-Host "✅ Successfully installed $module" -ForegroundColor Green
             }
             catch {
-                Write-Host "Failed to install ${module}: $_" -ForegroundColor Red
+                Write-Host "❖ Failed to install PSModule/s:" -ForegroundColor Red
+                Write-Host "- ${module}: $_" -ForegroundColor Red
             }
-        } else {
-            Write-Host "✓ $module is already installed" -ForegroundColor Green
         }
     }
 }
 
 #####
-## install Winget packages
+## install packages
 #####
 Install-WingetPackages -filePath $wingetPackagesFile
-
-#####
-## install Microsoft Store packages
-#####
 Install-WingetPackages -filePath $msStorePackagesFile
-
-#####
-## install PowerShell modules
-#####
 Install-PSModules -filePath $psModulesFile
 
 #####
