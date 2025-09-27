@@ -6,7 +6,8 @@ sudo apt update -y && sudo apt upgrade -y && sudo apt install curl
 #####
 ## install apt packages
 #####
-APT_LIST_URL="https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/packages/x64-linux/apt.txt"dotfiles
+APT_LIST_URL="https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/packages/x64-linux/apt.txt"
+curl -fsSL "$APT_LIST_URL" -o /tmp/apt-packages.txt || {
     echo "Failed to fetch APT package list. Exiting..."
     exit 1
 }
