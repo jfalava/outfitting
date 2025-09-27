@@ -1,6 +1,7 @@
 name: Sort Packages Alphabetically
 
 on:
+  workflow_dispatch:
   push:
     branches: [main]
     paths:
@@ -20,10 +21,10 @@ jobs:
           fetch-depth: 0
 
       - name: Make script executable
-        run: chmod +x scripts/package-sort.sh
+        run: chmod +x scripts/sort-packages.sh
 
       - name: Run package sorting script
-        run: ./scripts/package-sort.sh
+        run: ./scripts/sort-packages.sh
 
       - name: Commit and push changes (if any)
         run: |

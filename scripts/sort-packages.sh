@@ -50,24 +50,18 @@ else
       if [[ ${#list_items[@]} -eq 0 ]]; then
         echo "No package items found in list, skipping."
       else
-        # Rebuild file: header up to start, sorted items, end line, footer
-        {
-          sed "$((end_line + 1)),\$p" "$flake_path" | sed '1d'  # Footer (from end+1)
-          echo "${list_items[*]}"  # Sorted items (each on new line)
-          sed -n "$end_line p" "$flake_path"  # End line ('] ;')
-          sed -n "1,$(($start_line))p" "$flake_path" | tac | sed '1d' | tac  # Header up to start (reversed to preserve order)
-        } | tac > "${flake_path}.tmp"
+         # Create temp with sorted indented list
+         for item in "${list_items[@]}"; do
+           echo "  $item"
+         done > "${flake_path}.tmp"
 
-        # Wait, that was messy—better way: use sed to replace the block
-        # First, create temp with sorted block
-        printf '\n'  # Newline after start
-        printf '%s\n' "${list_items[@]}"
-        printf '%s\n' "$(sed -n "$end_line p" "$flake_path")"  # ]; line
+         # Remove old list items (lines between start+1 and end-1)
+         sed -i.bak "$((start_line + 1)),$((end_line - 1))d" "$flake_path"
 
-        # Now, replace the block in original
-        sed -i.bak "$start_line,\$((end_line))d" "$flake_path"  # Remove old block
-        sed -i "$start_line r ${flake_path}.tmp" "$flake_path"  # Insert new block after start line
-        rm "${flake_path}.tmp" "${flake_path}.bak"
+         # Insert sorted list after start_line
+         sed -i "$start_line r ${flake_path}.tmp" "$flake_path"
+
+         rm "${flake_path}.tmp"
 
         # Check if changed
         if ! cmp -s "${flake_path}.bak" "$flake_path"; then
