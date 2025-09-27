@@ -78,3 +78,4 @@ SST.opencode
 DenoLand.Deno
 Oven-sh.Bun
 astral-sh.uv
+CiderCollective.Cider
