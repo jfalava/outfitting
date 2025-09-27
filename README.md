@@ -14,7 +14,7 @@ Scripts, dotfiles and lambdas for the automatic outfitting of my personal machin
 > [!IMPORTANT]
 >
 > - You may need to install or update [WinGet](https://learn.microsoft.com/en-us/windows/package-manager/winget/#install-winget).
-> - A regular Windows machine will have it installed, but it might be outdated. Open this [link to the Microsoft Store](ms-windows-store://pdp?hl=es-es&gl=es&ocid=pdpshare&productid=9nblggh4nns1&mode=full&referrer=storeforweb&webid=dbedc4e5-3a68-466b-9be9-61eb41b36a9e&websessionid=e89f5101-d525-4ba0-93dd-47f99aca222e) and update it if needed.
+> - A regular Windows machine will have it installed, but it might be outdated. Open this [link to the Microsoft Store](https://apps.microsoft.com/detail/9NBLGGH4NNS1) and update it if needed.
 > - You may also need to execute `Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process` if you encounter elevation issues.
 
 ```powershell
