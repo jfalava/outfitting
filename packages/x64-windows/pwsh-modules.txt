@@ -1,2 +1,2 @@
-posh-git
 PSReadLine
+posh-git

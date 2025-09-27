@@ -1,5 +1,5 @@
-@google/gemini-cli
-@qwen-code/qwen-code@latest
-@openai/codex
-@anthropic-ai/claude-code
 
+@anthropic-ai/claude-code
+@google/gemini-cli
+@openai/codex
+@qwen-code/qwen-code@latest
