@@ -2,10 +2,10 @@ build-essential
 libssl-dev
 libffi-dev
 libbz2-dev
-libreadline-dev
 libsqlite3-dev
 zlib1g-dev
 libncurses5-dev
+libreadline-dev
 libncursesw5-dev
 liblzma-dev
 libgdbm-dev
