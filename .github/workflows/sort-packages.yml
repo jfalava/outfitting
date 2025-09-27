@@ -1,0 +1,39 @@
+name: Sort Packages Alphabetically
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "packages/**"
+
+permissions:
+  contents: write
+
+jobs:
+  sort:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Make script executable
+        run: chmod +x scripts/package-sort.sh
+
+      - name: Run package sorting script
+        run: ./scripts/package-sort.sh
+
+      - name: Commit and push changes (if any)
+        run: |
+          if git diff --quiet; then
+            echo "No changes detected—everything is already sorted."
+          else
+            git config --global user.name 'github-actions[bot]'
+            git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+            git add .
+            git commit -m "chore: alphabetically sort packages in TXT files and flake.nix [skip ci]"
+            git push
+            echo "Changes committed and pushed automatically!"
+          fi
