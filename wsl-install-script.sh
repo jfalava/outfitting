@@ -6,8 +6,7 @@ sudo apt update -y && sudo apt upgrade -y && sudo apt install curl
 #####
 ## install apt packages
 #####
-APT_LIST_URL="https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/packages/x64-linux/apt.txt"
-curl -fsSL "$APT_LIST_URL" -o /tmp/apt-packages.txt || {
+APT_LIST_URL="https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/packages/x64-linux/apt.txt"dotfiles
     echo "Failed to fetch APT package list. Exiting..."
     exit 1
 }
@@ -75,7 +74,7 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 ## terminal
 #####
 sudo chsh -s $(which zsh) $USER
-curl -o ~/.gitconfig "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/.config/.gitconfig" # copy .gitconfig profile to local
+curl -o ~/.gitconfig "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/dotfiles/.gitconfig" # copy .gitconfig profile to local
 
 #####
 ## docker
@@ -125,8 +124,8 @@ echo "run pnpm approve-builds -g to finish"
 #####
 ## copy config files to local
 #####
-curl -o ~/.gitconfig "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/.config/.gitconfig"
-curl -o ~/.zshrc "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/.config/.zshrc-wsl"
+curl -o ~/.gitconfig "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/dotfiles/.gitconfig"
+curl -o ~/.zshrc "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/dotfiles/.zshrc-wsl"
 
 ## end message
 echo "installation complete"
