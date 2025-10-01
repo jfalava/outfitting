@@ -1,5 +1,6 @@
 build-essential
 git
+gnome-keyring
 golang
 libadwaita-1-dev
 libbz2-dev
@@ -14,13 +15,12 @@ libncurses5-dev
 libncursesw5-dev
 libnss3-dev
 libreadline-dev
+libsecret-1-0
+libsecret-1-dev
 libsqlite3-dev
 libssl-dev
 libxml2-dev
 libxslt1-dev
-libsecret-1-0
-libsecret-1-dev
-gnome-keyring
 unzip
 wget
 zlib1g-dev
