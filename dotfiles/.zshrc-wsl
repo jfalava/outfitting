@@ -70,7 +70,7 @@ export PATH="$BUN_INSTALL/bin:$PATH"
 export PATH=/home/jfalava/.opencode/bin:$PATH
 
 # ---- Aliases ----
-alias update-all="sudo apt update && sudo apt upgrade && sudo apt autoremove && (nix profile list &>/dev/null && nix profile upgrade --all || echo 'No Nix packages to upgrade') && nix-collect-garbage -d"
+alias update-all="sudo apt update && sudo apt upgrade && sudo apt autoremove && nix profile upgrade '.*' --exclude '.*nix.*' 2>/dev/null || echo 'No packages to upgrade' && nix-collect-garbage -d"
 alias cls='clear'
 alias ff='fastfetch'
 alias tf='terraform'
@@ -107,10 +107,3 @@ eval "$(starship init zsh)"
 # initialize zsh completions
 autoload -Uz compinit
 compinit
-# keyring daemons
-if ! pgrep -x "dbus-daemon" > /dev/null; then
-  dbus-daemon --session --fork
-fi
-if ! pgrep -x "gnome-keyring-daemon" > /dev/null; then
-  gnome-keyring-daemon --start --components=secrets
-fi
