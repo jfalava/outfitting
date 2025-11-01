@@ -10,6 +10,7 @@ EpicGames.EpicGamesLauncher
 Fastfetch-cli.Fastfetch
 Fortinet.FortiClientVPN
 GOG.Galaxy
+ImputNet.Helium
 JesseDuffield.lazygit
 KDE.Krita
 Logitech.GHUB
@@ -51,6 +52,7 @@ OBSProject.OBSStudio
 OpenJS.NodeJS
 OpenVPNTechnologies.OpenVPN
 Oven-sh.Bun
+PrivateInternetAccess.PrivateInternetAccess
 Proton.ProtonAuthenticator
 Proton.ProtonDrive
 Proton.ProtonMailBridge
@@ -79,5 +81,3 @@ pnpm.pnpm
 qBittorrent.qBittorrent
 sharkdp.bat
 xanderfrangos.twinkletray
-ImputNet.Helium
-PrivateInternetAccess.PrivateInternetAccess
