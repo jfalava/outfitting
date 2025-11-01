@@ -64,6 +64,50 @@ zle -N _shift_select_backward_word
 bindkey '\e[1;6C' _shift_select_forward_word
 bindkey '\e[1;6D' _shift_select_backward_word
 
+# Shift + Home/End for line selection
+_shift_select_to_start () {
+    if ((REGION_ACTIVE)); then
+        zle .beginning-of-line
+    else
+        zle .set-mark-command && zle .beginning-of-line
+    fi
+}
+zle -N _shift_select_to_start
+_shift_select_to_end () {
+    if ((REGION_ACTIVE)); then
+        zle .end-of-line
+    else
+        zle .set-mark-command && zle .end-of-line
+    fi
+}
+zle -N _shift_select_to_end
+bindkey '\e[1;2H' _shift_select_to_start
+bindkey '\e[1;2F' _shift_select_to_end
+
+# Ctrl + Home/End for start/end of buffer
+bindkey '\e[1;5H' beginning-of-buffer
+bindkey '\e[1;5F' end-of-buffer
+
+# Ctrl + Shift + Home/End for buffer selection
+_shift_select_to_start_buffer () {
+    if ((REGION_ACTIVE)); then
+        zle .beginning-of-buffer
+    else
+        zle .set-mark-command && zle .beginning-of-buffer
+    fi
+}
+zle -N _shift_select_to_start_buffer
+_shift_select_to_end_buffer () {
+    if ((REGION_ACTIVE)); then
+        zle .end-of-buffer
+    else
+        zle .set-mark-command && zle .end-of-buffer
+    fi
+}
+zle -N _shift_select_to_end_buffer
+bindkey '\e[1;6H' _shift_select_to_start_buffer
+bindkey '\e[1;6F' _shift_select_to_end_buffer
+
 # Ctrl+C to copy selection
 _copy_region() {
     if ((REGION_ACTIVE)); then
