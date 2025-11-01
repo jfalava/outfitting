@@ -79,3 +79,5 @@ pnpm.pnpm
 qBittorrent.qBittorrent
 sharkdp.bat
 xanderfrangos.twinkletray
+ImputNet.Helium
+PrivateInternetAccess.PrivateInternetAccess
