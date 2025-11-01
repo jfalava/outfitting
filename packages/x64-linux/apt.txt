@@ -10,7 +10,6 @@ libffi-dev
 libfuse2t64
 libgdbm-dev
 libgtk-4-dev
-libsecret-1-dev
 liblzma-dev
 libncurses5-dev
 libncursesw5-dev
