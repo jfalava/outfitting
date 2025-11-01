@@ -67,6 +67,7 @@ WeakAuras.WeakAurasCompanion
 WinDirStat.WinDirStat
 WowUp.Wowup
 Zen-Team.Zen-Browser
+ZedIndustries.Zed
 ajeetdsouza.zoxide
 aristocratos.btop4win
 astral-sh.uv
