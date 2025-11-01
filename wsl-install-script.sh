@@ -114,12 +114,12 @@ export PATH="$PNPM_HOME:$PATH"
 if command -v pnpm &> /dev/null; then
     pnpm install -g @google/gemini-cli
     pnpm install -g @qwen-code/qwen-code@latest
-    pnpm install -g @anthropic-ai/claude-code
     pnpm install -g @openai/codex
 else
     echo "warning: pnpm not found in PATH. it may not be available until after opening a new terminal."
 fi
 curl -fsSL https://opencode.ai/install | bash
+curl -fsSL https://claude.ai/install.sh | bash
 echo "run pnpm approve-builds -g to finish"
 
 #####
