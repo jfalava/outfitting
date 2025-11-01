@@ -10,8 +10,6 @@ setopt HIST_IGNORE_SPACE # Ignore commands starting with a space
 setopt HIST_VERIFY       # Let you edit history before executing
 
 # ---- Keybindings ----
-# Delete key fix
-bindkey '\e[3~' delete-char
 # Insert key
 bindkey '\e[2~' overwrite-mode
 # Home and End keys
@@ -22,9 +20,25 @@ bindkey '\e[F' end-of-line
 # Page Up and Page Down keys
 bindkey '\e[5~' beginning-of-history
 bindkey '\e[6~' end-of-history
-# ctrl + arrow keys for word-by-word navigation
-bindkey '\e[1;5C' forward-word
-bindkey '\e[1;5D' backward-word
+# ctrl + arrow keys for word-by-word navigation (Windows-style word boundaries)
+_forward_word_windows() {
+    local WORDCHARS_OLD=$WORDCHARS
+    WORDCHARS='*?[]~=&;!#$%^(){}<>'
+    zle .forward-word
+    WORDCHARS=$WORDCHARS_OLD
+}
+zle -N _forward_word_windows
+
+_backward_word_windows() {
+    local WORDCHARS_OLD=$WORDCHARS
+    WORDCHARS='*?[]~=&;!#$%^(){}<>'
+    zle .backward-word
+    WORDCHARS=$WORDCHARS_OLD
+}
+zle -N _backward_word_windows
+
+bindkey '\e[1;5C' _forward_word_windows
+bindkey '\e[1;5D' _backward_word_windows
 # Shift + arrow keys for character selection
 _shift_select_forward () {
     if ((REGION_ACTIVE)); then
@@ -44,20 +58,34 @@ _shift_select_backward () {
 zle -N _shift_select_backward
 bindkey '\e[1;2C' _shift_select_forward
 bindkey '\e[1;2D' _shift_select_backward
-# ctrl + Shift + arrow keys for word selection
+# ctrl + Shift + arrow keys for word selection (Windows-style word boundaries)
 _shift_select_forward_word () {
     if ((REGION_ACTIVE)); then
+        local WORDCHARS_OLD=$WORDCHARS
+        WORDCHARS='*?_[]~=&;!#$%^(){}<>'
         zle .forward-word
+        WORDCHARS=$WORDCHARS_OLD
     else
-        zle .set-mark-command && zle .forward-word
+        zle .set-mark-command
+        local WORDCHARS_OLD=$WORDCHARS
+        WORDCHARS='*?_[]~=&;!#$%^(){}<>'
+        zle .forward-word
+        WORDCHARS=$WORDCHARS_OLD
     fi
 }
 zle -N _shift_select_forward_word
 _shift_select_backward_word () {
     if ((REGION_ACTIVE)); then
+        local WORDCHARS_OLD=$WORDCHARS
+        WORDCHARS='*?_[]~=&;!#$%^(){}<>'
         zle .backward-word
+        WORDCHARS=$WORDCHARS_OLD
     else
-        zle .set-mark-command && zle .backward-word
+        zle .set-mark-command
+        local WORDCHARS_OLD=$WORDCHARS
+        WORDCHARS='*?_[]~=&;!#$%^(){}<>'
+        zle .backward-word
+        WORDCHARS=$WORDCHARS_OLD
     fi
 }
 zle -N _shift_select_backward_word
