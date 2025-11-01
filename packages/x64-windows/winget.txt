@@ -66,8 +66,8 @@ VladimirYakovlev.ElectronMail
 WeakAuras.WeakAurasCompanion
 WinDirStat.WinDirStat
 WowUp.Wowup
-Zen-Team.Zen-Browser
 ZedIndustries.Zed
+Zen-Team.Zen-Browser
 ajeetdsouza.zoxide
 aristocratos.btop4win
 astral-sh.uv
