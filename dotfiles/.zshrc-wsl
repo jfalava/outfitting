@@ -118,9 +118,9 @@ eval "$(starship init zsh)"
 autoload -Uz compinit
 compinit
 # keyring daemons
-if ! pgrep -x "dbus-daemon" > /dev/null; then
-  dbus-daemon --session --fork
+if ! pgrep -f "dbus-daemon" > /dev/null; then
+  dbus-daemon --session --fork 2>/dev/null
 fi
-if ! pgrep -x "gnome-keyring-daemon" > /dev/null; then
-  gnome-keyring-daemon --start --components=secrets
+if ! pgrep -f "gnome-keyring-daemon" > /dev/null; then
+  gnome-keyring-daemon --start --components=secrets 2>/dev/null
 fi
