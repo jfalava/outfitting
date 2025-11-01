@@ -64,6 +64,38 @@ zle -N _shift_select_backward_word
 bindkey '\e[1;6C' _shift_select_forward_word
 bindkey '\e[1;6D' _shift_select_backward_word
 
+# Ctrl+C to copy selection
+_copy_region() {
+    if ((REGION_ACTIVE)); then
+        zle copy-region-as-kill
+        echo -n "\033]52;c;$(base64 <<< $CUTBUFFER)\a"
+    fi
+}
+zle -N _copy_region
+bindkey '^C' _copy_region
+
+# Delete key to delete selection
+_delete_region() {
+    if ((REGION_ACTIVE)); then
+        zle kill-region
+    else
+        zle delete-char
+    fi
+}
+zle -N _delete_region
+bindkey '\e[3~' _delete_region
+
+# Backspace to delete selection
+_backward_delete_region() {
+    if ((REGION_ACTIVE)); then
+        zle kill-region
+    else
+        zle backward-delete-char
+    fi
+}
+zle -N _backward_delete_region
+bindkey '^?' _backward_delete_region
+
 # ---- Paths ----
 PATH=$PATH:/home/$USER/go/bin
 PATH=$PATH:/home/$USER/.local/bin
