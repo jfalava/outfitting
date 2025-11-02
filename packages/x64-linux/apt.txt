@@ -25,3 +25,4 @@ unzip
 wget
 zlib1g-dev
 zsh
+zip
