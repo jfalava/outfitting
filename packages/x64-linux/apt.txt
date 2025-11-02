@@ -23,6 +23,6 @@ libxml2-dev
 libxslt1-dev
 unzip
 wget
+zip
 zlib1g-dev
 zsh
-zip
