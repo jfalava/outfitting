@@ -50,7 +50,7 @@ if (Get-Module -ListAvailable -Name PSReadLine) {
 # Aliases and Functions
 # -------------------------------
 function ezals {
-    eza --color=always --long --git --bytes --icons=always
+  eza --color=always --long --git --bytes --icons=always
 }
 Set-Alias l ezals
 
@@ -61,6 +61,11 @@ function whichwin {
     Get-Command $name | Select-Object -ExpandProperty Definition
 }
 Set-Alias which whichwin
+
+function killwsl {
+  wsl --shutdown
+}
+Set-Alias wslk killwsl
 
 # -------------------------------
 # Expressions
