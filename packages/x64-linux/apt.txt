@@ -2,6 +2,7 @@ build-essential
 git
 gnome-keyring
 golang
+jq
 libadwaita-1-dev
 libbz2-dev
 libcurl4-openssl-dev
@@ -26,4 +27,3 @@ wget
 zip
 zlib1g-dev
 zsh
-jq
