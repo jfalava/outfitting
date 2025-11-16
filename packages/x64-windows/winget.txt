@@ -24,6 +24,7 @@ Microsoft.DotNet.DesktopRuntime.7
 Microsoft.DotNet.DesktopRuntime.8
 Microsoft.DotNet.DesktopRuntime.9
 Microsoft.DotNet.DesktopRuntime.Preview
+Microsoft.DotNet.DesktopRuntime.10
 Microsoft.EdgeWebView2Runtime
 Microsoft.Edit
 Microsoft.Git
