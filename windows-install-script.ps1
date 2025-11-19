@@ -96,25 +96,37 @@ function Install-PSModules {
 function Install-MsixPackage {
     param (
         [string]$url,
-        [string]$packageName
+        [string]$packageName,
+        [string]$appxIdentity = $null
     )
 
+    # Pre-check if package is already installed
+    if ($appxIdentity) {
+        $existingPackage = Get-AppxPackage -Name $appxIdentity -ErrorAction SilentlyContinue
+        if ($existingPackage) {
+            Write-Host "❖ MSIX package already installed: $appxIdentity" -ForegroundColor Yellow
+            return
+        }
+    }
+
+    $tempMsixPath = "$env:TEMP\$packageName"
     try {
-        $tempMsixPath = "$env:TEMP\$packageName"
         Write-Host "❖ Downloading MSIX package: $packageName" -ForegroundColor Cyan
-        Invoke-WebRequest -Uri $url -OutFile $tempMsixPath
+        Invoke-WebRequest -Uri $url -OutFile $tempMsixPath -ErrorAction Stop
         Write-Host "❖ Downloaded MSIX package to: $tempMsixPath" -ForegroundColor Green
 
         Write-Host "❖ Installing MSIX package: $packageName" -ForegroundColor Cyan
-        Add-AppxPackage -Path $tempMsixPath
+        Add-AppxPackage -Path $tempMsixPath -ErrorAction Stop
         Write-Host "❖ Installed MSIX package: $packageName" -ForegroundColor Green
-
-        Remove-Item $tempMsixPath -ErrorAction SilentlyContinue
     }
     catch {
         Write-Host "❖ Failed to install MSIX package:" -ForegroundColor Red
         Write-Host "  - ${packageName}: $_" -ForegroundColor Red
-        Remove-Item $tempMsixPath -ErrorAction SilentlyContinue
+    }
+    finally {
+        if (Test-Path $tempMsixPath) {
+            Remove-Item $tempMsixPath -ErrorAction SilentlyContinue
+        }
     }
 }
 
@@ -128,7 +140,7 @@ Install-PSModules -filePath $psModulesFile
 #####
 ## install MSIX packages
 #####
-Install-MsixPackage -url "https://static.jfa.dev/git/lfs/WhatsAppDesktop_2.2545.5.0.Msixbundle" -packageName "WhatsAppDesktop.Msixbundle"
+Install-MsixPackage -url "https://static.jfa.dev/git/lfs/WhatsAppDesktop_2.2545.5.0.Msixbundle" -packageName "WhatsAppDesktop.Msixbundle" -appxIdentity "5319275A.WhatsAppDesktop"
 
 #####
 ## install registry tweaks interactively (dynamic discovery via GitHub API)
