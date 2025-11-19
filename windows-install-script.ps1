@@ -93,6 +93,30 @@ function Install-PSModules {
         }
     }
 }
+function Install-MsixPackage {
+    param (
+        [string]$url,
+        [string]$packageName
+    )
+
+    try {
+        $tempMsixPath = "$env:TEMP\$packageName"
+        Write-Host "❖ Downloading MSIX package: $packageName" -ForegroundColor Cyan
+        Invoke-WebRequest -Uri $url -OutFile $tempMsixPath
+        Write-Host "❖ Downloaded MSIX package to: $tempMsixPath" -ForegroundColor Green
+
+        Write-Host "❖ Installing MSIX package: $packageName" -ForegroundColor Cyan
+        Add-AppxPackage -Path $tempMsixPath
+        Write-Host "❖ Installed MSIX package: $packageName" -ForegroundColor Green
+
+        Remove-Item $tempMsixPath -ErrorAction SilentlyContinue
+    }
+    catch {
+        Write-Host "❖ Failed to install MSIX package:" -ForegroundColor Red
+        Write-Host "  - ${packageName}: $_" -ForegroundColor Red
+        Remove-Item $tempMsixPath -ErrorAction SilentlyContinue
+    }
+}
 
 #####
 ## install packages
@@ -100,6 +124,11 @@ function Install-PSModules {
 Install-WingetPackages -filePath $wingetPackagesFile
 Install-WingetPackages -filePath $msStorePackagesFile
 Install-PSModules -filePath $psModulesFile
+
+#####
+## install MSIX packages
+#####
+Install-MsixPackage -url "https://static.jfa.dev/git/lfs/WhatsAppDesktop_2.2545.5.0.Msixbundle" -packageName "WhatsAppDesktop.Msixbundle"
 
 #####
 ## install registry tweaks interactively (dynamic discovery via GitHub API)
