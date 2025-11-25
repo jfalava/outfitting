@@ -3,15 +3,19 @@
   "version": "0.2-20250916",
   "private": true,
   "scripts": {
-    "deploy": "pnpm run cf-typegen && wrangler deploy",
+    "deploy": "bun run cf-typegen && wrangler deploy",
     "cf-typegen": "wrangler types",
-    "dry-build": "pnpm run tsc --noEmit"
+    "typecheck": "tsgo --noEmit",
+    "lint": "oxlint --fix --type-aware ."
   },
   "dependencies": {
-    "hono": "^4.10.3"
+    "hono": "^4.10.6"
   },
   "devDependencies": {
+    "@typescript/native-preview": "^7.0.0-dev.20251125.1",
+    "oxlint": "^1.30.0",
+    "oxlint-tsgolint": "^0.8.2",
     "typescript": "^5.9.3",
-    "wrangler": "^4.45.1"
+    "wrangler": "^4.50.0"
   }
 }

@@ -1,0 +1,130 @@
+{
+  "$schema": "https://raw.githubusercontent.com/oxc-project/oxc/main/npm/oxlint/configuration_schema.json",
+  "plugins": [
+    "eslint",
+    "nextjs",
+    "react",
+    "typescript",
+    "jsx-a11y",
+    "unicorn",
+    "oxc",
+    "import",
+    "promise"
+  ],
+  "env": {
+    "browser": true,
+    "es2022": true
+  },
+  "parser": {
+    "typescript": true,
+    "jsx": true
+  },
+  "glob": {
+    "include": ["src/**/*.ts", "src/**/*.tsx"],
+    "exclude": [
+      ".next/**",
+      ".open-next/**",
+      ".wrangler/**",
+      "node_modules/**",
+      "coverage/**",
+      "**/*.config.*",
+      "**/*.d.ts"
+    ]
+  },
+  "typescript": {
+    "project": "./tsconfig.json"
+  },
+  "rules": {
+    "oxlint/recommended": "error",
+    "tsgo/no-explicit-any": "error",
+    "tsgo/no-unsafe-assignment": "error",
+    "tsgo/no-unsafe-call": "error",
+    "tsgo/no-unsafe-member-access": "error",
+    "tsgo/no-unsafe-return": "error",
+
+    "no-unused-vars": [
+      "error",
+      {
+        "vars": "all",
+        "args": "after-used",
+        "caughtErrors": "all",
+        "ignoreRestSiblings": false,
+        "varsIgnorePattern": "^_",
+        "argsIgnorePattern": "^_",
+        "caughtErrorsIgnorePattern": "^_"
+      }
+    ],
+    "no-undef": "error",
+    "no-unreachable": "error",
+    "no-dupe-keys": "error",
+    "no-dupe-class-members": "error",
+    "no-fallthrough": "error",
+    "no-duplicate-imports": "error",
+    "no-implied-eval": "error",
+    "no-eval": "error",
+    "no-debugger": "error",
+    "no-console": [
+      "error",
+      {
+        "allow": ["warn", "error"]
+      }
+    ],
+    "no-with": "error",
+    "no-proto": "error",
+    "no-new-wrappers": "error",
+    "no-iterator": "error",
+    "no-labels": "error",
+    "no-var": "error",
+    "no-shadow": [
+      "error",
+      {
+        "hoist": "functions",
+        "builtinGlobals": true
+      }
+    ],
+    "no-param-reassign": "error",
+    "no-extend-native": "error",
+    "no-func-assign": "error",
+    "no-empty-function": "error",
+    "no-extra-bind": "error",
+    "no-useless-constructor": "error",
+    "no-unused-expressions": "error",
+
+    "eqeqeq": [
+      "error",
+      "always",
+      {
+        "null": "ignore"
+      }
+    ],
+    "curly": ["error", "all"],
+    "no-implicit-coercion": [
+      "error",
+      {
+        "boolean": true,
+        "number": true,
+        "string": true,
+        "disallowTemplateShorthand": true
+      }
+    ],
+    "prefer-const": [
+      "error",
+      {
+        "destructuring": "all"
+      }
+    ],
+    "prefer-arrow-callback": "error",
+    "complexity": ["error", 12],
+    "max-depth": ["error", 4],
+    "max-params": ["error", 5],
+    "max-statements": ["error", 40],
+    "import/no-duplicates": "error",
+    "import/no-unresolved": "error",
+    "import/no-mutable-exports": "error",
+    "react/jsx-key": "error",
+    "react/jsx-no-undef": "error",
+    "react/no-direct-mutation-state": "error",
+    "react/no-find-dom-node": "error",
+    "react/no-danger": "error"
+  }
+}
