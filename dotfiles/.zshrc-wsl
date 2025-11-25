@@ -762,7 +762,6 @@ if command -v bun &> /dev/null; then
 fi
 
 # ---- Welcome Message ----
-Uncomment for a startup message
 if command -v fastfetch &> /dev/null; then
     fastfetch
 fi

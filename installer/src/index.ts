@@ -157,7 +157,7 @@ Invoke-WebRequest -Uri "https://${host}/config/powershell" -OutFile $profilePath
 Write-Host "✓ Updated PowerShell profile" -ForegroundColor Green
 
 Write-Host ""
-Write-Host "Config updated! Reload your profile with: . `$PROFILE" -ForegroundColor Cyan
+Write-Host "Config updated! Reload your profile with: . \`$PROFILE" -ForegroundColor Cyan
 `;
   }
 
