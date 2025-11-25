@@ -127,6 +127,7 @@ echo "run pnpm approve-builds -g to finish"
 #####
 curl -o ~/.gitconfig "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/dotfiles/.gitconfig"
 curl -o ~/.zshrc "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/dotfiles/.zshrc-wsl"
+curl -o ~/.ripgreprc "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/dotfiles/.ripgreprc"
 
 ## end message
 echo "installation complete"

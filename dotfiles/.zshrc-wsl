@@ -1,26 +1,128 @@
-# ---- History ----
-HISTFILE=~/.zsh_history # Location of the history file
-HISTSIZE=10000 # Maximum number of entries in the history file
-SAVEHIST=10000 # Maximum number of lines in memory before writing to the file
-# History options
-setopt APPEND_HISTORY    # Append history instead of overwriting
-setopt SHARE_HISTORY     # Share history across multiple terminals
-setopt HIST_IGNORE_DUPS  # Ignore duplicate commands
-setopt HIST_IGNORE_SPACE # Ignore commands starting with a space
-setopt HIST_VERIFY       # Let you edit history before executing
+# ========================================
+# ZSH Configuration for WSL
+# ========================================
+
+# ---- Performance: Lazy Completion Init ----
+# Load completion system lazily for faster startup
+autoload -Uz compinit
+# Only regenerate completion cache once a day
+if [[ -n ${ZDOTDIR}/.zcompdump(#qN.mh+24) ]]; then
+    compinit
+else
+    compinit -C
+fi
+
+# ---- Shell Options ----
+# Directory navigation
+setopt AUTO_CD              # cd by typing directory name
+setopt AUTO_PUSHD           # Make cd push old directory onto stack
+setopt PUSHD_IGNORE_DUPS    # Don't push duplicates
+setopt PUSHD_SILENT         # Don't print directory stack
+setopt CDABLE_VARS          # cd to path stored in variable
+
+# Globbing
+setopt EXTENDED_GLOB        # Extended globbing (^, ~, #)
+setopt GLOB_DOTS            # Include dotfiles in glob
+setopt NOMATCH              # Print error if pattern has no matches
+
+# General
+setopt INTERACTIVE_COMMENTS # Allow comments in interactive shell
+setopt NOTIFY               # Report status of bg jobs immediately
+setopt NO_BEEP              # Disable beep
+
+# ---- History Configuration ----
+HISTFILE=~/.zsh_history
+HISTSIZE=50000
+SAVEHIST=50000
+
+setopt EXTENDED_HISTORY          # Write timestamp to history
+setopt INC_APPEND_HISTORY        # Write immediately, not on exit
+setopt SHARE_HISTORY             # Share history across terminals
+setopt HIST_EXPIRE_DUPS_FIRST    # Expire duplicates first
+setopt HIST_IGNORE_DUPS          # Don't record duplicates
+setopt HIST_IGNORE_ALL_DUPS      # Delete old duplicate entries
+setopt HIST_FIND_NO_DUPS         # Don't display duplicates in search
+setopt HIST_IGNORE_SPACE         # Ignore commands starting with space
+setopt HIST_SAVE_NO_DUPS         # Don't write duplicate entries
+setopt HIST_REDUCE_BLANKS        # Remove superfluous blanks
+setopt HIST_VERIFY               # Show command before executing from history
+
+# ---- Environment Variables ----
+export EDITOR='nano'
+export VISUAL='nano'
+export PAGER='less'
+
+# Better colors for less/man pages
+export LESS='-R -M -i -j10'
+export LESS_TERMCAP_mb=$'\e[1;31m'     # begin bold
+export LESS_TERMCAP_md=$'\e[1;36m'     # begin blink
+export LESS_TERMCAP_me=$'\e[0m'        # reset bold/blink
+export LESS_TERMCAP_so=$'\e[01;44;33m' # begin reverse video
+export LESS_TERMCAP_se=$'\e[0m'        # reset reverse video
+export LESS_TERMCAP_us=$'\e[1;32m'     # begin underline
+export LESS_TERMCAP_ue=$'\e[0m'        # reset underline
+
+# Locale
+export LANG=en_US.UTF-8
+export LC_ALL=en_US.UTF-8
+
+# Ripgrep
+export RIPGREP_CONFIG_PATH="$HOME/.ripgreprc"
+
+# ---- Paths ----
+# Helper function to add to PATH only if directory exists and not already in PATH
+path_append() {
+    if [[ -d "$1" ]] && [[ ":$PATH:" != *":$1:"* ]]; then
+        export PATH="$PATH:$1"
+    fi
+}
+
+path_prepend() {
+    if [[ -d "$1" ]] && [[ ":$PATH:" != *":$1:"* ]]; then
+        export PATH="$1:$PATH"
+    fi
+}
+
+# Add paths in order of precedence
+path_prepend "$HOME/.local/bin"
+path_append "$HOME/go/bin"
+
+# pnpm
+export PNPM_HOME="$HOME/.local/share/pnpm"
+path_prepend "$PNPM_HOME"
+
+# Bun
+export BUN_INSTALL="$HOME/.bun"
+path_prepend "$BUN_INSTALL/bin"
+
+# Deno
+export DENO_INSTALL="$HOME/.deno"
+path_prepend "$DENO_INSTALL/bin"
+
+# uv (Python)
+path_append "$HOME/.local/share/uv/bin"
+
+# OpenCode
+path_prepend "$HOME/.opencode/bin"
+
+# Cargo (Rust)
+path_append "$HOME/.cargo/bin"
 
 # ---- Keybindings ----
-# Insert key
-bindkey '\e[2~' overwrite-mode
-# Home and End keys
-bindkey '\e[1~' beginning-of-line
-bindkey '\e[4~' end-of-line
-bindkey '\e[H' beginning-of-line
-bindkey '\e[F' end-of-line
-# Page Up and Page Down keys
-bindkey '\e[5~' beginning-of-history
-bindkey '\e[6~' end-of-history
-# ctrl + arrow keys for word-by-word navigation (Windows-style word boundaries)
+# Use emacs keybindings
+bindkey -e
+
+# Basic navigation
+bindkey '\e[2~' overwrite-mode              # Insert
+bindkey '\e[3~' delete-char                 # Delete
+bindkey '\e[1~' beginning-of-line           # Home
+bindkey '\e[4~' end-of-line                 # End
+bindkey '\e[H' beginning-of-line            # Home (alt)
+bindkey '\e[F' end-of-line                  # End (alt)
+bindkey '\e[5~' beginning-of-history        # Page Up
+bindkey '\e[6~' end-of-history              # Page Down
+
+# Ctrl + arrow keys for word-by-word navigation (Windows-style)
 _forward_word_windows() {
     local WORDCHARS_OLD=$WORDCHARS
     WORDCHARS='*?[]~=&;!#$%^(){}<>'
@@ -37,10 +139,53 @@ _backward_word_windows() {
 }
 zle -N _backward_word_windows
 
-bindkey '\e[1;5C' _forward_word_windows
-bindkey '\e[1;5D' _backward_word_windows
+bindkey '\e[1;5C' _forward_word_windows     # Ctrl+Right
+bindkey '\e[1;5D' _backward_word_windows    # Ctrl+Left
+
+# Alt+D: Delete word forward
+bindkey '\ed' kill-word
+
+# Ctrl+W: Delete word backward (with region support)
+_backward_kill_word_or_region() {
+    if ((REGION_ACTIVE)); then
+        zle kill-region
+    else
+        zle backward-kill-word
+    fi
+}
+zle -N _backward_kill_word_or_region
+bindkey '^W' _backward_kill_word_or_region
+
+# Ctrl+K: Kill to end of line (with region support)
+_kill_line_or_region() {
+    if ((REGION_ACTIVE)); then
+        zle kill-region
+    else
+        zle kill-line
+    fi
+}
+zle -N _kill_line_or_region
+bindkey '^K' _kill_line_or_region
+
+# Ctrl+U: Kill to beginning of line (with region support)
+_backward_kill_line_or_region() {
+    if ((REGION_ACTIVE)); then
+        zle kill-region
+    else
+        zle backward-kill-line
+    fi
+}
+zle -N _backward_kill_line_or_region
+bindkey '^U' _backward_kill_line_or_region
+
+# Ctrl+Z: Undo
+bindkey '^Z' undo
+
+# Ctrl+Y: Redo (yank)
+bindkey '^Y' redo
+
 # Shift + arrow keys for character selection
-_shift_select_forward () {
+_shift_select_forward() {
     if ((REGION_ACTIVE)); then
         zle .forward-char
     else
@@ -48,7 +193,8 @@ _shift_select_forward () {
     fi
 }
 zle -N _shift_select_forward
-_shift_select_backward () {
+
+_shift_select_backward() {
     if ((REGION_ACTIVE)); then
         zle .backward-char
     else
@@ -56,10 +202,12 @@ _shift_select_backward () {
     fi
 }
 zle -N _shift_select_backward
-bindkey '\e[1;2C' _shift_select_forward
-bindkey '\e[1;2D' _shift_select_backward
-# ctrl + Shift + arrow keys for word selection (Windows-style word boundaries)
-_shift_select_forward_word () {
+
+bindkey '\e[1;2C' _shift_select_forward     # Shift+Right
+bindkey '\e[1;2D' _shift_select_backward    # Shift+Left
+
+# Ctrl + Shift + arrow keys for word selection (Windows-style)
+_shift_select_forward_word() {
     if ((REGION_ACTIVE)); then
         local WORDCHARS_OLD=$WORDCHARS
         WORDCHARS='*?_[]~=&;!#$%^(){}<>'
@@ -74,7 +222,8 @@ _shift_select_forward_word () {
     fi
 }
 zle -N _shift_select_forward_word
-_shift_select_backward_word () {
+
+_shift_select_backward_word() {
     if ((REGION_ACTIVE)); then
         local WORDCHARS_OLD=$WORDCHARS
         WORDCHARS='*?_[]~=&;!#$%^(){}<>'
@@ -89,11 +238,12 @@ _shift_select_backward_word () {
     fi
 }
 zle -N _shift_select_backward_word
-bindkey '\e[1;6C' _shift_select_forward_word
-bindkey '\e[1;6D' _shift_select_backward_word
+
+bindkey '\e[1;6C' _shift_select_forward_word    # Ctrl+Shift+Right
+bindkey '\e[1;6D' _shift_select_backward_word   # Ctrl+Shift+Left
 
 # Shift + Home/End for line selection
-_shift_select_to_start () {
+_shift_select_to_start() {
     if ((REGION_ACTIVE)); then
         zle .beginning-of-line
     else
@@ -101,7 +251,8 @@ _shift_select_to_start () {
     fi
 }
 zle -N _shift_select_to_start
-_shift_select_to_end () {
+
+_shift_select_to_end() {
     if ((REGION_ACTIVE)); then
         zle .end-of-line
     else
@@ -109,15 +260,16 @@ _shift_select_to_end () {
     fi
 }
 zle -N _shift_select_to_end
-bindkey '\e[1;2H' _shift_select_to_start
-bindkey '\e[1;2F' _shift_select_to_end
+
+bindkey '\e[1;2H' _shift_select_to_start    # Shift+Home
+bindkey '\e[1;2F' _shift_select_to_end      # Shift+End
 
 # Ctrl + Home/End for start/end of buffer
-bindkey '\e[1;5H' beginning-of-buffer
-bindkey '\e[1;5F' end-of-buffer
+bindkey '\e[1;5H' beginning-of-buffer       # Ctrl+Home
+bindkey '\e[1;5F' end-of-buffer             # Ctrl+End
 
 # Ctrl + Shift + Home/End for buffer selection
-_shift_select_to_start_buffer () {
+_shift_select_to_start_buffer() {
     if ((REGION_ACTIVE)); then
         zle .beginning-of-buffer
     else
@@ -125,7 +277,8 @@ _shift_select_to_start_buffer () {
     fi
 }
 zle -N _shift_select_to_start_buffer
-_shift_select_to_end_buffer () {
+
+_shift_select_to_end_buffer() {
     if ((REGION_ACTIVE)); then
         zle .end-of-buffer
     else
@@ -133,18 +286,45 @@ _shift_select_to_end_buffer () {
     fi
 }
 zle -N _shift_select_to_end_buffer
-bindkey '\e[1;6H' _shift_select_to_start_buffer
-bindkey '\e[1;6F' _shift_select_to_end_buffer
 
-# Ctrl+C to copy selection
+bindkey '\e[1;6H' _shift_select_to_start_buffer # Ctrl+Shift+Home
+bindkey '\e[1;6F' _shift_select_to_end_buffer   # Ctrl+Shift+End
+
+# Ctrl+C: Copy selection to clipboard (OSC 52)
 _copy_region() {
     if ((REGION_ACTIVE)); then
         zle copy-region-as-kill
         echo -n "\033]52;c;$(base64 <<< $CUTBUFFER)\a"
+        zle -M "Copied to clipboard"
     fi
 }
 zle -N _copy_region
 bindkey '^C' _copy_region
+
+# Ctrl+X: Cut selection
+_cut_region() {
+    if ((REGION_ACTIVE)); then
+        zle kill-region
+        echo -n "\033]52;c;$(base64 <<< $CUTBUFFER)\a"
+        zle -M "Cut to clipboard"
+    else
+        zle kill-line
+    fi
+}
+zle -N _cut_region
+bindkey '^X' _cut_region
+
+# Ctrl+V: Paste (if using OSC 52 paste or just use yank)
+bindkey '^V' yank
+
+# Ctrl+A: Select all
+_select_all() {
+    zle beginning-of-buffer
+    zle set-mark-command
+    zle end-of-buffer
+}
+zle -N _select_all
+bindkey '^A' _select_all
 
 # Delete key to delete selection
 _delete_region() {
@@ -168,63 +348,421 @@ _backward_delete_region() {
 zle -N _backward_delete_region
 bindkey '^?' _backward_delete_region
 
-# ---- Paths ----
-PATH=$PATH:/home/$USER/go/bin
-PATH=$PATH:/home/$USER/.local/bin
-# pnpm
-export PNPM_HOME="$HOME/.local/share/pnpm"
-case ":$PATH:" in
-*":$PNPM_HOME:"*) ;;
-*) export PATH="$PNPM_HOME:$PATH" ;;
-esac
-# bun
-export BUN_INSTALL="$HOME/.bun"
-export PATH="$BUN_INSTALL/bin:$PATH"
-# opencode
-export PATH=/home/jfalava/.opencode/bin:$PATH
+# ---- Completion Configuration ----
+zstyle ':completion:*' menu select                          # Interactive menu
+zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}'  # Case insensitive
+zstyle ':completion:*' list-colors "${(s.:.)LS_COLORS}"    # Colored completion
+zstyle ':completion:*' group-name ''                        # Group by category
+zstyle ':completion:*' verbose yes
+zstyle ':completion:*:descriptions' format '%F{yellow}-- %d --%f'
+zstyle ':completion:*:messages' format '%F{purple}-- %d --%f'
+zstyle ':completion:*:warnings' format '%F{red}-- no matches found --%f'
+zstyle ':completion:*:corrections' format '%F{green}-- %d (errors: %e) --%f'
+
+# Cache completion for better performance
+zstyle ':completion:*' use-cache on
+zstyle ':completion:*' cache-path ~/.zsh/cache
+
+# Better completion for specific commands
+zstyle ':completion:*:*:docker:*' option-stacking yes
+zstyle ':completion:*:*:docker-*:*' option-stacking yes
+zstyle ':completion:*:*:git:*' script ~/.nix-profile/share/git/contrib/completion/git-completion.zsh 2>/dev/null
 
 # ---- Aliases ----
-alias update-all="sudo apt update && sudo apt upgrade && sudo apt autoremove && nix profile upgrade '.*' --exclude '.*nix.*' 2>/dev/null || echo 'No packages to upgrade' && nix-collect-garbage -d"
+# System
 alias cls='clear'
-alias ff='fastfetch'
-alias tf='terraform'
+alias reload='source ~/.zshrc'
+alias zshconfig='$EDITOR ~/.zshrc'
+
+# Navigation shortcuts
+alias ..='cd ..'
+alias ...='cd ../..'
+alias ....='cd ../../..'
+alias .....='cd ../../../..'
+alias -- -='cd -'  # Go to previous directory
+
+# Eza (modern ls replacement)
 alias l='eza --color=always --long --git --no-filesize --icons=always'
 alias ls='eza --color=always --long --git --no-filesize --icons=always --all --color-scale-mode=gradient'
-nix-install() {
-  nix profile add "nixpkgs#$1"
-}
-nix-uninstall() {
-  nix profile remove "nixpkgs#$1"
-}
-nix-search() {
-  nix search nixpkgs "$1"
+alias la='eza --color=always --long --git --icons=always --all --group-directories-first'
+alias ll='eza --color=always --long --git --icons=always --header --group-directories-first'
+alias lt='eza --color=always --long --git --icons=always --tree --level=2'
+alias lta='eza --color=always --long --git --icons=always --tree --level=2 --all'
+
+# Git aliases
+alias g='git'
+alias gs='git status'
+alias gst='git status'
+alias ga='git add'
+alias gaa='git add --all'
+alias gc='git commit'
+alias gcm='git commit -m'
+alias gca='git commit --amend'
+alias gcan='git commit --amend --no-edit'
+alias gp='git push'
+alias gpf='git push --force-with-lease'
+alias gpl='git pull'
+alias gpr='git pull --rebase'
+alias gl='git log --oneline --graph --decorate'
+alias gla='git log --oneline --graph --decorate --all'
+alias gd='git diff'
+alias gds='git diff --staged'
+alias gco='git checkout'
+alias gcb='git checkout -b'
+alias gb='git branch'
+alias gba='git branch -a'
+alias gbd='git branch -d'
+alias gbD='git branch -D'
+alias gm='git merge'
+alias gr='git rebase'
+alias gri='git rebase -i'
+alias grc='git rebase --continue'
+alias gra='git rebase --abort'
+alias grs='git reset'
+alias grsh='git reset --hard'
+alias grss='git reset --soft'
+alias gsh='git stash'
+alias gshp='git stash pop'
+alias gshl='git stash list'
+alias gf='git fetch'
+alias gfa='git fetch --all'
+alias gcl='git clone'
+alias gcp='git cherry-pick'
+
+# Docker aliases
+if command -v docker &> /dev/null; then
+    alias d='docker'
+    alias dc='docker compose'
+    alias dcu='docker compose up'
+    alias dcud='docker compose up -d'
+    alias dcd='docker compose down'
+    alias dcr='docker compose restart'
+    alias dps='docker ps'
+    alias dpsa='docker ps -a'
+    alias di='docker images'
+    alias dex='docker exec -it'
+    alias drm='docker rm'
+    alias drmi='docker rmi'
+    alias dprune='docker system prune -af --volumes'
+    alias dlogs='docker logs -f'
+fi
+
+# Terraform
+alias tf='terraform'
+alias tfi='terraform init'
+alias tfp='terraform plan'
+alias tfa='terraform apply'
+alias tfd='terraform destroy'
+alias tfv='terraform validate'
+alias tff='terraform fmt'
+alias tfw='terraform workspace'
+
+# Kubernetes (if kubectl available)
+if command -v kubectl &> /dev/null; then
+    alias k='kubectl'
+    alias kg='kubectl get'
+    alias kd='kubectl describe'
+    alias kdel='kubectl delete'
+    alias ka='kubectl apply -f'
+    alias kl='kubectl logs -f'
+    alias kex='kubectl exec -it'
+    alias kpf='kubectl port-forward'
+fi
+
+# Python/uv
+if command -v uv &> /dev/null; then
+    alias pip='uv pip'
+    alias python='uv run python'
+    alias py='uv run python'
+fi
+
+# Node/pnpm/bun
+alias pn='pnpm'
+alias pnx='pnpm dlx'
+alias pni='pnpm install'
+alias pna='pnpm add'
+alias pnr='pnpm run'
+
+# Misc tools
+alias ff='fastfetch'
+alias cat='bat --style=auto' 2>/dev/null || alias cat='cat'  # Use bat if available
+alias diff='diff --color=auto'
+
+# Ripgrep (preferred over grep)
+if command -v rg &> /dev/null; then
+    alias grep='rg'
+    alias rgi='rg -i'                          # Case insensitive
+    alias rgl='rg --files-with-matches'        # Only show filenames
+    alias rgc='rg --count'                     # Count matches per file
+    alias rgh='rg --hidden'                    # Include hidden files
+    alias rgz='rg -z'                          # Search in compressed files
+    alias rgt='rg --type-list'                 # Show supported file types
+    alias rgpy='rg --type py'                  # Python files only
+    alias rgjs='rg --type js'                  # JavaScript files only
+    alias rgts='rg --type ts'                  # TypeScript files only
+    alias rggo='rg --type go'                  # Go files only
+    alias rgrs='rg --type rust'                # Rust files only
+else
+    alias grep='grep --color=auto'
+fi
+
+# ---- Functions ----
+
+# Smart cd that also lists contents
+cd() {
+    builtin cd "$@" && ls
 }
 
-# ---- Sources ----
-# zsh plugins
+# Create directory and cd into it
+mkcd() {
+    mkdir -p "$1" && cd "$1"
+}
+
+# Extract any archive
+extract() {
+    if [ -f "$1" ]; then
+        case "$1" in
+            *.tar.bz2)   tar xjf "$1"     ;;
+            *.tar.gz)    tar xzf "$1"     ;;
+            *.bz2)       bunzip2 "$1"     ;;
+            *.rar)       unrar x "$1"     ;;
+            *.gz)        gunzip "$1"      ;;
+            *.tar)       tar xf "$1"      ;;
+            *.tbz2)      tar xjf "$1"     ;;
+            *.tgz)       tar xzf "$1"     ;;
+            *.zip)       unzip "$1"       ;;
+            *.Z)         uncompress "$1"  ;;
+            *.7z)        7z x "$1"        ;;
+            *.tar.xz)    tar xf "$1"      ;;
+            *)           echo "'$1' cannot be extracted via extract()" ;;
+        esac
+    else
+        echo "'$1' is not a valid file"
+    fi
+}
+
+# Find process using a port
+port() {
+    if [ -z "$1" ]; then
+        echo "Usage: port <port_number>"
+        return 1
+    fi
+    sudo lsof -i ":$1" || sudo ss -tulpn | grep ":$1"
+}
+
+# Quick weather
+weather() {
+    local location="${1:-}"
+    curl -s "wttr.in/${location}?format=3"
+}
+
+# Git: Quick commit all
+gac() {
+    git add --all && git commit -m "$*"
+}
+
+# Git: Quick push
+gacp() {
+    git add --all && git commit -m "$*" && git push
+}
+
+# Docker: Enter running container
+denter() {
+    if [ -z "$1" ]; then
+        echo "Usage: denter <container_name_or_id>"
+        return 1
+    fi
+    docker exec -it "$1" /bin/bash || docker exec -it "$1" /bin/sh
+}
+
+# Docker: Stop all containers
+dstop() {
+    docker stop $(docker ps -q)
+}
+
+# Nix management functions
+nix-install() {
+    nix profile install "nixpkgs#$1"
+}
+
+nix-uninstall() {
+    nix profile remove "nixpkgs#$1"
+}
+
+nix-search() {
+    nix search nixpkgs "$1"
+}
+
+nix-update() {
+    echo "Updating Nix packages..."
+    nix profile upgrade '.*' --exclude '.*nix.*' 2>/dev/null || echo 'No packages to upgrade'
+}
+
+# System update
+update-all() {
+    echo "Updating APT packages..."
+    sudo apt update && sudo apt upgrade -y && sudo apt autoremove -y
+
+    echo -e "\nUpdating Nix packages..."
+    nix-update
+
+    echo -e "\nCleaning Nix store..."
+    nix-collect-garbage -d
+
+    echo -e "\nUpdating global npm packages..."
+    if command -v pnpm &> /dev/null; then
+        pnpm update -g
+    fi
+
+    echo -e "\nUpdate complete!"
+}
+
+# Show directory size sorted
+dirsize() {
+    du -sh */ 2>/dev/null | sort -h
+}
+
+# Backup file with timestamp
+backup() {
+    if [ -z "$1" ]; then
+        echo "Usage: backup <file>"
+        return 1
+    fi
+    cp "$1" "${1}.backup.$(date +%Y%m%d_%H%M%S)"
+}
+
+# Ripgrep functions
+if command -v rg &> /dev/null; then
+    # Search and edit results in editor
+    rge() {
+        if [ -z "$1" ]; then
+            echo "Usage: rge <pattern> [path]"
+            return 1
+        fi
+        local files=$(rg --files-with-matches "$1" "${2:-.}")
+        if [ -n "$files" ]; then
+            echo "$files" | xargs $EDITOR
+        else
+            echo "No matches found"
+        fi
+    }
+
+    # Search with context (5 lines before/after)
+    rgx() {
+        rg --context 5 "$@"
+    }
+
+    # Search for TODO/FIXME/XXX/HACK comments
+    todos() {
+        rg --heading --line-number --color=always \
+            "TODO|FIXME|XXX|HACK|BUG|NOTE" "${1:-.}"
+    }
+
+    # Search for function/class definitions
+    rgfunc() {
+        if [ -z "$1" ]; then
+            echo "Usage: rgfunc <function_name> [path]"
+            return 1
+        fi
+        rg --heading --line-number \
+            "(function|def|class|fn|func|const|let|var)\s+$1" \
+            "${2:-.}"
+    }
+
+    # Search with stats (count + files)
+    rgstats() {
+        if [ -z "$1" ]; then
+            echo "Usage: rgstats <pattern> [path]"
+            return 1
+        fi
+        echo "=== Match Statistics ==="
+        rg --count --heading "$1" "${2:-.}"
+        echo ""
+        echo "=== Total Matches ==="
+        rg --count-matches "$1" "${2:-.}" | awk -F: '{sum+=$2} END {print sum " total matches"}'
+    }
+fi
+
+# ---- Plugin Loading ----
+# Load plugins from nix-profile
 if [ -f $HOME/.nix-profile/share/zsh-autosuggestions/zsh-autosuggestions.zsh ]; then
-  source $HOME/.nix-profile/share/zsh-autosuggestions/zsh-autosuggestions.zsh
+    source $HOME/.nix-profile/share/zsh-autosuggestions/zsh-autosuggestions.zsh
+    ZSH_AUTOSUGGEST_STRATEGY=(history completion)
+    ZSH_AUTOSUGGEST_BUFFER_MAX_SIZE=20
 fi
+
+# Syntax highlighting must be loaded last
 if [ -f $HOME/.nix-profile/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh ]; then
-  source $HOME/.nix-profile/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+    source $HOME/.nix-profile/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+    # Customize colors
+    ZSH_HIGHLIGHT_STYLES[command]='fg=green,bold'
+    ZSH_HIGHLIGHT_STYLES[alias]='fg=cyan,bold'
+    ZSH_HIGHLIGHT_STYLES[builtin]='fg=yellow,bold'
+    ZSH_HIGHLIGHT_STYLES[function]='fg=blue,bold'
 fi
-# nix
-source ~/.nix-profile/etc/profile.d/nix.sh
-# zoxide
-eval "$(zoxide init zsh)"
-# SSH
+
+# ---- Tool Initialization ----
+# Nix
+if [ -f ~/.nix-profile/etc/profile.d/nix.sh ]; then
+    source ~/.nix-profile/etc/profile.d/nix.sh
+fi
+
+# Zoxide (smart cd)
+if command -v zoxide &> /dev/null; then
+    eval "$(zoxide init zsh)"
+    alias cd='z'  # Replace cd with zoxide
+fi
+
+# FZF (fuzzy finder)
+if command -v fzf &> /dev/null; then
+    # FZF default options
+    export FZF_DEFAULT_OPTS='
+        --height 40%
+        --layout=reverse
+        --border
+        --inline-info
+        --color=fg:#f8f8f2,bg:#282a36,hl:#bd93f9
+        --color=fg+:#f8f8f2,bg+:#44475a,hl+:#bd93f9
+        --color=info:#ffb86c,prompt:#50fa7b,pointer:#ff79c6
+        --color=marker:#ff79c6,spinner:#ffb86c,header:#6272a4'
+
+    # Use fd for file listing if available
+    if command -v fd &> /dev/null; then
+        export FZF_DEFAULT_COMMAND='fd --type f --hidden --follow --exclude .git'
+        export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
+        export FZF_ALT_C_COMMAND='fd --type d --hidden --follow --exclude .git'
+    fi
+
+    # Load FZF keybindings
+    source <(fzf --zsh) 2>/dev/null
+fi
+
+# SSH Agent
 if [ -z "$SSH_AUTH_SOCK" ] || [ ! -S "$SSH_AUTH_SOCK" ]; then
-    eval "$(ssh-agent -s)"
+    eval "$(ssh-agent -s)" >/dev/null 2>&1
 fi
-# starship
-eval "$(starship init zsh)"
-# initialize zsh completions
-autoload -Uz compinit
-compinit
-# keyring daemons
-if ! pgrep -f "dbus-daemon" > /dev/null; then
-  dbus-daemon --session --fork 2>/dev/null
+
+# Starship prompt (must be near the end)
+if command -v starship &> /dev/null; then
+    eval "$(starship init zsh)"
 fi
-if ! pgrep -f "gnome-keyring-daemon" > /dev/null; then
-  gnome-keyring-daemon --start --components=secrets 2>/dev/null
+
+# Keyring daemons (for credential storage)
+if ! pgrep -f "dbus-daemon" > /dev/null 2>&1; then
+    dbus-daemon --session --fork 2>/dev/null
+fi
+
+if ! pgrep -f "gnome-keyring-daemon" > /dev/null 2>&1; then
+    gnome-keyring-daemon --start --components=secrets 2>/dev/null
+fi
+
+# ---- Bun Completions ----
+if command -v bun &> /dev/null; then
+    [ -s "$HOME/.bun/_bun" ] && source "$HOME/.bun/_bun"
+fi
+
+# ---- Welcome Message ----
+Uncomment for a startup message
+if command -v fastfetch &> /dev/null; then
+    fastfetch
 fi
