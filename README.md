@@ -37,6 +37,43 @@ irm win.jfa.dev/post-install | iex # the post install script requires a non-elev
 curl -L wsl.jfa.dev | bash
 ```
 
+## Updating Config Files
+
+After initial installation, you can quickly update individual dotfiles without re-running the full installation script.
+
+### WSL/Linux
+
+```bash
+# Update all dotfiles at once
+curl -fsSL wsl.jfa.dev/config/all | bash
+
+# Or update individual files
+curl -fsSL wsl.jfa.dev/config/zshrc -o ~/.zshrc
+curl -fsSL wsl.jfa.dev/config/ripgreprc -o ~/.ripgreprc
+curl -fsSL wsl.jfa.dev/config/gitconfig -o ~/.gitconfig
+```
+
+If you've already run the installation script, you can use these convenient shell functions:
+
+```bash
+update-dotfiles       # Update all configs with automatic backups
+update-zshrc         # Update just .zshrc
+update-ripgreprc     # Update just .ripgreprc
+update-gitconfig     # Update just .gitconfig
+```
+
+### Windows
+
+```powershell
+# Update PowerShell profile
+Invoke-WebRequest -Uri "https://win.jfa.dev/config/powershell" -OutFile $PROFILE
+
+# Or update all configs with automatic backup
+irm win.jfa.dev/config/all | iex
+```
+
+For detailed API documentation, see [installer/docs/config-api.md](installer/docs/config-api.md).
+
 ## TODO
 
 - [ ] Fonts
