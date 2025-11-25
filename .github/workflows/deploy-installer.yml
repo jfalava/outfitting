@@ -45,7 +45,7 @@ jobs:
           echo "Successfully verified $URL"
 
       - name: Check code status
-        working-directory: web/portal
+        working-directory: installer/
         run: |
           bun run cf-typegen
           bun run typecheck

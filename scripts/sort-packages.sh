@@ -50,10 +50,8 @@ else
       if [[ ${#list_items[@]} -eq 0 ]]; then
         echo "No package items found in list, skipping."
       else
-         # Create temp with sorted indented list
-         for item in "${list_items[@]}"; do
-           echo "  $item"
-         done > "${flake_path}.tmp"
+         # Create temp with sorted list
+         printf '%s\n' "${list_items[@]}" > "${flake_path}.tmp"
 
          # Remove old list items (lines between start+1 and end-1)
          sed -i.bak "$((start_line + 1)),$((end_line - 1))d" "$flake_path"
