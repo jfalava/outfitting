@@ -17,6 +17,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Development Commands
 
 ### Cloudflare Worker Development
+
 ```bash
 cd cloudflare
 pnpm install              # Install dependencies
@@ -26,12 +27,14 @@ pnpm run deploy          # Deploy to Cloudflare
 ```
 
 ### Package Management
+
 ```bash
 # Sort and deduplicate all package lists
 scripts/sort-packages.sh
 ```
 
 ### Installation Entry Points
+
 ```bash
 # WSL/Linux installation
 curl -L wsl.jfa.dev | bash

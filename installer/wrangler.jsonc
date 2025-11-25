@@ -10,17 +10,17 @@
   "preview_urls": false,
   "compatibility_date": "2025-09-01",
   "observability": {
-    "enabled": true
+    "enabled": true,
   },
   "placement": { "mode": "smart" },
   "routes": [
     {
       "pattern": "win.jfa.dev",
-      "custom_domain": true
+      "custom_domain": true,
     },
     {
       "pattern": "wsl.jfa.dev",
-      "custom_domain": true
-    }
-  ]
+      "custom_domain": true,
+    },
+  ],
 }

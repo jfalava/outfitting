@@ -17,12 +17,12 @@ Fetch a specific configuration file.
 
 **Available files:**
 
-| File Key | Description | Output Path (WSL) | Output Path (Windows) |
-|----------|-------------|-------------------|----------------------|
-| `zshrc` | ZSH configuration | `~/.zshrc` | N/A |
-| `ripgreprc` | Ripgrep configuration | `~/.ripgreprc` | N/A |
-| `gitconfig` | Git configuration | `~/.gitconfig` | Works on both |
-| `powershell` | PowerShell profile | N/A | `$PROFILE` |
+| File Key     | Description           | Output Path (WSL) | Output Path (Windows) |
+| ------------ | --------------------- | ----------------- | --------------------- |
+| `zshrc`      | ZSH configuration     | `~/.zshrc`        | N/A                   |
+| `ripgreprc`  | Ripgrep configuration | `~/.ripgreprc`    | N/A                   |
+| `gitconfig`  | Git configuration     | `~/.gitconfig`    | Works on both         |
+| `powershell` | PowerShell profile    | N/A               | `$PROFILE`            |
 
 **Example Requests:**
 
@@ -45,6 +45,7 @@ Generate a shell script that updates all configuration files with automatic back
 **WSL Response:**
 
 Returns a bash script that:
+
 1. Creates timestamped backups of existing configs
 2. Downloads all dotfiles (`.zshrc`, `.ripgreprc`, `.gitconfig`)
 3. Displays update status
@@ -58,6 +59,7 @@ curl -fsSL wsl.jfa.dev/config/all | bash
 **Windows Response:**
 
 Returns a PowerShell script that:
+
 1. Creates timestamped backup of existing PowerShell profile
 2. Downloads the latest PowerShell profile
 3. Displays update status
@@ -69,6 +71,7 @@ irm win.jfa.dev/config/all | iex
 ```
 
 **Response:**
+
 - Content-Type: `text/x-shellscript` (WSL) or `application/x-powershell` (Windows)
 - Body: Executable script content
 
@@ -79,14 +82,17 @@ irm win.jfa.dev/config/all | iex
 Fetch the main installation script for full system setup.
 
 **WSL:**
+
 ```bash
 curl -L wsl.jfa.dev | bash
 ```
 
 **Windows (Elevated):**
+
 ```powershell
 irm win.jfa.dev | iex
 ```
+
 #### `GET /post-install` (Windows only)
 
 Fetch the Windows post-installation script (requires non-elevated PowerShell).
@@ -157,6 +163,7 @@ update-gitconfig     # Update .gitconfig only
 ```
 
 All functions:
+
 - Create timestamped backups (`.backup.YYYYMMDD_HHMMSS`)
 - Show success/error messages
 - Provide reload instructions
