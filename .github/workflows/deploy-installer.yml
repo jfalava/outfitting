@@ -44,6 +44,13 @@ jobs:
           fi
           echo "Successfully verified $URL"
 
+      - name: Check code status
+        working-directory: web/portal
+        run: |
+          bun run cf-typegen
+          bun run typecheck
+          bun run lint
+
       - name: Deploy to Cloudflare
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         env:
