@@ -6,7 +6,8 @@
     "deploy": "bun run cf-typegen && wrangler deploy",
     "cf-typegen": "wrangler types",
     "typecheck": "tsgo --noEmit",
-    "lint": "oxlint --fix --type-aware ."
+    "lint": "oxlint --fix --type-aware .",
+    "dev": "bun run cf-typegen && wrangler dev"
   },
   "dependencies": {
     "hono": "^4.10.6"
