@@ -62,10 +62,6 @@ export LESS_TERMCAP_se=$'\e[0m'        # reset reverse video
 export LESS_TERMCAP_us=$'\e[1;32m'     # begin underline
 export LESS_TERMCAP_ue=$'\e[0m'        # reset underline
 
-# Locale
-export LANG=en_US.UTF-8
-export LC_ALL=en_US.UTF-8
-
 # Ripgrep
 export RIPGREP_CONFIG_PATH="$HOME/.ripgreprc"
 
