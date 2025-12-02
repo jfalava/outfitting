@@ -50,45 +50,6 @@ async function fetchConfigFile(fileKey: string) {
   };
 }
 
-// Route: GET /config/:file - Fetch individual config files
-app.get("/config/:file", async (c) => {
-  const host = c.req.header("Host") || "";
-  const fileKey = c.req.param("file");
-
-  const allowedHosts = ["wsl.jfa.dev", "win.jfa.dev"];
-  const isAllowedHost = allowedHosts.some((allowedHost) =>
-    host.includes(allowedHost),
-  );
-
-  if (!isAllowedHost) {
-    return c.text("I'm a teapot", 418);
-  }
-
-  // Validate file key exists
-  if (!CONFIG_FILES[fileKey]) {
-    return c.json(
-      {
-        error: "Invalid config file",
-        available: Object.keys(CONFIG_FILES),
-      },
-      400,
-    );
-  }
-
-  console.log(`Fetching config file: ${fileKey}`);
-
-  const result = await fetchConfigFile(fileKey);
-  if (!result) {
-    return c.text(`Failed to fetch config file: ${fileKey}`, 500);
-  }
-
-  c.header("Content-Type", result.contentType);
-  c.header("Cache-Control", "no-cache");
-  c.header("Access-Control-Allow-Origin", "*");
-
-  return c.body(result.content);
-});
-
 // Route: GET /config/all - Generate script to update all configs
 app.get("/config/all", async (c) => {
   const host = c.req.header("Host") || "";
@@ -168,7 +129,46 @@ Write-Host "Config updated! Reload your profile with: . \`$PROFILE" -ForegroundC
   c.header("Cache-Control", "no-cache");
   c.header("Access-Control-Allow-Origin", "*");
 
-  return c.body(script);
+   return c.body(script);
+});
+
+// Route: GET /config/:file - Fetch individual config files
+app.get("/config/:file", async (c) => {
+  const host = c.req.header("Host") || "";
+  const fileKey = c.req.param("file");
+
+  const allowedHosts = ["wsl.jfa.dev", "win.jfa.dev"];
+  const isAllowedHost = allowedHosts.some((allowedHost) =>
+    host.includes(allowedHost),
+  );
+
+  if (!isAllowedHost) {
+    return c.text("I'm a teapot", 418);
+  }
+
+  // Validate file key exists
+  if (!CONFIG_FILES[fileKey]) {
+    return c.json(
+      {
+        error: "Invalid config file",
+        available: Object.keys(CONFIG_FILES),
+      },
+      400,
+    );
+  }
+
+  console.log(`Fetching config file: ${fileKey}`);
+
+  const result = await fetchConfigFile(fileKey);
+  if (!result) {
+    return c.text(`Failed to fetch config file: ${fileKey}`, 500);
+  }
+
+  c.header("Content-Type", result.contentType);
+  c.header("Cache-Control", "no-cache");
+  c.header("Access-Control-Allow-Origin", "*");
+
+  return c.body(result.content);
 });
 
 // Route: GET / - Main installation scripts
