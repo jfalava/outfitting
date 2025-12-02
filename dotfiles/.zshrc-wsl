@@ -371,6 +371,8 @@ zstyle ':completion:*:*:git:*' script ~/.nix-profile/share/git/contrib/completio
 # ---- Aliases ----
 # System
 alias cls='clear'
+alias editor='zed --wait'
+alias EDITOR='zed --wait'
 alias reload='source ~/.zshrc'
 alias zshconfig='$EDITOR ~/.zshrc'
 
