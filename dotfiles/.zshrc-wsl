@@ -480,11 +480,16 @@ alias pnx='pnpm dlx'
 alias pni='pnpm install'
 alias pna='pnpm add'
 alias pnr='pnpm run'
+alias pnr='pnpm run'
+
+# cf dev
+alias wrangler="bun wrangler"
 
 # Misc tools
 alias ff='fastfetch'
 alias cat='bat --style=auto' 2>/dev/null || alias cat='cat'  # Use bat if available
 alias diff='diff --color=auto'
+alias -s ts='bun'
 
 # Ripgrep (preferred over grep)
 if command -v rg &> /dev/null; then
