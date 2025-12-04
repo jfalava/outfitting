@@ -371,6 +371,7 @@ alias editor='zed --wait'
 alias EDITOR='zed --wait'
 alias reload='source ~/.zshrc'
 alias zshconfig='$EDITOR ~/.zshrc'
+alias explorer='/mnt/c/explorer.exe'
 
 # Navigation shortcuts
 alias ..='cd ..'
