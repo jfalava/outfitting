@@ -634,6 +634,24 @@ backup() {
     cp "$1" "${1}.backup.$(date +%Y%m%d_%H%M%S)"
 }
 
+# Outfitting dotfile update functions
+update-dotfiles() {
+    echo "Updating all dotfiles..."
+    curl -fsSL wsl.jfa.dev/config/all | bash
+}
+
+update-zshrc() {
+    echo "Updating .zshrc..."
+    curl -fsSL wsl.jfa.dev/config/zshrc -o ~/.zshrc
+    echo "Reloading .zshrc..."
+    source ~/.zshrc
+}
+
+update-ripgreprc() {
+    echo "Updating .ripgreprc..."
+    curl -fsSL wsl.jfa.dev/config/ripgreprc -o ~/.ripgreprc
+}
+
 # Ripgrep functions
 if command -v rg &> /dev/null; then
     # Search and edit results in editor

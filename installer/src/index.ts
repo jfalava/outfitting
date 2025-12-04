@@ -84,12 +84,10 @@ backup_if_exists() {
 
 backup_if_exists ~/.zshrc
 backup_if_exists ~/.ripgreprc
-backup_if_exists ~/.gitconfig
 
 # Download latest configs
 curl -fsSL "${host}/config/zshrc" -o ~/.zshrc && echo "✓ Updated ~/.zshrc"
 curl -fsSL "${host}/config/ripgreprc" -o ~/.ripgreprc && echo "✓ Updated ~/.ripgreprc"
-curl -fsSL "${host}/config/gitconfig" -o ~/.gitconfig && echo "✓ Updated ~/.gitconfig"
 
 echo ""
 echo "All configs updated! Reload your shell or run: source ~/.zshrc"

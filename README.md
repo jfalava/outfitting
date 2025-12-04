@@ -59,7 +59,6 @@ If you've already run the installation script, you can use these convenient shel
 update-dotfiles       # Update all configs with automatic backups
 update-zshrc         # Update just .zshrc
 update-ripgreprc     # Update just .ripgreprc
-update-gitconfig     # Update just .gitconfig
 ```
 
 ### Windows
