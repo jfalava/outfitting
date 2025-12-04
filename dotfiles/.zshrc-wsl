@@ -27,7 +27,7 @@ setopt NOMATCH              # Print error if pattern has no matches
 
 # General
 setopt INTERACTIVE_COMMENTS # Allow comments in interactive shell
-setopt NOTIFY               # Report status of bg jobs immediately
+setopt NOTIFY               # Report bg job status immediately
 setopt NO_BEEP              # Disable beep
 
 # ---- History Configuration ----
@@ -713,7 +713,6 @@ fi
 # Zoxide (smart cd)
 if command -v zoxide &> /dev/null; then
     eval "$(zoxide init zsh)"
-    alias cd='z'  # Replace cd with zoxide
 fi
 
 # FZF (fuzzy finder)
@@ -762,9 +761,4 @@ fi
 # ---- Bun Completions ----
 if command -v bun &> /dev/null; then
     [ -s "$HOME/.bun/_bun" ] && source "$HOME/.bun/_bun"
-fi
-
-# ---- Welcome Message ----
-if command -v fastfetch &> /dev/null; then
-    fastfetch
 fi
