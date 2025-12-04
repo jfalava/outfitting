@@ -513,6 +513,7 @@ fi
 # ---- Functions ----
 
 # Smart cd that also lists contents
+unalias cd 2>/dev/null || true
 cd() {
     builtin cd "$@" && ls
 }
