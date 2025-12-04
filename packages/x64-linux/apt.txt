@@ -38,9 +38,9 @@ libxrandr2
 libxslt1-dev
 libxss1
 libxtst6
+shellcheck
 unzip
 wget
 zip
 zlib1g-dev
 zsh
-shellcheck
