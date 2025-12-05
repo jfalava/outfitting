@@ -2,8 +2,7 @@ import { Hono } from "hono";
 
 const app = new Hono();
 
-const GITHUB_RAW_BASE =
-  "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main";
+const GITHUB_RAW_BASE = "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main";
 
 // Config file mappings
 const CONFIG_FILES: Record<string, { path: string; contentType: string }> = {
@@ -55,9 +54,7 @@ app.get("/config/all", async (c) => {
   const host = c.req.header("Host") || "";
 
   const allowedHosts = ["wsl.jfa.dev", "win.jfa.dev"];
-  const isAllowedHost = allowedHosts.some((allowedHost) =>
-    host.includes(allowedHost),
-  );
+  const isAllowedHost = allowedHosts.some((allowedHost) => host.includes(allowedHost));
 
   if (!isAllowedHost) {
     return c.text("I'm a teapot", 418);
@@ -120,14 +117,11 @@ Write-Host "Config updated! Reload your profile with: . \`$PROFILE" -ForegroundC
 `;
   }
 
-  c.header(
-    "Content-Type",
-    isWSL ? "text/x-shellscript" : "application/x-powershell",
-  );
+  c.header("Content-Type", isWSL ? "text/x-shellscript" : "application/x-powershell");
   c.header("Cache-Control", "no-cache");
   c.header("Access-Control-Allow-Origin", "*");
 
-   return c.body(script);
+  return c.body(script);
 });
 
 // Route: GET /config/:file - Fetch individual config files
@@ -136,9 +130,7 @@ app.get("/config/:file", async (c) => {
   const fileKey = c.req.param("file");
 
   const allowedHosts = ["wsl.jfa.dev", "win.jfa.dev"];
-  const isAllowedHost = allowedHosts.some((allowedHost) =>
-    host.includes(allowedHost),
-  );
+  const isAllowedHost = allowedHosts.some((allowedHost) => host.includes(allowedHost));
 
   if (!isAllowedHost) {
     return c.text("I'm a teapot", 418);
@@ -174,9 +166,7 @@ app.get("/", async (c) => {
   const host = c.req.header("Host") || "";
 
   const allowedHosts = ["wsl.jfa.dev", "win.jfa.dev"];
-  const isAllowedHost = allowedHosts.some((allowedHost) =>
-    host.includes(allowedHost),
-  );
+  const isAllowedHost = allowedHosts.some((allowedHost) => host.includes(allowedHost));
 
   if (!isAllowedHost) {
     return c.text("I'm a teapot", 418);
@@ -185,9 +175,7 @@ app.get("/", async (c) => {
   const wslScriptUrl = `${GITHUB_RAW_BASE}/wsl-install-script.sh`;
   const windowsScriptUrl = `${GITHUB_RAW_BASE}/windows-install-script.ps1`;
 
-  const scriptUrl = host.includes("wsl.jfa.dev")
-    ? wslScriptUrl
-    : windowsScriptUrl;
+  const scriptUrl = host.includes("wsl.jfa.dev") ? wslScriptUrl : windowsScriptUrl;
 
   console.log("Script URL:", scriptUrl);
 

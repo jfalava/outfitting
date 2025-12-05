@@ -145,8 +145,8 @@ Update only specific configs:
 # Update just ripgrep config
 curl -fsSL wsl.jfa.dev/config/ripgreprc -o ~/.ripgreprc
 
-# Update just git config
-curl -fsSL wsl.jfa.dev/config/gitconfig -o ~/.gitconfig
+# Update just zshrc profile
+curl -fsSL wsl.jfa.dev/config/zshrc -o ~/.zshrc
 ```
 
 ## Shell Functions (After Installation)
@@ -159,7 +159,6 @@ The installation script adds these convenience functions to your shell:
 update-dotfiles       # Update all configs with automatic backups
 update-zshrc         # Update .zshrc only
 update-ripgreprc     # Update .ripgreprc only
-update-gitconfig     # Update .gitconfig only
 ```
 
 All functions:

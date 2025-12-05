@@ -1,4 +1,38 @@
 {
+  "show_edit_predictions": false,
+  "restore_on_startup": "none",
+  "when_closing_with_no_tabs": "keep_window_open",
+  "confirm_quit": true,
+  "telemetry": {
+    "diagnostics": true,
+    "metrics": true,
+  },
+  "base_keymap": "VSCode",
+  "multi_cursor_modifier": "alt",
+  "minimap": {
+    "show": "never",
+  },
+  "linked_edits": true,
+  "file_types": {
+    "toml": ["*.toml"],
+  },
+  "wsl_connections": [
+    {
+      "distro_name": "Personal",
+      "user": null,
+      "projects": [
+        {
+          "paths": ["/home/jfalava"],
+        },
+        {
+          "paths": ["/home/jfalava/Workspace"],
+        },
+        {
+          "paths": ["/home/jfalava/Workspace/tBCProject/./"],
+        },
+      ],
+    },
+  ],
   "icon_theme": "Bearded Icon Theme",
   "edit_predictions": {
     "mode": "subtle",
@@ -17,6 +51,7 @@
     "dock": "left",
     "default_width": 240,
   },
+
   "soft_wrap": "editor_width",
   "preferred_line_length": 80,
   "show_wrap_guides": true,
@@ -24,33 +59,31 @@
     "dock": "right",
   },
   "agent": {
-    "default_model": {
-      "provider": "openrouter",
-      "model": "x-ai/grok-4-fast:free",
-    },
+    "play_sound_when_agent_done": true,
+    "enable_feedback": true,
+    "always_allow_tool_actions": true,
+    "default_profile": "write",
     "single_file_review": false,
     "dock": "left",
   },
   "project_panel": {
     "dock": "right",
   },
-  "ui_font_size": 18,
+  "ui_font_size": 19,
   "ui_font_family": "Pretendard Variable",
   "tab_size": 2,
-  "buffer_font_size": 16.5,
+  "buffer_font_size": 19.0,
   "buffer_font_family": "Google Sans Code",
   "buffer_font_weight": 500,
   "terminal": {
-    "font_family": "GeistMono Nerd Font Propo",
-    "font_size": 15,
-    "font_weight": 300,
-    "shell": {
-      "program": "pwsh.exe",
-    },
+    "dock": "left",
+    "font_family": "VictorMono Nerd Font Propo",
+    "font_size": 17.0,
+    "font_weight": 800,
   },
   "theme": {
     "mode": "system",
     "light": "Github Light",
-    "dark": "poimandres blurry",
+    "dark": "Bearded Theme Arc",
   },
 }
