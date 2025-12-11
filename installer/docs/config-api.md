@@ -21,7 +21,6 @@ Fetch a specific configuration file.
 | ------------ | --------------------- | ----------------- | --------------------- |
 | `zshrc`      | ZSH configuration     | `~/.zshrc`        | N/A                   |
 | `ripgreprc`  | Ripgrep configuration | `~/.ripgreprc`    | N/A                   |
-| `gitconfig`  | Git configuration     | `~/.gitconfig`    | Works on both         |
 | `powershell` | PowerShell profile    | N/A               | `$PROFILE`            |
 
 **Example Requests:**
@@ -30,7 +29,6 @@ Fetch a specific configuration file.
 # WSL
 curl -fsSL wsl.jfa.dev/config/zshrc -o ~/.zshrc
 curl -fsSL wsl.jfa.dev/config/ripgreprc -o ~/.ripgreprc
-curl -fsSL wsl.jfa.dev/config/gitconfig -o ~/.gitconfig
 
 # Windows
 Invoke-WebRequest -Uri "https://win.jfa.dev/config/powershell" -OutFile $PROFILE
@@ -47,7 +45,7 @@ Generate a shell script that updates all configuration files with automatic back
 Returns a bash script that:
 
 1. Creates timestamped backups of existing configs
-2. Downloads all dotfiles (`.zshrc`, `.ripgreprc`, `.gitconfig`)
+2. Downloads all dotfiles (`.zshrc`, `.ripgreprc`)
 3. Displays update status
 
 **Example:**

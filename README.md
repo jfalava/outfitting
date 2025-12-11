@@ -50,7 +50,6 @@ curl -fsSL wsl.jfa.dev/config/all | bash
 # Or update individual files
 curl -fsSL wsl.jfa.dev/config/zshrc -o ~/.zshrc
 curl -fsSL wsl.jfa.dev/config/ripgreprc -o ~/.ripgreprc
-curl -fsSL wsl.jfa.dev/config/gitconfig -o ~/.gitconfig
 ```
 
 If you've already run the installation script, you can use these convenient shell functions:
