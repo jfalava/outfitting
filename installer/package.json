@@ -11,14 +11,14 @@
     "dev": "bun run cf-typegen && wrangler dev"
   },
   "dependencies": {
-    "hono": "^4.10.7"
+    "hono": "^4.11.0"
   },
   "devDependencies": {
-    "@typescript/native-preview": "^7.0.0-dev.20251205.1",
+    "@typescript/native-preview": "^7.0.0-dev.20251213.1",
     "oxfmt": "^0.16.0",
-    "oxlint": "^1.31.0",
-    "oxlint-tsgolint": "^0.8.3",
+    "oxlint": "^1.32.0",
+    "oxlint-tsgolint": "^0.8.6",
     "typescript": "^5.9.3",
-    "wrangler": "^4.53.0"
+    "wrangler": "^4.54.0"
   }
 }
