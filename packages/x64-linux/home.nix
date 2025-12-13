@@ -57,7 +57,6 @@
     EDITOR = "nano";
     VISUAL = "zed --wait";
     PAGER = "less";
-    RIPGREP_CONFIG_PATH = "${config.home.homeDirectory}/.ripgreprc";
 
     # Better colors for less/man pages
     LESS = "-R -M -i -j10";
