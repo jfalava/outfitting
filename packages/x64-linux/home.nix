@@ -1,4 +1,4 @@
-{ config, pkgs, ... }:
+{ config, pkgs, nix-ai-tools, ... }:
 
 {
   # Home Manager needs a bit of information about you and the paths it should manage
@@ -12,7 +12,6 @@
 
   # The home.packages option allows you to install Nix packages into your environment
   home.packages = with pkgs; [
-    # Terminal & Shell
     bat
     eza
     fastfetch
@@ -25,8 +24,6 @@
     zsh
     zsh-autosuggestions
     zsh-syntax-highlighting
-    
-    # Development Tools
     deno
     git
     go
@@ -34,12 +31,8 @@
     nodejs_latest
     python3
     zig
-    
-    # DevOps & IaC
     packer
     terraform
-    
-    # CLI Utilities
     curl
     fd
     jq
@@ -49,11 +42,10 @@
     unzip
     wget
     zip
-    
-    # Compression Tools
     _7zz  # 7zip
     p7zip
     unrar
+    nix-ai-tools.packages.x86_64-linux.crush
   ];
 
   # Home Manager can also manage your environment variables through
@@ -61,10 +53,10 @@
   # shell provided by Home Manager.
   home.sessionVariables = {
     EDITOR = "nano";
-    VISUAL = "nano";
+    VISUAL = "zed --wait";
     PAGER = "less";
     RIPGREP_CONFIG_PATH = "${config.home.homeDirectory}/.ripgreprc";
-    
+
     # Better colors for less/man pages
     LESS = "-R -M -i -j10";
     LESS_TERMCAP_mb = "\\e[1;31m";     # begin bold
@@ -74,7 +66,7 @@
     LESS_TERMCAP_se = "\\e[0m";        # reset reverse video
     LESS_TERMCAP_us = "\\e[1;32m";     # begin underline
     LESS_TERMCAP_ue = "\\e[0m";        # reset underline
-    
+
     # Runtime paths
     PNPM_HOME = "${config.home.homeDirectory}/.local/share/pnpm";
     BUN_INSTALL = "${config.home.homeDirectory}/.bun";
@@ -106,18 +98,18 @@
     enable = true;
     userName = "Jorge Fernando Álava";
     userEmail = "git@jfa.dev";
-    
+
     signing = {
-      key = "${config.home.homeDirectory}/.ssh/jfalava-gitSign-elliptic";
+      key = "${config.home.homeDirectory}/.ssh/jfalava-gitSign-elliptic.pem";
       signByDefault = true;
     };
-    
+
     extraConfig = {
       color.ui = "auto";
       gpg.format = "ssh";
       commit.gpgsign = true;
       tag.gpgsign = true;
-      
+
       filter.lfs = {
         required = true;
         clean = "git-lfs clean -- %f";
@@ -125,7 +117,7 @@
         process = "git-lfs filter-process";
       };
     };
-    
+
     aliases = {
       undo = "reset --soft HEAD^";
     };
@@ -136,7 +128,7 @@
     enableCompletion = true;
     autosuggestion.enable = true;
     syntaxHighlighting.enable = true;
-    
+
     # Zsh will source .zshrc from home.file, but we set the default shell here
     initExtra = ''
       # Home Manager will source ~/.zshrc automatically
@@ -157,7 +149,7 @@
   programs.fzf = {
     enable = true;
     enableZshIntegration = true;
-    
+
     defaultCommand = "fd --type f --hidden --follow --exclude .git";
     defaultOptions = [
       "--height 40%"
@@ -169,7 +161,7 @@
       "--color=info:#ffb86c,prompt:#50fa7b,pointer:#ff79c6"
       "--color=marker:#ff79c6,spinner:#ffb86c,header:#6272a4"
     ];
-    
+
     changeDirWidgetCommand = "fd --type d --hidden --follow --exclude .git";
     fileWidgetCommand = "fd --type f --hidden --follow --exclude .git";
   };
@@ -199,7 +191,7 @@
       "--column"
       "--max-columns=500"
       "--max-filesize=10M"
-      
+
       # Color configuration
       "--colors=line:fg:yellow"
       "--colors=line:style:bold"
@@ -208,7 +200,7 @@
       "--colors=match:fg:black"
       "--colors=match:bg:yellow"
       "--colors=match:style:bold"
-      
+
       # Exclusions
       "--glob=!.git/"
       "--glob=!node_modules/"

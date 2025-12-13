@@ -31,7 +31,7 @@ jobs:
         run: |
           bun wrangler types
           bun tsgo --noEmit
-          bun oxlint --fix --type-aware .
+          bun oxlint --type-aware .
 
       - name: Deploy to Cloudflare
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
