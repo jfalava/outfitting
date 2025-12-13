@@ -29,7 +29,7 @@ sudo apt autoremove -y
 curl -L https://nixos.org/nix/install | sh -s -- --daemon
 source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh || source ~/.nix-profile/etc/profile.d/nix.sh || true
 
-# Add nix to shell profiles
+# Add nix to shell profiles (both bash and zsh)
 (
     echo
     echo '# Nix'
@@ -39,6 +39,17 @@ source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh || source ~/.ni
     echo '  source ~/.nix-profile/etc/profile.d/nix.sh'
     echo 'fi'
 ) >> ~/.bashrc
+
+# Also add to zshrc for now (will be overwritten by Home Manager later, but needed for this session)
+(
+    echo
+    echo '# Nix'
+    echo 'if [ -e /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh ]; then'
+    echo '  . /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh'
+    echo 'elif [ -e ~/.nix-profile/etc/profile.d/nix.sh ]; then'
+    echo '  . ~/.nix-profile/etc/profile.d/nix.sh'
+    echo 'fi'
+) >> ~/.zshrc
 
 # Create nix configuration before running nix commands
 sudo mkdir -p /etc/nix
@@ -56,13 +67,21 @@ source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh || source ~/.ni
 ## install home-manager and apply configuration
 if command -v nix &> /dev/null; then
     echo "Installing Home Manager and applying configuration..."
-    # Install home-manager standalone
-        nix run "github:nix-community/home-manager/release-24.11" -- init --switch \
-          --flake "github:jfalava/outfitting?dir=packages/x64-linux#jfalava" || {
+    # Use 'switch' instead of 'init' to use the GitHub flake configuration directly
+    nix run "github:nix-community/home-manager/release-24.11" -- switch \
+        --flake "github:jfalava/outfitting?dir=packages/x64-linux#jfalava" || {
         echo "Warning: Home Manager installation failed."
         echo "After script completion, you can try:"
         echo "  nix run github:nix-community/home-manager/release-24.11 -- switch --flake 'github:jfalava/outfitting?dir=packages/x64-linux#jfalava'"
     }
+
+    # Now that Home Manager has installed zsh, set it as the default shell
+    if command -v zsh &> /dev/null; then
+        echo "Setting zsh as default shell..."
+        sudo chsh -s "$(which zsh)" "$USER" || echo "Warning: Failed to set zsh as default shell. You can manually run: chsh -s \$(which zsh)"
+    else
+        echo "Warning: zsh not found after Home Manager installation"
+    fi
 else
     echo "Nix not found, skipping home-manager installation"
 fi
@@ -74,12 +93,6 @@ curl -fsSL https://bun.sh/install | bash
 deno jupyter --install # if the deno flake fails to install, this will fail gracefully
 curl -fsSL https://get.pnpm.io/install.sh | sh -
 curl -LsSf https://astral.sh/uv/install.sh | sh
-
-#####
-## terminal
-#####
-# Set default shell to zsh (will be provided by Home Manager)
-sudo chsh -s "$(which zsh)" "$USER" 2>/dev/null || echo "Note: zsh will be available after Home Manager installation"
 
 #####
 ## docker
@@ -132,5 +145,75 @@ echo "run pnpm approve-builds -g to finish"
 echo "Dotfiles (.zshrc, .ripgreprc, .gitconfig) are managed by Home Manager"
 echo "To update dotfiles: commit changes to git, then run 'home-manager switch --flake github:jfalava/outfitting?dir=packages/x64-linux#jfalava'"
 
-## end message
-echo "installation complete"
+## end message and validation
+echo ""
+echo "================================"
+echo "Installation Complete!"
+echo "================================"
+echo ""
+
+# Validate installation
+echo "Validating installation..."
+echo ""
+
+# Check Nix
+if command -v nix &> /dev/null; then
+    echo "✓ Nix installed: $(nix --version)"
+else
+    echo "✗ Nix not found"
+fi
+
+# Check Home Manager
+if command -v home-manager &> /dev/null; then
+    echo "✓ Home Manager installed"
+else
+    echo "✗ Home Manager not found"
+fi
+
+# Check zsh
+if command -v zsh &> /dev/null; then
+    echo "✓ Zsh installed: $(zsh --version)"
+
+    # Check default shell
+    user_shell=$(getent passwd "$USER" | cut -d: -f7)
+    if [[ "$user_shell" == *"zsh"* ]]; then
+        echo "✓ Default shell set to zsh"
+    else
+        echo "✗ Default shell is $user_shell (expected zsh)"
+    fi
+else
+    echo "✗ Zsh not found"
+fi
+
+# Check .zshrc
+if [ -f ~/.zshrc ]; then
+    zshrc_size=$(wc -l < ~/.zshrc)
+    if [ "$zshrc_size" -gt 100 ]; then
+        echo "✓ .zshrc properly configured ($zshrc_size lines)"
+    else
+        echo "⚠ .zshrc exists but seems incomplete ($zshrc_size lines, expected 800+)"
+    fi
+else
+    echo "✗ .zshrc not found"
+fi
+
+# Check .ripgreprc
+if [ -f ~/.ripgreprc ]; then
+    echo "✓ .ripgreprc configured"
+else
+    echo "✗ .ripgreprc not found"
+fi
+
+echo ""
+echo "================================"
+echo "Next Steps:"
+echo "================================"
+echo "1. Close this terminal and open a new one"
+echo "2. You should see the Starship prompt and have zsh configured"
+echo "3. Run 'ff' to see system info (fastfetch)"
+echo "4. Run 'pnpm approve-builds -g' to finish LLM CLI setup"
+echo ""
+echo "If you encounter issues, check:"
+echo "  - Run 'source ~/.zshrc' to reload your shell configuration"
+echo "  - Run 'home-manager switch --flake github:jfalava/outfitting?dir=packages/x64-linux#jfalava' to reapply configuration"
+echo ""
