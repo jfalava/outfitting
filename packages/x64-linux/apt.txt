@@ -1,6 +1,5 @@
 build-essential
 unzip
-nix-bin
 ca-certificates
 gnome-keyring
 libadwaita-1-dev
