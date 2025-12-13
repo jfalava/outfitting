@@ -585,22 +585,43 @@ dstop() {
     docker stop $(docker ps -q)
 }
 
-# Nix management functions
-nix-install() {
-    nix profile install "nixpkgs#$1"
+# Home Manager management functions
+hm-switch() {
+    echo "Applying Home Manager configuration from GitHub..."
+    home-manager switch --flake "github:jfalava/outfitting?dir=packages/x64-linux#jfalava"
 }
 
-nix-uninstall() {
-    nix profile remove "nixpkgs#$1"
+hm-switch-local() {
+    echo "Applying Home Manager configuration from local repo..."
+    if [ -d "$HOME/outfitting" ]; then
+        home-manager switch --flake "$HOME/outfitting/packages/x64-linux#jfalava"
+    else
+        echo "Error: ~/outfitting not found. Clone the repo first:"
+        echo "  git clone https://github.com/jfalava/outfitting.git ~/outfitting"
+    fi
 }
 
+hm-update() {
+    echo "Updating flake inputs and switching..."
+    home-manager switch --flake "github:jfalava/outfitting?dir=packages/x64-linux#jfalava" --recreate-lock-file
+}
+
+hm-rollback() {
+    echo "Available generations:"
+    home-manager generations
+    echo ""
+    echo "To rollback, run the activation script of your desired generation (listed above)"
+}
+
+hm-clean() {
+    echo "Cleaning old Home Manager generations..."
+    nix-collect-garbage -d
+    echo "Cleaning complete!"
+}
+
+# Nix management functions (legacy - now use Home Manager)
 nix-search() {
     nix search nixpkgs "$1"
-}
-
-nix-update() {
-    echo "Updating Nix packages..."
-    nix profile upgrade '.*' --exclude '.*nix.*' 2>/dev/null || echo 'No packages to upgrade'
 }
 
 # System update
@@ -608,11 +629,11 @@ update-all() {
     echo "Updating APT packages..."
     sudo apt update && sudo apt upgrade -y && sudo apt autoremove -y
 
-    echo -e "\nUpdating Nix packages..."
-    nix-update
+    echo -e "\nUpdating Home Manager configuration..."
+    hm-update
 
-    echo -e "\nCleaning Nix store..."
-    nix-collect-garbage -d
+    echo -e "\nCleaning old generations..."
+    hm-clean
 
     echo -e "\nUpdating global npm packages..."
     if command -v pnpm &> /dev/null; then
@@ -636,22 +657,30 @@ backup() {
     cp "$1" "${1}.backup.$(date +%Y%m%d_%H%M%S)"
 }
 
-# Outfitting dotfile update functions
+# Outfitting dotfile update functions (now managed by Home Manager)
 update-dotfiles() {
-    echo "Updating all dotfiles..."
-    curl -fsSL wsl.jfa.dev/config/all | bash
+    echo "Dotfiles are now managed by Home Manager!"
+    echo "To update dotfiles:"
+    echo "  1. Edit files in ~/outfitting/dotfiles/"
+    echo "  2. Commit changes: git add . && git commit"
+    echo "  3. Run: hm-switch"
+    echo ""
+    echo "Or run 'hm-switch' to pull latest from GitHub"
 }
 
 update-zshrc() {
-    echo "Updating .zshrc..."
-    curl -fsSL wsl.jfa.dev/config/zshrc -o ~/.zshrc
-    echo "Reloading .zshrc..."
-    source ~/.zshrc
+    echo ".zshrc is now managed by Home Manager!"
+    echo "To update:"
+    echo "  1. Edit ~/outfitting/dotfiles/.zshrc-wsl"
+    echo "  2. Run: hm-switch-local  (or commit & hm-switch)"
+    echo "  3. Reload: source ~/.zshrc"
 }
 
 update-ripgreprc() {
-    echo "Updating .ripgreprc..."
-    curl -fsSL wsl.jfa.dev/config/ripgreprc -o ~/.ripgreprc
+    echo ".ripgreprc is now managed by Home Manager!"
+    echo "To update:"
+    echo "  1. Edit ~/outfitting/dotfiles/.ripgreprc"
+    echo "  2. Run: hm-switch-local  (or commit & hm-switch)"
 }
 
 # Ripgrep functions

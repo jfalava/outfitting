@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ## init
-sudo apt update -y && sudo apt upgrade -y && sudo apt install curl
+sudo apt update -y && sudo apt upgrade -y && sudo apt install -y curl
 
 #####
 ## install apt packages
@@ -19,16 +19,6 @@ while IFS= read -r package || [ -n "$package" ]; do
     fi
 done </tmp/apt-packages.txt
 
-#####
-## add hashicorp repo
-#####
-if ! grep -q hashicorp /etc/apt/sources.list.d/hashicorp.list; then
-    wget -qO- https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
-fi
-## install hashipackages
-sudo apt update -qq && sudo apt install -y terraform packer
-
 ## cleanup
 sudo apt autoremove -y
 
@@ -36,14 +26,21 @@ sudo apt autoremove -y
 ## nix
 #####
 ## install nix
-curl -L https://nixos.org/nix/install | sh
-source ~/.nix-profile/etc/profile.d/nix.sh || true
+curl -L https://nixos.org/nix/install | sh -s -- --daemon
+source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh || source ~/.nix-profile/etc/profile.d/nix.sh || true
+
+# Add nix to shell profiles
 (
     echo
-    echo 'source ~/.nix-profile/etc/profile.d/nix.sh'
+    echo '# Nix'
+    echo 'if [ -e /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh ]; then'
+    echo '  source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh'
+    echo 'elif [ -e ~/.nix-profile/etc/profile.d/nix.sh ]; then'
+    echo '  source ~/.nix-profile/etc/profile.d/nix.sh'
+    echo 'fi'
 ) >> ~/.bashrc
-echo ". /home/$USER/.nix-profile/etc/profile.d/nix.sh" >> ~/.bashrc
-# create nix configuration before running nix commands
+
+# Create nix configuration before running nix commands
 sudo mkdir -p /etc/nix
 sudo tee /etc/nix/nix.conf > /dev/null << 'EOF'
 experimental-features = nix-command flakes
@@ -52,15 +49,21 @@ trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDS
 auto-optimise-store = true
 max-jobs = auto
 EOF
-source ~/.bashrc
-## install packages from flake
+
+# Reload nix
+source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh || source ~/.nix-profile/etc/profile.d/nix.sh || true
+
+## install home-manager and apply configuration
 if command -v nix &> /dev/null; then
-    if ! nix profile add --extra-experimental-features 'nix-command flakes' --no-write-lock-file "github:jfalava/outfitting/main?dir=packages/x64-linux"; then
-        echo "Warning: Flake installation failed."
-        echo "After script completion, you can try: nix profile install 'git+https://github.com/jfalava/outfitting?dir=packages/x64-linux'"
-    fi
+    echo "Installing Home Manager and applying configuration..."
+    # Install home-manager standalone
+    nix run home-manager/master -- init --switch --flake "github:jfalava/outfitting?dir=packages/x64-linux#jfalava" || {
+        echo "Warning: Home Manager installation failed."
+        echo "After script completion, you can try:"
+        echo "  nix run home-manager/master -- switch --flake 'github:jfalava/outfitting?dir=packages/x64-linux#jfalava'"
+    }
 else
-    echo "Nix not found, skipping flake installation"
+    echo "Nix not found, skipping home-manager installation"
 fi
 
 #####
@@ -74,8 +77,8 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 #####
 ## terminal
 #####
-sudo chsh -s $(which zsh) $USER
-curl -o ~/.gitconfig "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/dotfiles/.gitconfig" # copy .gitconfig profile to local
+# Set default shell to zsh (will be provided by Home Manager)
+sudo chsh -s $(which zsh) $USER 2>/dev/null || echo "Note: zsh will be available after Home Manager installation"
 
 #####
 ## docker
@@ -123,11 +126,10 @@ curl -fsSL https://claude.ai/install.sh | bash
 echo "run pnpm approve-builds -g to finish"
 
 #####
-## copy config files to local
+## dotfiles are now managed by Home Manager
 #####
-curl -o ~/.gitconfig "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/dotfiles/.gitconfig"
-curl -o ~/.zshrc "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/dotfiles/.zshrc-wsl"
-curl -o ~/.ripgreprc "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/dotfiles/.ripgreprc"
+echo "Dotfiles (.zshrc, .ripgreprc, .gitconfig) are managed by Home Manager"
+echo "To update dotfiles: commit changes to git, then run 'home-manager switch --flake github:jfalava/outfitting?dir=packages/x64-linux#jfalava'"
 
 ## end message
 echo "installation complete"

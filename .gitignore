@@ -11,3 +11,8 @@ Thumbs.db
 # jetbrains setting folder
 .idea/
 .fleet/
+
+# Nix/Home Manager
+result
+result-*
+.direnv/
