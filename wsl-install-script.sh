@@ -76,7 +76,7 @@ if command -v nix &> /dev/null; then
         --no-write-lock-file || {
         echo "Warning: Home Manager installation failed."
         echo "After script completion, you can try:"
-        echo "  nix run github:nix-community/home-manager/release-24.11 -- switch --flake 'github:jfalava/outfitting?dir=packages/x64-linux#jfalava'"
+        echo "  nix run github:nix-community/home-manager/release-24.11 -- switch --flake 'github:jfalava/outfitting?dir=packages/x64-linux#jfalava' --no-write-lock-file"
     }
 
     # Now that Home Manager has installed zsh, set it as the default shell
