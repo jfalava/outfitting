@@ -45,7 +45,6 @@
     _7zz  # 7zip
     p7zip
     unrar
-    crush
     nixd
   ];
 
