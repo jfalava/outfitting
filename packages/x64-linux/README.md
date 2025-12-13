@@ -332,18 +332,6 @@ home-manager switch --flake github:jfalava/outfitting?dir=packages/x64-linux#jfa
 # Everything (packages + dotfiles) installed atomically
 ```
 
-## 🔐 Git Signing
-
-Git is configured to use SSH signing. Make sure your signing key exists:
-
-```bash
-# Verify key exists
-ls -la ~/.ssh/jfalava-gitSign-elliptic
-
-# Generate if missing
-ssh-keygen -t ed25519 -C "git@jfa.dev" -f ~/.ssh/jfalava-gitSign-elliptic
-```
-
 Then add the public key to GitHub/GitLab in Settings → SSH and GPG keys → New SSH key → Key type: Signing Key
 
 ## 💡 Tips

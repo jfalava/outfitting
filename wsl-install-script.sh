@@ -78,7 +78,7 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 ## terminal
 #####
 # Set default shell to zsh (will be provided by Home Manager)
-sudo chsh -s $(which zsh) $USER 2>/dev/null || echo "Note: zsh will be available after Home Manager installation"
+sudo chsh -s "$(which zsh)" "$USER" 2>/dev/null || echo "Note: zsh will be available after Home Manager installation"
 
 #####
 ## docker

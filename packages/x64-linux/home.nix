@@ -1,4 +1,4 @@
-{ config, pkgs, nix-ai-tools, ... }:
+{ config, pkgs, ... }:
 
 {
   # Home Manager needs a bit of information about you and the paths it should manage
@@ -45,7 +45,7 @@
     _7zz  # 7zip
     p7zip
     unrar
-    nix-ai-tools.packages.x86_64-linux.crush
+    crush
   ];
 
   # Home Manager can also manage your environment variables through
