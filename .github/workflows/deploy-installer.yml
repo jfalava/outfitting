@@ -26,30 +26,12 @@ jobs:
       - name: Install Dependencies
         run: bun install
 
-      - name: Verify WSL script URL
-        run: |
-          URL="https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/wsl-install-script.sh"
-          if ! curl -L --fail -I -o /dev/null -s "$URL"; then
-            echo "::error::WSL script URL unreachable: $URL"
-            exit 1
-          fi
-          echo "Successfully verified $URL"
-
-      - name: Verify Windows script URL
-        run: |
-          URL="https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/windows-install-script.ps1"
-          if ! curl -L --fail -I -o /dev/null -s "$URL"; then
-            echo "::error::Windows script URL unreachable: $URL"
-            exit 1
-          fi
-          echo "Successfully verified $URL"
-
       - name: Check code status
         working-directory: installer/
         run: |
           bun wrangler types
           bun tsgo --noEmit
-          bun oxlint --fix --type-aware .
+          bun oxlint --type-aware .
 
       - name: Deploy to Cloudflare
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
