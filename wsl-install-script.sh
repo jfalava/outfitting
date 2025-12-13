@@ -57,10 +57,11 @@ source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh || source ~/.ni
 if command -v nix &> /dev/null; then
     echo "Installing Home Manager and applying configuration..."
     # Install home-manager standalone
-    nix run home-manager/master -- init --switch --flake "github:jfalava/outfitting?dir=packages/x64-linux#jfalava" || {
+        nix run "github:nix-community/home-manager/release-24.11" -- init --switch \
+          --flake "github:jfalava/outfitting?dir=packages/x64-linux#jfalava" || {
         echo "Warning: Home Manager installation failed."
         echo "After script completion, you can try:"
-        echo "  nix run home-manager/master -- switch --flake 'github:jfalava/outfitting?dir=packages/x64-linux#jfalava'"
+        echo "  nix run github:nix-community/home-manager/release-24.11 -- switch --flake 'github:jfalava/outfitting?dir=packages/x64-linux#jfalava'"
     }
 else
     echo "Nix not found, skipping home-manager installation"
