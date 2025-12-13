@@ -26,6 +26,9 @@ sudo apt autoremove -y
 ## nix
 #####
 ## install nix
+# Set NIX_BUILD_GROUP_ID to auto-detect the group ID that the system assigns
+# This prevents conflicts when Ubuntu assigns a different GID than expected
+export NIX_BUILD_GROUP_ID=$(getent group nixbld | cut -d: -f3 2>/dev/null || echo "30000")
 curl -L https://nixos.org/nix/install | sh -s -- --daemon
 source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh || source ~/.nix-profile/etc/profile.d/nix.sh || true
 
