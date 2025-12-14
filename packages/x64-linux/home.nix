@@ -41,6 +41,7 @@
     p7zip
     unrar
     nixd
+    nil
   ];
 
   # Home Manager can also manage your environment variables through
