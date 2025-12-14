@@ -154,7 +154,7 @@ echo \
     "deb [signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages \
     stable main" |
     sudo tee /etc/apt/sources.list.d/github-cli.list >/dev/null
-sudo apt update
+sudo apt update && sudo apt install gh
 
 #####
 ## charm repository for crush
@@ -165,7 +165,7 @@ sudo chmod a+r /etc/apt/keyrings/charm-archive-keyring.asc
 echo \
     "deb [signed-by=/etc/apt/keyrings/charm-archive-keyring.asc] https://repo.charm.sh/apt * *" |
     sudo tee /etc/apt/sources.list.d/charm.list >/dev/null
-sudo apt update
+sudo apt update && sudo apt install crush
 
 if [[ "$UPDATE_ONLY" == "false" ]]; then
 #####
@@ -179,31 +179,6 @@ echo 'export PATH="$PNPM_HOME:$DENO_INSTALL/bin:$PATH"'
 ) >> ~/.bashrc
 source ~/.bashrc
 #####
-
-#####
-## LLM CLIs
-#####
-source ~/.bashrc || true
-export PNPM_HOME="$HOME/.local/share/pnpm"
-export PATH="$PNPM_HOME:$PATH"
-# Verify pnpm is available before installing packages
-if command -v pnpm &> /dev/null; then
-    pnpm install -g @google/gemini-cli
-    pnpm install -g @qwen-code/qwen-code@latest
-    pnpm install -g @openai/codex
-else
-    echo "warning: pnpm not found in PATH. it may not be available until after opening a new terminal."
-fi
-curl -fsSL https://opencode.ai/install | bash
-curl -fsSL https://claude.ai/install.sh | bash
-echo "run pnpm approve-builds -g to finish"
-fi
-
-#####
-## dotfiles are now managed by Home Manager
-#####
-echo "Dotfiles (.zshrc, .ripgreprc, .gitconfig) are managed by Home Manager"
-echo "To update dotfiles: commit changes to git, then run 'home-manager switch --flake github:jfalava/outfitting?dir=packages/x64-linux#jfalava'"
 
 ## end message and validation
 echo ""
@@ -250,7 +225,7 @@ if [ -f ~/.zshrc ]; then
     zshrc_size=$(wc -l < ~/.zshrc)
     if [ "$zshrc_size" -gt 100 ]; then
         echo "✓ .zshrc properly configured ($zshrc_size lines)"
-        
+
         # Check if .zshrc sources Nix properly
         if grep -q "nix-daemon.sh\|~/.nix-profile" ~/.zshrc; then
             echo "✓ .zshrc properly sources Nix"

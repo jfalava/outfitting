@@ -39,11 +39,16 @@
     less
     shellcheck
     zip
-    _7zz  # 7zip
+    _7zz # 7zip
     p7zip
     unrar
     nixd
     nil
+    opencode
+    gemini-cli
+    codex
+    claude-code
+    qwen-code
   ];
 
   # Home Manager can also manage your environment variables through
@@ -56,13 +61,13 @@
 
     # Better colors for less/man pages
     LESS = "-R -M -i -j10";
-    LESS_TERMCAP_mb = "\\e[1;31m";     # begin bold
-    LESS_TERMCAP_md = "\\e[1;36m";     # begin blink
-    LESS_TERMCAP_me = "\\e[0m";        # reset bold/blink
+    LESS_TERMCAP_mb = "\\e[1;31m"; # begin bold
+    LESS_TERMCAP_md = "\\e[1;36m"; # begin blink
+    LESS_TERMCAP_me = "\\e[0m"; # reset bold/blink
     LESS_TERMCAP_so = "\\e[01;44;33m"; # begin reverse video
-    LESS_TERMCAP_se = "\\e[0m";        # reset reverse video
-    LESS_TERMCAP_us = "\\e[1;32m";     # begin underline
-    LESS_TERMCAP_ue = "\\e[0m";        # reset underline
+    LESS_TERMCAP_se = "\\e[0m"; # reset reverse video
+    LESS_TERMCAP_us = "\\e[1;32m"; # begin underline
+    LESS_TERMCAP_ue = "\\e[0m"; # reset underline
 
     # Runtime paths
     PNPM_HOME = "${config.home.homeDirectory}/.local/share/pnpm";
@@ -91,37 +96,37 @@
   # Program-specific configurations using Home Manager modules
   programs.home-manager.enable = true;
 
-   programs.git = {
-     enable = true;
+  programs.git = {
+    enable = true;
 
-     signing = {
-       key = "${config.home.homeDirectory}/.ssh/jfalava-gitSign-elliptic";
-       signByDefault = true;
-     };
+    signing = {
+      key = "${config.home.homeDirectory}/.ssh/jfalava-gitSign-elliptic";
+      signByDefault = true;
+    };
 
-     settings = {
-       user = {
-         name = "Jorge Fernando Álava";
-         email = "git@jfa.dev";
-       };
+    settings = {
+      user = {
+        name = "Jorge Fernando Álava";
+        email = "git@jfa.dev";
+      };
 
-       color.ui = "auto";
-       gpg.format = "ssh";
-       commit.gpgsign = true;
-       tag.gpgsign = true;
+      color.ui = "auto";
+      gpg.format = "ssh";
+      commit.gpgsign = true;
+      tag.gpgsign = true;
 
-       filter.lfs = {
-         required = true;
-         clean = "git-lfs clean -- %f";
-         smudge = "git-lfs smudge -- %f";
-         process = "git-lfs filter-process";
-       };
+      filter.lfs = {
+        required = true;
+        clean = "git-lfs clean -- %f";
+        smudge = "git-lfs smudge -- %f";
+        process = "git-lfs filter-process";
+      };
 
-       alias = {
-         undo = "reset --soft HEAD^";
-       };
-     };
-   };
+      alias = {
+        undo = "reset --soft HEAD^";
+      };
+    };
+  };
 
   programs.bat = {
     enable = true;
@@ -194,7 +199,10 @@
   nix = {
     package = pkgs.nix;
     settings = {
-      experimental-features = [ "nix-command" "flakes" ];
+      experimental-features = [
+        "nix-command"
+        "flakes"
+      ];
       substituters = [
         "https://cache.nixos.org/"
         "https://nix-community.cachix.org"
