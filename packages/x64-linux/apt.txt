@@ -1,4 +1,8 @@
 build-essential
+git
+curl
+unzip
+wget
 unzip
 ca-certificates
 gnome-keyring

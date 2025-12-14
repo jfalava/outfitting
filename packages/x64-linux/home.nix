@@ -27,20 +27,15 @@
     zsh-autosuggestions
     zsh-syntax-highlighting
     deno
-    git
     go
     lazygit
     nodejs_latest
     python3
     zig
-    curl
     fd
     jq
     less
-    nano
     shellcheck
-    unzip
-    wget
     zip
     _7zz  # 7zip
     p7zip
