@@ -32,7 +32,7 @@
     nodejs_latest
     python3
     zig
-    # zellij
+    zellij
     neovim
     fd
     jq
@@ -91,34 +91,37 @@
   # Program-specific configurations using Home Manager modules
   programs.home-manager.enable = true;
 
-  programs.git = {
-    enable = true;
-    userName = "Jorge Fernando Álava";
-    userEmail = "git@jfa.dev";
+   programs.git = {
+     enable = true;
 
-    signing = {
-      key = "${config.home.homeDirectory}/.ssh/jfalava-gitSign-elliptic";
-      signByDefault = true;
-    };
+     signing = {
+       key = "${config.home.homeDirectory}/.ssh/jfalava-gitSign-elliptic";
+       signByDefault = true;
+     };
 
-    extraConfig = {
-      color.ui = "auto";
-      gpg.format = "ssh";
-      commit.gpgsign = true;
-      tag.gpgsign = true;
+     settings = {
+       user = {
+         name = "Jorge Fernando Álava";
+         email = "git@jfa.dev";
+       };
 
-      filter.lfs = {
-        required = true;
-        clean = "git-lfs clean -- %f";
-        smudge = "git-lfs smudge -- %f";
-        process = "git-lfs filter-process";
-      };
-    };
+       color.ui = "auto";
+       gpg.format = "ssh";
+       commit.gpgsign = true;
+       tag.gpgsign = true;
 
-    aliases = {
-      undo = "reset --soft HEAD^";
-    };
-  };
+       filter.lfs = {
+         required = true;
+         clean = "git-lfs clean -- %f";
+         smudge = "git-lfs smudge -- %f";
+         process = "git-lfs filter-process";
+       };
+
+       alias = {
+         undo = "reset --soft HEAD^";
+       };
+     };
+   };
 
   programs.bat = {
     enable = true;
