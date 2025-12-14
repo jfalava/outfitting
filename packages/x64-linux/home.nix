@@ -32,7 +32,7 @@
     nodejs_latest
     python3
     zig
-    zellij
+    # zellij
     neovim
     fd
     jq
