@@ -4,7 +4,7 @@
  */
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "outfitting-redirects",
+  "name": "jfa-outfitting-installer",
   "main": "src/index.ts",
   "workers_dev": false,
   "preview_urls": false,
