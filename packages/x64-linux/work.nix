@@ -1,3 +1,9 @@
+#
+# Usage
+#
+# nix run home-manager/master -- switch --flake "github:jfalava/outfitting?dir=packages/x64-linux#jfalava-work"
+#
+
 { config, pkgs, lib, ... }:
 
 {
