@@ -117,14 +117,6 @@
     };
   };
 
-  # Zsh configuration is handled by the custom .zshrc-wsl file
-  # We don't use programs.zsh here to avoid conflicts with the symlinked .zshrc
-  # The .zshrc-wsl file already includes:
-  # - Completion setup
-  # - Autosuggestions and syntax highlighting
-  # - Starship, zoxide, and fzf initialization
-  # - Nix environment sourcing
-
   programs.bat = {
     enable = true;
     config = {
