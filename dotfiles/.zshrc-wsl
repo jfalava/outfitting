@@ -760,8 +760,10 @@ if [ -f $HOME/.nix-profile/share/zsh-syntax-highlighting/zsh-syntax-highlighting
 fi
 
 # ---- Tool Initialization ----
-# Nix
-if [ -f ~/.nix-profile/etc/profile.d/nix.sh ]; then
+# Nix - Try daemon first (multi-user), then single-user profile
+if [ -e /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh ]; then
+    source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
+elif [ -e ~/.nix-profile/etc/profile.d/nix.sh ]; then
     source ~/.nix-profile/etc/profile.d/nix.sh
 fi
 

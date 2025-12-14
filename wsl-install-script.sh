@@ -55,17 +55,6 @@ source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh || source ~/.ni
     echo 'fi'
 ) >> ~/.bashrc
 
-# Also add to zshrc for now (will be overwritten by Home Manager later, but needed for this session)
-(
-    echo
-    echo '# Nix'
-    echo 'if [ -e /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh ]; then'
-    echo '  . /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh'
-    echo 'elif [ -e ~/.nix-profile/etc/profile.d/nix.sh ]; then'
-    echo '  . ~/.nix-profile/etc/profile.d/nix.sh'
-    echo 'fi'
-) >> ~/.zshrc
-
 # Create nix configuration before running nix commands
 sudo mkdir -p /etc/nix
 sudo tee /etc/nix/nix.conf > /dev/null << 'EOF'
@@ -98,6 +87,20 @@ if command -v nix &> /dev/null; then
         sudo chsh -s "$(which zsh)" "$USER" || echo "Warning: Failed to set zsh as default shell. You can manually run: chsh -s \$(which zsh)"
     else
         echo "Warning: zsh not found after Home Manager installation"
+    fi
+
+    # Safety check: Verify Nix is still accessible after Home Manager configuration
+    echo ""
+    echo "Verifying Nix accessibility after Home Manager setup..."
+    if command -v nix &> /dev/null; then
+        echo "✓ Nix is still accessible"
+    else
+        echo "⚠ Warning: Nix is no longer in PATH after Home Manager setup!"
+        echo "  This may happen if your shell profile wasn't properly sourced."
+        echo "  Try one of the following:"
+        echo "    1. Close this terminal and open a new one (sources ~/.bashrc)"
+        echo "    2. Run: source ~/.bashrc && source ~/.zshrc"
+        echo "    3. Manually source Nix: source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh"
     fi
 else
     echo "Nix not found, skipping home-manager installation"
@@ -247,6 +250,13 @@ if [ -f ~/.zshrc ]; then
     zshrc_size=$(wc -l < ~/.zshrc)
     if [ "$zshrc_size" -gt 100 ]; then
         echo "✓ .zshrc properly configured ($zshrc_size lines)"
+        
+        # Check if .zshrc sources Nix properly
+        if grep -q "nix-daemon.sh\|~/.nix-profile" ~/.zshrc; then
+            echo "✓ .zshrc properly sources Nix"
+        else
+            echo "⚠ .zshrc may not properly source Nix (check Tool Initialization section)"
+        fi
     else
         echo "⚠ .zshrc exists but seems incomplete ($zshrc_size lines, expected 800+)"
     fi
