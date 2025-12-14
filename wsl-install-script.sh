@@ -167,19 +167,6 @@ echo \
     sudo tee /etc/apt/sources.list.d/charm.list >/dev/null
 sudo apt update && sudo apt install crush
 
-if [[ "$UPDATE_ONLY" == "false" ]]; then
-#####
-## update bash profile for pnpm and deno, so LLM CLIs can be installed
-#####
-(
-echo
-echo 'export PNPM_HOME="$HOME/.local/share/pnpm"'
-echo 'export DENO_INSTALL="$HOME/.deno"'
-echo 'export PATH="$PNPM_HOME:$DENO_INSTALL/bin:$PATH"'
-) >> ~/.bashrc
-source ~/.bashrc
-#####
-
 ## end message and validation
 echo ""
 echo "================================"
