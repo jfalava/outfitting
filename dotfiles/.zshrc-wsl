@@ -483,6 +483,10 @@ alias pnr='pnpm run'
 # cf dev
 alias wrangler="bun wrangler"
 
+# Home Manager and system updates
+alias hm-sync='home-manager switch --flake github:jfalava/outfitting?dir=packages/x64-linux#jfalava'
+alias wsl-update='curl -L https://wsl.jfa.dev | bash -- --update-only'
+
 # Misc tools
 alias ff='fastfetch'
 alias cat='bat --style=auto' 2>/dev/null || alias cat='cat'  # Use bat if available

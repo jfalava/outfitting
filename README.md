@@ -37,11 +37,36 @@ irm win.jfa.dev/post-install | iex # the post install script requires a non-elev
 curl -L wsl.jfa.dev | bash
 ```
 
-## Updating Config Files
-
-After initial installation, you can quickly update individual dotfiles without re-running the full installation script.
+## Updating After Installation
 
 ### WSL/Linux
+
+#### Update Repositories and APT Packages
+
+If you've added new repositories or APT packages to the installation script, update them without reinstalling existing tools:
+
+```bash
+wsl-update
+# OR
+curl -L https://wsl.jfa.dev | bash -- --update-only
+```
+
+This will:
+- Add any new repositories
+- Reinstall APT packages from the package list
+- Skip Nix, Home Manager, runtimes, and LLM CLIs
+
+#### Sync Home Manager Configuration
+
+Update your Home Manager configuration with latest changes from GitHub:
+
+```bash
+hm-sync
+# OR
+home-manager switch --flake github:jfalava/outfitting?dir=packages/x64-linux#jfalava
+```
+
+#### Update Individual Dotfiles
 
 ```bash
 # Update all dotfiles at once
@@ -79,4 +104,3 @@ For detailed API documentation, see [installer/docs/config-api.md](installer/doc
   - [x] Windows Registry
   - [ ] Windows Settings (like mouse acceleration)
 - [x] Shell preferences
-- [ ] ~~Support for additional package managers~~

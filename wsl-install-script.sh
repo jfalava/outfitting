@@ -1,5 +1,16 @@
 #!/bin/bash
 
+UPDATE_ONLY=false
+if [[ "$1" == "--update-only" ]]; then
+    UPDATE_ONLY=true
+fi
+
+if [[ "$UPDATE_ONLY" == "false" ]]; then
+    echo "Running full WSL setup..."
+else
+    echo "Running update-only mode..."
+fi
+
 ## init
 sudo apt update -y && sudo apt upgrade -y && sudo apt install -y curl
 
@@ -22,6 +33,7 @@ done </tmp/apt-packages.txt
 ## cleanup
 sudo apt autoremove -y
 
+if [[ "$UPDATE_ONLY" == "false" ]]; then
 #####
 ## nix
 #####
@@ -90,7 +102,9 @@ if command -v nix &> /dev/null; then
 else
     echo "Nix not found, skipping home-manager installation"
 fi
+fi
 
+if [[ "$UPDATE_ONLY" == "false" ]]; then
 #####
 ## runtimes
 #####
@@ -98,6 +112,7 @@ curl -fsSL https://bun.sh/install | bash
 deno jupyter --install # if the deno flake fails to install, this will fail gracefully
 curl -fsSL https://get.pnpm.io/install.sh | sh -
 curl -LsSf https://astral.sh/uv/install.sh | sh
+fi
 
 #####
 ## docker
@@ -149,6 +164,7 @@ echo \
     sudo tee /etc/apt/sources.list.d/charm.list >/dev/null
 sudo apt update
 
+if [[ "$UPDATE_ONLY" == "false" ]]; then
 #####
 ## update bash profile for pnpm and deno, so LLM CLIs can be installed
 #####
@@ -178,6 +194,7 @@ fi
 curl -fsSL https://opencode.ai/install | bash
 curl -fsSL https://claude.ai/install.sh | bash
 echo "run pnpm approve-builds -g to finish"
+fi
 
 #####
 ## dotfiles are now managed by Home Manager
