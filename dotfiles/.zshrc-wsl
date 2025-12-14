@@ -484,7 +484,7 @@ alias pnr='pnpm run'
 alias wrangler="bun wrangler"
 
 # Home Manager and system updates
-alias hm-sync='home-manager switch --flake github:jfalava/outfitting?dir=packages/x64-linux#jfalava'
+alias hm-sync='home-manager switch --flake '"'"'github:jfalava/outfitting?dir=packages/x64-linux#jfalava'"'"
 alias wsl-update='curl -L https://wsl.jfa.dev | bash -s -- --update-only'
 
 # Misc tools
