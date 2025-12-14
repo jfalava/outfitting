@@ -16,23 +16,6 @@
   "file_types": {
     "toml": ["*.toml"],
   },
-  "wsl_connections": [
-    {
-      "distro_name": "Personal",
-      "user": null,
-      "projects": [
-        {
-          "paths": ["/home/jfalava"],
-        },
-        {
-          "paths": ["/home/jfalava/Workspace"],
-        },
-        {
-          "paths": ["/home/jfalava/Workspace/tBCProject/./"],
-        },
-      ],
-    },
-  ],
   "icon_theme": "Bearded Icon Theme",
   "edit_predictions": {
     "mode": "subtle",
@@ -44,7 +27,7 @@
     "enabled_in_text_threads": false,
   },
   "features": {
-    "edit_prediction_provider": "zed",
+    "edit_prediction_provider": "copilot",
   },
   "collaboration_panel": {
     "button": false,
@@ -74,7 +57,7 @@
   "tab_size": 2,
   "buffer_font_size": 19.0,
   "buffer_font_family": "Google Sans Code",
-  "buffer_font_weight": 500,
+  "buffer_font_weight": 500.0,
   "terminal": {
     "dock": "left",
     "font_family": "VictorMono Nerd Font Propo",
@@ -85,5 +68,61 @@
     "mode": "system",
     "light": "Github Light",
     "dark": "Bearded Theme Arc",
+  },
+  "lsp": {
+    "oxc": {
+      "initialization_options": {
+        "options": {
+          "run": "onSave",
+          "configPath": null,
+          "tsConfigPath": null,
+          "unusedDisableDirectives": "warn",
+          "typeAware": false,
+          "flags": {},
+        },
+      },
+    },
+    "discord_presence": {
+      "initialization_options": {
+        // Application ID for the rich presence (don't touch it unless you know what you're doing)
+        "application_id": "1263505205522337886",
+        // Base URL for all language icons
+        "base_icons_url": "https://raw.githubusercontent.com/xhyrom/zed-discord-presence/main/assets/icons/",
+        "state": "working on smth",
+        // "state": "Working on {filename}",
+        "details": "in some file",
+        // "details": "In {workspace}",
+        // URL for the large image
+        "large_image": "{base_icons_url}/{language:lo}.png", // :lo lowercase the language name
+        "large_text": "{language:u}", // :u capitalizes the first letter
+        // URL for the small image
+        "small_image": "{base_icons_url}/zed.png",
+        "small_text": "Zed",
+
+        // Idle settings - when you're inactive
+        "idle": {
+          "timeout": 300, // Idle timeout in seconds (300 seconds = 5 minutes)
+          // Action to take when idle
+          // `change_activity` - changes the activity to idle with the following details
+          // `clear_activity` - clears the activity (hides it)
+          "action": "change_activity",
+          "state": "Idling",
+          "details": "In Zed",
+          "large_image": "{base_icons_url}/zed.png",
+          "large_text": "Zed",
+          "small_image": "{base_icons_url}/idle.png",
+          "small_text": "Idle",
+        },
+
+        // Rules to disable presence in specific workspaces
+        "rules": {
+          "mode": "blacklist", // Can also be "whitelist"
+          "paths": ["absolute path"],
+        },
+
+        "git_integration": false,
+        "languages": {},
+      },
+    },
   },
 }
