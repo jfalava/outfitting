@@ -48,7 +48,7 @@ If you've added new repositories or APT packages to the installation script, upd
 ```bash
 wsl-update
 # OR
-curl -L https://wsl.jfa.dev | bash -- --update-only
+curl -L https://wsl.jfa.dev | bash -s -- --update-only
 ```
 
 This will:
