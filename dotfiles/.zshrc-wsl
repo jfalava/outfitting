@@ -398,7 +398,8 @@ alias wrangler="bun wrangler"
 
 # Home Manager and system updates
 hm-sync() {
-    (set -o noglob; home-manager switch --flake 'github:jfalava/outfitting?dir=packages/x64-linux#jfalava' "$@")
+    echo "Syncing Home Manager configuration from GitHub..."
+    (set -o noglob; home-manager switch --flake 'github:jfalava/outfitting?dir=packages/x64-linux#jfalava' --no-write-lock-file "$@")
 }
 
 wsl-update() {
@@ -511,12 +512,33 @@ hm-switch() {
 }
 
 hm-switch-local() {
+    if [ ! -d "$HOME/Workspace/outfitting" ]; then
+        echo "Error: ~/Workspace/outfitting not found."
+        echo ""
+        echo "To use local development workflow:"
+        echo "  1. Clone the repo:"
+        echo "     git clone https://github.com/jfalava/outfitting.git ~/Workspace/outfitting"
+        echo "  2. Make changes to ~/Workspace/outfitting/packages/x64-linux/home.nix"
+        echo "  3. Run: hm-switch-local"
+        echo "  4. Commit and push changes (including flake.lock)"
+        return 1
+    fi
+
     echo "Applying Home Manager configuration from local repo..."
-    if [ -d "$HOME/outfitting" ]; then
-        home-manager switch --flake "$HOME/outfitting/packages/x64-linux#jfalava"
+    home-manager switch --flake "$HOME/Workspace/outfitting/packages/x64-linux#jfalava"
+
+    # Check if there are uncommitted changes
+    if git -C "$HOME/Workspace/outfitting" diff --quiet && git -C "$HOME/Workspace/outfitting" diff --cached --quiet; then
+        echo ""
+        echo "✓ No uncommitted changes - you're all set!"
     else
-        echo "Error: ~/outfitting not found. Clone the repo first:"
-        echo "  git clone https://github.com/jfalava/outfitting.git ~/outfitting"
+        echo ""
+        echo "⚠ You have uncommitted changes in ~/Workspace/outfitting"
+        echo "  Don't forget to commit and push to sync across machines:"
+        echo "    cd ~/Workspace/outfitting"
+        echo "    git add packages/x64-linux/home.nix packages/x64-linux/flake.lock"
+        echo "    git commit -m 'Update home-manager config'"
+        echo "    git push"
     fi
 }
 
@@ -537,6 +559,7 @@ hm-clean() {
     nix-collect-garbage -d
     echo "Cleaning complete!"
 }
+
 
 # Nix management functions (legacy - now use Home Manager)
 nix-search() {
@@ -580,26 +603,26 @@ backup() {
 update-dotfiles() {
     echo "Dotfiles are now managed by Home Manager!"
     echo "To update dotfiles:"
-    echo "  1. Edit files in ~/outfitting/dotfiles/"
+    echo "  1. Edit files in ~/Workspace/outfitting/dotfiles/"
     echo "  2. Commit changes: git add . && git commit"
-    echo "  3. Run: hm-switch"
+    echo "  3. Run: hm-sync"
     echo ""
-    echo "Or run 'hm-switch' to pull latest from GitHub"
+    echo "Or run 'hm-sync' to pull latest from GitHub"
 }
 
 update-zshrc() {
     echo ".zshrc is now managed by Home Manager!"
     echo "To update:"
-    echo "  1. Edit ~/outfitting/dotfiles/.zshrc-wsl"
-    echo "  2. Run: hm-switch-local  (or commit & hm-switch)"
+    echo "  1. Edit ~/Workspace/outfitting/dotfiles/.zshrc-wsl"
+    echo "  2. Run: hm-switch-local  (or commit & hm-sync)"
     echo "  3. Reload: source ~/.zshrc"
 }
 
 update-ripgreprc() {
     echo ".ripgreprc is now managed by Home Manager!"
     echo "To update:"
-    echo "  1. Edit ~/outfitting/dotfiles/.ripgreprc"
-    echo "  2. Run: hm-switch-local  (or commit & hm-switch)"
+    echo "  1. Edit ~/Workspace/outfitting/dotfiles/.ripgreprc"
+    echo "  2. Run: hm-switch-local  (or commit & hm-sync)"
 }
 
 # Ripgrep functions
