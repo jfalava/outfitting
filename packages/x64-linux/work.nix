@@ -27,6 +27,7 @@
 
   # Override git configuration for work environment
   programs.git.settings.user.email = lib.mkForce "jorgefernando.alava@seidor.com";
+  programs.git.signing.key = lib.mkForce "${config.home.homeDirectory}/.ssh/jfalava-seidor-ed25519";
 
   # home.sessionVariables = {
   #   AWS_PROFILE = "work";
