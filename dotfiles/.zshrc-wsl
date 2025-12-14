@@ -794,10 +794,20 @@ if command -v fzf &> /dev/null; then
     source <(fzf --zsh) 2>/dev/null
 fi
 
-# SSH Agent
-if [ -z "$SSH_AUTH_SOCK" ] || [ ! -S "$SSH_AUTH_SOCK" ]; then
-    eval "$(ssh-agent -s)" >/dev/null 2>&1
+# SSH Agent - Persistent across shell sessions
+SSH_AGENT_FILE="$HOME/.ssh/agent-env"
+
+if [ -f "$SSH_AGENT_FILE" ]; then
+    source "$SSH_AGENT_FILE" > /dev/null
 fi
+
+if [ -z "$SSH_AUTH_SOCK" ] || [ ! -S "$SSH_AUTH_SOCK" ]; then
+    eval "$(ssh-agent -s)" > "$SSH_AGENT_FILE"
+    chmod 600 "$SSH_AGENT_FILE"
+    source "$SSH_AGENT_FILE" > /dev/null
+fi
+
+unset SSH_AGENT_FILE
 
 # Starship prompt (must be near the end)
 if command -v starship &> /dev/null; then
