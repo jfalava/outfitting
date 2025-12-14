@@ -4,20 +4,8 @@ const app = new Hono();
 
 const GITHUB_RAW_BASE = "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main";
 
-// Config file mappings
+// Config file mappings for Windows
 const CONFIG_FILES: Record<string, { path: string; contentType: string }> = {
-  zshrc: {
-    path: `${GITHUB_RAW_BASE}/dotfiles/.zshrc-wsl`,
-    contentType: "text/plain",
-  },
-  ripgreprc: {
-    path: `${GITHUB_RAW_BASE}/dotfiles/.ripgreprc`,
-    contentType: "text/plain",
-  },
-  gitconfig: {
-    path: `${GITHUB_RAW_BASE}/dotfiles/.gitconfig`,
-    contentType: "text/plain",
-  },
   powershell: {
     path: `${GITHUB_RAW_BASE}/dotfiles/.powershell-profile.ps1`,
     contentType: "text/plain",
@@ -49,51 +37,17 @@ async function fetchConfigFile(fileKey: string) {
   };
 }
 
-// Route: GET /config/all - Generate script to update all configs
+// Route: GET /config/all - Windows profile update script
 app.get("/config/all", async (c) => {
   const host = c.req.header("Host") || "";
 
-  const allowedHosts = ["wsl.jfa.dev", "win.jfa.dev"];
-  const isAllowedHost = allowedHosts.some((allowedHost) => host.includes(allowedHost));
-
-  if (!isAllowedHost) {
+  if (!host.includes("win.jfa.dev")) {
     return c.text("I'm a teapot", 418);
   }
 
-  const isWSL = host.includes("wsl.jfa.dev");
+  const script = `# Update PowerShell profile from outfitting repository
 
-  let script: string;
-
-  if (isWSL) {
-    // WSL/Linux update script
-    script = `#!/bin/bash
-# Update all dotfiles from outfitting repository
-
-echo "Updating dotfiles..."
-
-# Backup existing configs
-backup_if_exists() {
-  if [ -f "$1" ]; then
-    cp "$1" "$1.backup.$(date +%Y%m%d_%H%M%S)"
-    echo "Backed up $1"
-  fi
-}
-
-backup_if_exists ~/.zshrc
-backup_if_exists ~/.ripgreprc
-
-# Download latest configs
-curl -fsSL "${host}/config/zshrc" -o ~/.zshrc && echo "✓ Updated ~/.zshrc"
-curl -fsSL "${host}/config/ripgreprc" -o ~/.ripgreprc && echo "✓ Updated ~/.ripgreprc"
-
-echo ""
-echo "All configs updated! Reload your shell or run: source ~/.zshrc"
-`;
-  } else {
-    // Windows update script
-    script = `# Update all dotfiles from outfitting repository
-
-Write-Host "Updating dotfiles..." -ForegroundColor Cyan
+Write-Host "Updating PowerShell profile..." -ForegroundColor Cyan
 
 # Backup function
 function Backup-IfExists {
@@ -113,26 +67,22 @@ Invoke-WebRequest -Uri "https://${host}/config/powershell" -OutFile $profilePath
 Write-Host "✓ Updated PowerShell profile" -ForegroundColor Green
 
 Write-Host ""
-Write-Host "Config updated! Reload your profile with: . \`$PROFILE" -ForegroundColor Cyan
+Write-Host "Profile updated! Reload your profile with: . \`$PROFILE" -ForegroundColor Cyan
 `;
-  }
 
-  c.header("Content-Type", isWSL ? "text/x-shellscript" : "application/x-powershell");
+  c.header("Content-Type", "application/x-powershell");
   c.header("Cache-Control", "no-cache");
   c.header("Access-Control-Allow-Origin", "*");
 
   return c.body(script);
 });
 
-// Route: GET /config/:file - Fetch individual config files
+// Route: GET /config/:file - Fetch individual config files (Windows only)
 app.get("/config/:file", async (c) => {
   const host = c.req.header("Host") || "";
   const fileKey = c.req.param("file");
 
-  const allowedHosts = ["wsl.jfa.dev", "win.jfa.dev"];
-  const isAllowedHost = allowedHosts.some((allowedHost) => host.includes(allowedHost));
-
-  if (!isAllowedHost) {
+  if (!host.includes("win.jfa.dev")) {
     return c.text("I'm a teapot", 418);
   }
 

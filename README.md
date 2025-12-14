@@ -77,14 +77,6 @@ curl -fsSL wsl.jfa.dev/config/zshrc -o ~/.zshrc
 curl -fsSL wsl.jfa.dev/config/ripgreprc -o ~/.ripgreprc
 ```
 
-If you've already run the installation script, you can use these convenient shell functions:
-
-```bash
-update-dotfiles       # Update all configs with automatic backups
-update-zshrc         # Update just .zshrc
-update-ripgreprc     # Update just .ripgreprc
-```
-
 ### Windows
 
 ```powershell
