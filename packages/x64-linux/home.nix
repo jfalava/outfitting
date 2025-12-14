@@ -32,6 +32,8 @@
     nodejs_latest
     python3
     zig
+    # zellij
+    neovim
     fd
     jq
     less
@@ -48,7 +50,7 @@
   # 'home.sessionVariables'. These will be explicitly sourced when using a
   # shell provided by Home Manager.
   home.sessionVariables = {
-    EDITOR = "nano";
+    EDITOR = "vim";
     VISUAL = "zed --wait";
     PAGER = "less";
 
