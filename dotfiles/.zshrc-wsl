@@ -719,7 +719,7 @@ fi
 if [ -z "$SSH_AUTH_SOCK" ] || [ ! -S "$SSH_AUTH_SOCK" ]; then
     ssh_agent_output="$(ssh-agent -s)"
     echo "$ssh_agent_output" > "$SSH_AGENT_FILE"
-    eval "$ssh_agent_output"
+    eval "$ssh_agent_output" > /dev/null 2>&1
     chmod 600 "$SSH_AGENT_FILE"
 fi
 
