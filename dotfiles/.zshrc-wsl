@@ -485,7 +485,7 @@ alias wrangler="bun wrangler"
 
 # Home Manager and system updates
 hm-sync() {
-    noglob home-manager switch --flake 'github:jfalava/outfitting?dir=packages/x64-linux#jfalava'
+    noglob home-manager switch --flake 'github:jfalava/outfitting?dir=packages/x64-linux#jfalava' --no-write-lock-file
 }
 
 wsl-update() {
