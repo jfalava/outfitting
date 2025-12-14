@@ -1,7 +1,7 @@
 #####
 ## functions
 #####
-function Install-ScoopPackages {
+function Install-BunPackages {
     param (
         [string]$filePath
     )
@@ -16,34 +16,10 @@ function Install-ScoopPackages {
 
     foreach ($package in $packages) {
         try {
-            scoop install $package
-            Write-Host "❖ Installed Scoop package: $package" -ForegroundColor Green
+            bun install -g $package
+            Write-Host "❖ Installed Bun package: $package" -ForegroundColor Green
         } catch {
-            Write-Host "❖ Failed to install Scoop package:" -ForegroundColor Red
-            Write-Host "  - ${package}: $_" -ForegroundColor Red
-            # Continue to next package, but don't exit here
-        }
-    }
-}
-function Install-PnpmPackages {
-    param (
-        [string]$filePath
-    )
-
-    if (-Not (Test-Path $filePath)) {
-        Write-Host "❖ Package list file not found:" -ForegroundColor Red
-        Write-Host "  - $filePath" -ForegroundColor Red
-        exit 1
-    }
-
-    $packages = Get-Content $filePath | Where-Object { -Not ($_ -match '^\s*$') -and -Not ($_ -match '^#') }
-
-    foreach ($package in $packages) {
-        try {
-            pnpm install -g $package
-            Write-Host "❖ Installed Pnpm package: $package" -ForegroundColor Green
-        } catch {
-            Write-Host "❖ Failed to install Pnpm package:" -ForegroundColor Red
+            Write-Host "❖ Failed to install Bun package:" -ForegroundColor Red
             Write-Host "  - ${package}: $_" -ForegroundColor Red
             # Continue to next package, but don't exit here
         }
@@ -51,88 +27,37 @@ function Install-PnpmPackages {
 }
 
 #####
-## scoop installation (please migrate to winget i beg)
+## verify bun is available
 #####
-if (!(Get-Command scoop -ErrorAction SilentlyContinue)) {
-    try {
-        Invoke-RestMethod -Uri https://get.scoop.sh | Invoke-Expression
-        Write-Host "❖ Scoop installed successfully." -ForegroundColor Green
-    } catch {
-        Write-Host "❖ Failed to install Scoop:" -ForegroundColor Red
-        Write-Host "  - $_" -ForegroundColor Red
-        exit 1
-    }
-}
-
-## add buckets
-try {
-    scoop bucket add extras
-    scoop bucket add versions
-    Write-Host "❖ Scoop buckets added successfully." -ForegroundColor Green
-} catch {
-    Write-Host "❖ Failed to add Scoop buckets:" -ForegroundColor Red
-    Write-Host "  - $_" -ForegroundColor Red
-    exit 1
-}
-
-#####
-## download Scoop packages list
-#####
-$scoopPackagesUrl = "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/packages/x64-windows/scoop.txt"
-$scoopPackagesFile = "$env:TEMP\scoop.txt"
-
-try {
-    Invoke-WebRequest -Uri $scoopPackagesUrl -OutFile $scoopPackagesFile
-    Write-Host "❖ Scoop packages list downloaded." -ForegroundColor Green
-} catch {
-    Write-Host "❖ Failed to download Scoop packages list:" -ForegroundColor Red
-    Write-Host "  - $_" -ForegroundColor Red
-    exit 1
-}
-
-#####
-## run package install functions
-#####
-Install-ScoopPackages -filePath $scoopPackagesFile
-
-#####
-## scoop temp files cleanup
-#####
-Remove-Item $scoopPackagesFile -ErrorAction SilentlyContinue
-
-# verify profile is working (pnpm PATH added) and pnpm is available
-$pnpmPath = "$env:LOCALAPPDATA\pnpm"
-$pathArray = $env:PATH -split ';'
-if (-not (Test-Path $pnpmPath) -or !(Get-Command pnpm -ErrorAction SilentlyContinue)) {
-    Write-Host "❖ Installation incomplete: PowerShell profile may not be loaded, or pnpm is not installed/not on PATH." -ForegroundColor Red
-    Write-Host "  - Expected Pnpm PATH: $pnpmPath" -ForegroundColor Yellow
+if (!(Get-Command bun -ErrorAction SilentlyContinue)) {
+    Write-Host "❖ Installation incomplete: Bun is not installed or not on PATH." -ForegroundColor Red
     Write-Host "  - Run in a new PowerShell session and verify profile at: $PROFILE" -ForegroundColor Yellow
     exit 1
 }
 
 #####
-## download pnpm packages list
+## download bun packages list
 #####
-$pnpmPackagesUrl = "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/packages/pnpm.txt"
-$pnpmPackagesFile = "$env:TEMP\pnpm.txt"
+$bunPackagesUrl = "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/packages/bun.txt"
+$bunPackagesFile = "$env:TEMP\bun.txt"
 
 try {
-    Invoke-WebRequest -Uri $pnpmPackagesUrl -OutFile $pnpmPackagesFile
+    Invoke-WebRequest -Uri $bunPackagesUrl -OutFile $bunPackagesFile
 } catch {
-    Write-Host "❖ Failed to download Pnpm packages list:" -ForegroundColor Red
+    Write-Host "❖ Failed to download Bun packages list:" -ForegroundColor Red
     Write-Host "  - $_" -ForegroundColor Red
     exit 1
 }
 
 #####
-## run pnpm package install functions
+## run bun package install functions
 #####
-Install-PnpmPackages -filePath $pnpmPackagesFile
+Install-BunPackages -filePath $bunPackagesFile
 
 #####
-## pnpm temp files cleanup
+## bun temp files cleanup
 #####
-Remove-Item $pnpmPackagesFile -ErrorAction SilentlyContinue
+Remove-Item $bunPackagesFile -ErrorAction SilentlyContinue
 
 ## end message
 Write-Host "`n❖ Installation complete." -ForegroundColor Green

@@ -113,7 +113,6 @@ if [[ "$UPDATE_ONLY" == "false" ]]; then
 #####
 curl -fsSL https://bun.sh/install | bash
 deno jupyter --install # if the deno flake fails to install, this will fail gracefully
-curl -fsSL https://get.pnpm.io/install.sh | sh -
 curl -LsSf https://astral.sh/uv/install.sh | sh
 fi
 
@@ -240,7 +239,6 @@ echo "================================"
 echo "1. Close this terminal and open a new one"
 echo "2. You should see the Starship prompt and have zsh configured"
 echo "3. Run 'ff' to see system info (fastfetch)"
-echo "4. Run 'pnpm approve-builds -g' to finish LLM CLI setup"
 echo ""
 echo "If you encounter issues, check:"
 echo "  - Run 'source ~/.zshrc' to reload your shell configuration"

@@ -49,6 +49,7 @@
     codex
     claude-code
     qwen-code
+    pnpm
   ];
 
   # Home Manager can also manage your environment variables through

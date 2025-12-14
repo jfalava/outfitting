@@ -577,9 +577,9 @@ update-all() {
     echo -e "\nCleaning old generations..."
     hm-clean
 
-    echo -e "\nUpdating global npm packages..."
-    if command -v pnpm &> /dev/null; then
-        pnpm update -g
+    echo -e "\nUpdating global bun packages..."
+    if command -v bun &> /dev/null; then
+        bun update -g
     fi
 
     echo -e "\nUpdate complete!"

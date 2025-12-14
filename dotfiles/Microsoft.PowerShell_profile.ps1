@@ -5,6 +5,7 @@ $pathList = @(
     "C:\Program Files\Go\bin",
     "$env:USERPROFILE\scoop",
     "$env:LOCALAPPDATA\pnpm\",
+    "$env:USERPROFILE\.bun\bin",
     "$env:USERPROFILE\.local\share\",
     "$env:LOCALAPPDATA\Microsoft\WinGet\Links"
 )
@@ -17,6 +18,7 @@ foreach ($path in $pathList) {
 # -------------------------------
 # ENV
 # -------------------------------
+$env:BUN_INSTALL = "$env:USERPROFILE\.bun"
 $env:PNPM_HOME = "$env:LOCALAPPDATA\Microsoft\WinGet\Links\"
 
 # -------------------------------
