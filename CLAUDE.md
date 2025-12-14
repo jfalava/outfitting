@@ -50,9 +50,9 @@ Declarative environment management for WSL/Linux using Nix flakes and Home Manag
 
 **Managed by Home Manager:**
 - All development tools and CLI utilities
-- Dotfiles (.zshrc, .ripgreprc) via symlinks
+- Dotfiles (.zshrc via symlink)
 - Git configuration with SSH signing
-- Tool-specific configs (bat, eza, ripgrep, fzf, etc.)
+- Tool-specific configs (bat, eza, ripgrep, fzf, etc.) via programs.* modules
 - Environment variables and PATH additions
 
 **NOT Managed by Nix:**
@@ -139,9 +139,9 @@ After modifying dotfiles or installation scripts, they're automatically served b
 
 ### Updating Dotfiles
 
-1. Edit files in `dotfiles/` directory
+1. Edit dotfiles in `dotfiles/` directory (.zshrc-wsl) or program configs in `packages/x64-linux/home.nix` (ripgrep, bat, eza, etc.)
 2. Commit and push to GitHub
-3. For Nix-managed dotfiles (.zshrc-wsl, .ripgreprc):
+3. For Nix-managed dotfiles and configs:
    - Run `hm-sync` or `home-manager switch --flake github:...`
 4. For Windows PowerShell profile:
    - Users run `irm win.jfa.dev/config/all | iex` to pull latest

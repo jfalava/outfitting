@@ -618,13 +618,6 @@ update-zshrc() {
     echo "  3. Reload: source ~/.zshrc"
 }
 
-update-ripgreprc() {
-    echo ".ripgreprc is now managed by Home Manager!"
-    echo "To update:"
-    echo "  1. Edit ~/Workspace/outfitting/dotfiles/.ripgreprc"
-    echo "  2. Run: hm-switch-local  (or commit & hm-sync)"
-}
-
 # Ripgrep functions
 if command -v rg &> /dev/null; then
     # Search and edit results in editor

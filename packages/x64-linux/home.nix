@@ -91,7 +91,6 @@
   # Dotfiles management - symlink your dotfiles to home directory
   home.file = {
     ".zshrc".source = ../../dotfiles/.zshrc-wsl;
-    ".ripgreprc".source = ../../dotfiles/.ripgreprc;
   };
 
   # Program-specific configurations using Home Manager modules
