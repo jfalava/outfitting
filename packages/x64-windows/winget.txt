@@ -46,7 +46,6 @@ Microsoft.VCRedist.2015+.x86
 Microsoft.VisualStudioCode
 ModernFlyouts.ModernFlyouts
 Mozilla.Firefox
-Mozilla.Thunderbird.MSIX
 Mp3tag.Mp3tag
 NexusMods.Vortex
 Nota.Gyazo
@@ -58,7 +57,6 @@ Oven-sh.Bun
 PrivateInternetAccess.PrivateInternetAccess
 Proton.ProtonAuthenticator
 Proton.ProtonDrive
-Proton.ProtonMailBridge
 Proton.ProtonPass
 Proton.ProtonVPN
 REALiX.HWiNFO
@@ -68,7 +66,6 @@ SumatraPDF.SumatraPDF
 Telegram.TelegramDesktop
 Valve.Steam
 VideoLAN.VLC
-VladimirYakovlev.ElectronMail
 WeakAuras.WeakAurasCompanion
 WinDirStat.WinDirStat
 WowUp.Wowup
