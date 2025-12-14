@@ -1,4 +1,4 @@
-{ config, pkgs, ... }:
+{ config, pkgs, lib, ... }:
 
 {
   # Import the base home.nix configuration
@@ -20,9 +20,7 @@
   ];
 
   # Override git configuration for work environment
-  programs.git = {
-    userEmail = "jorgefernando.alava@seidor.com";
-  };
+  programs.git.settings.user.email = lib.mkForce "jorgefernando.alava@seidor.com";
 
   # home.sessionVariables = {
   #   AWS_PROFILE = "work";
