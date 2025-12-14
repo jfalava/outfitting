@@ -117,49 +117,6 @@
     };
   };
 
-  programs.zsh = {
-    enable = true;
-    enableCompletion = true;
-    autosuggestion.enable = true;
-    syntaxHighlighting.enable = true;
-
-    # Zsh will source .zshrc from home.file, but we set the default shell here
-    initExtra = ''
-      # Home Manager will source ~/.zshrc automatically
-      # This ensures zsh is properly configured
-    '';
-  };
-
-  programs.starship = {
-    enable = true;
-    enableZshIntegration = true;
-  };
-
-  programs.zoxide = {
-    enable = true;
-    enableZshIntegration = true;
-  };
-
-  programs.fzf = {
-    enable = true;
-    enableZshIntegration = true;
-
-    defaultCommand = "fd --type f --hidden --follow --exclude .git";
-    defaultOptions = [
-      "--height 40%"
-      "--layout=reverse"
-      "--border"
-      "--inline-info"
-      "--color=fg:#f8f8f2,bg:#282a36,hl:#bd93f9"
-      "--color=fg+:#f8f8f2,bg+:#44475a,hl+:#bd93f9"
-      "--color=info:#ffb86c,prompt:#50fa7b,pointer:#ff79c6"
-      "--color=marker:#ff79c6,spinner:#ffb86c,header:#6272a4"
-    ];
-
-    changeDirWidgetCommand = "fd --type d --hidden --follow --exclude .git";
-    fileWidgetCommand = "fd --type f --hidden --follow --exclude .git";
-  };
-
   programs.bat = {
     enable = true;
     config = {
