@@ -8,20 +8,15 @@
 
   # Add work-specific packages on top of the base configuration
   home.packages = with pkgs; [
-    # AWS tools
     awscli2
-
-    # Kubernetes tools
     eksctl
     kubernetes-helm
     k9s
-
-    # Infrastructure as Code
     ansible
     tflint
-
-    # Cloud management
     cloudlens
+    opentofu
+    azure-cli
   ];
 
   # Override git configuration for work environment
