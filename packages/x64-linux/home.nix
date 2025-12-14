@@ -99,7 +99,7 @@
     userEmail = "git@jfa.dev";
 
     signing = {
-      key = "${config.home.homeDirectory}/.ssh/jfalava-gitSign-elliptic.pem";
+      key = "${config.home.homeDirectory}/.ssh/jfalava-gitSign-elliptic";
       signByDefault = true;
     };
 
