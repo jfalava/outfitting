@@ -66,17 +66,6 @@ hm-sync
 home-manager switch --flake github:jfalava/outfitting?dir=packages/x64-linux#jfalava
 ```
 
-#### Update Individual Dotfiles
-
-```bash
-# Update all dotfiles at once
-curl -fsSL wsl.jfa.dev/config/all | bash
-
-# Or update individual files
-curl -fsSL wsl.jfa.dev/config/zshrc -o ~/.zshrc
-curl -fsSL wsl.jfa.dev/config/ripgreprc -o ~/.ripgreprc
-```
-
 ### Windows
 
 ```powershell

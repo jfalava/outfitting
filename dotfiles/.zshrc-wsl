@@ -369,6 +369,7 @@ alias EDITOR='zed --wait'
 alias reload='source ~/.zshrc'
 alias zshconfig='$EDITOR ~/.zshrc'
 alias explorer='/mnt/c/WINDOWS/explorer.exe'
+alias vim='nvim'
 
 # Navigation shortcuts
 alias ..='cd ..'
@@ -385,100 +386,12 @@ alias ll='eza --color=always --long --git --icons=always --header --group-direct
 alias lt='eza --color=always --long --git --icons=always --tree --level=2'
 alias lta='eza --color=always --long --git --icons=always --tree --level=2 --all'
 
-# Git aliases
-alias g='git'
-alias gs='git status'
-alias gst='git status'
-alias ga='git add'
-alias gaa='git add --all'
-alias gc='git commit'
-alias gcm='git commit -m'
-alias gca='git commit --amend'
-alias gcan='git commit --amend --no-edit'
-alias gp='git push'
-alias gpf='git push --force-with-lease'
-alias gpl='git pull'
-alias gpr='git pull --rebase'
-alias gl='git log --oneline --graph --decorate'
-alias gla='git log --oneline --graph --decorate --all'
-alias gd='git diff'
-alias gds='git diff --staged'
-alias gco='git checkout'
-alias gcb='git checkout -b'
-alias gb='git branch'
-alias gba='git branch -a'
-alias gbd='git branch -d'
-alias gbD='git branch -D'
-alias gm='git merge'
-alias gr='git rebase'
-alias gri='git rebase -i'
-alias grc='git rebase --continue'
-alias gra='git rebase --abort'
-alias grs='git reset'
-alias grsh='git reset --hard'
-alias grss='git reset --soft'
-alias gsh='git stash'
-alias gshp='git stash pop'
-alias gshl='git stash list'
-alias gf='git fetch'
-alias gfa='git fetch --all'
-alias gcl='git clone'
-alias gcp='git cherry-pick'
-
-# Docker aliases
-if command -v docker &> /dev/null; then
-    alias d='docker'
-    alias dc='docker compose'
-    alias dcu='docker compose up'
-    alias dcud='docker compose up -d'
-    alias dcd='docker compose down'
-    alias dcr='docker compose restart'
-    alias dps='docker ps'
-    alias dpsa='docker ps -a'
-    alias di='docker images'
-    alias dex='docker exec -it'
-    alias drm='docker rm'
-    alias drmi='docker rmi'
-    alias dprune='docker system prune -af --volumes'
-    alias dlogs='docker logs -f'
-fi
-
-# Terraform
-alias tf='terraform'
-alias tfi='terraform init'
-alias tfp='terraform plan'
-alias tfa='terraform apply'
-alias tfd='terraform destroy'
-alias tfv='terraform validate'
-alias tff='terraform fmt'
-alias tfw='terraform workspace'
-
-# Kubernetes (if kubectl available)
-if command -v kubectl &> /dev/null; then
-    alias k='kubectl'
-    alias kg='kubectl get'
-    alias kd='kubectl describe'
-    alias kdel='kubectl delete'
-    alias ka='kubectl apply -f'
-    alias kl='kubectl logs -f'
-    alias kex='kubectl exec -it'
-    alias kpf='kubectl port-forward'
-fi
-
 # Python/uv
 if command -v uv &> /dev/null; then
     alias pip='uv pip'
     alias python='uv run python'
     alias py='uv run python'
 fi
-
-# Node/pnpm/bun
-alias pn='pnpm'
-alias pnx='pnpm dlx'
-alias pni='pnpm install'
-alias pna='pnpm add'
-alias pnr='pnpm run'
-alias pnr='pnpm run'
 
 # cf dev
 alias wrangler="bun wrangler"
@@ -804,7 +717,9 @@ if [ -f "$SSH_AGENT_FILE" ]; then
 fi
 
 if [ -z "$SSH_AUTH_SOCK" ] || [ ! -S "$SSH_AUTH_SOCK" ]; then
-    eval "$(ssh-agent -s)" | tee "$SSH_AGENT_FILE" > /dev/null 2>&1
+    ssh_agent_output="$(ssh-agent -s)"
+    echo "$ssh_agent_output" > "$SSH_AGENT_FILE"
+    eval "$ssh_agent_output"
     chmod 600 "$SSH_AGENT_FILE"
 fi
 
