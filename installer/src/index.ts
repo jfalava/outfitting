@@ -2,12 +2,13 @@ import { Hono } from "hono";
 
 const app = new Hono();
 
-const GITHUB_RAW_BASE = "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main";
+const GITHUB_RAW_BASE =
+  "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main";
 
-// Config file mappings for Windows
+// Config file mappings (Windows only - WSL configs are managed by Home Manager)
 const CONFIG_FILES: Record<string, { path: string; contentType: string }> = {
   powershell: {
-    path: `${GITHUB_RAW_BASE}/dotfiles/.powershell-profile.ps1`,
+    path: `${GITHUB_RAW_BASE}/dotfiles/Microsoft.PowerShell_profile.ps1`,
     contentType: "text/plain",
   },
 };
@@ -116,7 +117,9 @@ app.get("/", async (c) => {
   const host = c.req.header("Host") || "";
 
   const allowedHosts = ["wsl.jfa.dev", "win.jfa.dev"];
-  const isAllowedHost = allowedHosts.some((allowedHost) => host.includes(allowedHost));
+  const isAllowedHost = allowedHosts.some((allowedHost) =>
+    host.includes(allowedHost),
+  );
 
   if (!isAllowedHost) {
     return c.text("I'm a teapot", 418);
@@ -125,14 +128,16 @@ app.get("/", async (c) => {
   const wslScriptUrl = `${GITHUB_RAW_BASE}/wsl-install-script.sh`;
   const windowsScriptUrl = `${GITHUB_RAW_BASE}/windows-install-script.ps1`;
 
-  const scriptUrl = host.includes("wsl.jfa.dev") ? wslScriptUrl : windowsScriptUrl;
+  const scriptUrl = host.includes("wsl.jfa.dev")
+    ? wslScriptUrl
+    : windowsScriptUrl;
 
   console.log("Script URL:", scriptUrl);
 
   const response = await fetch(scriptUrl, {
     headers: {
       Accept: "text/plain",
-      "User-Agent": "CloudflareWorker",
+      "User-Agent": "JFA Outfitting Installer",
     },
     redirect: "follow",
   });

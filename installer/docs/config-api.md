@@ -13,23 +13,17 @@ The Outfitting installer provides a REST API for fetching and updating individua
 
 #### `GET /config/:file`
 
-Fetch a specific configuration file.
+Fetch a specific configuration file (Windows only).
 
 **Available files:**
 
-| File Key     | Description           | Output Path (WSL) | Output Path (Windows) |
-| ------------ | --------------------- | ----------------- | --------------------- |
-| `zshrc`      | ZSH configuration     | `~/.zshrc`        | N/A                   |
-| `ripgreprc`  | Ripgrep configuration | `~/.ripgreprc`    | N/A                   |
-| `powershell` | PowerShell profile    | N/A               | `$PROFILE`            |
+| File Key     | Description        | Output Path | Platform |
+| ------------ | ------------------ | ----------- | -------- |
+| `powershell` | PowerShell profile | `$PROFILE`  | Windows  |
 
-**Example Requests:**
+**Example Request:**
 
-```bash
-# WSL
-curl -fsSL wsl.jfa.dev/config/zshrc -o ~/.zshrc
-curl -fsSL wsl.jfa.dev/config/ripgreprc -o ~/.ripgreprc
-
+```powershell
 # Windows
 Invoke-WebRequest -Uri "https://win.jfa.dev/config/powershell" -OutFile $PROFILE
 ```
@@ -38,21 +32,7 @@ Invoke-WebRequest -Uri "https://win.jfa.dev/config/powershell" -OutFile $PROFILE
 
 #### `GET /config/all`
 
-Generate a shell script that updates all configuration files with automatic backups.
-
-**WSL Response:**
-
-Returns a bash script that:
-
-1. Creates timestamped backups of existing configs
-2. Downloads all dotfiles (`.zshrc`, `.ripgreprc`)
-3. Displays update status
-
-**Example:**
-
-```bash
-curl -fsSL wsl.jfa.dev/config/all | bash
-```
+Generate a PowerShell script that updates the PowerShell profile with automatic backup (Windows only).
 
 **Windows Response:**
 
@@ -70,7 +50,7 @@ irm win.jfa.dev/config/all | iex
 
 **Response:**
 
-- Content-Type: `text/x-shellscript` (WSL) or `application/x-powershell` (Windows)
+- Content-Type: `application/x-powershell`
 - Body: Executable script content
 
 ### Main Installation Scripts
@@ -101,29 +81,29 @@ irm win.jfa.dev/post-install | iex
 
 ## Usage Examples
 
-### Scenario 1: Quick Config Update
+### Scenario 1: Update WSL Dotfiles
 
-You've updated your `.zshrc` on GitHub and want to pull it down:
+WSL dotfiles are managed by Home Manager. To update:
 
 ```bash
-# With built-in function (if already installed)
-update-zshrc
+# Sync from GitHub
+hm-sync
 
-# Or directly via curl
-curl -fsSL wsl.jfa.dev/config/zshrc -o ~/.zshrc
-source ~/.zshrc
+# Or manually
+home-manager switch --flake github:jfalava/outfitting?dir=packages/x64-linux#jfalava
 ```
 
-### Scenario 2: Update All Dotfiles
+### Scenario 2: Update Windows PowerShell Profile
 
-After making changes to multiple config files:
+After making changes to the PowerShell profile:
 
-```bash
-# WSL - Updates all with automatic backups
-curl -fsSL wsl.jfa.dev/config/all | bash
+```powershell
+# Windows - Updates with automatic backup
+irm win.jfa.dev/config/all | iex
 
-# Or use the built-in function
-update-dotfiles
+# Or update just the profile
+Invoke-WebRequest -Uri "https://win.jfa.dev/config/powershell" -OutFile $PROFILE
+. $PROFILE
 ```
 
 ### Scenario 3: Setup New Machine
@@ -131,46 +111,34 @@ update-dotfiles
 Fresh install on a new machine:
 
 ```bash
-# Full installation (installs packages, runtimes, configs)
+# WSL - Full installation
 curl -L wsl.jfa.dev | bash
 ```
 
-### Scenario 4: Selective Updates
+```powershell
+# Windows - Full installation (elevated PowerShell)
+irm win.jfa.dev | iex
 
-Update only specific configs:
-
-```bash
-# Update just ripgrep config
-curl -fsSL wsl.jfa.dev/config/ripgreprc -o ~/.ripgreprc
-
-# Update just zshrc profile
-curl -fsSL wsl.jfa.dev/config/zshrc -o ~/.zshrc
+# Windows - Post-install (non-elevated PowerShell)
+irm win.jfa.dev/post-install | iex
 ```
 
 ## Shell Functions (After Installation)
 
-The installation script adds these convenience functions to your shell:
-
 ### WSL Functions
 
+WSL dotfiles are managed by Home Manager. Use these commands:
+
 ```bash
-update-dotfiles       # Update all configs with automatic backups
-update-zshrc         # Update .zshrc only
-update-ripgreprc     # Update .ripgreprc only
+hm-sync              # Sync Home Manager config from GitHub
+hm-clean             # Clean old Home Manager generations
 ```
 
-All functions:
-
-- Create timestamped backups (`.backup.YYYYMMDD_HHMMSS`)
-- Show success/error messages
-- Provide reload instructions
-
-**Example Output:**
+**Example:**
 
 ```bash
-$ update-zshrc
-Updating .zshrc...
-Backed up current .zshrc
-✓ Updated ~/.zshrc
+$ hm-sync
+Switching to home-manager configuration...
+✓ Home Manager configuration applied
 Reload your shell with: source ~/.zshrc
 ```
