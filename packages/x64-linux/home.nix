@@ -33,8 +33,6 @@
     nodejs_latest
     python3
     zig
-    packer
-    terraform
     curl
     fd
     jq

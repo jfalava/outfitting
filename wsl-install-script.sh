@@ -115,6 +115,41 @@ sudo apt update
 sudo apt install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin -y
 
 #####
+## hashicorp repositories for terraform and packer
+#####
+sudo install -m 0755 -d /etc/apt/keyrings
+sudo curl -fsSL https://apt.releases.hashicorp.com/gpg -o /etc/apt/keyrings/hashicorp-archive-keyring.asc
+sudo chmod a+r /etc/apt/keyrings/hashicorp-archive-keyring.asc
+echo \
+    "deb [signed-by=/etc/apt/keyrings/hashicorp-archive-keyring.asc] https://apt.releases.hashicorp.com \
+    $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}") main" |
+    sudo tee /etc/apt/sources.list.d/hashicorp.list >/dev/null
+sudo apt update
+
+#####
+## github cli repository
+#####
+sudo install -m 0755 -d /etc/apt/keyrings
+sudo curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg -o /etc/apt/keyrings/githubcli-archive-keyring.gpg
+sudo chmod a+r /etc/apt/keyrings/githubcli-archive-keyring.gpg
+echo \
+    "deb [signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages \
+    stable main" |
+    sudo tee /etc/apt/sources.list.d/github-cli.list >/dev/null
+sudo apt update
+
+#####
+## charm repository for crush
+#####
+sudo install -m 0755 -d /etc/apt/keyrings
+sudo curl -fsSL https://repo.charm.sh/apt/gpg.key -o /etc/apt/keyrings/charm-archive-keyring.asc
+sudo chmod a+r /etc/apt/keyrings/charm-archive-keyring.asc
+echo \
+    "deb [signed-by=/etc/apt/keyrings/charm-archive-keyring.asc] https://repo.charm.sh/apt * *" |
+    sudo tee /etc/apt/sources.list.d/charm.list >/dev/null
+sudo apt update
+
+#####
 ## update bash profile for pnpm and deno, so LLM CLIs can be installed
 #####
 (
