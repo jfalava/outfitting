@@ -14,7 +14,7 @@
     "hono": "^4.11.0"
   },
   "devDependencies": {
-    "@typescript/native-preview": "^7.0.0-dev.20251213.1",
+    "@typescript/native-preview": "^7.0.0-dev.20251214.1",
     "oxfmt": "^0.16.0",
     "oxlint": "^1.32.0",
     "oxlint-tsgolint": "^0.8.6",
