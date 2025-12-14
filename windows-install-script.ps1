@@ -112,7 +112,7 @@ $validRegFiles = @()
 try {
     $apiResponse = Invoke-RestMethod -Uri $githubApiUrl -Method Get -Headers @{ "User-Agent" = "PowerShellScript" }
     $treeItems = $apiResponse.tree
-    $regFilePaths = $treeItems | Where-Object { $_.path -like "settings/windows/registry/*.reg" -and $_.type -eq "blob" } | ForEach-Object { $_.path }
+    $regFilePaths = $treeItems | Where-Object { $_.path -like "settings-files/windows/registry/*.reg" -and $_.type -eq "blob" } | ForEach-Object { $_.path }
 
     if ($regFilePaths.Count -gt 0) {
         Write-Host "`n❖ Discovered $($regFilePaths.Count) registry tweak(s) from GitHub repo:" -ForegroundColor Cyan
@@ -222,7 +222,7 @@ $slaveProfiles = @(
     "$env:USERPROFILE\Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1",
     "$env:USERPROFILE\Documents\PowerShell\Microsoft.VSCode_profile.ps1"
 )
-$profileUrl = "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/.config/Microsoft.PowerShell_profile.ps1"
+$profileUrl = "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/dotfiles/Microsoft.PowerShell_profile.ps1"
 
 try {
     # create directories if needed
