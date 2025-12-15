@@ -92,14 +92,6 @@ configure_outfitting_repo() {
     echo "Repository Configuration"
     echo "================================"
     echo ""
-    echo "For the best Home Manager experience, we recommend setting up a local clone"
-    echo "of the outfitting repository. This enables local development and customization."
-    echo ""
-    echo "You can skip this and use the remote configuration, but local commands"
-    echo "like 'hm-sync' won't work until you set up a local clone."
-    echo ""
-
-    # Offer choices
     echo "Setting up outfitting repository location..."
     echo ""
     
@@ -140,43 +132,6 @@ configure_outfitting_repo() {
     echo "You can now use local commands like: hm-sync, hm-switch, hm-update"
     echo "To change location later, run: setup-outfitting-repo"
     
-    return 0
-
-    # Handle the repository setup
-    if [ ! -d "$repo_path" ]; then
-        echo "Directory doesn't exist. Creating: $repo_path"
-        mkdir -p "$(dirname "$repo_path")"
-
-        echo "Cloning outfitting repository..."
-        if git clone https://github.com/jfalava/outfitting.git "$repo_path"; then
-            echo "✓ Repository cloned successfully"
-        else
-            echo "✗ Failed to clone repository"
-            return 1
-        fi
-    elif [ ! -d "$repo_path/.git" ]; then
-        echo "Error: Directory exists but is not a git repository: $repo_path"
-        return 1
-    else
-        echo "✓ Using existing repository at: $repo_path"
-    fi
-
-    # Store the configuration
-    local config_dir="$HOME/.config/outfitting"
-    local config_file="$config_dir/repo-path"
-
-    mkdir -p "$config_dir"
-    echo "$repo_path" > "$config_file"
-    chmod 600 "$config_file"
-
-    echo ""
-    echo "✓ Repository location configured successfully!"
-    echo "  Repository path: $repo_path"
-    echo "  Configuration stored in: $config_file"
-    echo ""
-    echo "You can now use local commands like: hm-sync, hm-switch, hm-update"
-    echo "To change location later, run: setup-outfitting-repo"
-
     return 0
 }
 
