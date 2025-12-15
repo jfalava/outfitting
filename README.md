@@ -81,15 +81,16 @@ After installation, you'll need to install nix-darwin for system management:
 nix run nix-darwin -- switch --flake github:jfalava/outfitting?dir=packages/aarch64-darwin
 ```
 
-**Repository Configuration:**
-During installation, you'll be prompted to configure a local repository location for the best nix-darwin experience. This enables:
+## Repository Configuration - WSL and macOS
+
+During installation, you'll be prompted to configure a local repository location for the best nix experience. This enables:
 
 - Local development and customization  
 - Commands like `hm-sync`, `hm-switch`, and `hm-update`
 - Automatic commit/push prompts when making changes
 
 **Configuration options:**
-- **Default**: `~/workspace/outfitting` (recommended)
+- **Default**: `~/workspace/outfitting`
 - **Custom**: Any location you prefer
 - **Existing**: Point to an existing clone
 - **Skip**: Use remote configuration only (local commands won't work)
@@ -133,11 +134,19 @@ home-manager switch --flake ~/path/to/your/outfitting/clone/packages/x64-linux#j
 ### Windows
 
 ```powershell
-# Update PowerShell profile
-Invoke-WebRequest -Uri "https://win.jfa.dev/config/powershell" -OutFile $PROFILE
+irm win.jfa.dev/config/pwsh-profile | iex # Update PowerShell profile with automatic backup
+```
 
-# Or update PowerShell profile with automatic backup
-irm win.jfa.dev/config/pwsh-profile | iex
+### macOS
+
+#### Sync Home Manager Configuration
+
+Update your Home Manager configuration with latest changes from your local clone (remote flakes cannot be updated and the sync does not do anything):
+
+```bash
+hm-sync
+# OR
+darwin-rebuild switch --flake ~/path/to/outfitting/clone/packages/aarch64-darwin#jfalava
 ```
 
 For detailed API documentation and more examples, see the [API config documentation](installer/docs/config-api.md).
