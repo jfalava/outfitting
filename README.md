@@ -36,7 +36,7 @@ irm win.jfa.dev/full | iex
 #### Profiles with Optional Components
 
 ```powershell
-irm win.jfa.dev/dev+qol+network | iex
+irm win.jfa.dev/<profile>+<profile>+<component> | iex # any arbitrary combination
 ```
 
 **Available base profiles:**
