@@ -8,6 +8,7 @@ $pathList = @(
     "$env:USERPROFILE\.bun\bin",
     "$env:USERPROFILE\.local\share\",
     "$env:LOCALAPPDATA\Microsoft\WinGet\Links"
+    "$env:LOCALAPPDATA\Microsoft\WinGet\Packages"
 )
 foreach ($path in $pathList) {
     if ($env:PATH -notlike "*$path*") {
