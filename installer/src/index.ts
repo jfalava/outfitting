@@ -116,7 +116,7 @@ app.get("/config/:file", async (c) => {
 app.get("/", async (c) => {
   const host = c.req.header("Host") || "";
 
-  const allowedHosts = ["wsl.jfa.dev", "win.jfa.dev"];
+  const allowedHosts = ["wsl.jfa.dev", "win.jfa.dev", "mac.jfa.dev"];
   const isAllowedHost = allowedHosts.some((allowedHost) =>
     host.includes(allowedHost),
   );
@@ -127,10 +127,21 @@ app.get("/", async (c) => {
 
   const wslScriptUrl = `${GITHUB_RAW_BASE}/wsl-install-script.sh`;
   const windowsScriptUrl = `${GITHUB_RAW_BASE}/windows-install-script.ps1`;
+  const macosScriptUrl = `${GITHUB_RAW_BASE}/macos-install-script.sh`;
 
-  const scriptUrl = host.includes("wsl.jfa.dev")
-    ? wslScriptUrl
-    : windowsScriptUrl;
+  let scriptUrl: string;
+  let contentType: string;
+
+  if (host.includes("wsl.jfa.dev")) {
+    scriptUrl = wslScriptUrl;
+    contentType = "text/x-shellscript";
+  } else if (host.includes("mac.jfa.dev")) {
+    scriptUrl = macosScriptUrl;
+    contentType = "text/x-shellscript";
+  } else {
+    scriptUrl = windowsScriptUrl;
+    contentType = "application/x-powershell";
+  }
 
   console.log("Script URL:", scriptUrl);
 
@@ -147,9 +158,6 @@ app.get("/", async (c) => {
   }
 
   const scriptContent = await response.text();
-  const contentType = host.includes("wsl.jfa.dev")
-    ? "text/x-shellscript"
-    : "application/x-powershell";
 
   console.log("Content-Type:", contentType);
 

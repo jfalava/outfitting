@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# ========================================
+# WSL Outfitting Installation Script
+# ========================================
+
 UPDATE_ONLY=false
 if [[ "$1" == "--update-only" ]]; then
     UPDATE_ONLY=true

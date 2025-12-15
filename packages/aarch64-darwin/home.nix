@@ -5,7 +5,7 @@
 
   # Home Manager needs a bit of information about you and the paths it should manage
   home.username = "jfalava";
-  home.homeDirectory = "/home/jfalava";
+  home.homeDirectory = "/Users/jfalava";
 
   # This value determines the Home Manager release that your configuration is
   # compatible with. This helps avoid breakage when a new Home Manager release
@@ -21,6 +21,7 @@
     ripgrep
     starship
     tree
+    btop
     zoxide
     zsh
     zsh-autosuggestions
@@ -38,17 +39,18 @@
     less
     shellcheck
     zip
-    _7zz # 7zip
     p7zip
     unrar
     nixd
     nil
+    pnpm
     opencode
     gemini-cli
     codex
     claude-code
     qwen-code
-    pnpm
+    ghostty
+    zed-editor
   ];
 
   # Home Manager can also manage your environment variables through
@@ -85,11 +87,12 @@
     "${config.home.homeDirectory}/.local/share/uv/bin"
     "${config.home.homeDirectory}/.opencode/bin"
     "${config.home.homeDirectory}/.cargo/bin"
+    "/opt/homebrew/bin"
   ];
 
   # Dotfiles management - symlink your dotfiles to home directory
   home.file = {
-    ".zshrc".source = ../../dotfiles/.zshrc-wsl;
+    ".zshrc".source = ../../dotfiles/.zshrc-macos;
   };
 
   # Program-specific configurations using Home Manager modules

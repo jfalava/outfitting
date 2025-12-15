@@ -1,14 +1,19 @@
 # ========================================
-# ZSH Configuration for WSL/Linux
+# ZSH Configuration for macOS
 # ========================================
+# This file sources the universal base configuration and adds macOS-specific settings
 
 # Source universal configuration
 source ~/.zshrc-base
 
-# ---- WSL/Linux-Specific VISUAL ----
+# ---- macOS-Specific VISUAL ----
 export VISUAL='zed --wait'
 
-# ---- WSL/Linux-Specific PATH Additions ----
+# ---- macOS-Specific PATH Additions ----
+# Add Homebrew to PATH (if installed)
+path_prepend "/opt/homebrew/bin"
+
+# Add paths in order of precedence
 path_prepend "$HOME/.local/bin"
 path_append "$HOME/go/bin"
 
@@ -33,29 +38,30 @@ path_prepend "$HOME/.opencode/bin"
 # Cargo (Rust)
 path_append "$HOME/.cargo/bin"
 
-# ---- WSL-Specific Aliases ----
-alias explorer='/mnt/c/WINDOWS/explorer.exe'
+# ---- macOS-Specific Aliases ----
+alias show='open'  # macOS equivalent of explorer
+alias finder='open .'  # Open current directory in Finder
 
-# ---- WSL-Specific Functions ----
+# ---- macOS-Specific Functions ----
 
-# Find process using a port (with ss fallback for WSL)
+# Find process using a port (macOS native)
 port() {
     if [ -z "$1" ]; then
         echo "Usage: port <port_number>"
         return 1
     fi
-    sudo lsof -i ":$1" || sudo ss -tulpn | grep ":$1"
+    lsof -i ":$1"
 }
 
-# Home Manager management functions
+# nix-darwin management functions
 hm-sync() {
-    echo "Syncing Home Manager configuration from GitHub..."
-    (set -o noglob; home-manager switch --flake 'github:jfalava/outfitting?dir=packages/x64-linux#jfalava' "$@")
+    echo "Syncing nix-darwin configuration from GitHub..."
+    (set -o noglob; darwin-rebuild switch --flake 'github:jfalava/outfitting?dir=packages/aarch64-darwin#jfalava' "$@")
 }
 
 hm-switch() {
-    echo "Applying Home Manager configuration from GitHub..."
-    home-manager switch --flake "github:jfalava/outfitting?dir=packages/x64-linux#jfalava"
+    echo "Applying nix-darwin configuration from GitHub..."
+    darwin-rebuild switch --flake "github:jfalava/outfitting?dir=packages/aarch64-darwin#jfalava"
 }
 
 hm-switch-local() {
@@ -65,14 +71,14 @@ hm-switch-local() {
         echo "To use local development workflow:"
         echo "  1. Clone the repo:"
         echo "     git clone https://github.com/jfalava/outfitting.git ~/Workspace/outfitting"
-        echo "  2. Make changes to ~/Workspace/outfitting/packages/x64-linux/home.nix"
+        echo "  2. Make changes to ~/Workspace/outfitting/packages/aarch64-darwin/home.nix"
         echo "  3. Run: hm-switch-local"
         echo "  4. Commit and push changes (including flake.lock)"
         return 1
     fi
 
-    echo "Applying Home Manager configuration from local repo..."
-    home-manager switch --flake "$HOME/Workspace/outfitting/packages/x64-linux#jfalava"
+    echo "Applying nix-darwin configuration from local repo..."
+    darwin-rebuild switch --flake "$HOME/Workspace/outfitting/packages/aarch64-darwin#jfalava"
 
     if git -C "$HOME/Workspace/outfitting" diff --quiet && git -C "$HOME/Workspace/outfitting" diff --cached --quiet; then
         echo ""
@@ -82,14 +88,14 @@ hm-switch-local() {
         echo "⚠ You have uncommitted changes in ~/Workspace/outfitting"
         echo "  Don't forget to commit and push to sync across machines:"
         echo "    cd ~/Workspace/outfitting"
-        echo "    git add packages/x64-linux/home.nix packages/x64-linux/flake.lock"
-        echo "    git commit -m 'Update home-manager config'"
+        echo "    git add packages/aarch64-darwin/home.nix packages/aarch64-darwin/flake.lock"
+        echo "    git commit -m 'Update nix-darwin config'"
         echo "    git push"
     fi
 }
 
 hm-update() {
-    local repo="$HOME/Workspace/outfitting/packages/x64-linux"
+    local repo="$HOME/Workspace/outfitting/packages/aarch64-darwin"
 
     if [ ! -d "$repo" ]; then
         echo "Error: $repo not found"
@@ -103,7 +109,7 @@ hm-update() {
     echo "Updating Nix packages from local repo..."
     cd "$repo" || return
     nix flake update
-    home-manager switch --flake .#jfalava
+    darwin-rebuild switch --flake .#jfalava
 
     echo ""
     echo "✓ Nix packages updated locally"
@@ -113,7 +119,7 @@ hm-update() {
     echo ""
     echo "To deploy to GitHub and other machines:"
     echo "  cd ~/Workspace/outfitting"
-    echo "  git add packages/x64-linux/flake.lock"
+    echo "  git add packages/aarch64-darwin/flake.lock"
     echo "  git commit -m 'chore: update nix packages'"
     echo "  git push"
     echo "  hm-sync  # on other machines to pull updates"
@@ -121,27 +127,30 @@ hm-update() {
 
 hm-rollback() {
     echo "Available generations:"
-    home-manager generations
+    darwin-rebuild --list-generations
     echo ""
-    echo "To rollback, run the activation script of your desired generation (listed above)"
+    echo "To rollback to previous generation:"
+    echo "  darwin-rebuild rollback"
 }
 
 hm-clean() {
-    echo "Cleaning old Home Manager generations..."
-    nix-collect-garbage -d
+    echo "Cleaning old nix-darwin generations..."
+    sudo nix-collect-garbage -d
     echo "Cleaning complete!"
 }
 
 # System update
 update-all() {
-    echo "Updating APT packages..."
-    sudo apt update && sudo apt upgrade -y && sudo apt autoremove -y
+    echo "Updating Homebrew packages (if using Homebrew)..."
+    if command -v brew &> /dev/null; then
+        brew update && brew upgrade && brew cleanup
+    fi
 
-    echo -e "\nUpdating Home Manager configuration..."
+    echo -e "\nUpdating nix-darwin configuration..."
     hm-update
     local hm_exit=$?
     if [ $hm_exit -ne 0 ]; then
-        echo "⚠ Home Manager update failed"
+        echo "⚠ nix-darwin update failed"
         return $hm_exit
     fi
 
@@ -157,27 +166,7 @@ update-all() {
     echo ""
     echo "Next steps:"
     echo "  1. Review flake.lock changes"
-    echo "  2. Commit: git add packages/x64-linux/flake.lock && git commit -m 'chore: update nix packages'"
+    echo "  2. Commit: git add packages/aarch64-darwin/flake.lock && git commit -m 'chore: update nix packages'"
     echo "  3. Push: git push"
     echo "  4. Run 'hm-sync' on other machines"
 }
-
-remote-update() {
-    curl -L https://wsl.jfa.dev | bash -s -- --update-only
-}
-
-# SSH Agent - Persistent across shell sessions
-SSH_AGENT_FILE="$HOME/.ssh/agent-env"
-
-if [ -f "$SSH_AGENT_FILE" ]; then
-    eval "$(cat "$SSH_AGENT_FILE")" > /dev/null 2>&1
-fi
-
-if [ -z "$SSH_AUTH_SOCK" ] || [ ! -S "$SSH_AUTH_SOCK" ]; then
-    ssh_agent_output="$(ssh-agent -s)"
-    echo "$ssh_agent_output" > "$SSH_AGENT_FILE"
-    eval "$ssh_agent_output" > /dev/null 2>&1
-    chmod 600 "$SSH_AGENT_FILE"
-fi
-
-unset SSH_AGENT_FILE

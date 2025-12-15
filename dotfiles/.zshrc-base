@@ -1,0 +1,354 @@
+# ========================================
+# ZSH Configuration - Base (Universal)
+# ========================================
+# This is the universal configuration shared across all platforms (WSL, macOS, etc.)
+# Platform-specific configuration is sourced after this file.
+# See: .zshrc-wsl or .zshrc-macos
+
+# ---- Performance: Lazy Completion Init ----
+autoload -Uz compinit
+if [[ -n "${ZDOTDIR}/.zcompdump(#qN.mh+24)" ]]; then
+    compinit
+else
+    compinit -C
+fi
+
+# ---- Shell Options ----
+# Directory navigation
+setopt AUTO_CD              # cd by typing directory name
+setopt AUTO_PUSHD           # Make cd push old directory onto stack
+setopt PUSHD_IGNORE_DUPS    # Don't push duplicates
+setopt PUSHD_SILENT         # Don't print directory stack
+setopt CDABLE_VARS          # cd to path stored in variable
+
+# Globbing
+setopt EXTENDED_GLOB        # Extended globbing (^, ~, #)
+setopt GLOB_DOTS            # Include dotfiles in glob
+setopt NOMATCH              # Print error if pattern has no matches
+
+# General
+setopt INTERACTIVE_COMMENTS # Allow comments in interactive shell
+setopt NOTIFY               # Report bg job status immediately
+setopt NO_BEEP              # Disable beep
+
+# ---- History Configuration ----
+HISTFILE=~/.zsh_history
+HISTSIZE=50000
+SAVEHIST=50000
+
+setopt EXTENDED_HISTORY          # Write timestamp to history
+setopt INC_APPEND_HISTORY        # Write immediately, not on exit
+setopt SHARE_HISTORY             # Share history across terminals
+setopt HIST_EXPIRE_DUPS_FIRST    # Expire duplicates first
+setopt HIST_IGNORE_DUPS          # Don't record duplicates
+setopt HIST_IGNORE_ALL_DUPS      # Delete old duplicate entries
+setopt HIST_FIND_NO_DUPS         # Don't display duplicates in search
+setopt HIST_IGNORE_SPACE         # Ignore commands starting with space
+setopt HIST_SAVE_NO_DUPS         # Don't write duplicate entries
+setopt HIST_REDUCE_BLANKS        # Remove superfluous blanks
+setopt HIST_VERIFY               # Show command before executing from history
+
+# ---- Environment Variables (Universal) ----
+export EDITOR='vim'
+export PAGER='less'
+
+# Better colors for less/man pages
+export LESS='-R -M -i -j10'
+export LESS_TERMCAP_mb=$'\e[1;31m'     # begin bold
+export LESS_TERMCAP_md=$'\e[1;36m'     # begin blink
+export LESS_TERMCAP_me=$'\e[0m'        # reset bold/blink
+export LESS_TERMCAP_so=$'\e[01;44;33m' # begin reverse video
+export LESS_TERMCAP_se=$'\e[0m'        # reset reverse video
+export LESS_TERMCAP_us=$'\e[1;32m'     # begin underline
+export LESS_TERMCAP_ue=$'\e[0m'        # reset underline
+
+# ---- PATH Helper Functions ----
+path_append() {
+    if [[ -d "$1" ]] && [[ ":$PATH:" != *":$1:"* ]]; then
+        export PATH="$PATH:$1"
+    fi
+}
+
+path_prepend() {
+    if [[ -d "$1" ]] && [[ ":$PATH:" != *":$1:"* ]]; then
+        export PATH="$1:$PATH"
+    fi
+}
+
+# ---- Completion Configuration ----
+zstyle ':completion:*' menu select                          # Interactive menu
+zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}'  # Case insensitive
+zstyle ':completion:*' list-colors "${(s.:.)LS_COLORS}"    # Colored completion
+zstyle ':completion:*' group-name ''                        # Group by category
+zstyle ':completion:*' verbose yes
+zstyle ':completion:*:descriptions' format '%F{yellow}-- %d --%f'
+zstyle ':completion:*:messages' format '%F{purple}-- %d --%f'
+zstyle ':completion:*:warnings' format '%F{red}-- no matches found --%f'
+zstyle ':completion:*:corrections' format '%F{green}-- %d (errors: %e) --%f'
+
+# Cache completion for better performance
+zstyle ':completion:*' use-cache on
+zstyle ':completion:*' cache-path ~/.zsh/cache
+
+# Better completion for specific commands
+zstyle ':completion:*:*:docker:*' option-stacking yes
+zstyle ':completion:*:*:docker-*:*' option-stacking yes
+zstyle ':completion:*:*:git:*' script ~/.nix-profile/share/git/contrib/completion/git-completion.zsh 2>/dev/null
+
+# ---- Aliases (Universal) ----
+# System
+alias cls='clear'
+alias editor='zed --wait'
+alias EDITOR='zed --wait'
+alias reload='source ~/.zshrc'
+alias zshconfig='$EDITOR ~/.zshrc'
+alias vim='nvim'
+
+# Navigation shortcuts
+alias ..='cd ..'
+alias ...='cd ../..'
+alias ....='cd ../../..'
+alias .....='cd ../../../..'
+alias -- -='cd -'
+
+# Eza (modern ls replacement)
+alias l='eza --color=always --long --git --no-filesize --icons=always'
+alias ls='eza --color=always --long --git --no-filesize --icons=always --all --color-scale-mode=gradient'
+alias la='eza --color=always --long --git --icons=always --all --group-directories-first'
+alias ll='eza --color=always --long --git --icons=always --header --group-directories-first'
+alias lt='eza --color=always --long --git --icons=always --tree --level=2'
+alias lta='eza --color=always --long --git --icons=always --tree --level=2 --all'
+
+# Python/uv
+if command -v uv &> /dev/null; then
+    alias pip='uv pip'
+    alias python='uv run python'
+    alias py='uv run python'
+fi
+
+# cf dev
+alias wrangler="bun wrangler"
+
+# Misc tools
+alias ff='fastfetch'
+alias cat='bat --style=auto' 2>/dev/null || alias cat='cat'
+alias diff='diff --color=auto'
+alias -s ts='bun'
+
+# Ripgrep (preferred over grep)
+if command -v rg &> /dev/null; then
+    alias grep='rg'
+    alias rgi='rg -i'                          # Case insensitive
+    alias rgl='rg --files-with-matches'        # Only show filenames
+    alias rgc='rg --count'                     # Count matches per file
+    alias rgh='rg --hidden'                    # Include hidden files
+    alias rgz='rg -z'                          # Search in compressed files
+    alias rgt='rg --type-list'                 # Show supported file types
+    alias rgpy='rg --type py'                  # Python files only
+    alias rgjs='rg --type js'                  # JavaScript files only
+    alias rgts='rg --type ts'                  # TypeScript files only
+    alias rggo='rg --type go'                  # Go files only
+    alias rgrs='rg --type rust'                # Rust files only
+else
+    alias grep='grep --color=auto'
+fi
+
+# ---- Functions (Universal) ----
+
+# Smart cd that also lists contents
+unalias cd 2>/dev/null || true
+cd() {
+    builtin cd "$@" && ls
+}
+
+# Create directory and cd into it
+mkcd() {
+    mkdir -p "$1" && cd "$1"
+}
+
+# Extract any archive
+extract() {
+    if [ -f "$1" ]; then
+        case "$1" in
+            *.tar.bz2)   tar xjf "$1"     ;;
+            *.tar.gz)    tar xzf "$1"     ;;
+            *.bz2)       bunzip2 "$1"     ;;
+            *.rar)       unrar x "$1"     ;;
+            *.gz)        gunzip "$1"      ;;
+            *.tar)       tar xf "$1"      ;;
+            *.tbz2)      tar xjf "$1"     ;;
+            *.tgz)       tar xzf "$1"     ;;
+            *.zip)       unzip "$1"       ;;
+            *.Z)         uncompress "$1"  ;;
+            *.7z)        7z x "$1"        ;;
+            *.tar.xz)    tar xf "$1"      ;;
+            *)           echo "'$1' cannot be extracted via extract()" ;;
+        esac
+    else
+        echo "'$1' is not a valid file"
+    fi
+}
+
+# Quick weather
+weather() {
+    local location="${1:-}"
+    curl -s "wttr.in/${location}?format=3"
+}
+
+# Git: Quick commit all
+gac() {
+    git add --all && git commit -m "$*"
+}
+
+# Git: Quick push
+gacp() {
+    git add --all && git commit -m "$*" && git push
+}
+
+# Docker: Enter running container
+denter() {
+    if [ -z "$1" ]; then
+        echo "Usage: denter <container_name_or_id>"
+        return 1
+    fi
+    docker exec -it "$1" /bin/bash || docker exec -it "$1" /bin/sh
+}
+
+# Docker: Stop all containers
+dstop() {
+    docker stop $(docker ps -q)
+}
+
+# Show directory size sorted
+dirsize() {
+    du -sh */ 2>/dev/null | sort -h
+}
+
+# Backup file with timestamp
+backup() {
+    if [ -z "$1" ]; then
+        echo "Usage: backup <file>"
+        return 1
+    fi
+    cp "$1" "${1}.backup.$(date +%Y%m%d_%H%M%S)"
+}
+
+# Dotfile and zshrc update docs
+update-dotfiles() {
+    echo "Dotfiles are now managed by Nix (via home-manager or nix-darwin)!"
+    echo "To update dotfiles:"
+    echo "  1. Edit files in ~/Workspace/outfitting/dotfiles/"
+    echo "  2. Commit changes: git add . && git commit"
+    echo "  3. Run: hm-sync"
+}
+
+# Ripgrep functions
+if command -v rg &> /dev/null; then
+    # Search and edit results in editor
+    rge() {
+        if [ -z "$1" ]; then
+            echo "Usage: rge <pattern> [path]"
+            return 1
+        fi
+        local files=$(rg --files-with-matches "$1" "${2:-.}")
+        if [ -n "$files" ]; then
+            echo "$files" | xargs $EDITOR
+        else
+            echo "No matches found"
+        fi
+    }
+
+    # Search with context (5 lines before/after)
+    rgx() {
+        rg --context 5 "$@"
+    }
+
+    # Search for TODO/FIXME/XXX/HACK comments
+    todos() {
+        rg --heading --line-number --color=always \
+            "TODO|FIXME|XXX|HACK|BUG|NOTE" "${1:-.}"
+    }
+
+    # Search for function/class definitions
+    rgfunc() {
+        if [ -z "$1" ]; then
+            echo "Usage: rgfunc <function_name> [path]"
+            return 1
+        fi
+        rg --heading --line-number \
+            "(function|def|class|fn|func|const|let|var)\s+$1" \
+            "${2:-.}"
+    }
+
+    # Search with stats (count + files)
+    rgstats() {
+        if [ -z "$1" ]; then
+            echo "Usage: rgstats <pattern> [path]"
+            return 1
+        fi
+        echo "=== Match Statistics ==="
+        rg --count --heading "$1" "${2:-.}"
+        echo ""
+        echo "=== Total Matches ==="
+        rg --count-matches "$1" "${2:-.}" | awk -F: '{sum+=$2} END {print sum " total matches"}'
+    }
+fi
+
+# ---- Plugin Loading ----
+if [ -f $HOME/.nix-profile/share/zsh-autosuggestions/zsh-autosuggestions.zsh ]; then
+    source $HOME/.nix-profile/share/zsh-autosuggestions/zsh-autosuggestions.zsh
+    ZSH_AUTOSUGGEST_STRATEGY=(history completion)
+    ZSH_AUTOSUGGEST_BUFFER_MAX_SIZE=20
+fi
+
+if [ -f $HOME/.nix-profile/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh ]; then
+    source $HOME/.nix-profile/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+    ZSH_HIGHLIGHT_STYLES[command]='fg=green,bold'
+    ZSH_HIGHLIGHT_STYLES[alias]='fg=cyan,bold'
+    ZSH_HIGHLIGHT_STYLES[builtin]='fg=yellow,bold'
+    ZSH_HIGHLIGHT_STYLES[function]='fg=blue,bold'
+fi
+
+# ---- Tool Initialization ----
+# Nix - Try daemon first, then single-user profile
+if [ -e /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh ]; then
+    source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
+elif [ -e ~/.nix-profile/etc/profile.d/nix.sh ]; then
+    source ~/.nix-profile/etc/profile.d/nix.sh
+fi
+
+# Zoxide (smart cd)
+if command -v zoxide &> /dev/null; then
+    eval "$(zoxide init zsh)"
+fi
+
+# FZF (fuzzy finder)
+if command -v fzf &> /dev/null; then
+    export FZF_DEFAULT_OPTS='
+        --height 40%
+        --layout=reverse
+        --border
+        --inline-info
+        --color=fg:#f8f8f2,bg:#282a36,hl:#bd93f9
+        --color=fg+:#f8f8f2,bg+:#44475a,hl+:#bd93f9
+        --color=info:#ffb86c,prompt:#50fa7b,pointer:#ff79c6
+        --color=marker:#ff79c6,spinner:#ffb86c,header:#6272a4'
+
+    if command -v fd &> /dev/null; then
+        export FZF_DEFAULT_COMMAND='fd --type f --hidden --follow --exclude .git'
+        export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
+        export FZF_ALT_C_COMMAND='fd --type d --hidden --follow --exclude .git'
+    fi
+
+    source <(fzf --zsh) 2>/dev/null
+fi
+
+# Starship prompt (must be near the end)
+if command -v starship &> /dev/null; then
+    eval "$(starship init zsh)"
+fi
+
+# Bun completions
+if command -v bun &> /dev/null; then
+    [ -s "$HOME/.bun/_bun" ] && source "$HOME/.bun/_bun"
+fi

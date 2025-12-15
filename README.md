@@ -46,7 +46,7 @@ curl -L wsl.jfa.dev | bash
 If you've added new repositories or APT packages to the installation script, update them without reinstalling existing tools:
 
 ```bash
-wsl-update
+remote-update
 # OR
 curl -L https://wsl.jfa.dev | bash -s -- --update-only
 ```
