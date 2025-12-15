@@ -4,20 +4,46 @@
 # WSL Outfitting Installation Script
 # ========================================
 
-UPDATE_ONLY=false
-if [[ "$1" == "--update-only" ]]; then
-    UPDATE_ONLY=true
-fi
+UPDATE_ONLY=true
+NIX_ONLY=true
 
-if [[ "$UPDATE_ONLY" == "false" ]]; then
-    echo "Running full WSL setup..."
-else
+# Parse command line arguments for override flags
+for arg in "$@"; do
+    case "$arg" in
+        --full-install)
+            UPDATE_ONLY=false
+            NIX_ONLY=false
+            ;;
+        --update-only)
+            UPDATE_ONLY=true
+            NIX_ONLY=false
+            ;;
+        --nix-only)
+            UPDATE_ONLY=false
+            NIX_ONLY=true
+            ;;
+    esac
+done
+
+if [[ "$UPDATE_ONLY" == "true" && "$NIX_ONLY" == "true" ]]; then
+    echo "Running default mode (update + nix-only, skipping APT installs)..."
+elif [[ "$UPDATE_ONLY" == "true" && "$NIX_ONLY" == "false" ]]; then
     echo "Running update-only mode..."
+elif [[ "$UPDATE_ONLY" == "false" && "$NIX_ONLY" == "true" ]]; then
+    echo "Running nix-only mode (skipping APT installs)..."
+else
+    echo "Running full WSL setup..."
 fi
 
+if [[ "$NIX_ONLY" == "false" ]]; then
 ## init
 sudo apt update -y && sudo apt upgrade -y && sudo apt install -y curl
+else
+## minimal init for nix-only mode
+sudo apt install -y curl
+fi
 
+if [[ "$NIX_ONLY" == "false" ]]; then
 #####
 ## install apt packages
 #####
@@ -36,6 +62,7 @@ done </tmp/apt-packages.txt
 
 ## cleanup
 sudo apt autoremove -y
+fi
 
 if [[ "$UPDATE_ONLY" == "false" ]]; then
 
@@ -248,6 +275,7 @@ deno jupyter --install # if the deno flake fails to install, this will fail grac
 curl -LsSf https://astral.sh/uv/install.sh | sh
 fi
 
+if [[ "$NIX_ONLY" == "false" ]]; then
 #####
 ## docker
 #####
@@ -262,7 +290,9 @@ echo \
     sudo tee /etc/apt/sources.list.d/docker.list >/dev/null
 sudo apt update
 sudo apt install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin -y
+fi
 
+if [[ "$NIX_ONLY" == "false" ]]; then
 #####
 ## hashicorp repositories for terraform and packer
 #####
@@ -274,7 +304,9 @@ echo \
     $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}") main" |
     sudo tee /etc/apt/sources.list.d/hashicorp.list >/dev/null
 sudo apt update
+fi
 
+if [[ "$NIX_ONLY" == "false" ]]; then
 #####
 ## github cli repository
 #####
@@ -286,7 +318,9 @@ echo \
     stable main" |
     sudo tee /etc/apt/sources.list.d/github-cli.list >/dev/null
 sudo apt update && sudo apt install gh
+fi
 
+if [[ "$NIX_ONLY" == "false" ]]; then
 #####
 ## charm repository for crush
 #####
@@ -297,6 +331,7 @@ echo \
     "deb [signed-by=/etc/apt/keyrings/charm-archive-keyring.asc] https://repo.charm.sh/apt * *" |
     sudo tee /etc/apt/sources.list.d/charm.list >/dev/null
 sudo apt update && sudo apt install crush
+fi
 
 ## prevent agent-env ENOENT error on first new terminal session
 mkdir ~/.ssh
@@ -304,7 +339,11 @@ mkdir ~/.ssh
 ## end message and validation
 echo ""
 echo "================================"
-echo "Installation Complete!"
+if [[ "$NIX_ONLY" == "true" ]]; then
+    echo "Nix-only Installation Complete!"
+else
+    echo "Installation Complete!"
+fi
 echo "================================"
 echo ""
 
@@ -380,3 +419,20 @@ else
     echo "  - Run 'home-manager switch --flake github:jfalava/outfitting?dir=packages/x64-linux#jfalava' to reapply configuration"
 fi
 echo ""
+echo "================================"
+echo "Usage Notes:"
+echo "================================"
+echo "Default behavior (curl -L wsl.jfa.dev | bash):"
+echo "  - Updates repositories and Nix packages only"
+echo "  - Skips APT package installations"
+echo "  - Fast and safe for existing setups"
+echo ""
+echo "Override flags:"
+echo "  --full-install  : Install everything (APT packages + Nix)"
+echo "  --update-only   : Update repositories and APT packages"
+echo "  --nix-only      : Nix installation only (skip APT)"
+echo ""
+echo "Examples:"
+echo "  curl -L wsl.jfa.dev | bash                    # Default: update + nix-only"
+echo "  curl -L wsl.jfa.dev | bash -s -- --full-install  # Full installation"
+echo "  curl -L wsl.jfa.dev | bash -s -- --update-only   # Update APT packages"

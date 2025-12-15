@@ -61,7 +61,33 @@ irm win.jfa.dev/<profile>+<profile>+<component> | iex # any arbitrary combinatio
 > This is designed **exclusively** for `apt`-based Linux distributions **and** only tested on Ubuntu and Ubuntu 24.04.
 
 ```sh
-curl -L wsl.jfa.dev | bash
+curl -L https://wsl.jfa.dev | bash
+```
+
+> [!NOTE]
+> The default installation now runs in **update + nix-only mode** (skips APT packages for faster, safer updates). Use `--full-install` for complete installation including APT packages.
+
+#### Installation Modes
+
+**Default** (recommended for existing setups):
+```bash
+curl -L https://wsl.jfa.dev | bash
+```
+- Updates repositories and Nix packages
+- Skips APT installations
+- Applies Home Manager configuration
+
+**Full installation** (for new setups):
+```bash
+curl -L https://wsl.jfa.dev | bash -s -- --full-install
+```
+- Complete installation including APT packages
+- Use this for first-time installations
+
+**Other modes**:
+```bash
+curl -L https://wsl.jfa.dev | bash -s -- --update-only   # APT packages only
+curl -L https://wsl.jfa.dev | bash -s -- --nix-only      # Nix only
 ```
 
 ### macOS
@@ -106,15 +132,44 @@ setup-outfitting-repo
 
 ### WSL
 
-#### Update Repositories and APT Packages
+#### Default Update
 
-Install newly added `apt` packages to the [apt list](packages/x64-linux/apt.txt):
+Fast and safe update that skips APT packages:
 
+```bash
+curl -L https://wsl.jfa.dev | bash
+```
+
+This will:
+- Update repositories and Nix packages
+- Skip APT package installations (faster, safer)
+- Apply Home Manager configuration changes
+
+#### Installation Modes
+
+**Default mode** (update + nix-only):
+```bash
+curl -L https://wsl.jfa.dev | bash
+```
+
+**Full installation** (includes APT packages):
+```bash
+curl -L https://wsl.jfa.dev | bash -s -- --full-install
+```
+
+**Update APT packages only**:
 ```bash
 remote-update
 # OR
 curl -L https://wsl.jfa.dev | bash -s -- --update-only
 ```
+
+**Nix-only installation**:
+```bash
+curl -L https://wsl.jfa.dev | bash -s -- --nix-only
+```
+
+#### Legacy Update Command
 
 This will:
 - Add any new repositories
