@@ -69,9 +69,33 @@ curl -L wsl.jfa.dev | bash
 > [!IMPORTANT]
 > This is designed for macOS and installs Nix package manager using the Determinate Systems installer.
 
+> [!NOTE]
+> You need `cURL` to execute this command.
+
 ```sh
 curl -L mac.jfa.dev | bash
 ```
+
+## Repository Configuration
+
+During WSL installation, you'll be prompted to configure a local repository location for the best Home Manager experience. This enables:
+
+- Local development and customization
+- Commands like `hm-sync`, `hm-switch`, and `hm-update`
+- Automatic commit/push prompts when making changes
+
+**Configuration options:**
+- **Default**: `~/workspace/outfitting` (recommended)
+- **Custom**: Any location you prefer
+- **Existing**: Point to an existing clone
+- **Skip**: Use remote configuration only (local commands won't work)
+
+**To configure later or change location:**
+```bash
+setup-outfitting-repo
+```
+
+**Configuration is stored in**: `~/.config/outfitting/repo-path`
 
 ## Updating After Installation
 
@@ -94,13 +118,15 @@ This will:
 
 #### Sync Home Manager Configuration
 
-Update your Home Manager configuration with latest changes from GitHub:
+Update your Home Manager configuration with latest changes from your local clone (prompts to commit and push if changes exist):
 
 ```bash
 hm-sync
 # OR
-home-manager switch --flake github:jfalava/outfitting?dir=packages/x64-linux#jfalava
+home-manager switch --flake ~/path/to/your/outfitting/clone/packages/x64-linux#jfalava
 ```
+
+**Note**: The WSL installer will prompt you to configure a local repository location during installation. You can skip this and use remote configuration, but local commands like `hm-sync` require a local clone. To set up later, run `setup-outfitting-repo`.
 
 ### Windows
 

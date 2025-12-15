@@ -141,11 +141,18 @@ irm win.jfa.dev/post-install | iex
 WSL dotfiles are managed by Home Manager. To update:
 
 ```bash
-# Sync from GitHub
+# Sync from local clone (prompts to commit and push if changes exist)
 hm-sync
 
-# Or manually
-home-manager switch --flake github:jfalava/outfitting?dir=packages/x64-linux#jfalava
+# Or manually from local clone (path configured during installation)
+home-manager switch --flake ~/path/to/outfitting/clone/packages/x64-linux#jfalava
+```
+
+**Repository Configuration:**
+During WSL installation, you'll be prompted to configure a local repository location. This enables local development and commands like `hm-sync`. To set up later:
+
+```bash
+setup-outfitting-repo
 ```
 
 ### Scenario 2: Update Windows PowerShell Profile
@@ -190,9 +197,16 @@ irm win.jfa.dev/post-install | iex
 WSL dotfiles are managed by Home Manager. Use these commands:
 
 ```bash
-hm-sync              # Sync Home Manager config from GitHub
-hm-clean             # Clean old Home Manager generations
+setup-outfitting-repo # Configure local repository location (run once)
+hm-sync               # Sync Home Manager config from local clone (prompts to commit/push)
+hm-switch             # Apply Home Manager config from local clone
+hm-switch-local       # Apply from local clone with git status check
+hm-update             # Update Nix packages locally with git workflow
+hm-clean              # Clean old Home Manager generations
 ```
+
+**Repository Configuration:**
+Local repository location is configured during installation and stored in `~/.config/outfitting/repo-path`. All local commands use this configuration automatically.
 
 **Example:**
 

@@ -38,6 +38,110 @@ done </tmp/apt-packages.txt
 sudo apt autoremove -y
 
 if [[ "$UPDATE_ONLY" == "false" ]]; then
+
+#####
+## Configure outfitting repository location
+#####
+configure_outfitting_repo() {
+    echo ""
+    echo "================================"
+    echo "Repository Configuration"
+    echo "================================"
+    echo ""
+    echo "For the best Home Manager experience, we recommend setting up a local clone"
+    echo "of the outfitting repository. This enables local development and customization."
+    echo ""
+    echo "You can skip this and use the remote configuration, but local commands"
+    echo "like 'hm-sync' won't work until you set up a local clone."
+    echo ""
+    
+    # Offer choices
+    echo "Where would you like to keep the outfitting repository?"
+    echo ""
+    echo "  1) Default location: ~/workspace/outfitting"
+    echo "  2) Choose custom location"
+    echo "  3) Specify existing clone"
+    echo "  s) Skip for now (use remote flake only)"
+    echo ""
+    
+    while true; do
+        read -p "Select option (1-3, s): " choice
+        
+        case "$choice" in
+            1)
+                repo_path="$HOME/workspace/outfitting"
+                break
+                ;;
+            2)
+                read -e -p "Enter custom path: " repo_path
+                if [ -z "$repo_path" ]; then
+                    echo "Error: No path provided"
+                    continue
+                fi
+                break
+                ;;
+            3)
+                read -e -p "Enter existing clone path: " repo_path
+                if [ -z "$repo_path" ]; then
+                    echo "Error: No path provided"
+                    continue
+                fi
+                break
+                ;;
+            s|S)
+                echo "Skipped. You can set up local repository later with: setup-outfitting-repo"
+                return 0
+                ;;
+            *)
+                echo "Invalid option. Please choose 1-3 or s."
+                continue
+                ;;
+        esac
+    done
+    
+    # Handle the repository setup
+    if [ ! -d "$repo_path" ]; then
+        echo "Directory doesn't exist. Creating: $repo_path"
+        mkdir -p "$(dirname "$repo_path")"
+        
+        echo "Cloning outfitting repository..."
+        if git clone https://github.com/jfalava/outfitting.git "$repo_path"; then
+            echo "✓ Repository cloned successfully"
+        else
+            echo "✗ Failed to clone repository"
+            return 1
+        fi
+    elif [ ! -d "$repo_path/.git" ]; then
+        echo "Error: Directory exists but is not a git repository: $repo_path"
+        return 1
+    else
+        echo "✓ Using existing repository at: $repo_path"
+    fi
+    
+    # Store the configuration
+    local config_dir="$HOME/.config/outfitting"
+    local config_file="$config_dir/repo-path"
+    
+    mkdir -p "$config_dir"
+    echo "$repo_path" > "$config_file"
+    chmod 600 "$config_file"
+    
+    echo ""
+    echo "✓ Repository location configured successfully!"
+    echo "  Repository path: $repo_path"
+    echo "  Configuration stored in: $config_file"
+    echo ""
+    echo "You can now use local commands like: hm-sync, hm-switch, hm-update"
+    echo "To change location later, run: setup-outfitting-repo"
+    
+    return 0
+}
+
+# Call the configuration function
+configure_outfitting_repo
+
+echo ""
+
 #####
 ## nix
 #####
@@ -76,17 +180,38 @@ max-jobs = auto
 EOF
 
 ## install home-manager and apply configuration
-if command -v nix &> /dev/null; then
+if command -v nix >/dev/null; then
     echo "Installing Home Manager and applying configuration..."
-    # Use 'switch' instead of 'init' to use the GitHub flake configuration directly
-    nix run "github:nix-community/home-manager" -- switch \
-        --flake "github:jfalava/outfitting?dir=packages/x64-linux#jfalava" \
-        --no-write-lock-file \
-        -b backup || {
-        echo "Warning: Home Manager installation failed."
-        echo "After script completion, you can try:"
-        echo "  nix run github:nix-community/home-manager -- switch --flake 'github:jfalava/outfitting?dir=packages/x64-linux#jfalava' --no-write-lock-file -b backup"
-    }
+    
+    # Check if local repository is configured
+    local config_file="$HOME/.config/outfitting/repo-path"
+    if [ -f "$config_file" ]; then
+        local repo_path
+        repo_path=$(cat "$config_file")
+        echo "Using local repository: $repo_path"
+        
+        # Use local flake if configured
+        nix run "github:nix-community/home-manager" -- switch \
+            --flake "$repo_path/packages/x64-linux#jfalava" \
+            --no-write-lock-file \
+            -b backup || {
+            echo "Warning: Home Manager installation failed."
+            echo "After script completion, you can try:"
+            echo "  nix run github:nix-community/home-manager -- switch --flake '$repo_path/packages/x64-linux#jfalava' --no-write-lock-file -b backup"
+        }
+    else
+        echo "Using remote repository (no local configuration found)"
+        
+        # Fall back to remote flake
+        nix run "github:nix-community/home-manager" -- switch \
+            --flake "github:jfalava/outfitting?dir=packages/x64-linux#jfalava" \
+            --no-write-lock-file \
+            -b backup || {
+            echo "Warning: Home Manager installation failed."
+            echo "After script completion, you can try:"
+            echo "  nix run github:nix-community/home-manager -- switch --flake 'github:jfalava/outfitting?dir=packages/x64-linux#jfalava' --no-write-lock-file -b backup"
+        }
+    fi
 
     # Now that Home Manager has installed zsh, set it as the default shell
     if command -v zsh &> /dev/null; then
@@ -245,5 +370,13 @@ echo "3. Run 'ff' to see system info (fastfetch)"
 echo ""
 echo "If you encounter issues, check:"
 echo "  - Run 'source ~/.zshrc' to reload your shell configuration"
-echo "  - Run 'home-manager switch --flake github:jfalava/outfitting?dir=packages/x64-linux#jfalava' to reapply configuration"
+
+# Check if local repository is configured and provide appropriate command
+if [ -f "$HOME/.config/outfitting/repo-path" ]; then
+    local repo_path
+    repo_path=$(cat "$HOME/.config/outfitting/repo-path")
+    echo "  - Run 'home-manager switch --flake $repo_path/packages/x64-linux#jfalava' to reapply configuration"
+else
+    echo "  - Run 'home-manager switch --flake github:jfalava/outfitting?dir=packages/x64-linux#jfalava' to reapply configuration"
+fi
 echo ""

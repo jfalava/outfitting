@@ -47,41 +47,202 @@ port() {
     sudo lsof -i ":$1" || sudo ss -tulpn | grep ":$1"
 }
 
+# Outfitting repository configuration functions
+get_outfitting_repo() {
+    local config_file="$HOME/.config/outfitting/repo-path"
+    if [ -f "$config_file" ]; then
+        cat "$config_file"
+        return 0
+    else
+        return 1
+    fi
+}
+
+set_outfitting_repo() {
+    local repo_path="$1"
+    if [ -z "$repo_path" ]; then
+        echo "Error: No repository path provided"
+        return 1
+    fi
+    
+    # Convert to absolute path
+    repo_path="$(cd "$repo_path" 2>/dev/null && pwd)" || {
+        echo "Error: Path does not exist: $repo_path"
+        return 1
+    }
+    
+    local config_dir="$HOME/.config/outfitting"
+    local config_file="$config_dir/repo-path"
+    
+    # Create config directory
+    mkdir -p "$config_dir"
+    
+    # Store path
+    echo "$repo_path" > "$config_file"
+    chmod 600 "$config_file"
+    
+    echo "✓ Repository path set to: $repo_path"
+    return 0
+}
+
+setup_outfitting_repo() {
+    echo "Outfitting repository location not configured."
+    echo ""
+    
+    # Offer choices
+    echo "Where would you like to keep the outfitting repository?"
+    echo ""
+    echo "  1) Default location: ~/workspace/outfitting"
+    echo "  2) Choose custom location"
+    echo "  3) Specify existing clone"
+    echo "  s) Skip for now (use remote flake only)"
+    echo ""
+    
+    while true; do
+        read -p "Select option (1-3, s): " choice
+        
+        case "$choice" in
+            1)
+                repo_path="$HOME/workspace/outfitting"
+                break
+                ;;
+            2)
+                read -e -p "Enter custom path: " repo_path
+                if [ -z "$repo_path" ]; then
+                    echo "Error: No path provided"
+                    continue
+                fi
+                break
+                ;;
+            3)
+                read -e -p "Enter existing clone path: " repo_path
+                if [ -z "$repo_path" ]; then
+                    echo "Error: No path provided"
+                    continue
+                fi
+                break
+                ;;
+            s|S)
+                echo "Skipped. You can set up local repository later with: setup-outfitting-repo"
+                return 0
+                ;;
+            *)
+                echo "Invalid option. Please choose 1-3 or s."
+                continue
+                ;;
+        esac
+    done
+    
+    # Handle the repository setup
+    if [ ! -d "$repo_path" ]; then
+        echo "Directory doesn't exist. Creating: $repo_path"
+        mkdir -p "$(dirname "$repo_path")"
+        
+        echo "Cloning outfitting repository..."
+        if git clone https://github.com/jfalava/outfitting.git "$repo_path"; then
+            echo "✓ Repository cloned successfully"
+        else
+            echo "✗ Failed to clone repository"
+            return 1
+        fi
+    elif [ ! -d "$repo_path/.git" ]; then
+        echo "Error: Directory exists but is not a git repository: $repo_path"
+        return 1
+    else
+        echo "✓ Using existing repository at: $repo_path"
+    fi
+    
+    # Store the configuration
+    if set_outfitting_repo "$repo_path"; then
+        echo ""
+        echo "✓ Repository location configured successfully!"
+        echo "  You can now use: hm-sync, hm-switch, and other local commands"
+        echo "  To change location later, run: setup-outfitting-repo"
+        return 0
+    else
+        return 1
+    fi
+}
+
 # Home Manager management functions
 hm-sync() {
-    echo "Syncing Home Manager configuration from GitHub..."
-    (set -o noglob; home-manager switch --flake 'github:jfalava/outfitting?dir=packages/x64-linux#jfalava' "$@")
+    local repo_path
+    repo_path=$(get_outfitting_repo) || {
+        echo "Error: Outfitting repository location not configured."
+        echo ""
+        setup_outfitting_repo || return 1
+        repo_path=$(get_outfitting_repo)
+    }
+    
+    echo "Syncing Home Manager configuration from local repo..."
+    home-manager switch --flake "$repo_path/packages/x64-linux#jfalava" "$@"
+
+    # Check for uncommitted changes and prompt to push
+    if ! git -C "$repo_path" diff --quiet || ! git -C "$repo_path" diff --cached --quiet; then
+        echo ""
+        echo "⚠ You have uncommitted changes in $repo_path"
+        echo "  Would you like to commit and push these changes? (y/N) "
+        read -r response
+        if [[ "$response" =~ ^[Yy]$ ]]; then
+            echo ""
+            echo "Committing changes..."
+            git -C "$repo_path" add packages/x64-linux/home.nix packages/x64-linux/flake.lock
+            echo "Enter commit message (or press Enter for default): "
+            read -r commit_msg
+            if [ -z "$commit_msg" ]; then
+                commit_msg="Update home-manager config"
+            fi
+            git -C "$repo_path" commit -m "$commit_msg"
+            echo ""
+            echo "Pushing to GitHub..."
+            git -C "$repo_path" push
+            echo "✓ Changes pushed successfully!"
+        else
+            echo "  Changes remain uncommitted. To push later:"
+            echo "    cd $repo_path"
+            echo "    git add packages/x64-linux/home.nix packages/x64-linux/flake.lock"
+            echo "    git commit -m 'Update home-manager config'"
+            echo "    git push"
+        fi
+    else
+        echo ""
+        echo "✓ No uncommitted changes - you're all set!"
+    fi
 }
 
 hm-switch() {
-    echo "Applying Home Manager configuration from GitHub..."
-    home-manager switch --flake "github:jfalava/outfitting?dir=packages/x64-linux#jfalava"
+    local repo_path
+    repo_path=$(get_outfitting_repo) || {
+        echo "Error: Outfitting repository location not configured."
+        echo ""
+        setup_outfitting_repo || return 1
+        repo_path=$(get_outfitting_repo)
+    }
+    
+    echo "Applying Home Manager configuration from local repo..."
+    home-manager switch --flake "$repo_path/packages/x64-linux#jfalava"
 }
 
 hm-switch-local() {
-    if [ ! -d "$HOME/Workspace/outfitting" ]; then
-        echo "Error: ~/Workspace/outfitting not found."
+    local repo_path
+    repo_path=$(get_outfitting_repo) || {
+        echo "Error: Outfitting repository location not configured."
         echo ""
-        echo "To use local development workflow:"
-        echo "  1. Clone the repo:"
-        echo "     git clone https://github.com/jfalava/outfitting.git ~/Workspace/outfitting"
-        echo "  2. Make changes to ~/Workspace/outfitting/packages/x64-linux/home.nix"
-        echo "  3. Run: hm-switch-local"
-        echo "  4. Commit and push changes (including flake.lock)"
-        return 1
-    fi
+        setup_outfitting_repo || return 1
+        repo_path=$(get_outfitting_repo)
+    }
 
     echo "Applying Home Manager configuration from local repo..."
-    home-manager switch --flake "$HOME/Workspace/outfitting/packages/x64-linux#jfalava"
+    home-manager switch --flake "$repo_path/packages/x64-linux#jfalava"
 
-    if git -C "$HOME/Workspace/outfitting" diff --quiet && git -C "$HOME/Workspace/outfitting" diff --cached --quiet; then
+    if git -C "$repo_path" diff --quiet && git -C "$repo_path" diff --cached --quiet; then
         echo ""
         echo "✓ No uncommitted changes - you're all set!"
     else
         echo ""
-        echo "⚠ You have uncommitted changes in ~/Workspace/outfitting"
+        echo "⚠ You have uncommitted changes in $repo_path"
         echo "  Don't forget to commit and push to sync across machines:"
-        echo "    cd ~/Workspace/outfitting"
+        echo "    cd $repo_path"
         echo "    git add packages/x64-linux/home.nix packages/x64-linux/flake.lock"
         echo "    git commit -m 'Update home-manager config'"
         echo "    git push"
@@ -89,16 +250,15 @@ hm-switch-local() {
 }
 
 hm-update() {
-    local repo="$HOME/Workspace/outfitting/packages/x64-linux"
-
-    if [ ! -d "$repo" ]; then
-        echo "Error: $repo not found"
+    local repo_path
+    repo_path=$(get_outfitting_repo) || {
+        echo "Error: Outfitting repository location not configured."
         echo ""
-        echo "To use local updates:"
-        echo "  git clone https://github.com/jfalava/outfitting.git ~/Workspace/outfitting"
-        echo "  hm-update"
-        return 1
-    fi
+        setup_outfitting_repo || return 1
+        repo_path=$(get_outfitting_repo)
+    }
+    
+    local repo="$repo_path/packages/x64-linux"
 
     echo "Updating Nix packages from local repo..."
     cd "$repo" || return
@@ -112,7 +272,7 @@ hm-update() {
     git diff flake.lock
     echo ""
     echo "To deploy to GitHub and other machines:"
-    echo "  cd ~/Workspace/outfitting"
+    echo "  cd $repo_path"
     echo "  git add packages/x64-linux/flake.lock"
     echo "  git commit -m 'chore: update nix packages'"
     echo "  git push"
@@ -134,6 +294,14 @@ hm-clean() {
 
 # System update
 update-all() {
+    local repo_path
+    repo_path=$(get_outfitting_repo) || {
+        echo "Error: Outfitting repository location not configured."
+        echo ""
+        setup_outfitting_repo || return 1
+        repo_path=$(get_outfitting_repo)
+    }
+    
     echo "Updating APT packages..."
     sudo apt update && sudo apt upgrade -y && sudo apt autoremove -y
 
@@ -149,7 +317,7 @@ update-all() {
     hm-clean
 
     echo -e "\nUpdating global bun packages..."
-    if command -v bun &> /dev/null; then
+    if command -v bun >/dev/null; then
         bun update -g
     fi
 

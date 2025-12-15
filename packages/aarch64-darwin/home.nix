@@ -44,6 +44,7 @@
     nixd
     nil
     pnpm
+    git
     opencode
     gemini-cli
     codex
