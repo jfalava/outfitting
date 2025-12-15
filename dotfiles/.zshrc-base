@@ -315,6 +315,15 @@ _backward_delete_region() {
 zle -N _backward_delete_region
 bindkey '^?' _backward_delete_region
 
+# Typing replaces selection (Windows-style)
+_self_insert_with_region() {
+    if ((REGION_ACTIVE)); then
+        zle kill-region
+    fi
+    zle .self-insert
+}
+zle -N self-insert _self_insert_with_region
+
 # ---- Completion Configuration ----
 zstyle ':completion:*' menu select                          # Interactive menu
 zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}'  # Case insensitive
