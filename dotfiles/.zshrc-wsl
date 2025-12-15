@@ -399,7 +399,7 @@ alias wrangler="bun wrangler"
 # Home Manager and system updates
 hm-sync() {
     echo "Syncing Home Manager configuration from GitHub..."
-    (set -o noglob; home-manager switch --flake 'github:jfalava/outfitting?dir=packages/x64-linux#jfalava' --no-write-lock-file "$@")
+    (set -o noglob; home-manager switch --flake 'github:jfalava/outfitting?dir=packages/x64-linux#jfalava' "$@")
 }
 
 wsl-update() {
@@ -543,8 +543,34 @@ hm-switch-local() {
 }
 
 hm-update() {
-    echo "Updating flake inputs and switching..."
-    home-manager switch --flake "github:jfalava/outfitting?dir=packages/x64-linux#jfalava" --recreate-lock-file
+    local repo="$HOME/Workspace/outfitting/packages/x64-linux"
+
+    if [ ! -d "$repo" ]; then
+        echo "Error: $repo not found"
+        echo ""
+        echo "To use local updates:"
+        echo "  git clone https://github.com/jfalava/outfitting.git ~/Workspace/outfitting"
+        echo "  hm-update"
+        return 1
+    fi
+
+    echo "Updating Nix packages from local repo..."
+    cd "$repo" || return
+    nix flake update
+    home-manager switch --flake .#jfalava
+
+    echo ""
+    echo "✓ Nix packages updated locally"
+    echo ""
+    echo "Review changes:"
+    git diff flake.lock
+    echo ""
+    echo "To deploy to GitHub and other machines:"
+    echo "  cd ~/Workspace/outfitting"
+    echo "  git add packages/x64-linux/flake.lock"
+    echo "  git commit -m 'chore: update nix packages'"
+    echo "  git push"
+    echo "  hm-sync  # on other machines to pull updates"
 }
 
 hm-rollback() {
@@ -573,6 +599,11 @@ update-all() {
 
     echo -e "\nUpdating Home Manager configuration..."
     hm-update
+    local hm_exit=$?
+    if [ $hm_exit -ne 0 ]; then
+        echo "⚠ Home Manager update failed"
+        return $hm_exit
+    fi
 
     echo -e "\nCleaning old generations..."
     hm-clean
@@ -582,7 +613,13 @@ update-all() {
         bun update -g
     fi
 
-    echo -e "\nUpdate complete!"
+    echo -e "\n✓ Update complete!"
+    echo ""
+    echo "Next steps:"
+    echo "  1. Review flake.lock changes"
+    echo "  2. Commit: git add packages/x64-linux/flake.lock && git commit -m 'chore: update nix packages'"
+    echo "  3. Push: git push"
+    echo "  4. Run 'hm-sync' on other machines"
 }
 
 # Show directory size sorted
