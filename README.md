@@ -20,16 +20,16 @@ Scripts, dotfiles and lambdas for the automatic outfitting of my personal machin
 Choose a profile based on your machine's purpose (all commands require elevated PowerShell):
 
 ```powershell
-# Base profile (default) - System runtimes, utilities, browsers, and essential tools
+# Base profile (default)
 irm win.jfa.dev | iex
 
-# Development profile - Base + dev tools (NodeJS, Bun, VSCode, Git, LLM CLIs)
+# Development profile
 irm win.jfa.dev/dev | iex
 
-# Gaming profile - Base + gaming launchers and tools + creative/streaming apps
+# Gaming profile
 irm win.jfa.dev/gaming | iex
 
-# Work profile - Base + dev + creative + enterprise tools (AWS, K8s, Teams, Slack)
+# Work profile
 irm win.jfa.dev/work | iex
 
 # Full profile - Everything (all categories combined)
@@ -40,13 +40,13 @@ irm win.jfa.dev/base+dev+gaming | iex
 ```
 
 **Available categories:**
-- `base` - System runtimes (.NET, VCRedist), core utilities, browsers
-- `dev` - Development tools (NodeJS, Bun, Deno, VSCode, Zed, Git tools, LLM CLIs)
-- `gaming` - Game launchers (Steam, Epic, GOG) and game-specific tools
-- `creative` - Streaming, media production, VPN, cloud storage
-- `work` - Enterprise tools (AWS CLI, Kubernetes, Terraform, Teams, Slack, Go, Java)
-- `msstore-qol` - Quality of life Microsoft Store apps (included in all profiles)
-- `full` - All categories combined
+- `base`
+- `dev`
+- `gaming`
+- `creative`
+- `work`
+- `msstore-qol`
+- `full`
 
 ### WSL
 

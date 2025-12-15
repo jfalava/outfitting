@@ -1,7 +1,3 @@
-# Microsoft Store - Base applications
-# These are general-purpose productivity and utility apps
-# QoL (Quality of Life) apps are now in msstore-qol.txt
-
 9MZPRTH5C0TB
 9N95Q1ZZPMH4
 9MVZQVXJBQ9V
