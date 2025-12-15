@@ -107,6 +107,18 @@ irm win.jfa.dev/base+dev+gaming | iex
 curl -L wsl.jfa.dev | bash
 ```
 
+### macOS
+
+> [!IMPORTANT]
+> This is designed for macOS and installs Nix package manager using the Determinate Systems installer.
+
+> [!NOTE]
+> You need `cURL` to execute this command.
+
+```sh
+curl -L mac.jfa.dev | bash
+```
+
 ## Updating After Installation
 
 ### WSL
