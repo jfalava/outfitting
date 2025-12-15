@@ -22,5 +22,9 @@
       "pattern": "wsl.jfa.dev",
       "custom_domain": true,
     },
+    {
+      "pattern": "mac.jfa.dev",
+      "custom_domain": true,
+    },
   ],
 }
