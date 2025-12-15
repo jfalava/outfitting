@@ -76,11 +76,15 @@ curl -L wsl.jfa.dev | bash
 curl -L mac.jfa.dev | bash
 ```
 
-## Repository Configuration
+After installation, you'll need to install nix-darwin for system management:
+```sh
+nix run nix-darwin -- switch --flake github:jfalava/outfitting?dir=packages/aarch64-darwin
+```
 
-During WSL installation, you'll be prompted to configure a local repository location for the best Home Manager experience. This enables:
+**Repository Configuration:**
+During installation, you'll be prompted to configure a local repository location for the best nix-darwin experience. This enables:
 
-- Local development and customization
+- Local development and customization  
 - Commands like `hm-sync`, `hm-switch`, and `hm-update`
 - Automatic commit/push prompts when making changes
 

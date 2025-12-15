@@ -105,7 +105,18 @@ curl -L wsl.jfa.dev | bash
 **macOS:**
 
 ```bash
+# Install Nix
 curl -L mac.jfa.dev | bash
+
+# Install nix-darwin for system management
+nix run nix-darwin -- switch --flake github:jfalava/outfitting?dir=packages/aarch64-darwin
+```
+
+**Repository Configuration:**
+During installation, you'll be prompted to configure a local repository location. This enables local development and commands like `hm-sync`. To set up later:
+
+```bash
+setup-outfitting-repo
 ```
 
 **Windows (Elevated):**
@@ -207,6 +218,28 @@ hm-clean              # Clean old Home Manager generations
 
 **Repository Configuration:**
 Local repository location is configured during installation and stored in `~/.config/outfitting/repo-path`. All local commands use this configuration automatically.
+
+### macOS Functions
+
+macOS uses nix-darwin for system configuration. Use these commands:
+
+```bash
+setup-outfitting-repo # Configure local repository location (run once)
+hm-sync               # Sync nix-darwin config from local clone (prompts to commit/push)
+hm-switch             # Apply nix-darwin config from local clone
+hm-switch-local       # Apply from local clone with git status check
+hm-update             # Update Nix packages locally with git workflow
+hm-clean              # Clean old nix-darwin generations
+hm-rollback           # List generations and rollback instructions
+```
+
+**Repository Configuration:**
+Local repository location is configured during installation and stored in `~/.config/outfitting/repo-path`. All local commands use this configuration automatically.
+
+**Note**: After initial Nix installation, run:
+```bash
+nix run nix-darwin -- switch --flake github:jfalava/outfitting?dir=packages/aarch64-darwin
+```
 
 **Example:**
 
