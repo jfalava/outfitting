@@ -4,8 +4,10 @@
 # WSL Outfitting Installation Script
 # ========================================
 
+# Default mode: update repositories and Nix packages only (skip APT installs)
 UPDATE_ONLY=true
 NIX_ONLY=true
+MODE="default"
 
 # Parse command line arguments for override flags
 for arg in "$@"; do
@@ -13,37 +15,50 @@ for arg in "$@"; do
         --full-install)
             UPDATE_ONLY=false
             NIX_ONLY=false
+            MODE="full-install"
             ;;
         --update-only)
             UPDATE_ONLY=true
             NIX_ONLY=false
+            MODE="update-only"
             ;;
         --nix-only)
             UPDATE_ONLY=false
             NIX_ONLY=true
+            MODE="nix-only"
             ;;
     esac
 done
 
-if [[ "$UPDATE_ONLY" == "true" && "$NIX_ONLY" == "true" ]]; then
-    echo "Running default mode (update + nix-only, skipping APT installs)..."
-elif [[ "$UPDATE_ONLY" == "true" && "$NIX_ONLY" == "false" ]]; then
-    echo "Running update-only mode..."
-elif [[ "$UPDATE_ONLY" == "false" && "$NIX_ONLY" == "true" ]]; then
-    echo "Running nix-only mode (skipping APT installs)..."
-else
-    echo "Running full WSL setup..."
-fi
+case "$MODE" in
+    "default")
+        echo "Running default mode (update + nix-only, skipping APT installs)..."
+        ;;
+    "update-only")
+        echo "Running update-only mode (update repositories and APT packages)..."
+        ;;
+    "nix-only")
+        echo "Running nix-only mode (Nix installation only, skip APT)..."
+        ;;
+    "full-install")
+        echo "Running full WSL setup..."
+        ;;
+esac
 
-if [[ "$NIX_ONLY" == "false" ]]; then
-## init
-sudo apt update -y && sudo apt upgrade -y && sudo apt install -y curl
-else
-## minimal init for nix-only mode
-sudo apt install -y curl
-fi
+# Handle initialization based on mode
+case "$MODE" in
+    "default"|"nix-only")
+        ## minimal init for nix-only/default mode - just install curl
+        sudo apt install -y curl
+        ;;
+    "update-only"|"full-install")
+        ## full init for modes that need APT package management
+        sudo apt update -y && sudo apt upgrade -y && sudo apt install -y curl
+        ;;
+esac
 
-if [[ "$NIX_ONLY" == "false" ]]; then
+# Install APT packages only for modes that need them
+if [[ "$MODE" == "update-only" || "$MODE" == "full-install" ]]; then
 #####
 ## install apt packages
 #####
@@ -52,7 +67,7 @@ curl -fsSL "$APT_LIST_URL" -o /tmp/apt-packages.txt || {
     echo "Failed to fetch APT package list. Exiting..."
     exit 1
 }
-while IFS= read -r -p package || [ -n "$package" ]; do
+while IFS= read -r package || [ -n "$package" ]; do
     package=$(echo "$package" | tr -d '[:space:]')
     if [[ -n "$package" && ! "$package" =~ ^# ]]; then
         echo "Installing apt package: $package"
@@ -64,7 +79,7 @@ done </tmp/apt-packages.txt
 sudo apt autoremove -y
 fi
 
-if [[ "$UPDATE_ONLY" == "false" ]]; then
+if [[ "$MODE" != "update-only" ]]; then
 
 #####
 ## Configure outfitting repository location
@@ -169,6 +184,7 @@ configure_outfitting_repo
 
 echo ""
 
+if [[ "$MODE" != "update-only" ]]; then
 #####
 ## nix
 #####
@@ -265,8 +281,9 @@ else
     echo "Nix not found, skipping home-manager installation"
 fi
 fi
+fi
 
-if [[ "$UPDATE_ONLY" == "false" ]]; then
+if [[ "$MODE" != "update-only" ]]; then
 #####
 ## runtimes
 #####
@@ -275,7 +292,7 @@ deno jupyter --install # if the deno flake fails to install, this will fail grac
 curl -LsSf https://astral.sh/uv/install.sh | sh
 fi
 
-if [[ "$NIX_ONLY" == "false" ]]; then
+if [[ "$MODE" == "update-only" || "$MODE" == "full-install" ]]; then
 #####
 ## docker
 #####
@@ -292,7 +309,7 @@ sudo apt update
 sudo apt install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin -y
 fi
 
-if [[ "$NIX_ONLY" == "false" ]]; then
+if [[ "$MODE" == "update-only" || "$MODE" == "full-install" ]]; then
 #####
 ## hashicorp repositories for terraform and packer
 #####
@@ -306,7 +323,7 @@ echo \
 sudo apt update
 fi
 
-if [[ "$NIX_ONLY" == "false" ]]; then
+if [[ "$MODE" == "update-only" || "$MODE" == "full-install" ]]; then
 #####
 ## github cli repository
 #####
@@ -320,7 +337,7 @@ echo \
 sudo apt update && sudo apt install gh
 fi
 
-if [[ "$NIX_ONLY" == "false" ]]; then
+if [[ "$MODE" == "update-only" || "$MODE" == "full-install" ]]; then
 #####
 ## charm repository for crush
 #####
@@ -339,11 +356,14 @@ mkdir ~/.ssh
 ## end message and validation
 echo ""
 echo "================================"
-if [[ "$NIX_ONLY" == "true" ]]; then
-    echo "Nix-only Installation Complete!"
-else
-    echo "Installation Complete!"
-fi
+case "$MODE" in
+    "nix-only")
+        echo "Nix-only Installation Complete!"
+        ;;
+    *)
+        echo "Installation Complete!"
+        ;;
+esac
 echo "================================"
 echo ""
 
