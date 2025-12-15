@@ -92,7 +92,7 @@ configure_outfitting_repo() {
     echo ""
 
     while true; do
-        read -p "Select option (1-3, s): " choice
+        read -r -p "Select option (1-3, s): " choice
 
         case "$choice" in
             1)

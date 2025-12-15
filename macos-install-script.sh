@@ -50,7 +50,7 @@ check_architecture() {
         warning "Detected Intel Mac (x86_64)"
         warning "This configuration is optimized for Apple Silicon."
         warning "It may work on Intel Macs, but some packages might need adjustment."
-        read -p "Continue anyway? (y/N) " -n 1 -r
+        read -r -p "Continue anyway? (y/N) " -n 1 -r
         echo
         if [[ ! $REPLY =~ ^[Yy]$ ]]; then
             exit 1
@@ -103,7 +103,7 @@ configure_outfitting_repo() {
     echo ""
 
     while true; do
-        read -p "Select option (1-3, s): " choice
+        read -r -p "Select option (1-3, s): " choice
 
         case "$choice" in
             1)
