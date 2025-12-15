@@ -37,36 +37,36 @@ if [[ "$UPDATE_ONLY" == "false" ]]; then
 #####
 ## nix
 #####
-## install nix
-# Set NIX_BUILD_GROUP_ID to auto-detect the group ID that the system assigns
-# This prevents conflicts when Ubuntu assigns a different GID than expected
-export NIX_BUILD_GROUP_ID=$(getent group nixbld | cut -d: -f3 2>/dev/null || echo "30000")
-curl -L https://nixos.org/nix/install | sh -s -- --daemon
+## install nix using Determinate Nix installer
+# Determinate Nix provides better WSL support, FlakeHub integration, and improved defaults
+curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install --no-confirm
+
+# Source nix for the current session
 source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh || source ~/.nix-profile/etc/profile.d/nix.sh || true
 
-# Add nix to shell profiles (both bash and zsh)
-(
-    echo
-    echo '# Nix'
-    echo 'if [ -e /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh ]; then'
-    echo '  source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh'
-    echo 'elif [ -e ~/.nix-profile/etc/profile.d/nix.sh ]; then'
-    echo '  source ~/.nix-profile/etc/profile.d/nix.sh'
-    echo 'fi'
-) >> ~/.bashrc
+# Determinate installer already adds nix to shell profiles, but ensure it's in bashrc
+if ! grep -q "nix-daemon.sh" ~/.bashrc 2>/dev/null; then
+    (
+        echo
+        echo '# Nix'
+        echo 'if [ -e /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh ]; then'
+        echo '  source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh'
+        echo 'elif [ -e ~/.nix-profile/etc/profile.d/nix.sh ]; then'
+        echo '  source ~/.nix-profile/etc/profile.d/nix.sh'
+        echo 'fi'
+    ) >> ~/.bashrc
+fi
 
-# Create nix configuration before running nix commands
+# Add custom nix configuration (Determinate sets good defaults, but we add our preferences)
 sudo mkdir -p /etc/nix
-sudo tee /etc/nix/nix.conf > /dev/null << 'EOF'
-experimental-features = nix-command flakes
+sudo tee -a /etc/nix/nix.conf > /dev/null << 'EOF'
+
+# Custom configuration for jfalava outfitting
 substituters = https://cache.nixos.org/ https://nix-community.cachix.org
 trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs=
 auto-optimise-store = true
 max-jobs = auto
 EOF
-
-# Reload nix
-source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh || source ~/.nix-profile/etc/profile.d/nix.sh || true
 
 ## install home-manager and apply configuration
 if command -v nix &> /dev/null; then
