@@ -39,7 +39,10 @@ if [[ "$UPDATE_ONLY" == "false" ]]; then
 #####
 ## install nix using Determinate Nix installer
 # Determinate Nix provides better WSL support, FlakeHub integration, and improved defaults
-curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install --no-confirm
+curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install --no-confirm || {
+    echo "Failed to install Determinate Nix. Exiting..."
+    exit 1
+}
 
 # Source nix for the current session
 source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh || source ~/.nix-profile/etc/profile.d/nix.sh || true
