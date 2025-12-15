@@ -100,79 +100,47 @@ configure_outfitting_repo() {
     echo ""
 
     # Offer choices
-    echo "Where would you like to keep the outfitting repository?"
+    echo "Setting up outfitting repository location..."
     echo ""
-    echo "  1) Default location: ~/Workspace/outfitting"
-    echo "  2) Choose custom location"
-    echo "  3) Specify existing clone"
-    echo "  s) Skip for now (use remote flake only)"
-    echo ""
+    
+    # Always use default location for remote installation
+    repo_path="$HOME/Workspace/outfitting"
+    echo "Using default repository location: $repo_path"
+    
+    # Handle the repository setup
+    if [ ! -d "$repo_path" ]; then
+        echo "Directory doesn't exist. Creating: $repo_path"
+        mkdir -p "$(dirname "$repo_path")"
 
-    # Check if we're running in non-interactive mode
-    if [[ ! -t 0 ]]; then
-        echo "Running in non-interactive mode. Using default repository location."
-        echo "To configure later, run: setup-outfitting-repo"
-        repo_path="$HOME/Workspace/outfitting"
-        
-        # Create the directory if it doesn't exist
-        if [ ! -d "$repo_path" ]; then
-            echo "Creating default directory: $repo_path"
-            mkdir -p "$repo_path"
-            
-            echo "Cloning outfitting repository..."
-            if git clone https://github.com/jfalava/outfitting.git "$repo_path"; then
-                echo "✓ Repository cloned successfully"
-            else
-                echo "✗ Failed to clone repository, but continuing..."
-            fi
+        echo "Cloning outfitting repository..."
+        if git clone https://github.com/jfalava/outfitting.git "$repo_path"; then
+            echo "✓ Repository cloned successfully"
+        else
+            echo "✗ Failed to clone repository, but continuing..."
         fi
-        
-        # Store the configuration
-        local config_dir="$HOME/.config/outfitting"
-        local config_file="$config_dir/repo-path"
-        
-        mkdir -p "$config_dir"
-        echo "$repo_path" > "$config_file"
-        chmod 600 "$config_file"
-        
-        echo "✓ Using default repository location: $repo_path"
-        return 0
+    elif [ ! -d "$repo_path/.git" ]; then
+        echo "Error: Directory exists but is not a git repository: $repo_path"
+        return 1
+    else
+        echo "✓ Using existing repository at: $repo_path"
     fi
 
-    while true; do
-        read -r -p "Select option (1-3, s): " choice
+    # Store the configuration
+    local config_dir="$HOME/.config/outfitting"
+    local config_file="$config_dir/repo-path"
 
-        case "$choice" in
-            1)
-                repo_path="$HOME/Workspace/outfitting"
-                break
-                ;;
-            2)
-                read -e -p "Enter custom path: " repo_path
-                if [ -z "$repo_path" ]; then
-                    echo "Error: No path provided"
-                    continue
-                fi
-                break
-                ;;
-            3)
-                read -e -p "Enter existing clone path: " repo_path
-                if [ -z "$repo_path" ]; then
-                    echo "Error: No path provided"
-                    continue
-                fi
-                break
-                ;;
-            s|S)
-                echo "Skipped. You can set up local repository later with: setup-outfitting-repo"
-                return 0
-                ;;
-            *)
-                echo "Invalid option. Please choose 1-3 or s."
-                continue
-                ;;
-        esac
-    done
+    mkdir -p "$config_dir"
+    echo "$repo_path" > "$config_file"
+    chmod 600 "$config_file"
+
+    echo "✓ Repository location configured successfully!"
+    echo "  Repository path: $repo_path"
+    echo "  Configuration stored in: $config_file"
+    echo ""
+    echo "You can now use local commands like: hm-sync, hm-switch, hm-update"
+    echo "To change location later, run: setup-outfitting-repo"
+    
+    return 0
 
     # Handle the repository setup
     if [ ! -d "$repo_path" ]; then
