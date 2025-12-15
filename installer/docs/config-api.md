@@ -15,7 +15,7 @@ The API is built with:
 
 Routes are organized by target OS:
 
-- `src/windows.ts` - Windows-specific routes (/, /post-install, /config/*)
+- `src/windows.ts` - Windows-specific routes (/, /post-install, /config/\*)
 - `src/wsl.ts` - WSL/Linux routes (/)
 - `src/macos.ts` - macOS routes (/)
 - `src/constants.ts` - Shared constants (URLs, hosts, content types)
@@ -32,11 +32,11 @@ Domain validation middleware ensures requests are routed to the correct OS handl
 
 ### Error Responses
 
-| Status Code | Description                                      |
-| ----------- | ------------------------------------------------ |
-| `418`       | I'm a teapot - Invalid domain or unknown route   |
-| `400`       | Invalid config file requested                    |
-| `500`       | Failed to fetch script/config from GitHub        |
+| Status Code | Description                                    |
+| ----------- | ---------------------------------------------- |
+| `418`       | I'm a teapot - Invalid domain or unknown route |
+| `400`       | Invalid config file requested                  |
+| `500`       | Failed to fetch script/config from GitHub      |
 
 ## Base URLs
 
@@ -279,7 +279,7 @@ windowsApp.get("/new-route", async (c) => {
   if (!script) {
     return c.text("Failed to fetch script", 500);
   }
-  
+
   setScriptHeaders(c, CONTENT_TYPES.powershell);
   return c.body(script);
 });

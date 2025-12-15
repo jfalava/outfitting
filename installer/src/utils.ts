@@ -32,9 +32,7 @@ export async function fetchScript(url: string) {
 /**
  * Helper function to fetch a config file
  */
-export async function fetchConfigFile(
-  config: { path: string; contentType: string } | undefined,
-) {
+export async function fetchConfigFile(config: { path: string; contentType: string } | undefined) {
   if (!config) {
     return null;
   }
@@ -83,7 +81,7 @@ export async function fetchPackageLists(urls: string[]): Promise<string | null> 
       .split("\n")
       .filter((line) => line.trim() && !line.trim().startsWith("#"))
       .join("\n");
-    
+
     if (filteredLines.trim()) {
       contents.push(filteredLines);
     }

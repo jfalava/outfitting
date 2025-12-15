@@ -9,9 +9,7 @@ const app = new Hono();
 // Domain validation middleware
 app.use("*", async (c, next) => {
   const host = c.req.header("Host") || "";
-  const isAllowedHost = ALLOWED_HOSTS.some((allowedHost) =>
-    host.includes(allowedHost),
-  );
+  const isAllowedHost = ALLOWED_HOSTS.some((allowedHost) => host.includes(allowedHost));
 
   if (!isAllowedHost) {
     return c.text("I'm a teapot", 418);

@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import {
   CONFIG_FILES,
   CONTENT_TYPES,
+  OPTIONAL_COMPONENTS,
   PACKAGE_CATEGORIES,
   PROFILES,
   SCRIPT_URLS,
@@ -85,51 +86,71 @@ windowsApp.get("/", async (c) => {
 // Route: GET /packages/:profile - Serve combined package list for a profile
 windowsApp.get("/packages/:profile", async (c) => {
   const profile = c.req.param("profile");
-  
-  // Check if it's a predefined profile
-  if (profile in PROFILES) {
-    const categoryKeys = PROFILES[profile as keyof typeof PROFILES];
-    const urls = categoryKeys.map((key) => PACKAGE_CATEGORIES[key]);
-    
+
+  // Parse the profile to handle base profile + optional components
+  const parts = profile.split("+");
+  const baseProfile = parts[0];
+  const optionalComponents = parts.slice(1);
+
+  // Check if base is a predefined profile
+  if (baseProfile in PROFILES) {
+    let categoryKeys: (keyof typeof PACKAGE_CATEGORIES)[] = [
+      ...PROFILES[baseProfile as keyof typeof PROFILES],
+    ];
+
+    // Add optional components
+    for (const component of optionalComponents) {
+      if (component in OPTIONAL_COMPONENTS) {
+        const componentCategories =
+          OPTIONAL_COMPONENTS[component as keyof typeof OPTIONAL_COMPONENTS];
+        categoryKeys.push(...(componentCategories as readonly (keyof typeof PACKAGE_CATEGORIES)[]));
+      }
+    }
+
+    // Remove duplicates
+    categoryKeys = [...new Set(categoryKeys)];
+
+    const urls = categoryKeys.map(
+      (key) => PACKAGE_CATEGORIES[key as keyof typeof PACKAGE_CATEGORIES],
+    );
+
     console.log(`Fetching profile: ${profile}, categories: ${categoryKeys.join(", ")}`);
-    
+
     const packageList = await fetchPackageLists(urls);
     if (!packageList) {
       return c.text(`Failed to fetch packages for profile: ${profile}`, 500);
     }
-    
+
     setScriptHeaders(c, CONTENT_TYPES.plaintext);
     return c.body(packageList);
   }
-  
-  // Check if it's a custom combination (e.g., "base+dev+gaming")
-  const customCategories = profile.split("+");
-  const validCategories = customCategories.filter(
-    (cat) => cat in PACKAGE_CATEGORIES
-  );
-  
-  if (validCategories.length === 0) {
+
+  // Check if it's a custom combination of categories only (e.g., "base+dev+gaming")
+  const customCategories = parts.filter((cat) => cat in PACKAGE_CATEGORIES);
+
+  if (customCategories.length === 0) {
     return c.json(
       {
         error: "Invalid profile or category combination",
         availableProfiles: Object.keys(PROFILES),
         availableCategories: Object.keys(PACKAGE_CATEGORIES),
+        availableOptionalComponents: Object.keys(OPTIONAL_COMPONENTS),
       },
-      400
+      400,
     );
   }
-  
-  const urls = validCategories.map(
-    (cat) => PACKAGE_CATEGORIES[cat as keyof typeof PACKAGE_CATEGORIES]
+
+  const urls = customCategories.map(
+    (cat) => PACKAGE_CATEGORIES[cat as keyof typeof PACKAGE_CATEGORIES],
   );
-  
-  console.log(`Fetching custom combination: ${validCategories.join("+")}`);
-  
+
+  console.log(`Fetching custom combination: ${customCategories.join("+")}`);
+
   const packageList = await fetchPackageLists(urls);
   if (!packageList) {
     return c.text(`Failed to fetch packages for: ${profile}`, 500);
   }
-  
+
   setScriptHeaders(c, CONTENT_TYPES.plaintext);
   return c.body(packageList);
 });
@@ -142,12 +163,18 @@ windowsApp.get("/packages", async (c) => {
       categories: PROFILES[profile as keyof typeof PROFILES],
       url: `/packages/${profile}`,
     })),
+    optionalComponents: Object.keys(OPTIONAL_COMPONENTS).map((component) => ({
+      name: component,
+      categories: OPTIONAL_COMPONENTS[component as keyof typeof OPTIONAL_COMPONENTS],
+      url: `/packages/${component}`,
+    })),
     categories: Object.keys(PACKAGE_CATEGORIES).map((category) => ({
       name: category,
       url: `/packages/${category}`,
     })),
     usage: {
       singleProfile: "irm win.jfa.dev/packages/dev | Out-File packages.txt",
+      profileWithComponents: "irm win.jfa.dev/packages/dev+qol+network | Out-File packages.txt",
       customCombination: "irm win.jfa.dev/packages/base+gaming | Out-File packages.txt",
       installation: "irm win.jfa.dev/dev | iex",
     },
@@ -157,56 +184,49 @@ windowsApp.get("/packages", async (c) => {
 // Route: GET /:profile - Install script with specific profile
 windowsApp.get("/:profile", async (c) => {
   const profile = c.req.param("profile");
-  
-  // Check if it's a valid profile or category combination
-  const isProfile = profile in PROFILES;
+
+  // Parse the profile to handle base profile + optional components
+  const parts = profile.split("+");
+  const baseProfile = parts[0];
+  const optionalComponents = parts.slice(1);
+
+  // Check if it's a valid profile, category, or optional component
+  const isProfile = baseProfile in PROFILES;
   const isCategory = profile in PACKAGE_CATEGORIES;
-  const isCustomCombination = profile.includes("+");
-  
-  if (!isProfile && !isCategory && !isCustomCombination) {
-    // Not a package profile, return 404
+  const hasOptionalComponents = optionalComponents.length > 0;
+
+  if (!isProfile && !isCategory && !hasOptionalComponents) {
+    // Not a valid combination, return 404
     return c.text("Not found", 404);
   }
-  
+
   console.log(`Generating installation script for profile: ${profile}`);
-  
+
   // Fetch the base installation script
   const baseScript = await fetchScript(SCRIPT_URLS.windows);
   if (!baseScript) {
     return c.text("Failed to fetch the base script", 500);
   }
-  
+
   // Replace the package URLs in the script to use the profile endpoint
   const modifiedScript = baseScript
     .replace(
       /\$wingetPackagesUrl = ".*"/,
-      `$wingetPackagesUrl = "https://win.jfa.dev/packages/${profile}"`
+      `$wingetPackagesUrl = "https://win.jfa.dev/packages/${profile}"`,
     )
-    .replace(
-      /\$msStorePackagesUrl = ".*"/,
-      `$msStorePackagesUrl = ""`
-    )
-    .replace(
-      /\$psModulesUrl = ".*"/,
-      `$psModulesUrl = ""`
-    )
+    .replace(/\$msStorePackagesUrl = ".*"/, `$msStorePackagesUrl = ""`)
+    .replace(/\$psModulesUrl = ".*"/, `$psModulesUrl = ""`)
     .replace(
       /Invoke-WebRequest -Uri \$msStorePackagesUrl -OutFile \$msStorePackagesFile[\s\S]*?catch \{[\s\S]*?\}/m,
-      `# MS Store and PS Modules are included in the profile package list`
+      `# MS Store and PS Modules are included in the profile package list`,
     )
     .replace(
       /Invoke-WebRequest -Uri \$psModulesUrl -OutFile \$psModulesFile[\s\S]*?catch \{[\s\S]*?\}/m,
-      ``
+      ``,
     )
-    .replace(
-      /Install-WingetPackages -filePath \$msStorePackagesFile\n/,
-      ``
-    )
-    .replace(
-      /Install-PSModules -filePath \$psModulesFile\n/,
-      ``
-    );
-  
+    .replace(/Install-WingetPackages -filePath \$msStorePackagesFile\n/, ``)
+    .replace(/Install-PSModules -filePath \$psModulesFile\n/, ``);
+
   setScriptHeaders(c, CONTENT_TYPES.powershell);
   return c.body(modifiedScript);
 });

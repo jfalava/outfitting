@@ -64,9 +64,38 @@ export const PACKAGE_CATEGORIES = {
  * Value: array of category keys to include
  */
 export const PROFILES = {
-  base: ["base", "msstore-base", "msstore-qol", "pwsh-modules"],
-  dev: ["base", "dev", "msstore-base", "msstore-dev", "msstore-qol", "pwsh-modules"],
-  gaming: ["base", "gaming", "qol", "network", "msstore-base", "msstore-gaming", "msstore-qol", "pwsh-modules"],
-  work: ["base", "dev", "qol", "network", "work", "msstore-base", "msstore-dev", "msstore-qol", "msstore-work", "pwsh-modules"],
-  full: ["base", "dev", "gaming", "qol", "network", "work", "msstore-base", "msstore-dev", "msstore-gaming", "msstore-qol", "msstore-work", "pwsh-modules"],
+  base: ["base", "msstore-base", "pwsh-modules"],
+  dev: ["base", "dev", "msstore-base", "msstore-dev", "pwsh-modules"],
+  gaming: ["base", "gaming", "msstore-base", "msstore-gaming", "pwsh-modules"],
+  work: [
+    "base",
+    "dev",
+    "work",
+    "msstore-base",
+    "msstore-dev",
+    "msstore-work",
+    "pwsh-modules",
+  ],
+  full: [
+    "base",
+    "dev",
+    "gaming",
+    "work",
+    "msstore-base",
+    "msstore-dev",
+    "msstore-gaming",
+    "msstore-qol",
+    "msstore-work",
+    "pwsh-modules",
+  ],
+} as const;
+
+/**
+ * Optional components that can be added to any profile
+ * Key: component name
+ * Value: array of category keys to include
+ */
+export const OPTIONAL_COMPONENTS = {
+  qol: ["qol", "msstore-qol"],
+  network: ["network"],
 } as const;

@@ -19,53 +19,81 @@ Scripts, dotfiles and lambdas for the automatic outfitting of my personal machin
 
 Choose a profile based on your machine's purpose (all commands require elevated PowerShell):
 
+#### Base Profiles
 
+##### Base profile (default)
 
-# Base profile (default)
-
-```powershelll
+```powershell
 irm win.jfa.dev | iex
 ```
 
-# Development profile
+##### Development profile
 
 ```powershell
 irm win.jfa.dev/dev | iex
 ```
 
-# Gaming profile
+##### Gaming profile
 
 ```powershell
 irm win.jfa.dev/gaming | iex
 ```
 
-# Work profile
+##### Work profile
 
 ```powershell
 irm win.jfa.dev/work | iex
 ```
 
-# Full profile
+##### Full profile (includes everything)
 
 ```powershell
 irm win.jfa.dev/full | iex
 ```
 
-# Custom combination
+#### Profiles with Optional Components
+
+##### Development with QOL and network tools
+
+```powershell
+irm win.jfa.dev/dev+qol+network | iex
+```
+
+##### Gaming with network tools
+
+```powershell
+irm win.jfa.dev/gaming+network | iex
+```
+
+##### Work with QOL improvements
+
+```powershell
+irm win.jfa.dev/work+qol | iex
+```
+
+#### Custom Combinations
+
+##### Mix and match categories
 
 ```powershell
 irm win.jfa.dev/base+dev+gaming | iex
 ```
 
-**Available categories:**
-- `base` - System runtimes (.NET, VCRedist), core utilities, browsers
-- `dev` - Development tools (NodeJS, Bun, Deno, VSCode, Zed, Git tools, LLM CLIs)
-- `gaming` - Game launchers (Steam, Epic, GOG) and game-specific tools
-- `qol` - Quality of life tools (OBS, Krita, cloud storage, media apps)
-- `network` - VPN clients and network security tools (OpenVPN, PIA, ProtonVPN)
-- `work` - Enterprise tools (AWS CLI, Kubernetes, Terraform, Teams, Slack, Go, Java)
-- `msstore-qol` - Quality of life Microsoft Store apps (included in all profiles)
+**Available base profiles:**
+- `base` - System runtimes, core utilities, browsers
+- `dev` - Development tools
+- `gaming` - Game launchers and game-specific tools
+- `work` - Enterprise tools
 - `full` - All categories combined
+
+**Optional components** (add to any profile with `+`):
+- `qol` - Quality of life tools
+- `network` - VPN clients and network security tools
+
+**Individual categories** (for custom combinations):
+- `base`, `dev`, `gaming`, `work`, `qol`, `network`
+- `msstore-base`, `msstore-dev`, `msstore-gaming`, `msstore-work`, `msstore-qol`
+- `pwsh-modules`
 
 ### WSL
 
@@ -118,7 +146,16 @@ Invoke-WebRequest -Uri "https://win.jfa.dev/config/powershell" -OutFile $PROFILE
 irm win.jfa.dev/config/all | iex
 ```
 
-For detailed API documentation, see [installer/docs/config-api.md](installer/docs/config-api.md).
+For detailed API documentation and more examples, see [installer/docs/config-api.md](installer/docs/config-api.md).
+
+**Package management:**
+```powershell
+# List all available profiles and components
+irm win.jfa.dev/packages
+
+# Get package list for specific profile
+irm win.jfa.dev/packages/dev+qol | Out-File packages.txt
+```
 
 ## TODO
 
