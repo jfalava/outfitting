@@ -5,37 +5,23 @@ winget --info
 #####
 ## variable setting
 #####
-$wingetPackagesUrl = "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/packages/x64-windows/winget.txt"
-$msStorePackagesUrl = "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/packages/x64-windows/msstore-winget.txt"
-$psModulesUrl = "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/packages/x64-windows/pwsh-modules.txt"
+# Using base profile by default - includes core packages, runtimes, and utilities
+# For other profiles, use: irm win.jfa.dev/dev | iex OR irm win.jfa.dev/gaming | iex
+# Available profiles: base, dev, gaming, work, full
+# Custom combinations: irm win.jfa.dev/base+dev+gaming | iex
+$wingetPackagesUrl = "https://win.jfa.dev/packages/base"
 $wingetPackagesFile = "$env:TEMP\winget.txt"
-$msStorePackagesFile = "$env:TEMP\msstore-winget.txt"
-$psModulesFile = "$env:TEMP\psmodules.txt"
 
 #####
-# download the package lists
+# download the package list
 ######
 try {
     Invoke-WebRequest -Uri $wingetPackagesUrl -OutFile $wingetPackagesFile
-    Write-Host "❖ Winget packages list downloaded." -ForegroundColor Green
+    Write-Host "❖ Package list downloaded." -ForegroundColor Green
 } catch {
-    Write-Host "❖ Failed to download Winget package list:" -ForegroundColor Red
+    Write-Host "❖ Failed to download package list:" -ForegroundColor Red
     Write-Host "  - $_" -ForegroundColor Red
     exit 1 # don't continue
-}
-try {
-    Invoke-WebRequest -Uri $msStorePackagesUrl -OutFile $msStorePackagesFile
-    Write-Host "❖ Microsoft Store packages list downloaded." -ForegroundColor Green
-} catch {
-    Write-Host "❖ Failed to download Microsoft Store package list:" -ForegroundColor Red
-    Write-Host "  - $_" -ForegroundColor Red
-}
-try {
-    Invoke-WebRequest -Uri $psModulesUrl -OutFile $psModulesFile
-    Write-Host "❖ PowerShell modules list downloaded." -ForegroundColor Green
-} catch {
-    Write-Host "❖ Failed to download PowerShell modules list:" -ForegroundColor Red
-    Write-Host "  - $_" -ForegroundColor Red
 }
 
 #####
@@ -68,15 +54,8 @@ function Install-WingetPackages {
 }
 function Install-PSModules {
     param (
-        [string]$filePath
+        [string[]]$modules
     )
-
-    if (-Not (Test-Path $filePath)) {
-        Write-Host "❖ PSModules package list file not found: $filePath" -ForegroundColor Red
-        return
-    }
-
-    $modules = Get-Content $filePath | Where-Object { -Not ($_ -match '^\s*$') -and -Not ($_ -match '^#') }
 
     foreach ($module in $modules) {
         if (!(Get-Module -ListAvailable -Name $module)) {
@@ -98,8 +77,10 @@ function Install-PSModules {
 ## install packages
 #####
 Install-WingetPackages -filePath $wingetPackagesFile
-Install-WingetPackages -filePath $msStorePackagesFile
-Install-PSModules -filePath $psModulesFile
+
+# Install PowerShell modules
+$psModules = @("PSReadLine")
+Install-PSModules -modules $psModules
 
 #####
 ## install registry tweaks interactively (dynamic discovery via GitHub API)
@@ -211,8 +192,6 @@ try {
 ## cleanup temporary files
 #####
 Remove-Item $wingetPackagesFile -ErrorAction SilentlyContinue
-Remove-Item $msStorePackagesFile -ErrorAction SilentlyContinue
-Remove-Item $psModulesFile -ErrorAction SilentlyContinue
 
 #####
 ## copy pwsh profile to documents
@@ -244,8 +223,32 @@ try {
     exit 1
 }
 
+#####
+## install bun global packages - only if dev profile or if Bun is installed
+#####
+if (Get-Command bun -ErrorAction SilentlyContinue) {
+    Write-Host "`n❖ Installing Bun global packages..." -ForegroundColor Cyan
+
+    $bunPackages = @(
+        "@google/gemini-cli",
+        "@qwen-code/qwen-code@latest"
+    )
+
+    foreach ($package in $bunPackages) {
+        try {
+            bun install -g $package
+            Write-Host "❖ Installed Bun package: $package" -ForegroundColor Green
+        } catch {
+            Write-Host "❖ Failed to install Bun package: ${package}" -ForegroundColor Red
+            Write-Host "  - $_" -ForegroundColor Red
+        }
+    }
+} else {
+    Write-Host "`n❖ Bun not found, skipping LLM CLI installations." -ForegroundColor Yellow
+    Write-Host "  - To install dev tools including Bun, use: irm win.jfa.dev/dev | iex" -ForegroundColor Cyan
+}
+
 ## end messages
 Write-Host "`n"
-Write-Host "❖ Main installation complete." -ForegroundColor Green
-Write-Host "❖ Execute in a new, non-admin PowerShell window:"
-Write-Host "  - irm win.jfa.dev/post-install | iex" -ForegroundColor Green
+Write-Host "❖ Installation complete" -ForegroundColor Green
+Write-Host "`n"

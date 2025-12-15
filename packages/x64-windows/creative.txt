@@ -1,0 +1,15 @@
+OBSProject.OBSStudio
+ChatterinoTeam.Chatterino
+Nota.Gyazo
+KDE.Krita
+CiderCollective.Cider
+Mp3tag.Mp3tag
+AppWork.JDownloader
+Mega.MEGASync
+Proton.ProtonDrive
+OpenVPNTechnologies.OpenVPN
+PrivateInternetAccess.PrivateInternetAccess
+Proton.ProtonVPN
+Proton.ProtonPass
+Proton.ProtonAuthenticator
+Fortinet.FortiClientVPN

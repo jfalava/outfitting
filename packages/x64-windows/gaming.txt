@@ -1,0 +1,10 @@
+Valve.Steam
+EpicGames.EpicGamesLauncher
+GOG.Galaxy
+NexusMods.Vortex
+goatcorp.XIVLauncher
+WowUp.Wowup
+WeakAuras.WeakAurasCompanion
+Logitech.GHUB
+bozbez.WinCaptureAudio.beta
+qBittorrent.qBittorrent

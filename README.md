@@ -9,21 +9,44 @@ Scripts, dotfiles and lambdas for the automatic outfitting of my personal machin
 
 ### Windows
 
-- Run the following commands:
-
 > [!IMPORTANT]
 >
 > - You may need to install or update [WinGet](https://learn.microsoft.com/en-us/windows/package-manager/winget/#install-winget).
 > - A regular Windows machine will have it installed, but it might be outdated. Open this [link to the Microsoft Store](https://apps.microsoft.com/detail/9NBLGGH4NNS1) and update it if needed.
 > - You may also need to execute `Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process` if you encounter elevation issues.
 
-```powershell
-irm win.jfa.dev | iex # open an elevated PowerShell window for unattended installation.
-```
+#### Installation Profiles
+
+Choose a profile based on your machine's purpose (all commands require elevated PowerShell):
 
 ```powershell
-irm win.jfa.dev/post-install | iex # the post install script requires a non-elevated PowerShell window or it will fail
+# Base profile (default) - System runtimes, utilities, browsers, and essential tools
+irm win.jfa.dev | iex
+
+# Development profile - Base + dev tools (NodeJS, Bun, VSCode, Git, LLM CLIs)
+irm win.jfa.dev/dev | iex
+
+# Gaming profile - Base + gaming launchers and tools + creative/streaming apps
+irm win.jfa.dev/gaming | iex
+
+# Work profile - Base + dev + creative + enterprise tools (AWS, K8s, Teams, Slack)
+irm win.jfa.dev/work | iex
+
+# Full profile - Everything (all categories combined)
+irm win.jfa.dev/full | iex
+
+# Custom combination - Mix and match categories
+irm win.jfa.dev/base+dev+gaming | iex
 ```
+
+**Available categories:**
+- `base` - System runtimes (.NET, VCRedist), core utilities, browsers
+- `dev` - Development tools (NodeJS, Bun, Deno, VSCode, Zed, Git tools, LLM CLIs)
+- `gaming` - Game launchers (Steam, Epic, GOG) and game-specific tools
+- `creative` - Streaming, media production, VPN, cloud storage
+- `work` - Enterprise tools (AWS CLI, Kubernetes, Terraform, Teams, Slack, Go, Java)
+- `msstore-qol` - Quality of life Microsoft Store apps (included in all profiles)
+- `full` - All categories combined
 
 ### WSL
 
