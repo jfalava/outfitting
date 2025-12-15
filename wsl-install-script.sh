@@ -52,7 +52,7 @@ curl -fsSL "$APT_LIST_URL" -o /tmp/apt-packages.txt || {
     echo "Failed to fetch APT package list. Exiting..."
     exit 1
 }
-while IFS= read -r package || [ -n "$package" ]; do
+while IFS= read -r -p package || [ -n "$package" ]; do
     package=$(echo "$package" | tr -d '[:space:]')
     if [[ -n "$package" && ! "$package" =~ ^# ]]; then
         echo "Installing apt package: $package"
