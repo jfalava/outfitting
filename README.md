@@ -19,23 +19,40 @@ Scripts, dotfiles and lambdas for the automatic outfitting of my personal machin
 
 Choose a profile based on your machine's purpose (all commands require elevated PowerShell):
 
+
+- Base profile (default)
+
 ```powershell
-# Base profile (default)
 irm win.jfa.dev | iex
+```
 
-# Development profile
+- Development profile
+
+```powershell
 irm win.jfa.dev/dev | iex
+```
 
-# Gaming profile
+- Gaming profile
+
+```powershell
 irm win.jfa.dev/gaming | iex
+```
 
-# Work profile
+- Work profile
+
+```powershell
 irm win.jfa.dev/work | iex
+```
 
-# Full profile - Everything (all categories combined)
+- Full profile
+
+```powershell
 irm win.jfa.dev/full | iex
+```
 
-# Custom combination - Mix and match categories
+- Custom combination
+
+```powershell
 irm win.jfa.dev/base+dev+gaming | iex
 ```
 
@@ -62,7 +79,7 @@ curl -L wsl.jfa.dev | bash
 
 ## Updating After Installation
 
-### WSL/Linux
+### WSL
 
 #### Update Repositories and APT Packages
 
