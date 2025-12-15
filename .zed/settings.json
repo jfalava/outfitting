@@ -1,5 +1,5 @@
 {
   "file_types": {
-    "Shell Script": ["*.zshrc-wsl", "*.zshrc-macos"]
+    "Shell Script": ["*.zshrc-wsl", "*.zshrc-macos", "*.zshrc-base"]
   }
 }

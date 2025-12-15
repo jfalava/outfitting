@@ -75,6 +75,246 @@ path_prepend() {
     fi
 }
 
+# ---- Keybindings ----
+# Use emacs keybindings
+bindkey -e
+
+# Basic navigation
+bindkey '\e[2~' overwrite-mode              # Insert
+bindkey '\e[3~' delete-char                 # Delete
+bindkey '\e[1~' beginning-of-line           # Home
+bindkey '\e[4~' end-of-line                 # End
+bindkey '\e[H' beginning-of-line            # Home (alt)
+bindkey '\e[F' end-of-line                  # End (alt)
+bindkey '\e[5~' beginning-of-history        # Page Up
+bindkey '\e[6~' end-of-history              # Page Down
+
+# Ctrl + arrow keys for word-by-word navigation (Windows-style)
+_forward_word_windows() {
+    local WORDCHARS_OLD=$WORDCHARS
+    WORDCHARS='*?[]~=&;!#$%^(){}<>'
+    zle .forward-word
+    WORDCHARS=$WORDCHARS_OLD
+}
+zle -N _forward_word_windows
+
+_backward_word_windows() {
+    local WORDCHARS_OLD=$WORDCHARS
+    WORDCHARS='*?[]~=&;!#$%^(){}<>'
+    zle .backward-word
+    WORDCHARS=$WORDCHARS_OLD
+}
+zle -N _backward_word_windows
+
+bindkey '\e[1;5C' _forward_word_windows     # Ctrl+Right
+bindkey '\e[1;5D' _backward_word_windows    # Ctrl+Left
+
+# Alt+D: Delete word forward
+bindkey '\ed' kill-word
+
+# Ctrl+W: Delete word backward (with region support)
+_backward_kill_word_or_region() {
+    if ((REGION_ACTIVE)); then
+        zle kill-region
+    else
+        zle backward-kill-word
+    fi
+}
+zle -N _backward_kill_word_or_region
+bindkey '^W' _backward_kill_word_or_region
+
+# Ctrl+K: Kill to end of line (with region support)
+_kill_line_or_region() {
+    if ((REGION_ACTIVE)); then
+        zle kill-region
+    else
+        zle kill-line
+    fi
+}
+zle -N _kill_line_or_region
+bindkey '^K' _kill_line_or_region
+
+# Ctrl+U: Kill to beginning of line (with region support)
+_backward_kill_line_or_region() {
+    if ((REGION_ACTIVE)); then
+        zle kill-region
+    else
+        zle backward-kill-line
+    fi
+}
+zle -N _backward_kill_line_or_region
+bindkey '^U' _backward_kill_line_or_region
+
+# Ctrl+Z: Undo
+bindkey '^Z' undo
+
+# Ctrl+Y: Redo (yank)
+bindkey '^Y' redo
+
+# Shift + arrow keys for character selection
+_shift_select_forward() {
+    if ((REGION_ACTIVE)); then
+        zle .forward-char
+    else
+        zle .set-mark-command && zle .forward-char
+    fi
+}
+zle -N _shift_select_forward
+
+_shift_select_backward() {
+    if ((REGION_ACTIVE)); then
+        zle .backward-char
+    else
+        zle .set-mark-command && zle .backward-char
+    fi
+}
+zle -N _shift_select_backward
+
+bindkey '\e[1;2C' _shift_select_forward     # Shift+Right
+bindkey '\e[1;2D' _shift_select_backward    # Shift+Left
+
+# Ctrl + Shift + arrow keys for word selection (Windows-style)
+_shift_select_forward_word() {
+    if ((REGION_ACTIVE)); then
+        local WORDCHARS_OLD=$WORDCHARS
+        WORDCHARS='*?_[]~=&;!#$%^(){}<>'
+        zle .forward-word
+        WORDCHARS=$WORDCHARS_OLD
+    else
+        zle .set-mark-command
+        local WORDCHARS_OLD=$WORDCHARS
+        WORDCHARS='*?_[]~=&;!#$%^(){}<>'
+        zle .forward-word
+        WORDCHARS=$WORDCHARS_OLD
+    fi
+}
+zle -N _shift_select_forward_word
+
+_shift_select_backward_word() {
+    if ((REGION_ACTIVE)); then
+        local WORDCHARS_OLD=$WORDCHARS
+        WORDCHARS='*?_[]~=&;!#$%^(){}<>'
+        zle .backward-word
+        WORDCHARS=$WORDCHARS_OLD
+    else
+        zle .set-mark-command
+        local WORDCHARS_OLD=$WORDCHARS
+        WORDCHARS='*?_[]~=&;!#$%^(){}<>'
+        zle .backward-word
+        WORDCHARS=$WORDCHARS_OLD
+    fi
+}
+zle -N _shift_select_backward_word
+
+bindkey '\e[1;6C' _shift_select_forward_word    # Ctrl+Shift+Right
+bindkey '\e[1;6D' _shift_select_backward_word   # Ctrl+Shift+Left
+
+# Shift + Home/End for line selection
+_shift_select_to_start() {
+    if ((REGION_ACTIVE)); then
+        zle .beginning-of-line
+    else
+        zle .set-mark-command && zle .beginning-of-line
+    fi
+}
+zle -N _shift_select_to_start
+
+_shift_select_to_end() {
+    if ((REGION_ACTIVE)); then
+        zle .end-of-line
+    else
+        zle .set-mark-command && zle .end-of-line
+    fi
+}
+zle -N _shift_select_to_end
+
+bindkey '\e[1;2H' _shift_select_to_start    # Shift+Home
+bindkey '\e[1;2F' _shift_select_to_end      # Shift+End
+
+# Ctrl + Home/End for start/end of buffer
+bindkey '\e[1;5H' beginning-of-buffer       # Ctrl+Home
+bindkey '\e[1;5F' end-of-buffer             # Ctrl+End
+
+# Ctrl + Shift + Home/End for buffer selection
+_shift_select_to_start_buffer() {
+    if ((REGION_ACTIVE)); then
+        zle .beginning-of-buffer
+    else
+        zle .set-mark-command && zle .beginning-of-buffer
+    fi
+}
+zle -N _shift_select_to_start_buffer
+
+_shift_select_to_end_buffer() {
+    if ((REGION_ACTIVE)); then
+        zle .end-of-buffer
+    else
+        zle .set-mark-command && zle .end-of-buffer
+    fi
+}
+zle -N _shift_select_to_end_buffer
+
+bindkey '\e[1;6H' _shift_select_to_start_buffer # Ctrl+Shift+Home
+bindkey '\e[1;6F' _shift_select_to_end_buffer   # Ctrl+Shift+End
+
+# Ctrl+C: Copy selection to clipboard (OSC 52)
+_copy_region() {
+    if ((REGION_ACTIVE)); then
+        zle copy-region-as-kill
+        echo -n "\033]52;c;$(base64 <<< $CUTBUFFER)\a"
+        zle -M "Copied to clipboard"
+    fi
+}
+zle -N _copy_region
+bindkey '^C' _copy_region
+
+# Ctrl+X: Cut selection
+_cut_region() {
+    if ((REGION_ACTIVE)); then
+        zle kill-region
+        echo -n "\033]52;c;$(base64 <<< $CUTBUFFER)\a"
+        zle -M "Cut to clipboard"
+    else
+        zle kill-line
+    fi
+}
+zle -N _cut_region
+bindkey '^X' _cut_region
+
+# Ctrl+V: Paste (if using OSC 52 paste or just use yank)
+bindkey '^V' yank
+
+# Ctrl+A: Select all
+_select_all() {
+    zle beginning-of-buffer
+    zle set-mark-command
+    zle end-of-buffer
+}
+zle -N _select_all
+bindkey '^A' _select_all
+
+# Delete key to delete selection
+_delete_region() {
+    if ((REGION_ACTIVE)); then
+        zle kill-region
+    else
+        zle delete-char
+    fi
+}
+zle -N _delete_region
+bindkey '\e[3~' _delete_region
+
+# Backspace to delete selection
+_backward_delete_region() {
+    if ((REGION_ACTIVE)); then
+        zle kill-region
+    else
+        zle backward-delete-char
+    fi
+}
+zle -N _backward_delete_region
+bindkey '^?' _backward_delete_region
+
 # ---- Completion Configuration ----
 zstyle ':completion:*' menu select                          # Interactive menu
 zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}'  # Case insensitive
