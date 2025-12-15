@@ -231,13 +231,6 @@ else
     echo "✗ .zshrc not found"
 fi
 
-# Check .ripgreprc
-if [ -f ~/.ripgreprc ]; then
-    echo "✓ .ripgreprc configured"
-else
-    echo "✗ .ripgreprc not found"
-fi
-
 echo ""
 echo "================================"
 echo "Next Steps:"
