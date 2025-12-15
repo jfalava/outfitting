@@ -20,23 +20,40 @@ Scripts, dotfiles and lambdas for the automatic outfitting of my personal machin
 Choose a profile based on your machine's purpose (all commands require elevated PowerShell):
 
 
-```powershell
-# Base profile (default) - System runtimes, utilities, browsers, and essential tools
+
+# Base profile (default)
+
+```powershelll
 irm win.jfa.dev | iex
+```
 
-# Development profile - Base + dev tools (NodeJS, Bun, VSCode, Git, LLM CLIs)
+# Development profile
+
+```powershell
 irm win.jfa.dev/dev | iex
+```
 
-# Gaming profile - Base + gaming launchers + QoL tools + network/VPN
+# Gaming profile
+
+```powershell
 irm win.jfa.dev/gaming | iex
+```
 
-# Work profile - Base + dev + QoL + network + enterprise tools (AWS, K8s, Teams)
+# Work profile
+
+```powershell
 irm win.jfa.dev/work | iex
+```
 
-# Full profile - Everything (all categories combined)
+# Full profile
+
+```powershell
 irm win.jfa.dev/full | iex
+```
 
-# Custom combination - Mix and match categories
+# Custom combination
+
+```powershell
 irm win.jfa.dev/base+dev+gaming | iex
 ```
 
