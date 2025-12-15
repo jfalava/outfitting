@@ -27,24 +27,6 @@ Choose a profile based on your machine's purpose (all commands require elevated 
 irm win.jfa.dev | iex
 ```
 
-##### Development profile
-
-```powershell
-irm win.jfa.dev/dev | iex
-```
-
-##### Gaming profile
-
-```powershell
-irm win.jfa.dev/gaming | iex
-```
-
-##### Work profile
-
-```powershell
-irm win.jfa.dev/work | iex
-```
-
 ##### Full profile (includes everything)
 
 ```powershell
@@ -53,30 +35,8 @@ irm win.jfa.dev/full | iex
 
 #### Profiles with Optional Components
 
-##### Development with QOL and network tools
-
 ```powershell
 irm win.jfa.dev/dev+qol+network | iex
-```
-
-##### Gaming with network tools
-
-```powershell
-irm win.jfa.dev/gaming+network | iex
-```
-
-##### Work with QOL improvements
-
-```powershell
-irm win.jfa.dev/work+qol | iex
-```
-
-#### Custom Combinations
-
-##### Mix and match categories
-
-```powershell
-irm win.jfa.dev/base+dev+gaming | iex
 ```
 
 **Available base profiles:**
