@@ -90,6 +90,7 @@
   # Dotfiles management - symlink your dotfiles to home directory
   home.file = {
     ".zshrc".source = ../../dotfiles/.zshrc-wsl;
+    ".zshrc-base".source = ../../dotfiles/.zshrc-base;
   };
 
   # Program-specific configurations using Home Manager modules
