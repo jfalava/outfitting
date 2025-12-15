@@ -169,6 +169,9 @@ echo \
     sudo tee /etc/apt/sources.list.d/charm.list >/dev/null
 sudo apt update && sudo apt install crush
 
+## prevent agent-env ENOENT error on first new terminal session
+mkdir ~/.ssh
+
 ## end message and validation
 echo ""
 echo "================================"
