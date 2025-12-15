@@ -85,50 +85,10 @@ set_outfitting_repo() {
 setup_outfitting_repo() {
     echo "Outfitting repository location not configured."
     echo ""
-
-    # Offer choices
-    echo "Where would you like to keep the outfitting repository?"
-    echo ""
-    echo "  1) Default location: ~/Workspace/outfitting"
-    echo "  2) Choose custom location"
-    echo "  3) Specify existing clone"
-    echo "  s) Skip for now (use remote flake only)"
-    echo ""
-
-    while true; do
-        read -r -p "Select option (1-3, s): " choice
-
-        case "$choice" in
-            1)
-                repo_path="$HOME/Workspace/outfitting"
-                break
-                ;;
-            2)
-                read -e -p "Enter custom path: " repo_path
-                if [ -z "$repo_path" ]; then
-                    echo "Error: No path provided"
-                    continue
-                fi
-                break
-                ;;
-            3)
-                read -e -p "Enter existing clone path: " repo_path
-                if [ -z "$repo_path" ]; then
-                    echo "Error: No path provided"
-                    continue
-                fi
-                break
-                ;;
-            s|S)
-                echo "Skipped. You can set up local repository later with: setup-outfitting-repo"
-                return 0
-                ;;
-            *)
-                echo "Invalid option. Please choose 1-3 or s."
-                continue
-                ;;
-        esac
-    done
+    
+    # Always use default location for remote/non-interactive setup
+    repo_path="$HOME/Workspace/outfitting"
+    echo "Using default repository location: $repo_path"
 
     # Handle the repository setup
     if [ ! -d "$repo_path" ]; then

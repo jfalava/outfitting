@@ -50,11 +50,7 @@ check_architecture() {
         warning "Detected Intel Mac (x86_64)"
         warning "This configuration is optimized for Apple Silicon."
         warning "It may work on Intel Macs, but some packages might need adjustment."
-        read -r -p "Continue anyway? (y/N) " -n 1 -r
-        echo
-        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-            exit 1
-        fi
+        warning "Continuing with installation..."
     else
         error "Unsupported architecture: $arch"
         exit 1
@@ -86,57 +82,11 @@ configure_outfitting_repo() {
     echo "Repository Configuration"
     echo "======================================"
     echo ""
-    echo "For the best nix-darwin experience, we recommend setting up a local clone"
-    echo "of the outfitting repository. This enables local development and customization."
-    echo ""
-    echo "You can skip this and use the remote configuration, but local commands"
-    echo "like 'hm-sync' won't work until you set up a local clone."
-    echo ""
-
-    # Offer choices
-    echo "Where would you like to keep the outfitting repository?"
-    echo ""
-    echo "  1) Default location: ~/Workspace/outfitting"
-    echo "  2) Choose custom location"
-    echo "  3) Specify existing clone"
-    echo "  s) Skip for now (use remote flake only)"
-    echo ""
-
-    while true; do
-        read -r -p "Select option (1-3, s): " choice
-
-        case "$choice" in
-            1)
-                repo_path="$HOME/Workspace/outfitting"
-                break
-                ;;
-            2)
-                read -e -p "Enter custom path: " repo_path
-                if [ -z "$repo_path" ]; then
-                    echo "Error: No path provided"
-                    continue
-                fi
-                break
-                ;;
-            3)
-                read -e -p "Enter existing clone path: " repo_path
-                if [ -z "$repo_path" ]; then
-                    echo "Error: No path provided"
-                    continue
-                fi
-                break
-                ;;
-            s|S)
-                echo "Skipped. You can set up local repository later with: setup-outfitting-repo"
-                return 0
-                ;;
-            *)
-                echo "Invalid option. Please choose 1-3 or s."
-                continue
-                ;;
-        esac
-    done
-
+    
+    # Always use default location for remote installation
+    repo_path="$HOME/Workspace/outfitting"
+    echo "Using default repository location: $repo_path"
+    
     # Handle the repository setup
     if [ ! -d "$repo_path" ]; then
         echo "Directory doesn't exist. Creating: $repo_path"
@@ -146,8 +96,7 @@ configure_outfitting_repo() {
         if git clone https://github.com/jfalava/outfitting.git "$repo_path"; then
             echo "✓ Repository cloned successfully"
         else
-            echo "✗ Failed to clone repository"
-            return 1
+            echo "✗ Failed to clone repository, but continuing..."
         fi
     elif [ ! -d "$repo_path/.git" ]; then
         echo "Error: Directory exists but is not a git repository: $repo_path"
@@ -164,7 +113,6 @@ configure_outfitting_repo() {
     echo "$repo_path" > "$config_file"
     chmod 600 "$config_file"
 
-    echo ""
     echo "✓ Repository location configured successfully!"
     echo "  Repository path: $repo_path"
     echo "  Configuration stored in: $config_file"
