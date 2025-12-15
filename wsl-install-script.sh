@@ -108,6 +108,37 @@ configure_outfitting_repo() {
     echo "  s) Skip for now (use remote flake only)"
     echo ""
 
+    # Check if we're running in non-interactive mode
+    if [[ ! -t 0 ]]; then
+        echo "Running in non-interactive mode. Using default repository location."
+        echo "To configure later, run: setup-outfitting-repo"
+        repo_path="$HOME/Workspace/outfitting"
+        
+        # Create the directory if it doesn't exist
+        if [ ! -d "$repo_path" ]; then
+            echo "Creating default directory: $repo_path"
+            mkdir -p "$repo_path"
+            
+            echo "Cloning outfitting repository..."
+            if git clone https://github.com/jfalava/outfitting.git "$repo_path"; then
+                echo "✓ Repository cloned successfully"
+            else
+                echo "✗ Failed to clone repository, but continuing..."
+            fi
+        fi
+        
+        # Store the configuration
+        local config_dir="$HOME/.config/outfitting"
+        local config_file="$config_dir/repo-path"
+        
+        mkdir -p "$config_dir"
+        echo "$repo_path" > "$config_file"
+        chmod 600 "$config_file"
+        
+        echo "✓ Using default repository location: $repo_path"
+        return 0
+    fi
+
     while true; do
         read -r -p "Select option (1-3, s): " choice
 
