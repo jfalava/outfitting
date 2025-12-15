@@ -60,9 +60,6 @@ irm win.jfa.dev/<profile>+<profile>+<component> | iex # any arbitrary combinatio
 > [!IMPORTANT]
 > This is designed **exclusively** for `apt`-based Linux distributions **and** only tested on Ubuntu and Ubuntu 24.04.
 
-> [!NOTE]
-> You need `cURL` to execute this command, you may install it by running `sudo apt install curl`.
-
 ```sh
 curl -L wsl.jfa.dev | bash
 ```
@@ -71,9 +68,6 @@ curl -L wsl.jfa.dev | bash
 
 > [!IMPORTANT]
 > This is designed for macOS and installs Nix package manager using the Determinate Systems installer.
-
-> [!NOTE]
-> You need `cURL` to execute this command.
 
 ```sh
 curl -L mac.jfa.dev | bash
@@ -85,7 +79,7 @@ curl -L mac.jfa.dev | bash
 
 #### Update Repositories and APT Packages
 
-If you've added new repositories or APT packages to the installation script, update them without reinstalling existing tools:
+Install newly added `apt` packages to the [apt list](packages/x64-linux/apt.txt):
 
 ```bash
 remote-update
@@ -96,7 +90,7 @@ curl -L https://wsl.jfa.dev | bash -s -- --update-only
 This will:
 - Add any new repositories
 - Reinstall APT packages from the package list
-- Skip Nix, Home Manager, runtimes, and LLM CLIs
+- **Skip Nix, Home Manager, runtimes, and Bun global packages**
 
 #### Sync Home Manager Configuration
 
@@ -114,20 +108,11 @@ home-manager switch --flake github:jfalava/outfitting?dir=packages/x64-linux#jfa
 # Update PowerShell profile
 Invoke-WebRequest -Uri "https://win.jfa.dev/config/powershell" -OutFile $PROFILE
 
-# Or update all configs with automatic backup
-irm win.jfa.dev/config/all | iex
+# Or update PowerShell profile with automatic backup
+irm win.jfa.dev/config/pwsh-profile | iex
 ```
 
-For detailed API documentation and more examples, see [installer/docs/config-api.md](installer/docs/config-api.md).
-
-**Package management:**
-```powershell
-# List all available profiles and components
-irm win.jfa.dev/packages
-
-# Get package list for specific profile
-irm win.jfa.dev/packages/dev+qol | Out-File packages.txt
-```
+For detailed API documentation and more examples, see the [API config documentation](installer/docs/config-api.md).
 
 ## TODO
 

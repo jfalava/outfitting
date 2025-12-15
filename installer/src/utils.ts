@@ -55,37 +55,4 @@ export async function fetchConfigFile(config: { path: string; contentType: strin
   };
 }
 
-/**
- * Fetches and combines multiple package list files
- */
-export async function fetchPackageLists(urls: string[]): Promise<string | null> {
-  const contents: string[] = [];
 
-  for (const url of urls) {
-    const response = await fetch(url, {
-      headers: {
-        Accept: "text/plain",
-        "User-Agent": USER_AGENT,
-      },
-      redirect: "follow",
-    });
-
-    if (!response.ok) {
-      console.error(`Failed to fetch package list: ${url}`);
-      return null;
-    }
-
-    const text = await response.text();
-    // Filter out comments and empty lines, then add to contents
-    const filteredLines = text
-      .split("\n")
-      .filter((line) => line.trim() && !line.trim().startsWith("#"))
-      .join("\n");
-
-    if (filteredLines.trim()) {
-      contents.push(filteredLines);
-    }
-  }
-
-  return contents.join("\n");
-}

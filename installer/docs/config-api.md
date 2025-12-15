@@ -65,9 +65,9 @@ Fetch a specific configuration file (Windows only).
 Invoke-WebRequest -Uri "https://win.jfa.dev/config/powershell" -OutFile $PROFILE
 ```
 
-### Batch Update Script
+### PowerShell Profile Update Script
 
-#### `GET /config/all`
+#### `GET /config/pwsh-profile`
 
 Generate a PowerShell script that updates the PowerShell profile with automatic backup (Windows only).
 
@@ -82,7 +82,7 @@ Returns a PowerShell script that:
 **Example:**
 
 ```powershell
-irm win.jfa.dev/config/all | iex
+irm win.jfa.dev/config/pwsh-profile | iex
 ```
 
 **Response:**
@@ -154,7 +154,7 @@ After making changes to the PowerShell profile:
 
 ```powershell
 # Windows - Updates with automatic backup
-irm win.jfa.dev/config/all | iex
+irm win.jfa.dev/config/pwsh-profile | iex
 
 # Or update just the profile
 Invoke-WebRequest -Uri "https://win.jfa.dev/config/powershell" -OutFile $PROFILE
