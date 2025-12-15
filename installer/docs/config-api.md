@@ -237,6 +237,7 @@ hm-rollback           # List generations and rollback instructions
 Local repository location is configured during installation and stored in `~/.config/outfitting/repo-path`. All local commands use this configuration automatically.
 
 **Note**: After initial Nix installation, run:
+
 ```bash
 nix run nix-darwin -- switch --flake github:jfalava/outfitting?dir=packages/aarch64-darwin
 ```

@@ -1,9 +1,5 @@
 import { Hono } from "hono";
-import {
-  CONFIG_FILES,
-  CONTENT_TYPES,
-  SCRIPT_URLS,
-} from "./constants";
+import { CONFIG_FILES, CONTENT_TYPES, SCRIPT_URLS } from "./constants";
 import { fetchConfigFile, fetchScript, setScriptHeaders } from "./utils";
 
 const windowsApp = new Hono();
@@ -79,8 +75,6 @@ windowsApp.get("/", async (c) => {
   setScriptHeaders(c, CONTENT_TYPES.powershell);
   return c.body(scriptContent);
 });
-
-
 
 // Route: GET /:profile - Install script with specific profile (simplified - no package lists)
 windowsApp.get("/:profile", async (c) => {

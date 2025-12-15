@@ -30,10 +30,7 @@ export const CONTENT_TYPES = {
 /**
  * Config file mappings (Windows only - WSL configs are managed by Home Manager)
  */
-export const CONFIG_FILES: Record<
-  string,
-  { path: string; contentType: string }
-> = {
+export const CONFIG_FILES: Record<string, { path: string; contentType: string }> = {
   powershell: {
     path: `${GITHUB_RAW_BASE}/dotfiles/Microsoft.PowerShell_profile.ps1`,
     contentType: CONTENT_TYPES.plaintext,

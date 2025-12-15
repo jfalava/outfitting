@@ -54,5 +54,3 @@ export async function fetchConfigFile(config: { path: string; contentType: strin
     contentType: config.contentType,
   };
 }
-
-
