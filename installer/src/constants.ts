@@ -47,9 +47,11 @@ export const PACKAGE_CATEGORIES = {
   base: `${GITHUB_RAW_BASE}/packages/x64-windows/base.txt`,
   dev: `${GITHUB_RAW_BASE}/packages/x64-windows/dev.txt`,
   gaming: `${GITHUB_RAW_BASE}/packages/x64-windows/gaming.txt`,
-  creative: `${GITHUB_RAW_BASE}/packages/x64-windows/creative.txt`,
+  qol: `${GITHUB_RAW_BASE}/packages/x64-windows/qol.txt`,
+  network: `${GITHUB_RAW_BASE}/packages/x64-windows/network.txt`,
   work: `${GITHUB_RAW_BASE}/packages/x64-windows/work.txt`,
   "msstore-base": `${GITHUB_RAW_BASE}/packages/x64-windows/msstore-base.txt`,
+  "msstore-dev": `${GITHUB_RAW_BASE}/packages/x64-windows/msstore-dev.txt`,
   "msstore-gaming": `${GITHUB_RAW_BASE}/packages/x64-windows/msstore-gaming.txt`,
   "msstore-qol": `${GITHUB_RAW_BASE}/packages/x64-windows/msstore-qol.txt`,
   "msstore-work": `${GITHUB_RAW_BASE}/packages/x64-windows/msstore-work.txt`,
@@ -63,8 +65,8 @@ export const PACKAGE_CATEGORIES = {
  */
 export const PROFILES = {
   base: ["base", "msstore-base", "msstore-qol", "pwsh-modules"],
-  dev: ["base", "dev", "msstore-base", "msstore-qol", "pwsh-modules"],
-  gaming: ["base", "gaming", "creative", "msstore-base", "msstore-gaming", "msstore-qol", "pwsh-modules"],
-  work: ["base", "dev", "creative", "work", "msstore-base", "msstore-qol", "msstore-work", "pwsh-modules"],
-  full: ["base", "dev", "gaming", "creative", "work", "msstore-base", "msstore-gaming", "msstore-qol", "msstore-work", "pwsh-modules"],
+  dev: ["base", "dev", "msstore-base", "msstore-dev", "msstore-qol", "pwsh-modules"],
+  gaming: ["base", "gaming", "qol", "network", "msstore-base", "msstore-gaming", "msstore-qol", "pwsh-modules"],
+  work: ["base", "dev", "qol", "network", "work", "msstore-base", "msstore-dev", "msstore-qol", "msstore-work", "pwsh-modules"],
+  full: ["base", "dev", "gaming", "qol", "network", "work", "msstore-base", "msstore-dev", "msstore-gaming", "msstore-qol", "msstore-work", "pwsh-modules"],
 } as const;

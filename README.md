@@ -20,50 +20,35 @@ Scripts, dotfiles and lambdas for the automatic outfitting of my personal machin
 Choose a profile based on your machine's purpose (all commands require elevated PowerShell):
 
 
-- Base profile (default)
-
 ```powershell
+# Base profile (default) - System runtimes, utilities, browsers, and essential tools
 irm win.jfa.dev | iex
-```
 
-- Development profile
-
-```powershell
+# Development profile - Base + dev tools (NodeJS, Bun, VSCode, Git, LLM CLIs)
 irm win.jfa.dev/dev | iex
-```
 
-- Gaming profile
-
-```powershell
+# Gaming profile - Base + gaming launchers + QoL tools + network/VPN
 irm win.jfa.dev/gaming | iex
-```
 
-- Work profile
-
-```powershell
+# Work profile - Base + dev + QoL + network + enterprise tools (AWS, K8s, Teams)
 irm win.jfa.dev/work | iex
-```
 
-- Full profile
-
-```powershell
+# Full profile - Everything (all categories combined)
 irm win.jfa.dev/full | iex
-```
 
-- Custom combination
-
-```powershell
+# Custom combination - Mix and match categories
 irm win.jfa.dev/base+dev+gaming | iex
 ```
 
 **Available categories:**
-- `base`
-- `dev`
-- `gaming`
-- `creative`
-- `work`
-- `msstore-qol`
-- `full`
+- `base` - System runtimes (.NET, VCRedist), core utilities, browsers
+- `dev` - Development tools (NodeJS, Bun, Deno, VSCode, Zed, Git tools, LLM CLIs)
+- `gaming` - Game launchers (Steam, Epic, GOG) and game-specific tools
+- `qol` - Quality of life tools (OBS, Krita, cloud storage, media apps)
+- `network` - VPN clients and network security tools (OpenVPN, PIA, ProtonVPN)
+- `work` - Enterprise tools (AWS CLI, Kubernetes, Terraform, Teams, Slack, Go, Java)
+- `msstore-qol` - Quality of life Microsoft Store apps (included in all profiles)
+- `full` - All categories combined
 
 ### WSL
 
