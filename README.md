@@ -122,15 +122,13 @@ This will:
 
 #### Sync Home Manager Configuration
 
-Update your Home Manager configuration with latest changes from your local clone (prompts to commit and push if changes exist):
+Update your Home Manager configuration with latest changes from your local clone (remote flakes cannot be updated and the sync does not do anything):
 
 ```bash
 hm-sync
 # OR
 home-manager switch --flake ~/path/to/your/outfitting/clone/packages/x64-linux#jfalava
 ```
-
-**Note**: The WSL installer will prompt you to configure a local repository location during installation. You can skip this and use remote configuration, but local commands like `hm-sync` require a local clone. To set up later, run `setup-outfitting-repo`.
 
 ### Windows
 
@@ -143,11 +141,3 @@ irm win.jfa.dev/config/pwsh-profile | iex
 ```
 
 For detailed API documentation and more examples, see the [API config documentation](installer/docs/config-api.md).
-
-## TODO
-
-- [ ] Fonts
-- [ ] System preferences
-  - [x] Windows Registry
-  - [ ] Windows Settings (like mouse acceleration)
-- [x] Shell preferences

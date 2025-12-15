@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository Overview
 
-This repository contains scripts, dotfiles, and Cloudflare Workers for automatic outfitting of personal machines (Windows and WSL/Linux). It provides a unified installation system through short URLs (win.jfa.dev, wsl.jfa.dev) that serve installation scripts and configuration files.
+This repository contains scripts, dotfiles, and Cloudflare Workers for automatic outfitting of personal machines (Windows, WSL/Linux, and macOS). It provides a unified installation system through short URLs (win.jfa.dev, wsl.jfa.dev, mac.jfa.dev) that serve installation scripts and configuration files.
 
 ## Architecture
 
@@ -15,6 +15,7 @@ The repository is structured into three main components:
 - **windows-install-script.ps1** - Main Windows installation (requires elevated PowerShell)
 - **windows-post-install-script.ps1** - Post-install tasks (requires non-elevated PowerShell)
 - **wsl-install-script.sh** - WSL/Linux installation (apt-based distributions only, tested on Ubuntu 24.04)
+- **macos-install-script.sh** - macOS Nix installation (universal binary, supports Apple Silicon and Intel)
 
 These scripts are fetched and executed via short URLs served by the Cloudflare Worker.
 
@@ -32,34 +33,40 @@ A Hono-based Cloudflare Worker that serves installation scripts and config files
 **Main Routes:**
 - `GET /` - Main installation script (platform-specific based on domain)
 - `GET /post-install` - Windows post-install script (Windows only)
-- `GET /config/:file` - Individual config files (powershell for Windows)
-- `GET /config/all` - Batch update script with automatic backups
+- `GET /config/pwsh-profile` - PowerShell profile update script with automatic backup (Windows only)
 
 **Source:**
 - `installer/src/index.ts` - Main worker application
 - Fetches from: `https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main`
 
-### 3. Nix/Home Manager Configuration (packages/x64-linux/)
+### 3. Nix Configuration (packages/)
 
-Declarative environment management for WSL/Linux using Nix flakes and Home Manager.
+Declarative environment management using Nix flakes and Home Manager/nix-darwin for different platforms.
+
+**Platform-Specific Configurations:**
+- **packages/x64-linux/** - WSL/Linux using Home Manager
+- **packages/aarch64-darwin/** - macOS using nix-darwin
 
 **Key Files:**
-- **flake.nix** - Defines two configurations: `jfalava` (personal) and `jfalava-work` (work environment)
-- **home.nix** - Base configuration with 50+ packages, dotfile management, and program configurations
+- **flake.nix** - Defines configurations: `jfalava` (personal) and `jfalava-work` (work environment)
+- **home.nix** - Base configuration with packages, dotfile management, and program configurations
 - **work.nix** - Extends home.nix with work-specific packages (AWS, Kubernetes, Terraform, Azure tools)
+- **darwin.nix** - macOS system configuration using nix-darwin
 
-**Managed by Home Manager:**
+**Managed by Nix/Home Manager/nix-darwin:**
 - All development tools and CLI utilities
 - Dotfiles (.zshrc via symlink)
 - Git configuration with SSH signing
 - Tool-specific configs (bat, eza, ripgrep, fzf, etc.) via programs.* modules
 - Environment variables and PATH additions
+- macOS system settings (via nix-darwin)
 
 **NOT Managed by Nix:**
-- APT packages and system libraries
+- APT packages and system libraries (WSL/Linux)
 - Docker (via Docker's APT repository)
 - Runtime installers (Bun, uv)
 - Some LLM CLIs (installed via Bun globally)
+- Homebrew packages (macOS)
 
 ## Common Development Commands
 
@@ -90,15 +97,21 @@ bun run deploy
 **Deployment Process:**
 The deploy script automatically runs: cf-typegen → typecheck → lint → format → wrangler deploy
 
-### Home Manager (packages/x64-linux/)
+### Home Manager (WSL) and nix-darwin (macOS)
 
 ```bash
-# Apply configuration from GitHub (recommended for production)
+# Apply configuration from local clone (recommended for development)
+home-manager switch --flake ~/path/to/outfitting/clone/packages/x64-linux#jfalava
+
+# Apply from GitHub (works without local clone)
 home-manager switch --flake "github:jfalava/outfitting?dir=packages/x64-linux#jfalava"
 
 # Apply from local clone (for testing)
 cd packages/x64-linux
 home-manager switch --flake .#jfalava
+
+# macOS nix-darwin
+nix run nix-darwin -- switch --flake ~/path/to/outfitting/clone/packages/aarch64-darwin#jfalava
 
 # Work environment configuration
 home-manager switch --flake "github:jfalava/outfitting?dir=packages/x64-linux#jfalava-work"
@@ -113,8 +126,12 @@ nix search nixpkgs <package-name>
 home-manager generations
 ```
 
-**Sync Helper Command:**
-The installation script creates `hm-sync` alias that runs the GitHub flake switch command.
+**Sync Helper Commands:**
+The installation scripts create helper functions that use the configured local repository:
+- WSL: `hm-sync` - Uses local repository path from config
+- macOS: `hm-sync` - Uses local repository path from config
+
+To use these commands, configure a local repository with `setup-outfitting-repo`
 
 ### Installation Script Updates
 
@@ -139,18 +156,55 @@ After modifying dotfiles or installation scripts, they're automatically served b
 
 ### Updating Dotfiles
 
-1. Edit dotfiles in `dotfiles/` directory (.zshrc-wsl) or program configs in `packages/x64-linux/home.nix` (ripgrep, bat, eza, etc.)
-2. Commit and push to GitHub
-3. For Nix-managed dotfiles and configs:
-   - Run `hm-sync` or `home-manager switch --flake github:...`
-4. For Windows PowerShell profile:
-   - Users run `irm win.jfa.dev/config/all | iex` to pull latest
+1. Configure local repository with `setup-outfitting-repo` (if not done during installation)
+2. Edit dotfiles in `dotfiles/` directory or program configs in platform-specific packages:
+   - WSL: `packages/x64-linux/home.nix` (ripgrep, bat, eza, etc.)
+   - macOS: `packages/aarch64-darwin/home.nix` (ripgrep, bat, eza, etc.)
+3. Commit and push to GitHub
+4. For Nix-managed dotfiles and configs:
+   - Run `hm-sync` (uses configured local repository)
+   - Or manually: `home-manager switch --flake ~/path/to/clone/packages/PLATFORM#CONFIG`
+5. For Windows PowerShell profile:
+   - Users run `irm win.jfa.dev/config/pwsh-profile | iex` to pull latest
 
 ### Modifying Installation Scripts
 
 1. Edit `windows-install-script.ps1`, `windows-post-install-script.ps1`, or `wsl-install-script.sh`
 2. Commit and push to GitHub
 3. Changes are immediately available via short URLs (scripts are fetched from GitHub)
+
+## Repository Configuration System
+
+Both WSL and macOS installations now include a configurable repository location system that enables local development and customization.
+
+### Configuration Process
+
+During installation, users are prompted to choose a repository location:
+- **Default**: `~/workspace/outfitting` (recommended)
+- **Custom**: Any user-specified location
+- **Existing**: Point to an existing clone
+- **Skip**: Use remote configuration only
+
+### Configuration Storage
+
+Repository location is stored in: `~/.config/outfitting/repo-path`
+
+### Setup Commands
+
+```bash
+# Interactive setup (run if skipped during installation)
+setup-outfitting-repo
+
+# Manual configuration
+set_outfitting_repo ~/path/to/outfitting
+```
+
+### Benefits
+
+- **Local Development**: Edit configurations locally before committing
+- **Git Workflow**: Automatic commit/push prompts when making changes
+- **Cross-Machine Sync**: Push changes and pull on other machines
+- **Offline Work**: No dependency on GitHub availability for local changes
 
 ## Important Configuration Details
 
@@ -180,6 +234,7 @@ This updates repositories and APT packages only, skipping Nix/Home Manager/runti
 The Cloudflare Worker uses strict domain checking:
 - **wsl.jfa.dev** - Serves Linux/WSL scripts and configs
 - **win.jfa.dev** - Serves Windows scripts and configs
+- **mac.jfa.dev** - Serves macOS scripts and configs
 - Other domains receive 418 status
 
 This prevents accidental cross-platform script execution.
@@ -197,17 +252,22 @@ irm win.jfa.dev/post-install | iex  # Non-elevated PowerShell
 curl -L wsl.jfa.dev | bash
 ```
 
-**Home Manager (manual):**
+**macOS:**
 ```bash
-nix run home-manager/master -- switch --flake "github:jfalava/outfitting?dir=packages/x64-linux#jfalava"
+# Install Nix
+curl -L mac.jfa.dev | bash
+
+# Install nix-darwin for system management
+nix run nix-darwin -- switch --flake github:jfalava/outfitting?dir=packages/aarch64-darwin
 ```
 
 ## Technology Stack
 
 - **Cloudflare Workers** - Script delivery infrastructure
 - **Hono** - Web framework for Workers
-- **Nix** - Package management for Linux/WSL
-- **Home Manager** - Declarative dotfile and environment management
+- **Nix** - Package management for Linux/WSL and macOS
+- **Home Manager** - Declarative dotfile and environment management (WSL/Linux)
+- **nix-darwin** - macOS system configuration management
 - **TypeScript** - Worker implementation language
 - **Bun** - Package manager and runtime for worker development
 - **oxlint/oxfmt** - Fast linting and formatting
