@@ -8,7 +8,8 @@
     "typecheck": "tsgo --noEmit",
     "lint": "oxlint --fix --type-aware .",
     "format": "oxfmt",
-    "dev": "bun run cf-typegen && wrangler dev"
+    "dev": "bun run cf-typegen && wrangler dev",
+    "check": "tsgo --noEmit && oxlint --fix --type-aware ."
   },
   "dependencies": {
     "hono": "^4.11.1"

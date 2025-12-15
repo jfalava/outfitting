@@ -2,10 +2,47 @@
 
 The Outfitting installer provides a REST API for fetching and updating individual configuration files without re-running the full installation script.
 
+## Architecture
+
+The API is built with:
+
+- **Framework**: [Hono](https://hono.dev/) - Fast, lightweight web framework for Cloudflare Workers
+- **Runtime**: Cloudflare Workers
+- **Language**: TypeScript
+- **Structure**: Domain-based routing with OS-specific route handlers
+
+### Route Organization
+
+Routes are organized by target OS:
+
+- `src/windows.ts` - Windows-specific routes (/, /post-install, /config/*)
+- `src/wsl.ts` - WSL/Linux routes (/)
+- `src/macos.ts` - macOS routes (/)
+- `src/constants.ts` - Shared constants (URLs, hosts, content types)
+- `src/utils.ts` - Common utilities (headers, fetch helpers)
+
+Domain validation middleware ensures requests are routed to the correct OS handler based on the Host header.
+
+### Security
+
+- **Domain Whitelisting**: Only requests from `wsl.jfa.dev`, `win.jfa.dev`, and `mac.jfa.dev` are allowed
+- **No Authentication**: Scripts are publicly accessible (by design, for easy machine setup)
+- **CORS Enabled**: All origins allowed for script fetching
+- **No Cache**: All responses include `Cache-Control: no-cache` to ensure latest versions
+
+### Error Responses
+
+| Status Code | Description                                      |
+| ----------- | ------------------------------------------------ |
+| `418`       | I'm a teapot - Invalid domain or unknown route   |
+| `400`       | Invalid config file requested                    |
+| `500`       | Failed to fetch script/config from GitHub        |
+
 ## Base URLs
 
 - **WSL**: `https://wsl.jfa.dev`
 - **Windows**: `https://win.jfa.dev`
+- **macOS**: `https://mac.jfa.dev`
 
 ## Endpoints
 
@@ -65,11 +102,23 @@ Fetch the main installation script for full system setup.
 curl -L wsl.jfa.dev | bash
 ```
 
+**macOS:**
+
+```bash
+curl -L mac.jfa.dev | bash
+```
+
 **Windows (Elevated):**
 
 ```powershell
 irm win.jfa.dev | iex
 ```
+
+**Response:**
+
+- Content-Type: `text/x-shellscript` (WSL/macOS) or `application/x-powershell` (Windows)
+- Cache-Control: `no-cache`
+- Body: Installation script fetched from GitHub main branch
 
 #### `GET /post-install` (Windows only)
 
@@ -78,6 +127,12 @@ Fetch the Windows post-installation script (requires non-elevated PowerShell).
 ```powershell
 irm win.jfa.dev/post-install | iex
 ```
+
+**Response:**
+
+- Content-Type: `application/x-powershell`
+- Cache-Control: `no-cache`
+- Body: Post-installation script content
 
 ## Usage Examples
 
@@ -115,6 +170,11 @@ Fresh install on a new machine:
 curl -L wsl.jfa.dev | bash
 ```
 
+```bash
+# macOS - Full installation
+curl -L mac.jfa.dev | bash
+```
+
 ```powershell
 # Windows - Full installation (elevated PowerShell)
 irm win.jfa.dev | iex
@@ -141,4 +201,86 @@ $ hm-sync
 Switching to home-manager configuration...
 ✓ Home Manager configuration applied
 Reload your shell with: source ~/.zshrc
+```
+
+## Development
+
+### Project Structure
+
+```
+installer/
+├── src/
+│   ├── index.ts          # Main entry point with middleware
+│   ├── constants.ts      # Shared constants (URLs, hosts, types)
+│   ├── utils.ts          # Common utilities (fetch, headers)
+│   ├── windows.ts        # Windows route handler
+│   ├── wsl.ts            # WSL route handler
+│   └── macos.ts          # macOS route handler
+├── docs/
+│   └── config-api.md     # This file
+└── package.json
+```
+
+### Shared Constants (`src/constants.ts`)
+
+All route handlers use centralized constants:
+
+- `GITHUB_RAW_BASE` - Base URL for fetching scripts
+- `ALLOWED_HOSTS` - Whitelist of allowed domains
+- `SCRIPT_URLS` - Mapping of all script URLs
+- `CONTENT_TYPES` - Standard content type definitions
+- `CONFIG_FILES` - Windows config file mappings
+
+### Shared Utilities (`src/utils.ts`)
+
+Common functions used across route handlers:
+
+- `setScriptHeaders(c, contentType)` - Sets standard response headers
+- `fetchScript(url)` - Fetches scripts with consistent settings
+- `fetchConfigFile(config)` - Fetches config files with error handling
+
+### Development Commands
+
+```bash
+cd installer
+
+# Start dev server
+bun run dev
+
+# Type checking
+bun run typecheck
+
+# Linting
+bun run lint
+
+# Formatting
+bun run format
+
+# Deploy to Cloudflare
+bun run deploy
+```
+
+### Adding New Routes
+
+1. Add route to appropriate OS handler (`windows.ts`, `wsl.ts`, or `macos.ts`)
+2. Use shared constants from `constants.ts`
+3. Use utility functions from `utils.ts` for consistency
+4. Update this documentation
+
+**Example:**
+
+```typescript
+// In windows.ts
+import { SCRIPT_URLS, CONTENT_TYPES } from "./constants";
+import { fetchScript, setScriptHeaders } from "./utils";
+
+windowsApp.get("/new-route", async (c) => {
+  const script = await fetchScript(SCRIPT_URLS.windows);
+  if (!script) {
+    return c.text("Failed to fetch script", 500);
+  }
+  
+  setScriptHeaders(c, CONTENT_TYPES.powershell);
+  return c.body(script);
+});
 ```
