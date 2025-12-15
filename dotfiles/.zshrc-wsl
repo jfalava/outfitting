@@ -64,23 +64,23 @@ set_outfitting_repo() {
         echo "Error: No repository path provided"
         return 1
     fi
-    
+
     # Convert to absolute path
     repo_path="$(cd "$repo_path" 2>/dev/null && pwd)" || {
         echo "Error: Path does not exist: $repo_path"
         return 1
     }
-    
+
     local config_dir="$HOME/.config/outfitting"
     local config_file="$config_dir/repo-path"
-    
+
     # Create config directory
     mkdir -p "$config_dir"
-    
+
     # Store path
     echo "$repo_path" > "$config_file"
     chmod 600 "$config_file"
-    
+
     echo "✓ Repository path set to: $repo_path"
     return 0
 }
@@ -88,22 +88,22 @@ set_outfitting_repo() {
 setup_outfitting_repo() {
     echo "Outfitting repository location not configured."
     echo ""
-    
+
     # Offer choices
     echo "Where would you like to keep the outfitting repository?"
     echo ""
-    echo "  1) Default location: ~/workspace/outfitting"
+    echo "  1) Default location: ~/Workspace/outfitting"
     echo "  2) Choose custom location"
     echo "  3) Specify existing clone"
     echo "  s) Skip for now (use remote flake only)"
     echo ""
-    
+
     while true; do
         read -r -p "Select option (1-3, s): " choice
-        
+
         case "$choice" in
             1)
-                repo_path="$HOME/workspace/outfitting"
+                repo_path="$HOME/Workspace/outfitting"
                 break
                 ;;
             2)
@@ -132,12 +132,12 @@ setup_outfitting_repo() {
                 ;;
         esac
     done
-    
+
     # Handle the repository setup
     if [ ! -d "$repo_path" ]; then
         echo "Directory doesn't exist. Creating: $repo_path"
         mkdir -p "$(dirname "$repo_path")"
-        
+
         echo "Cloning outfitting repository..."
         if git clone https://github.com/jfalava/outfitting.git "$repo_path"; then
             echo "✓ Repository cloned successfully"
@@ -151,7 +151,7 @@ setup_outfitting_repo() {
     else
         echo "✓ Using existing repository at: $repo_path"
     fi
-    
+
     # Store the configuration
     if set_outfitting_repo "$repo_path"; then
         echo ""
@@ -173,7 +173,7 @@ hm-sync() {
         setup_outfitting_repo || return 1
         repo_path=$(get_outfitting_repo)
     }
-    
+
     echo "Syncing Home Manager configuration from local repo..."
     home-manager switch --flake "$repo_path/packages/x64-linux#jfalava" "$@"
 
@@ -218,7 +218,7 @@ hm-switch() {
         setup_outfitting_repo || return 1
         repo_path=$(get_outfitting_repo)
     }
-    
+
     echo "Applying Home Manager configuration from local repo..."
     home-manager switch --flake "$repo_path/packages/x64-linux#jfalava"
 }
@@ -257,7 +257,7 @@ hm-update() {
         setup_outfitting_repo || return 1
         repo_path=$(get_outfitting_repo)
     }
-    
+
     local repo="$repo_path/packages/x64-linux"
 
     echo "Updating Nix packages from local repo..."
@@ -301,7 +301,7 @@ update-all() {
         setup_outfitting_repo || return 1
         repo_path=$(get_outfitting_repo)
     }
-    
+
     echo "Updating APT packages..."
     sudo apt update && sudo apt upgrade -y && sudo apt autoremove -y
 

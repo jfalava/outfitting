@@ -69,7 +69,7 @@ curl -L https://wsl.jfa.dev | bash
 
 #### Installation Modes
 
-**Default** (recommended for existing setups):
+**Default**:
 ```bash
 curl -L https://wsl.jfa.dev | bash
 ```
@@ -116,7 +116,7 @@ During installation, you'll be prompted to configure a local repository location
 - Automatic commit/push prompts when making changes
 
 **Configuration options:**
-- **Default**: `~/workspace/outfitting`
+- **Default**: `~/Workspace/outfitting`
 - **Custom**: Any location you prefer
 - **Existing**: Point to an existing clone
 - **Skip**: Use remote configuration only (local commands won't work)

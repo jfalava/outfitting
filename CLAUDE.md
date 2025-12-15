@@ -180,7 +180,7 @@ Both WSL and macOS installations now include a configurable repository location 
 ### Configuration Process
 
 During installation, users are prompted to choose a repository location:
-- **Default**: `~/workspace/outfitting` (recommended)
+- **Default**: `~/Workspace/outfitting`
 - **Custom**: Any user-specified location
 - **Existing**: Point to an existing clone
 - **Skip**: Use remote configuration only

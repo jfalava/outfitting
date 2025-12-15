@@ -81,22 +81,22 @@ configure_outfitting_repo() {
     echo "You can skip this and use the remote configuration, but local commands"
     echo "like 'hm-sync' won't work until you set up a local clone."
     echo ""
-    
+
     # Offer choices
     echo "Where would you like to keep the outfitting repository?"
     echo ""
-    echo "  1) Default location: ~/workspace/outfitting"
+    echo "  1) Default location: ~/Workspace/outfitting"
     echo "  2) Choose custom location"
     echo "  3) Specify existing clone"
     echo "  s) Skip for now (use remote flake only)"
     echo ""
-    
+
     while true; do
         read -p "Select option (1-3, s): " choice
-        
+
         case "$choice" in
             1)
-                repo_path="$HOME/workspace/outfitting"
+                repo_path="$HOME/Workspace/outfitting"
                 break
                 ;;
             2)
@@ -125,12 +125,12 @@ configure_outfitting_repo() {
                 ;;
         esac
     done
-    
+
     # Handle the repository setup
     if [ ! -d "$repo_path" ]; then
         echo "Directory doesn't exist. Creating: $repo_path"
         mkdir -p "$(dirname "$repo_path")"
-        
+
         echo "Cloning outfitting repository..."
         if git clone https://github.com/jfalava/outfitting.git "$repo_path"; then
             echo "✓ Repository cloned successfully"
@@ -144,15 +144,15 @@ configure_outfitting_repo() {
     else
         echo "✓ Using existing repository at: $repo_path"
     fi
-    
+
     # Store the configuration
     local config_dir="$HOME/.config/outfitting"
     local config_file="$config_dir/repo-path"
-    
+
     mkdir -p "$config_dir"
     echo "$repo_path" > "$config_file"
     chmod 600 "$config_file"
-    
+
     echo ""
     echo "✓ Repository location configured successfully!"
     echo "  Repository path: $repo_path"
@@ -160,7 +160,7 @@ configure_outfitting_repo() {
     echo ""
     echo "You can now use local commands like: hm-sync, hm-switch, hm-update"
     echo "To change location later, run: setup-outfitting-repo"
-    
+
     return 0
 }
 
@@ -209,14 +209,14 @@ EOF
 ## install home-manager and apply configuration
 if command -v nix >/dev/null; then
     echo "Installing Home Manager and applying configuration..."
-    
+
     # Check if local repository is configured
     local config_file="$HOME/.config/outfitting/repo-path"
     if [ -f "$config_file" ]; then
         local repo_path
         repo_path=$(cat "$config_file")
         echo "Using local repository: $repo_path"
-        
+
         # Use local flake if configured
         nix run "github:nix-community/home-manager" -- switch \
             --flake "$repo_path/packages/x64-linux#jfalava" \
@@ -228,7 +228,7 @@ if command -v nix >/dev/null; then
         }
     else
         echo "Using remote repository (no local configuration found)"
-        
+
         # Fall back to remote flake
         nix run "github:nix-community/home-manager" -- switch \
             --flake "github:jfalava/outfitting?dir=packages/x64-linux#jfalava" \
