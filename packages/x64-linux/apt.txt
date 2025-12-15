@@ -1,4 +1,5 @@
 build-essential
+cpu-checker
 git
 curl
 unzip
@@ -11,6 +12,8 @@ libasound2-dev
 libatk-bridge2.0-0
 libatk1.0-0
 libbz2-dev
+libvirt-clients
+libvirt-daemon
 libcups2
 libcurl4-openssl-dev
 libdbus-1-3
