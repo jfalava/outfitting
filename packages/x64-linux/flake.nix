@@ -42,6 +42,19 @@
             # You can add extra arguments here if needed
           };
         };
+
+        jfalava-virt = home-manager.lib.homeManagerConfiguration {
+          inherit pkgs;
+
+          # Virtualization environment configuration
+          modules = [
+            ./virt.nix
+          ];
+
+          extraSpecialArgs = {
+            # You can add extra arguments here if needed
+          };
+        };
       };
     };
 }
