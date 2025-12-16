@@ -5,12 +5,11 @@
 # Source universal configuration
 source ~/.zshrc-base
 
-# ---- WSL/Linux-Specific VISUAL ----
+# ---- WSL VISUAL ----
 export VISUAL='zed --wait'
 
-# ---- WSL/Linux-Specific PATH Additions ----
+# ---- WSL PATH Additions ----
 path_prepend "$HOME/.local/bin"
-path_append "$HOME/go/bin"
 
 # pnpm
 export PNPM_HOME="$HOME/.local/share/pnpm"
@@ -32,6 +31,9 @@ path_prepend "$HOME/.opencode/bin"
 
 # Cargo (Rust)
 path_append "$HOME/.cargo/bin"
+
+# Go bin directory - add at the end to ensure it takes precedence over Windows paths
+export PATH="$HOME/go/bin:$PATH"
 
 # ---- WSL-Specific Aliases ----
 alias explorer='/mnt/c/WINDOWS/explorer.exe'
@@ -349,3 +351,6 @@ if [ -z "$SSH_AUTH_SOCK" ] || [ ! -S "$SSH_AUTH_SOCK" ]; then
 fi
 
 unset SSH_AGENT_FILE
+
+# Ensure Linux go/bin takes precedence over Windows paths
+export PATH="$HOME/go/bin:$PATH"
