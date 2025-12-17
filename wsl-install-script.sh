@@ -191,7 +191,7 @@ if command -v nix >/dev/null; then
 
     # Install Home Manager using channel
     echo "Installing Home Manager..."
-    nix-channel --add https://github.com/nix-community/home-manager/archive/release-24.05.tar.gz home-manager
+    nix-channel --add https://github.com/nix-community/home-manager/archive/release-25.11.tar.gz home-manager
     nix-channel --update
 
     # Source the Home Manager installation

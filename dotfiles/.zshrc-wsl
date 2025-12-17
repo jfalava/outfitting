@@ -104,15 +104,19 @@ hm-sync() {
 # Profile switching functions - optimized for personal use
 hm-personal() {
     local repo_path=$(get_outfitting_repo) || { setup_outfitting_repo; repo_path=$(get_outfitting_repo); }
-    sed -i 's/activeProfile = "[^"]*"/activeProfile = "personal"/' "$repo_path/packages/x64-linux/home.nix"
-    cp "$repo_path/packages/x64-linux/home.nix" ~/.config/home-manager/ && home-manager switch
+    local home_nix="$repo_path/packages/x64-linux/home.nix"
+    # Portable sed approach (works on both BSD and GNU sed)
+    sed 's/activeProfile = "[^"]*"/activeProfile = "personal"/' "$home_nix" > "$home_nix.tmp" && mv "$home_nix.tmp" "$home_nix"
+    cp "$home_nix" ~/.config/home-manager/ && home-manager switch
     echo "✓ Personal profile active"
 }
 
 hm-work() {
     local repo_path=$(get_outfitting_repo) || { setup_outfitting_repo; repo_path=$(get_outfitting_repo); }
-    sed -i 's/activeProfile = "[^"]*"/activeProfile = "work"/' "$repo_path/packages/x64-linux/home.nix"
-    cp "$repo_path/packages/x64-linux/home.nix" ~/.config/home-manager/ && home-manager switch
+    local home_nix="$repo_path/packages/x64-linux/home.nix"
+    # Portable sed approach (works on both BSD and GNU sed)
+    sed 's/activeProfile = "[^"]*"/activeProfile = "work"/' "$home_nix" > "$home_nix.tmp" && mv "$home_nix.tmp" "$home_nix"
+    cp "$home_nix" ~/.config/home-manager/ && home-manager switch
     echo "✓ Work profile active (AWS, K8s, etc.)"
 }
 

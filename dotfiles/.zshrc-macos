@@ -110,18 +110,22 @@ hm-sync() {
 # Profile switching functions - streamlined for personal use
 hm-personal() {
     local repo_path=$(get_outfitting_repo) || { setup_outfitting_repo; repo_path=$(get_outfitting_repo); }
-    sed -i 's/activeProfile = "[^"]*"/activeProfile = "personal"/' "$repo_path/packages/aarch64-darwin/home.nix"
+    local home_nix="$repo_path/packages/aarch64-darwin/home.nix"
+    # Portable sed approach (works on both BSD and GNU sed)
+    sed 's/activeProfile = "[^"]*"/activeProfile = "personal"/' "$home_nix" > "$home_nix.tmp" && mv "$home_nix.tmp" "$home_nix"
     cp "$repo_path/packages/aarch64-darwin/darwin.nix" ~/.nixpkgs/darwin-configuration.nix
-    cp "$repo_path/packages/aarch64-darwin/home.nix" ~/.config/home-manager/
+    cp "$home_nix" ~/.config/home-manager/
     darwin-rebuild switch
     echo "✓ Personal profile active"
 }
 
 hm-work() {
     local repo_path=$(get_outfitting_repo) || { setup_outfitting_repo; repo_path=$(get_outfitting_repo); }
-    sed -i 's/activeProfile = "[^"]*"/activeProfile = "work"/' "$repo_path/packages/aarch64-darwin/home.nix"
+    local home_nix="$repo_path/packages/aarch64-darwin/home.nix"
+    # Portable sed approach (works on both BSD and GNU sed)
+    sed 's/activeProfile = "[^"]*"/activeProfile = "work"/' "$home_nix" > "$home_nix.tmp" && mv "$home_nix.tmp" "$home_nix"
     cp "$repo_path/packages/aarch64-darwin/darwin.nix" ~/.nixpkgs/darwin-configuration.nix
-    cp "$repo_path/packages/aarch64-darwin/home.nix" ~/.config/home-manager/
+    cp "$home_nix" ~/.config/home-manager/
     darwin-rebuild switch
     echo "✓ Work profile active (AWS, K8s, etc.)"
 }
