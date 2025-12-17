@@ -10,6 +10,7 @@ set -euo pipefail
 CURRENT_HM_VERSION="25.11"
 
 # Function to make environment variables persistent across shell sessions
+# Updates existing values or appends new ones, handles rc file creation
 persist_environment_var() {
     local var_name="$1"
     local var_value="$2"
@@ -25,8 +26,30 @@ persist_environment_var() {
         shell_rc="$HOME/.profile"
     fi
     
-    # Check if the export already exists in the rc file
-    if ! grep -q "export $var_name=" "$shell_rc" 2>/dev/null; then
+    # Create rc file if it doesn't exist
+    if [[ ! -f "$shell_rc" ]]; then
+        echo "Creating $shell_rc..."
+        touch "$shell_rc"
+    fi
+    
+    # Check if an export for this variable already exists
+    if grep -q "^\s*export\s\+$var_name=" "$shell_rc" 2>/dev/null; then
+        # Variable exists - update its value
+        echo "Updating $var_name in $shell_rc..."
+        # Create a temp file with the updated content
+        local temp_file="${shell_rc}.tmp"
+        
+        # Remove existing export line and add new one
+        grep -v "^\s*export\s\+$var_name=" "$shell_rc" > "$temp_file"
+        echo "" >> "$temp_file"
+        echo "# Added by Home Manager setup script" >> "$temp_file"
+        echo "export $var_name=\"$var_value\"" >> "$temp_file"
+        
+        # Replace original file
+        mv "$temp_file" "$shell_rc"
+        echo "✓ Updated $var_name in $shell_rc"
+    else
+        # Variable doesn't exist - append it
         echo "Adding $var_name to $shell_rc..."
         {
             echo ""
@@ -34,8 +57,6 @@ persist_environment_var() {
             echo "export $var_name=\"$var_value\""
         } >> "$shell_rc"
         echo "✓ Added $var_name to $shell_rc"
-    else
-        echo "ℹ $var_name already exists in $shell_rc"
     fi
 }
 
@@ -90,7 +111,7 @@ check-latest() {
         jq -r '.[].name' | grep -E '^release-[0-9][0-9]\.[0-9][0-9]$' | sort -V | tail -1)
     
     # If API doesn't show the latest, fall back to web scraping
-    if [[ -z "$LATEST_RELEASE" ]] || [[ "$LATEST_RELEASE" == "release-24.11" ]]; then
+    if [[ -z "$LATEST_RELEASE" ]]; then
         echo "ℹ API may not show latest release, checking web interface..."
         LATEST_RELEASE=$(curl -s https://github.com/nix-community/home-manager/branches | \
             grep -o 'release-[0-9][0-9]\.[0-9][0-9]' | sort -V | tail -1)
@@ -113,7 +134,8 @@ check-latest() {
 
 # Function to set up persistent NIX_PATH
 setup-persistent-nix-path() {
-    local nix_path_value="$HOME/.nix-defexpr/channels:/nix/var/nix/profiles/per-user/root/channels${NIX_PATH:+:$NIX_PATH}"
+    # Use a clean, reproducible NIX_PATH value instead of the current temporary state
+    local nix_path_value="$HOME/.nix-defexpr/channels:/nix/var/nix/profiles/per-user/root/channels"
     
     echo "Setting up persistent NIX_PATH..."
     persist_environment_var "NIX_PATH" "$nix_path_value"
