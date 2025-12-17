@@ -1,2 +1,4 @@
 @google/gemini-cli
 @qwen-code/qwen-code@latest
+@openai/codex
+opencode-ai

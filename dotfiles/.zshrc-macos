@@ -44,6 +44,15 @@ alias finder='open .'  # Open current directory in Finder
 
 # ---- macOS-Specific Functions ----
 
+# Find process using a port (macOS native)
+port() {
+    if [ -z "$1" ]; then
+        echo "Usage: port <port_number>"
+        return 1
+    fi
+    lsof -i ":$1"
+}
+
 # Outfitting repository configuration functions
 get_outfitting_repo() {
     local config_file="$HOME/.config/outfitting/repo-path"
@@ -83,78 +92,66 @@ set_outfitting_repo() {
 }
 
 setup_outfitting_repo() {
-    echo "Outfitting repository location not configured."
-    echo ""
-    
-    # Always use default location for remote/non-interactive setup
     repo_path="$HOME/Workspace/outfitting"
-    echo "Using default repository location: $repo_path"
-
-    # Handle the repository setup
     if [ ! -d "$repo_path" ]; then
-        echo "Directory doesn't exist. Creating: $repo_path"
         mkdir -p "$(dirname "$repo_path")"
-
-        echo "Cloning outfitting repository..."
-        if git clone https://github.com/jfalava/outfitting.git "$repo_path"; then
-            echo "✓ Repository cloned successfully"
-        else
-            echo "✗ Failed to clone repository"
+        if ! git clone https://github.com/jfalava/outfitting.git "$repo_path"; then
+            echo "Error: Failed to clone repository"
             return 1
         fi
-    elif [ ! -d "$repo_path/.git" ]; then
-        echo "Error: Directory exists but is not a git repository: $repo_path"
-        return 1
-    else
-        echo "✓ Using existing repository at: $repo_path"
     fi
-
-    # Store the configuration
-    if set_outfitting_repo "$repo_path"; then
-        echo ""
-        echo "✓ Repository location configured successfully!"
-        echo "  You can now use: hm-sync, hm-switch, and other local commands"
-        echo "  To change location later, run: setup-outfitting-repo"
-        return 0
-    else
-        return 1
-    fi
+    set_outfitting_repo "$repo_path"
+    echo "✓ Repository ready: $repo_path"
 }
 
-# Find process using a port (macOS native)
-port() {
-    if [ -z "$1" ]; then
-        echo "Usage: port <port_number>"
-        return 1
-    fi
-    lsof -i ":$1"
-}
-
-# nix-darwin management functions
+# nix-darwin management functions - streamlined for personal use
 hm-sync() {
-    local repo_path
-    repo_path=$(get_outfitting_repo) || {
-        echo "Error: Outfitting repository location not configured."
-        echo ""
-        setup_outfitting_repo || return 1
-        repo_path=$(get_outfitting_repo)
-    }
+    local repo_path=$(get_outfitting_repo) || { setup_outfitting_repo; repo_path=$(get_outfitting_repo); }
+    cp "$repo_path/packages/aarch64-darwin/darwin.nix" ~/.nixpkgs/darwin-configuration.nix
+    cp "$repo_path/packages/aarch64-darwin/home.nix" ~/.config/home-manager/
+    darwin-rebuild switch
+    echo "✓ Synced from $repo_path"
+}
 
-    echo "Syncing nix-darwin configuration from local repo..."
-    (set -o noglob; darwin-rebuild switch --flake "$repo_path/packages/aarch64-darwin#jfalava" "$@")
+# Profile switching functions - streamlined for personal use
+hm-personal() {
+    local repo_path=$(get_outfitting_repo) || { setup_outfitting_repo; repo_path=$(get_outfitting_repo); }
+    # Copy first, then modify the copies (don't touch source repo)
+    cp "$repo_path/packages/aarch64-darwin/darwin.nix" ~/.nixpkgs/darwin-configuration.nix
+    cp "$repo_path/packages/aarch64-darwin/home.nix" ~/.config/home-manager/
+    # Portable sed approach (works on both BSD and GNU sed)
+    sed 's/activeProfile = "[^"]*"/activeProfile = "personal"/' ~/.config/home-manager/home.nix > ~/.config/home-manager/home.nix.tmp && mv ~/.config/home-manager/home.nix.tmp ~/.config/home-manager/home.nix
+    darwin-rebuild switch
+    echo "✓ Personal profile active"
+}
+
+hm-work() {
+    local repo_path=$(get_outfitting_repo) || { setup_outfitting_repo; repo_path=$(get_outfitting_repo); }
+    # Copy first, then modify the copies (don't touch source repo)
+    cp "$repo_path/packages/aarch64-darwin/darwin.nix" ~/.nixpkgs/darwin-configuration.nix
+    cp "$repo_path/packages/aarch64-darwin/home.nix" ~/.config/home-manager/
+    # Portable sed approach (works on both BSD and GNU sed)
+    sed 's/activeProfile = "[^"]*"/activeProfile = "work"/' ~/.config/home-manager/home.nix > ~/.config/home-manager/home.nix.tmp && mv ~/.config/home-manager/home.nix.tmp ~/.config/home-manager/home.nix
+    darwin-rebuild switch
+    echo "✓ Work profile active (AWS, K8s, etc.)"
+}
+
+# Quick profile check
+hm-profile() {
+    local current=$(grep 'activeProfile' ~/.config/home-manager/home.nix 2>/dev/null | cut -d'"' -f2)
+    if [[ -n "$1" ]]; then
+        case "$1" in
+            personal|work) hm-"$1" ;;
+            *) echo "Usage: hm-profile <personal|work>" ;;
+        esac
+    else
+        echo "Current: $current"
+    fi
 }
 
 hm-switch() {
-    local repo_path
-    repo_path=$(get_outfitting_repo) || {
-        echo "Error: Outfitting repository location not configured."
-        echo ""
-        setup_outfitting_repo || return 1
-        repo_path=$(get_outfitting_repo)
-    }
-
-    echo "Applying nix-darwin configuration from local repo..."
-    darwin-rebuild switch --flake "$repo_path/packages/aarch64-darwin#jfalava"
+    echo "Applying nix-darwin configuration..."
+    darwin-rebuild switch
 }
 
 hm-switch-local() {
@@ -167,7 +164,13 @@ hm-switch-local() {
     }
 
     echo "Applying nix-darwin configuration from local repo..."
-    darwin-rebuild switch --flake "$repo_path/packages/aarch64-darwin#jfalava"
+    
+    # Copy configuration files
+    cp "$repo_path/packages/aarch64-darwin/darwin.nix" ~/.nixpkgs/darwin-configuration.nix
+    cp "$repo_path/packages/aarch64-darwin/home.nix" ~/.config/home-manager/
+    
+    # Apply configuration
+    darwin-rebuild switch
 
     if git -C "$repo_path" diff --quiet && git -C "$repo_path" diff --cached --quiet; then
         echo ""
@@ -177,40 +180,25 @@ hm-switch-local() {
         echo "⚠ You have uncommitted changes in $repo_path"
         echo "  Don't forget to commit and push to sync across machines:"
         echo "    cd $repo_path"
-        echo "    git add packages/aarch64-darwin/home.nix packages/aarch64-darwin/flake.lock"
+        echo "    git add packages/aarch64-darwin/darwin.nix packages/aarch64-darwin/home.nix"
         echo "    git commit -m 'Update nix-darwin config'"
         echo "    git push"
     fi
 }
 
 hm-update() {
-    local repo_path
-    repo_path=$(get_outfitting_repo) || {
-        echo "Error: Outfitting repository location not configured."
-        echo ""
-        setup_outfitting_repo || return 1
-        repo_path=$(get_outfitting_repo)
-    }
-
-    local repo="$repo_path/packages/aarch64-darwin"
-
-    echo "Updating Nix packages from local repo..."
-    cd "$repo" || return
-    nix flake update
-    darwin-rebuild switch --flake .#jfalava
+    echo "Updating Nix channels and nix-darwin..."
+    
+    # Update channels (like brew update)
+    nix-channel --update
+    
+    # Apply updated configuration
+    darwin-rebuild switch
 
     echo ""
-    echo "✓ Nix packages updated locally"
+    echo "✓ Nix packages updated successfully!"
     echo ""
-    echo "Review changes:"
-    git diff flake.lock
-    echo ""
-    echo "To deploy to GitHub and other machines:"
-    echo "  cd $repo_path"
-    echo "  git add packages/aarch64-darwin/flake.lock"
-    echo "  git commit -m 'chore: update nix packages'"
-    echo "  git push"
-    echo "  hm-sync  # on other machines to pull updates"
+    echo "Packages are now floating with nixpkgs-unstable channel (like Homebrew)"
 }
 
 hm-rollback() {
@@ -227,42 +215,10 @@ hm-clean() {
     echo "Cleaning complete!"
 }
 
-# System update
+# Quick system update
 update-all() {
-    local repo_path
-    repo_path=$(get_outfitting_repo) || {
-        echo "Error: Outfitting repository location not configured."
-        echo ""
-        setup_outfitting_repo || return 1
-        repo_path=$(get_outfitting_repo)
-    }
-
-    echo "Updating Homebrew packages (if using Homebrew)..."
-    if command -v brew &> /dev/null; then
-        brew update && brew upgrade && brew cleanup
-    fi
-
-    echo -e "\nUpdating nix-darwin configuration..."
-    hm-update
-    local hm_exit=$?
-    if [ $hm_exit -ne 0 ]; then
-        echo "⚠ nix-darwin update failed"
-        return $hm_exit
-    fi
-
-    echo -e "\nCleaning old generations..."
-    hm-clean
-
-    echo -e "\nUpdating global bun packages..."
-    if command -v bun &> /dev/null; then
-        bun update -g
-    fi
-
-    echo -e "\n✓ Update complete!"
-    echo ""
-    echo "Next steps:"
-    echo "  1. Review flake.lock changes"
-    echo "  2. Commit: git add packages/aarch64-darwin/flake.lock && git commit -m 'chore: update nix packages'"
-    echo "  3. Push: git push"
-    echo "  4. Run 'hm-sync' on other machines"
+    command -v brew >/dev/null && brew update && brew upgrade && brew cleanup
+    hm-update && hm-clean
+    command -v bun >/dev/null && bun update -g
+    echo "✓ System updated"
 }
