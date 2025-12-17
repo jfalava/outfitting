@@ -255,6 +255,33 @@ if [[ "$MODE" != "update-only" ]]; then
 curl -fsSL https://bun.sh/install | bash
 deno jupyter --install # if the deno flake fails to install, this will fail gracefully
 curl -LsSf https://astral.sh/uv/install.sh | sh
+
+#####
+## install bun global packages from bun.txt
+#####
+if command -v bun >/dev/null 2>&1; then
+    echo "❖ Installing Bun global packages..."
+    BUN_PACKAGES_URL="https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/packages/bun.txt"
+    BUN_PACKAGES_FILE="/tmp/bun-packages.txt"
+
+    if curl -fsSL "$BUN_PACKAGES_URL" -o "$BUN_PACKAGES_FILE"; then
+        while IFS= read -r package; do
+            # Skip empty lines and comments
+            [[ -z "$package" || "$package" =~ ^[[:space:]]*# ]] && continue
+            # Remove leading/trailing whitespace
+            package=$(echo "$package" | xargs)
+            if [[ -n "$package" ]]; then
+                echo "❖ Installing Bun package: $package"
+                bun install -g "$package" || echo "❖ Warning: Failed to install $package"
+            fi
+        done < "$BUN_PACKAGES_FILE"
+        rm -f "$BUN_PACKAGES_FILE"
+    else
+        echo "❖ Warning: Failed to fetch Bun packages list, skipping global package installations"
+    fi
+else
+    echo "❖ Bun not found, skipping global package installations"
+fi
 fi
 
 echo ""

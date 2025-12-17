@@ -16,19 +16,19 @@ NC='\033[0m' # No Color
 
 # Logging functions
 info() {
-    echo -e "${BLUE}[INFO]${NC} $1"
+    echo -e "${BLUE}❖${NC} $1"
 }
 
 success() {
-    echo -e "${GREEN}[SUCCESS]${NC} $1"
+    echo -e "${GREEN}❖${NC} $1"
 }
 
 warning() {
-    echo -e "${YELLOW}[WARNING]${NC} $1"
+    echo -e "${YELLOW}❖${NC} $1"
 }
 
 error() {
-    echo -e "${RED}[ERROR]${NC} $1"
+    echo -e "${RED}❖${NC} $1"
 }
 
 # Check if running on macOS
@@ -119,24 +119,24 @@ configure_outfitting_repo() {
     echo "Repository Configuration"
     echo "======================================"
     echo ""
-    
+
     # Always use default location for remote installation
     repo_path="$HOME/Workspace/outfitting"
-    echo "Using default repository location: $repo_path"
+    echo "❖ Using default repository location: $repo_path"
     
     # Handle the repository setup
     if [ ! -d "$repo_path" ]; then
-        echo "Directory doesn't exist. Creating: $repo_path"
+        echo "❖ Directory doesn't exist. Creating: $repo_path"
         mkdir -p "$(dirname "$repo_path")"
 
-        echo "Cloning outfitting repository..."
+        echo "❖ Cloning outfitting repository..."
         if git clone https://github.com/jfalava/outfitting.git "$repo_path"; then
             echo "✓ Repository cloned successfully"
         else
             echo "✗ Failed to clone repository, but continuing..."
         fi
     elif [ ! -d "$repo_path/.git" ]; then
-        echo "Error: Directory exists but is not a git repository: $repo_path"
+        error "Directory exists but is not a git repository: $repo_path"
         return 1
     else
         echo "✓ Using existing repository at: $repo_path"
@@ -154,8 +154,8 @@ configure_outfitting_repo() {
     echo "  Repository path: $repo_path"
     echo "  Configuration stored in: $config_file"
     echo ""
-    echo "You can now use local commands like: hm-sync, hm-switch, hm-update"
-    echo "To change location later, run: setup-outfitting-repo"
+    echo "❖ You can now use local commands like: hm-sync, hm-switch, hm-update"
+    echo "❖ To change location later, run: setup-outfitting-repo"
 
     return 0
 }
@@ -197,19 +197,19 @@ post_install_info() {
     echo "✓ nix-darwin and Home Manager configured"
     echo "✓ Repository location configured"
     echo ""
-    echo "Next steps:"
-    echo "1. Close this terminal and open a new one (or run: source /etc/zshrc)"
-    echo "2. Use 'hm-sync' to apply configuration changes from your repository"
-    echo "3. Use 'hm-update' to update packages (like brew upgrade)"
+    echo "❖ Next steps:"
+    echo "  1. Close this terminal and open a new one (or run: source /etc/zshrc)"
+    echo "  2. Use 'hm-sync' to apply configuration changes from your repository"
+    echo "  3. Use 'hm-update' to update packages (like brew upgrade)"
     echo ""
-    echo "To update packages in the future:"
+    echo "❖ To update packages in the future:"
     echo "  nix-channel --update && darwin-rebuild switch"
     echo ""
-    echo "Or use the helper functions:"
+    echo "❖ Or use the helper functions:"
     echo "  hm-update"
     echo ""
-    echo "Your packages will float with nixpkgs-unstable (like Homebrew)"
-    echo "No more flake.lock management needed!"
+    echo "❖ Your packages will float with nixpkgs-unstable (like Homebrew)"
+    echo "❖ No more flake.lock management needed!"
     echo ""
 }
 
@@ -237,6 +237,38 @@ main() {
     apply_initial_config
 
     post_install_info
+
+    # Install Bun global packages from bun.txt
+    install_bun_packages
+}
+
+# Install Bun global packages from bun.txt
+install_bun_packages() {
+    info "Installing Bun global packages..."
+
+    if command -v bun >/dev/null 2>&1; then
+        local bunPackagesUrl="https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/packages/bun.txt"
+        local bunPackagesFile="/tmp/bun-packages.txt"
+
+        if curl -fsSL "$bunPackagesUrl" -o "$bunPackagesFile"; then
+            while IFS= read -r package; do
+                # Skip empty lines and comments
+                [[ -z "$package" || "$package" =~ ^[[:space:]]*# ]] && continue
+                # Remove leading/trailing whitespace
+                package=$(echo "$package" | xargs)
+                if [[ -n "$package" ]]; then
+                    info "Installing Bun package: $package"
+                    bun install -g "$package" || warning "Failed to install $package"
+                fi
+            done < "$bunPackagesFile"
+            rm -f "$bunPackagesFile"
+            success "Bun global packages installed"
+        else
+            warning "Failed to fetch Bun packages list, skipping global package installations"
+        fi
+    else
+        warning "Bun not found, skipping global package installations"
+    fi
 }
 
 # Run main function

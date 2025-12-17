@@ -41,11 +41,17 @@ A Hono-based Cloudflare Worker that serves installation scripts and config files
 
 ### 3. Nix Configuration (packages/)
 
-Declarative environment management using Nix flakes and Home Manager/nix-darwin for different platforms.
+Declarative environment management using Nix channels with Home Manager/nix-darwin for different platforms.
+
+**Package Management Approach:**
+- Uses Nix **channels** (not flakes) for simpler, more robust management
+- Packages float with `nixpkgs-unstable` channel for latest updates
+- No flake.lock management overhead
+- Simple update process: `nix-channel --update && home-manager switch`
 
 **Platform-Specific Configurations:**
-- **packages/x64-linux/** - WSL/Linux using Home Manager
-- **packages/aarch64-darwin/** - macOS using nix-darwin
+- **packages/x64-linux/** - WSL/Linux using Home Manager with channels
+- **packages/aarch64-darwin/** - macOS using nix-darwin with channels
 
 **Key Files:**
 - **flake.nix** - Defines configurations: `jfalava` (personal) and `jfalava-work` (work environment)
@@ -99,39 +105,57 @@ The deploy script automatically runs: cf-typegen → typecheck → lint → form
 
 ### Home Manager (WSL) and nix-darwin (macOS)
 
+**Quick Update Commands:**
+
 ```bash
-# Apply configuration from local clone (recommended for development)
-home-manager switch --flake ~/path/to/outfitting/clone/packages/x64-linux#jfalava
+# Switch to personal profile (AI tools, personal git config)
+hm-personal
 
-# Apply from GitHub (works without local clone)
-home-manager switch --flake "github:jfalava/outfitting?dir=packages/x64-linux#jfalava"
+# Switch to work profile (AWS, Kubernetes, Terraform, work git config)
+hm-work
 
-# Apply from local clone (for testing)
-cd packages/x64-linux
-home-manager switch --flake .#jfalava
+# Check current active profile
+hm-profile
 
-# macOS nix-darwin
-nix run nix-darwin -- switch --flake ~/path/to/outfitting/clone/packages/aarch64-darwin#jfalava
+# Update packages via channels and apply configuration
+hm-update
 
-# Work environment configuration
-home-manager switch --flake "github:jfalava/outfitting?dir=packages/x64-linux#jfalava-work"
+# Sync configuration from local repository and apply
+hm-sync
+```
 
-# Update flake inputs
-nix flake update
+**System-Wide Updates:**
 
-# Search for packages
-nix search nixpkgs <package-name>
+```bash
+# Update everything (system packages + Nix packages)
+update-all
+```
+
+**Version Management & Advanced:**
+
+```bash
+# Check for newer Home Manager releases
+hm-version-manager.sh check
+
+# Update to latest Home Manager stable release
+hm-version-manager.sh update
+
+# Make NIX_PATH persistent across shell sessions
+hm-version-manager.sh setup-nix-path
 
 # List generations (for rollback)
 home-manager generations
+
+# Search for packages
+nix search nixpkgs <package-name>
 ```
 
-**Sync Helper Commands:**
-The installation scripts create helper functions that use the configured local repository:
-- WSL: `hm-sync` - Uses local repository path from config
-- macOS: `hm-sync` - Uses local repository path from config
+**Configuration:**
 
-To use these commands, configure a local repository with `setup-outfitting-repo`
+These commands use a configurable local repository (stored in `~/.config/outfitting/repo-path`). The installation scripts set this up automatically, but you can reconfigure it with:
+```bash
+setup-outfitting-repo
+```
 
 ### Installation Script Updates
 
@@ -148,23 +172,22 @@ After modifying dotfiles or installation scripts, they're automatically served b
 
 ### Adding Packages to Home Manager
 
-1. Edit `packages/x64-linux/home.nix` or `work.nix`
+1. Edit `packages/x64-linux/home.nix` or `packages/x64-linux/work.nix`
 2. Add package to `home.packages` array
-3. Test locally: `home-manager switch --flake .#jfalava`
+3. Test locally: `hm-sync` (requires local repository configured)
 4. Commit and push to GitHub
-5. Apply from GitHub: `home-manager switch --flake "github:jfalava/outfitting?dir=packages/x64-linux#jfalava"`
+5. On other machines: `hm-sync` to apply the changes
 
-### Updating Dotfiles
+### Updating Dotfiles and Program Configurations
 
 1. Configure local repository with `setup-outfitting-repo` (if not done during installation)
-2. Edit dotfiles in `dotfiles/` directory or program configs in platform-specific packages:
-   - WSL: `packages/x64-linux/home.nix` (ripgrep, bat, eza, etc.)
-   - macOS: `packages/aarch64-darwin/home.nix` (ripgrep, bat, eza, etc.)
+2. Edit configuration in platform-specific packages:
+   - WSL: `packages/x64-linux/home.nix` (ripgrep, bat, eza, fzf configs, etc.)
+   - macOS: `packages/aarch64-darwin/home.nix` (same configs)
 3. Commit and push to GitHub
-4. For Nix-managed dotfiles and configs:
-   - Run `hm-sync` (uses configured local repository)
-   - Or manually: `home-manager switch --flake ~/path/to/clone/packages/PLATFORM#CONFIG`
-5. For Windows PowerShell profile:
+4. Apply changes locally: `hm-sync` (uses configured local repository)
+5. On other machines: Pull updates and run `hm-sync` to apply
+6. For Windows PowerShell profile:
    - Users run `irm win.jfa.dev/config/pwsh-profile | iex` to pull latest
 
 ### Modifying Installation Scripts
@@ -215,11 +238,13 @@ set_outfitting_repo ~/path/to/outfitting
 - Both `commit.gpgsign` and `tag.gpgsign` enabled
 - Work environment overrides email to `jorgefernando.alava@seidor.com`
 
-### Home Manager Flake Structure
+### Home Manager Configuration Structure
 
-Two configurations in `flake.nix`:
+Two configurations defined in `flake.nix`:
 - `jfalava` - Personal environment (uses `./home.nix`)
 - `jfalava-work` - Work environment (imports `./home.nix` + `./work.nix` overrides)
+
+These configurations are installed via Nix channels (not flakes) for simpler, more robust package management. Use `hm-personal` and `hm-work` to switch between profiles.
 
 ### WSL Update Modes
 
