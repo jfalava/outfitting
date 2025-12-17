@@ -1,67 +1,151 @@
-{ config, pkgs, ... }:
+# Home Manager configuration using Nix channels instead of flakes
+# This file provides a unified configuration with profile switching capability
 
-{
+{ config, pkgs, lib, ... }:
+
+let
+  # Profile selection - change this to switch profiles
+  activeProfile = "personal"; # Options: "personal", "work"
+
+  # Personal profile configuration
+  personalConfig = {
+    packages = with pkgs; [
+      # Core utilities
+      bat
+      eza
+      fastfetch
+      fzf
+      ripgrep
+      starship
+      tree
+      zoxide
+      zsh
+      zsh-autosuggestions
+      zsh-syntax-highlighting
+      
+      # Development tools
+      deno
+      go
+      lazygit
+      nodejs_latest
+      python3
+      zig
+      zellij
+      neovim
+      fd
+      jq
+      less
+      shellcheck
+      
+      # Archive tools
+      zip
+      _7zz # 7zip
+      p7zip
+      unrar
+      
+      # Nix tools
+      nixd
+      nil
+      
+      # Package managers
+      pnpm
+      
+      # AI/ML tools
+      opencode
+      gemini-cli
+      codex
+      claude-code
+      qwen-code
+    ];
+    
+    gitEmail = "git@jfa.dev";
+    gitSigningKey = "${config.home.homeDirectory}/.ssh/jfalava-gitSign-elliptic";
+    
+    sessionVariables = {};
+  };
+
+  # Work profile configuration  
+  workConfig = {
+    packages = with pkgs; [
+      # Personal packages + work packages
+      bat
+      eza
+      fastfetch
+      fzf
+      ripgrep
+      starship
+      tree
+      zoxide
+      zsh
+      zsh-autosuggestions
+      zsh-syntax-highlighting
+      deno
+      go
+      lazygit
+      nodejs_latest
+      python3
+      zig
+      zellij
+      neovim
+      fd
+      jq
+      less
+      shellcheck
+      zip
+      _7zz
+      p7zip
+      unrar
+      nixd
+      nil
+      pnpm
+      opencode
+      gemini-cli
+      codex
+      claude-code
+      qwen-code
+      
+      # Work-specific packages
+      awscli2
+      azure-cli
+      terraform
+      terragrunt
+      opentofu
+      tflint
+      kubectl
+      kubectx
+      k9s
+      kubernetes-helm
+      eksctl
+      ansible
+      cloudlens
+      postgresql
+      redis
+      slack
+      zoom-us
+    ];
+    
+    gitEmail = "jorgefernando.alava@seidor.com";
+    gitSigningKey = "${config.home.homeDirectory}/.ssh/jfalava-seidor-ed25519";
+    
+    sessionVariables = {
+      AWS_PROFILE = "default";
+      AWS_REGION = "us-east-1";
+    };
+  };
+
+  # Select active configuration
+  selectedConfig = if activeProfile == "work" then workConfig else personalConfig;
+
+in {
   nixpkgs.config.allowUnfree = true;
 
   # Home Manager needs a bit of information about you and the paths it should manage
   home.username = "jfalava";
   home.homeDirectory = "/home/jfalava";
-
-  # This value determines the Home Manager release that your configuration is
-  # compatible with. This helps avoid breakage when a new Home Manager release
-  # introduces backwards incompatible changes.
-  home.stateVersion = "24.05";
+  home.stateVersion = "25.11";
 
   # The home.packages option allows you to install Nix packages into your environment
-  # These will float with nixpkgs-unstable channel, like Homebrew
-  home.packages = with pkgs; [
-    # Core utilities
-    bat
-    eza
-    fastfetch
-    fzf
-    ripgrep
-    starship
-    tree
-    zoxide
-    zsh
-    zsh-autosuggestions
-    zsh-syntax-highlighting
-    
-    # Development tools
-    deno
-    go
-    lazygit
-    nodejs_latest
-    python3
-    zig
-    zellij
-    neovim
-    fd
-    jq
-    less
-    shellcheck
-    
-    # Archive tools
-    zip
-    _7zz # 7zip
-    p7zip
-    unrar
-    
-    # Nix tools
-    nixd
-    nil
-    
-    # Package managers
-    pnpm
-    
-    # AI/ML tools
-    opencode
-    gemini-cli
-    codex
-    claude-code
-    qwen-code
-  ];
+  home.packages = selectedConfig.packages;
 
   # Home Manager can also manage your environment variables through
   # 'home.sessionVariables'. These will be explicitly sourced when using a
@@ -85,7 +169,9 @@
     PNPM_HOME = "${config.home.homeDirectory}/.local/share/pnpm";
     BUN_INSTALL = "${config.home.homeDirectory}/.bun";
     DENO_INSTALL = "${config.home.homeDirectory}/.deno";
-  };
+    
+    # Profile-specific variables
+  } // selectedConfig.sessionVariables;
 
   # Add directories to PATH
   home.sessionPath = [
@@ -112,14 +198,14 @@
     enable = true;
 
     signing = {
-      key = "${config.home.homeDirectory}/.ssh/jfalava-gitSign-elliptic";
+      key = selectedConfig.gitSigningKey;
       signByDefault = true;
     };
 
     settings = {
       user = {
         name = "Jorge Fernando Álava";
-        email = "git@jfa.dev";
+        email = selectedConfig.gitEmail;
       };
 
       color.ui = "auto";

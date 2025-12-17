@@ -90,9 +90,19 @@ install_nix_darwin() {
     nix-channel --add https://github.com/LnL7/nix-darwin/archive/master.tar.gz darwin
     nix-channel --update
     
+    # Bootstrap nix-darwin by building darwin-rebuild
+    info "Bootstrapping nix-darwin..."
+    nix-build '<darwin>' -A darwin-rebuild
+    
+    # Install nix-darwin using the built darwin-rebuild
+    ./result/bin/darwin-rebuild switch
+    
+    # Clean up the result symlink
+    rm -f result
+    
     # Install Home Manager using channel
     info "Installing Home Manager..."
-    nix-channel --add https://github.com/nix-community/home-manager/archive/release-24.05.tar.gz home-manager
+    nix-channel --add https://github.com/nix-community/home-manager/archive/release-25.11.tar.gz home-manager
     nix-channel --update
     
     # Create necessary directories

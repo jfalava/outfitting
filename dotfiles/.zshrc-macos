@@ -92,62 +92,44 @@ set_outfitting_repo() {
 }
 
 setup_outfitting_repo() {
-    echo "Outfitting repository location not configured."
-    echo ""
-    
-    # Always use default location for remote/non-interactive setup
     repo_path="$HOME/Workspace/outfitting"
-    echo "Using default repository location: $repo_path"
-
-    # Handle the repository setup
-    if [ ! -d "$repo_path" ]; then
-        echo "Directory doesn't exist. Creating: $repo_path"
-        mkdir -p "$(dirname "$repo_path")"
-
-        echo "Cloning outfitting repository..."
-        if git clone https://github.com/jfalava/outfitting.git "$repo_path"; then
-            echo "✓ Repository cloned successfully"
-        else
-            echo "✗ Failed to clone repository"
-            return 1
-        fi
-    elif [ ! -d "$repo_path/.git" ]; then
-        echo "Error: Directory exists but is not a git repository: $repo_path"
-        return 1
-    else
-        echo "✓ Using existing repository at: $repo_path"
-    fi
-
-    # Store the configuration
-    if set_outfitting_repo "$repo_path"; then
-        echo ""
-        echo "✓ Repository location configured successfully!"
-        echo "  You can now use: hm-sync, hm-switch, and other local commands"
-        echo "  To change location later, run: setup-outfitting-repo"
-        return 0
-    else
-        return 1
-    fi
+    [ ! -d "$repo_path" ] && mkdir -p "$(dirname "$repo_path")" && git clone https://github.com/jfalava/outfitting.git "$repo_path"
+    set_outfitting_repo "$repo_path"
+    echo "✓ Repository ready: $repo_path"
 }
 
-# nix-darwin management functions - CHANNEL-BASED (no flakes)
+# nix-darwin management functions - streamlined for personal use
 hm-sync() {
-    local repo_path
-    repo_path=$(get_outfitting_repo) || {
-        echo "Error: Outfitting repository location not configured."
-        echo ""
-        setup_outfitting_repo || return 1
-        repo_path=$(get_outfitting_repo)
-    }
-
-    echo "Syncing nix-darwin configuration from local repo..."
-    
-    # Copy configuration files to nix-darwin location
+    local repo_path=$(get_outfitting_repo) || { setup_outfitting_repo; repo_path=$(get_outfitting_repo); }
     cp "$repo_path/packages/aarch64-darwin/darwin.nix" ~/.nixpkgs/darwin-configuration.nix
     cp "$repo_path/packages/aarch64-darwin/home.nix" ~/.config/home-manager/
-    
-    # Apply configuration using channels (no flakes)
     darwin-rebuild switch
+    echo "✓ Synced from $repo_path"
+}
+
+# Profile switching functions - streamlined for personal use
+hm-personal() {
+    local repo_path=$(get_outfitting_repo) || { setup_outfitting_repo; repo_path=$(get_outfitting_repo); }
+    sed -i 's/activeProfile = "[^"]*"/activeProfile = "personal"/' "$repo_path/packages/aarch64-darwin/home.nix"
+    cp "$repo_path/packages/aarch64-darwin/darwin.nix" ~/.nixpkgs/darwin-configuration.nix
+    cp "$repo_path/packages/aarch64-darwin/home.nix" ~/.config/home-manager/
+    darwin-rebuild switch
+    echo "✓ Personal profile active"
+}
+
+hm-work() {
+    local repo_path=$(get_outfitting_repo) || { setup_outfitting_repo; repo_path=$(get_outfitting_repo); }
+    sed -i 's/activeProfile = "[^"]*"/activeProfile = "work"/' "$repo_path/packages/aarch64-darwin/home.nix"
+    cp "$repo_path/packages/aarch64-darwin/darwin.nix" ~/.nixpkgs/darwin-configuration.nix
+    cp "$repo_path/packages/aarch64-darwin/home.nix" ~/.config/home-manager/
+    darwin-rebuild switch
+    echo "✓ Work profile active (AWS, K8s, etc.)"
+}
+
+# Quick profile check
+hm-profile() {
+    local current=$(grep 'activeProfile' ~/.config/home-manager/home.nix 2>/dev/null | cut -d'"' -f2)
+    [[ -n "$1" ]] && { hm-"$1" 2>/dev/null || echo "Usage: hm-profile <personal|work>"; } || echo "Current: $current"
 }
 
 hm-switch() {
@@ -216,39 +198,10 @@ hm-clean() {
     echo "Cleaning complete!"
 }
 
-# System update - CHANNEL-BASED (no flake updates)
+# Quick system update
 update-all() {
-    local repo_path
-    repo_path=$(get_outfitting_repo) || {
-        echo "Error: Outfitting repository location not configured."
-        echo ""
-        setup_outfitting_repo || return 1
-        repo_path=$(get_outfitting_repo)
-    }
-
-    echo "Updating Homebrew packages (if using Homebrew)..."
-    if command -v brew &> /dev/null; then
-        brew update && brew upgrade && brew cleanup
-    fi
-
-    echo -e "\nUpdating nix-darwin configuration..."
-    hm-update
-    local hm_exit=$?
-    if [ $hm_exit -ne 0 ]; then
-        echo "⚠ nix-darwin update failed"
-        return $hm_exit
-    fi
-
-    echo -e "\nCleaning old generations..."
-    hm-clean
-
-    echo -e "\nUpdating global bun packages..."
-    if command -v bun &> /dev/null; then
-        bun update -g
-    fi
-
-    echo -e "\n✓ Update complete!"
-    echo ""
-    echo "Your packages are now floating with nixpkgs-unstable (like Homebrew)"
-    echo "No more flake.lock management needed!"
+    command -v brew >/dev/null && brew update && brew upgrade && brew cleanup
+    hm-update && hm-clean
+    command -v bun >/dev/null && bun update -g
+    echo "✓ System updated"
 }

@@ -40,7 +40,11 @@
     # Enable garbage collection
     gc = {
       automatic = true;
-      dates = "weekly";
+      interval = {
+        Weekday = 0;  # Sunday
+        Hour = 3;     # 3 AM
+        Minute = 0;
+      };
       options = "--delete-older-than 30d";
     };
   };
