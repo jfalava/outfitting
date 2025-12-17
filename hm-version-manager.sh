@@ -74,6 +74,13 @@ portable_sed() {
 hm-update-version() {
     local new_version="${1:-$CURRENT_HM_VERSION}"
     
+    # Validate we're in the repository root
+    if [[ ! -f "macos-install-script.sh" ]] || [[ ! -d "packages" ]]; then
+        echo "⚠ Error: This script must be run from the repository root directory"
+        echo "  Expected to find: macos-install-script.sh and packages/ directory"
+        return 1
+    fi
+    
     echo "Updating Home Manager to release-$new_version..."
     
     # Update WSL setup script

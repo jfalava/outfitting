@@ -93,7 +93,13 @@ set_outfitting_repo() {
 
 setup_outfitting_repo() {
     repo_path="$HOME/Workspace/outfitting"
-    [ ! -d "$repo_path" ] && mkdir -p "$(dirname "$repo_path")" && git clone https://github.com/jfalava/outfitting.git "$repo_path"
+    if [ ! -d "$repo_path" ]; then
+        mkdir -p "$(dirname "$repo_path")"
+        if ! git clone https://github.com/jfalava/outfitting.git "$repo_path"; then
+            echo "Error: Failed to clone repository"
+            return 1
+        fi
+    fi
     set_outfitting_repo "$repo_path"
     echo "✓ Repository ready: $repo_path"
 }
@@ -110,22 +116,22 @@ hm-sync() {
 # Profile switching functions - streamlined for personal use
 hm-personal() {
     local repo_path=$(get_outfitting_repo) || { setup_outfitting_repo; repo_path=$(get_outfitting_repo); }
-    local home_nix="$repo_path/packages/aarch64-darwin/home.nix"
-    # Portable sed approach (works on both BSD and GNU sed)
-    sed 's/activeProfile = "[^"]*"/activeProfile = "personal"/' "$home_nix" > "$home_nix.tmp" && mv "$home_nix.tmp" "$home_nix"
+    # Copy first, then modify the copies (don't touch source repo)
     cp "$repo_path/packages/aarch64-darwin/darwin.nix" ~/.nixpkgs/darwin-configuration.nix
-    cp "$home_nix" ~/.config/home-manager/
+    cp "$repo_path/packages/aarch64-darwin/home.nix" ~/.config/home-manager/
+    # Portable sed approach (works on both BSD and GNU sed)
+    sed 's/activeProfile = "[^"]*"/activeProfile = "personal"/' ~/.config/home-manager/home.nix > ~/.config/home-manager/home.nix.tmp && mv ~/.config/home-manager/home.nix.tmp ~/.config/home-manager/home.nix
     darwin-rebuild switch
     echo "✓ Personal profile active"
 }
 
 hm-work() {
     local repo_path=$(get_outfitting_repo) || { setup_outfitting_repo; repo_path=$(get_outfitting_repo); }
-    local home_nix="$repo_path/packages/aarch64-darwin/home.nix"
-    # Portable sed approach (works on both BSD and GNU sed)
-    sed 's/activeProfile = "[^"]*"/activeProfile = "work"/' "$home_nix" > "$home_nix.tmp" && mv "$home_nix.tmp" "$home_nix"
+    # Copy first, then modify the copies (don't touch source repo)
     cp "$repo_path/packages/aarch64-darwin/darwin.nix" ~/.nixpkgs/darwin-configuration.nix
-    cp "$home_nix" ~/.config/home-manager/
+    cp "$repo_path/packages/aarch64-darwin/home.nix" ~/.config/home-manager/
+    # Portable sed approach (works on both BSD and GNU sed)
+    sed 's/activeProfile = "[^"]*"/activeProfile = "work"/' ~/.config/home-manager/home.nix > ~/.config/home-manager/home.nix.tmp && mv ~/.config/home-manager/home.nix.tmp ~/.config/home-manager/home.nix
     darwin-rebuild switch
     echo "✓ Work profile active (AWS, K8s, etc.)"
 }
@@ -133,7 +139,14 @@ hm-work() {
 # Quick profile check
 hm-profile() {
     local current=$(grep 'activeProfile' ~/.config/home-manager/home.nix 2>/dev/null | cut -d'"' -f2)
-    [[ -n "$1" ]] && { hm-"$1" 2>/dev/null || echo "Usage: hm-profile <personal|work>"; } || echo "Current: $current"
+    if [[ -n "$1" ]]; then
+        case "$1" in
+            personal|work) hm-"$1" ;;
+            *) echo "Usage: hm-profile <personal|work>" ;;
+        esac
+    else
+        echo "Current: $current"
+    fi
 }
 
 hm-switch() {
