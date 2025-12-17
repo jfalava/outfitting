@@ -13,7 +13,9 @@
   home.stateVersion = "24.05";
 
   # The home.packages option allows you to install Nix packages into your environment
+  # These will float with nixpkgs-unstable channel, like Homebrew
   home.packages = with pkgs; [
+    # Core utilities
     bat
     eza
     fastfetch
@@ -25,6 +27,8 @@
     zsh
     zsh-autosuggestions
     zsh-syntax-highlighting
+    
+    # Development tools
     deno
     go
     lazygit
@@ -37,18 +41,26 @@
     jq
     less
     shellcheck
+    
+    # Archive tools
     zip
     _7zz # 7zip
     p7zip
     unrar
+    
+    # Nix tools
     nixd
     nil
+    
+    # Package managers
+    pnpm
+    
+    # AI/ML tools
     opencode
     gemini-cli
     codex
     claude-code
     qwen-code
-    pnpm
   ];
 
   # Home Manager can also manage your environment variables through
@@ -195,7 +207,7 @@
     ];
   };
 
-  # Nix configuration for the user
+  # Nix configuration for the user - enable channels
   nix = {
     package = pkgs.nix;
     settings = {

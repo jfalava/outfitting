@@ -3,6 +3,7 @@
 # ========================================
 # macOS Outfitting Installation Script
 # ========================================
+# Channel-based nix-darwin + Home Manager setup (no flakes)
 
 set -euo pipefail
 
@@ -75,6 +76,32 @@ install_nix() {
     fi
 }
 
+# Install nix-darwin and Home Manager using channels (no flakes)
+install_nix_darwin() {
+    info "Setting up nix-darwin and Home Manager using channels..."
+    
+    # Add nixpkgs-unstable channel for latest packages
+    info "Adding nixpkgs-unstable channel..."
+    nix-channel --add https://nixos.org/channels/nixpkgs-unstable nixpkgs-unstable
+    nix-channel --update
+    
+    # Install nix-darwin using channel
+    info "Installing nix-darwin..."
+    nix-channel --add https://github.com/LnL7/nix-darwin/archive/master.tar.gz darwin
+    nix-channel --update
+    
+    # Install Home Manager using channel
+    info "Installing Home Manager..."
+    nix-channel --add https://github.com/nix-community/home-manager/archive/release-24.05.tar.gz home-manager
+    nix-channel --update
+    
+    # Create necessary directories
+    mkdir -p ~/.config/home-manager
+    mkdir -p ~/.nixpkgs
+    
+    success "Channels configured successfully!"
+}
+
 # Configure outfitting repository location
 configure_outfitting_repo() {
     echo ""
@@ -106,8 +133,8 @@ configure_outfitting_repo() {
     fi
 
     # Store the configuration
-    local config_dir="$HOME/.config/outfitting"
-    local config_file="$config_dir/repo-path"
+    config_dir="$HOME/.config/outfitting"
+    config_file="$config_dir/repo-path"
 
     mkdir -p "$config_dir"
     echo "$repo_path" > "$config_file"
@@ -123,20 +150,56 @@ configure_outfitting_repo() {
     return 0
 }
 
+# Apply initial nix-darwin configuration
+apply_initial_config() {
+    info "Applying initial nix-darwin configuration..."
+    
+    # Check if local repository is configured
+    config_file="$HOME/.config/outfitting/repo-path"
+    if [ -f "$config_file" ]; then
+        repo_path=$(cat "$config_file")
+        info "Using local repository: $repo_path"
+        
+        # Copy configuration files
+        cp "$repo_path/packages/aarch64-darwin/darwin.nix" ~/.nixpkgs/darwin-configuration.nix
+        cp "$repo_path/packages/aarch64-darwin/home.nix" ~/.config/home-manager/
+        
+        # Apply configuration using channels (no flakes)
+        darwin-rebuild switch || {
+            warning "Initial nix-darwin configuration failed."
+            warning "You can try again after the script completes:"
+            warning "  darwin-rebuild switch"
+        }
+    else
+        info "No local repository found. You'll need to manually configure nix-darwin."
+        info "Run 'setup-outfitting-repo' to set up a local repository."
+    fi
+}
+
 # Post-installation instructions
 post_install_info() {
     echo ""
     echo "======================================"
-    echo "Nix Installation Complete"
+    echo "Installation Complete!"
     echo "======================================"
+    echo ""
+    echo "✓ Nix installed with channel-based management"
+    echo "✓ nix-darwin and Home Manager configured"
+    echo "✓ Repository location configured"
     echo ""
     echo "Next steps:"
     echo "1. Close this terminal and open a new one (or run: source /etc/zshrc)"
-    echo "2. Install nix-darwin for system management:"
-    echo "   nix run nix-darwin -- switch --flake github:jfalava/outfitting?dir=packages/aarch64-darwin"
-    echo "3. Use 'hm-sync' to apply configuration changes"
+    echo "2. Use 'hm-sync' to apply configuration changes from your repository"
+    echo "3. Use 'hm-update' to update packages (like brew upgrade)"
     echo ""
-    echo "For local development, run 'setup-outfitting-repo' to configure a local clone."
+    echo "To update packages in the future:"
+    echo "  nix-channel --update && darwin-rebuild switch"
+    echo ""
+    echo "Or use the helper functions:"
+    echo "  hm-update"
+    echo ""
+    echo "Your packages will float with nixpkgs-unstable (like Homebrew)"
+    echo "No more flake.lock management needed!"
     echo ""
 }
 
@@ -144,7 +207,7 @@ post_install_info() {
 main() {
     echo ""
     echo "======================================"
-    echo "macOS Nix Installation"
+    echo "macOS Nix Installation (Channel-based)"
     echo "======================================"
     echo ""
 
@@ -155,9 +218,13 @@ main() {
     echo ""
 
     install_nix
-
+    install_nix_darwin
+    
     # Configure repository for local development
     configure_outfitting_repo
+    
+    # Apply initial configuration
+    apply_initial_config
 
     post_install_info
 }

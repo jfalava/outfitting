@@ -166,7 +166,7 @@ setup_outfitting_repo() {
     fi
 }
 
-# Home Manager management functions
+# Home Manager management functions - CHANNEL-BASED (no flakes)
 hm-sync() {
     local repo_path
     repo_path=$(get_outfitting_repo) || {
@@ -177,7 +177,12 @@ hm-sync() {
     }
 
     echo "Syncing Home Manager configuration from local repo..."
-    home-manager switch --flake "$repo_path/packages/x64-linux#jfalava" "$@"
+    
+    # Copy configuration files to Home Manager location
+    cp "$repo_path/packages/x64-linux/home.nix" ~/.config/home-manager/
+    
+    # Apply configuration using channels (no flakes)
+    home-manager switch
 
     # Check for uncommitted changes and prompt to push
     if ! git -C "$repo_path" diff --quiet || ! git -C "$repo_path" diff --cached --quiet; then
@@ -188,7 +193,7 @@ hm-sync() {
         if [[ "$response" =~ ^[Yy]$ ]]; then
             echo ""
             echo "Committing changes..."
-            git -C "$repo_path" add packages/x64-linux/home.nix packages/x64-linux/flake.lock
+            git -C "$repo_path" add packages/x64-linux/home.nix
             echo "Enter commit message (or press Enter for default): "
             read -r commit_msg
             if [ -z "$commit_msg" ]; then
@@ -202,7 +207,7 @@ hm-sync() {
         else
             echo "  Changes remain uncommitted. To push later:"
             echo "    cd $repo_path"
-            echo "    git add packages/x64-linux/home.nix packages/x64-linux/flake.lock"
+            echo "    git add packages/x64-linux/home.nix"
             echo "    git commit -m 'Update home-manager config'"
             echo "    git push"
         fi
@@ -213,19 +218,11 @@ hm-sync() {
 }
 
 hm-switch() {
-    local repo_path
-    repo_path=$(get_outfitting_repo) || {
-        echo "Error: Outfitting repository location not configured."
-        echo ""
-        setup_outfitting_repo || return 1
-        repo_path=$(get_outfitting_repo)
-    }
-
-    echo "Applying Home Manager configuration from local repo..."
-    home-manager switch --flake "$repo_path/packages/x64-linux#jfalava"
+    echo "Applying Home Manager configuration..."
+    home-manager switch
 }
 
-hm-switch-local() {
+hm-switch-work() {
     local repo_path
     repo_path=$(get_outfitting_repo) || {
         echo "Error: Outfitting repository location not configured."
@@ -234,51 +231,28 @@ hm-switch-local() {
         repo_path=$(get_outfitting_repo)
     }
 
-    echo "Applying Home Manager configuration from local repo..."
-    home-manager switch --flake "$repo_path/packages/x64-linux#jfalava"
-
-    if git -C "$repo_path" diff --quiet && git -C "$repo_path" diff --cached --quiet; then
-        echo ""
-        echo "✓ No uncommitted changes - you're all set!"
-    else
-        echo ""
-        echo "⚠ You have uncommitted changes in $repo_path"
-        echo "  Don't forget to commit and push to sync across machines:"
-        echo "    cd $repo_path"
-        echo "    git add packages/x64-linux/home.nix packages/x64-linux/flake.lock"
-        echo "    git commit -m 'Update home-manager config'"
-        echo "    git push"
-    fi
+    echo "Applying Home Manager work configuration from local repo..."
+    
+    # Copy work configuration
+    cp "$repo_path/packages/x64-linux/work.nix" ~/.config/home-manager/
+    
+    # Apply work configuration
+    home-manager switch
 }
 
 hm-update() {
-    local repo_path
-    repo_path=$(get_outfitting_repo) || {
-        echo "Error: Outfitting repository location not configured."
-        echo ""
-        setup_outfitting_repo || return 1
-        repo_path=$(get_outfitting_repo)
-    }
-
-    local repo="$repo_path/packages/x64-linux"
-
-    echo "Updating Nix packages from local repo..."
-    cd "$repo" || return
-    nix flake update
-    home-manager switch --flake .#jfalava
+    echo "Updating Nix channels and Home Manager..."
+    
+    # Update channels (like brew update)
+    nix-channel --update
+    
+    # Apply updated configuration
+    home-manager switch
 
     echo ""
-    echo "✓ Nix packages updated locally"
+    echo "✓ Nix packages updated successfully!"
     echo ""
-    echo "Review changes:"
-    git diff flake.lock
-    echo ""
-    echo "To deploy to GitHub and other machines:"
-    echo "  cd $repo_path"
-    echo "  git add packages/x64-linux/flake.lock"
-    echo "  git commit -m 'chore: update nix packages'"
-    echo "  git push"
-    echo "  hm-sync  # on other machines to pull updates"
+    echo "Packages are now floating with nixpkgs-unstable channel (like Homebrew)"
 }
 
 hm-rollback() {
@@ -294,7 +268,7 @@ hm-clean() {
     echo "Cleaning complete!"
 }
 
-# System update
+# System update - CHANNEL-BASED (no flake updates)
 update-all() {
     local repo_path
     repo_path=$(get_outfitting_repo) || {
@@ -325,11 +299,8 @@ update-all() {
 
     echo -e "\n✓ Update complete!"
     echo ""
-    echo "Next steps:"
-    echo "  1. Review flake.lock changes"
-    echo "  2. Commit: git add packages/x64-linux/flake.lock && git commit -m 'chore: update nix packages'"
-    echo "  3. Push: git push"
-    echo "  4. Run 'hm-sync' on other machines"
+    echo "Your packages are now floating with nixpkgs-unstable (like Homebrew)"
+    echo "No more flake.lock management needed!"
 }
 
 remote-update() {

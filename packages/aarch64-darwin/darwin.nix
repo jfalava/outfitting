@@ -1,4 +1,7 @@
-{ pkgs, ... }:
+# nix-darwin configuration using Nix channels instead of flakes
+# This provides system-level macOS configuration with Home Manager integration
+
+{ config, pkgs, ... }:
 
 {
   # User configuration
@@ -15,7 +18,7 @@
   # Enable zsh as the default shell
   programs.zsh.enable = true;
 
-  # Nix configuration
+  # Nix configuration - using channels instead of flakes
   nix = {
     settings = {
       experimental-features = [
@@ -33,15 +36,23 @@
       auto-optimise-store = true;
       max-jobs = "auto";
     };
+    
+    # Enable garbage collection
+    gc = {
+      automatic = true;
+      dates = "weekly";
+      options = "--delete-older-than 30d";
+    };
   };
 
-  # macOS system defaults (minimal set - expand as needed)
+  # macOS system defaults - enhanced configuration
   system.defaults = {
     # Dock settings
     dock = {
       autohide = true;
       show-recents = false;
       tilesize = 48;
+      minimize-to-application = true;
     };
 
     # Finder settings
@@ -49,6 +60,7 @@
       AppleShowAllExtensions = true;
       ShowPathbar = true;
       FXEnableExtensionChangeWarning = false;
+      ShowStatusBar = true;
     };
 
     # Global macOS settings
@@ -56,11 +68,35 @@
       AppleShowAllExtensions = true;
       InitialKeyRepeat = 15;
       KeyRepeat = 2;
+      NSAutomaticSpellingCorrectionEnabled = false;
+      NSAutomaticCapitalizationEnabled = false;
+      NSAutomaticPeriodSubstitutionEnabled = false;
+    };
+    
+    # Trackpad settings
+    trackpad = {
+      Clicking = true;
+      DragLock = false;
+      TrackpadThreeFingerDrag = true;
+    };
+    
+    # Security settings
+    screensaver = {
+      askForPassword = true;
+      askForPasswordDelay = 0;
     };
   };
 
-  # Auto-upgrade nix-darwin
-  services.nix-daemon.enable = true;
+  # Enable system services
+  services = {
+    nix-daemon.enable = true;
+    activate-system.enable = true;
+  };
+
+  # Security settings
+  security = {
+    pam.enableSudoTouchIdAuth = true;
+  };
 
   # Used for backwards compatibility, please read the changelog before changing.
   # $ darwin-rebuild changelog

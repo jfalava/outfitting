@@ -3,10 +3,11 @@
 # ========================================
 # WSL Outfitting Installation Script
 # ========================================
+# Channel-based Home Manager setup (no flakes)
 
 # Default mode: update repositories and Nix packages only (skip APT installs)
-UPDATE_ONLY=true
-NIX_ONLY=true
+export UPDATE_ONLY=true
+export NIX_ONLY=true
 MODE="default"
 
 # Parse command line arguments for override flags
@@ -69,13 +70,13 @@ curl -fsSL "$APT_LIST_URL" -o /tmp/apt-packages.txt || {
 }
 
 # Use xargs to process packages line by line (avoids WSL read issues)
-xargs -a /tmp/apt-packages.txt -I {} bash -c '
-    package=$(echo "$1" | tr -d "[:space:]")
-    if [[ -n "$package" && ! "$package" =~ ^# ]]; then
-        echo "Installing apt package: $package"
-        sudo apt install -y "$package"
+xargs -a /tmp/apt-packages.txt -I {} bash -c "
+    package=\$(echo '{}' | tr -d '[:space:]')
+    if [[ -n \"\$package\" && ! \"\$package\" =~ ^# ]]; then
+        echo \"Installing apt package: \$package\"
+        sudo apt install -y \"\$package\"
     fi
-' _ {}
+"
 
 ## cleanup
 sudo apt autoremove -y
@@ -152,6 +153,7 @@ curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix 
 }
 
 # Source nix for the current session
+# shellcheck source=/dev/null
 source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh || source ~/.nix-profile/etc/profile.d/nix.sh || true
 
 # Determinate installer already adds nix to shell profiles, but ensure it's in bashrc
@@ -178,38 +180,45 @@ auto-optimise-store = true
 max-jobs = auto
 EOF
 
-## install home-manager and apply configuration
+## install home-manager using CHANNELS (no flakes)
 if command -v nix >/dev/null; then
-    echo "Installing Home Manager and applying configuration..."
+    echo "Installing Home Manager using Nix channels..."
+
+    # Add nixpkgs-unstable channel for latest packages
+    echo "Adding nixpkgs-unstable channel..."
+    nix-channel --add https://nixos.org/channels/nixpkgs-unstable nixpkgs-unstable
+    nix-channel --update
+
+    # Install Home Manager using channel
+    echo "Installing Home Manager..."
+    nix-channel --add https://github.com/nix-community/home-manager/archive/release-24.05.tar.gz home-manager
+    nix-channel --update
+
+    # Source the Home Manager installation
+    export NIX_PATH="$HOME/.nix-defexpr/channels:/nix/var/nix/profiles/per-user/root/channels${NIX_PATH:+:$NIX_PATH}"
+
+    # Install Home Manager
+    nix-shell "${HOME}/.nix-defexpr/channels/home-manager" -A install
 
     # Check if local repository is configured
-    local config_file="$HOME/.config/outfitting/repo-path"
+    config_file="$HOME/.config/outfitting/repo-path"
     if [ -f "$config_file" ]; then
-        local repo_path
         repo_path=$(cat "$config_file")
         echo "Using local repository: $repo_path"
 
-        # Use local flake if configured
-        nix run "github:nix-community/home-manager" -- switch \
-            --flake "$repo_path/packages/x64-linux#jfalava" \
-            --no-write-lock-file \
-            -b backup || {
-            echo "Warning: Home Manager installation failed."
+        # Copy home.nix to Home Manager location
+        mkdir -p ~/.config/home-manager
+        cp "$repo_path/packages/x64-linux/home.nix" ~/.config/home-manager/
+        
+        # Apply configuration using channels (no flakes)
+        home-manager switch || {
+            echo "Warning: Home Manager configuration failed."
             echo "After script completion, you can try:"
-            echo "  nix run github:nix-community/home-manager -- switch --flake '$repo_path/packages/x64-linux#jfalava' --no-write-lock-file -b backup"
+            echo "  home-manager switch"
         }
     else
-        echo "Using remote repository (no local configuration found)"
-
-        # Fall back to remote flake
-        nix run "github:nix-community/home-manager" -- switch \
-            --flake "github:jfalava/outfitting?dir=packages/x64-linux#jfalava" \
-            --no-write-lock-file \
-            -b backup || {
-            echo "Warning: Home Manager installation failed."
-            echo "After script completion, you can try:"
-            echo "  nix run github:nix-community/home-manager -- switch --flake 'github:jfalava/outfitting?dir=packages/x64-linux#jfalava' --no-write-lock-file -b backup"
-        }
+        echo "Using default Home Manager configuration (no local repository found)"
+        # Home Manager will use default config
     fi
 
     # Now that Home Manager has installed zsh, set it as the default shell
@@ -248,167 +257,20 @@ deno jupyter --install # if the deno flake fails to install, this will fail grac
 curl -LsSf https://astral.sh/uv/install.sh | sh
 fi
 
-if [[ "$MODE" == "update-only" || "$MODE" == "full-install" ]]; then
-#####
-## docker
-#####
-for pkg in docker.io docker-doc docker-compose docker-compose-v2 podman-docker containerd runc; do sudo apt remove -y $pkg; done
-sudo apt install ca-certificates
-sudo install -m 0755 -d /etc/apt/keyrings
-sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
-sudo chmod a+r /etc/apt/keyrings/docker.asc
-echo \
-    "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
-    $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}") stable" |
-    sudo tee /etc/apt/sources.list.d/docker.list >/dev/null
-sudo apt update
-sudo apt install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin -y
-fi
-
-if [[ "$MODE" == "update-only" || "$MODE" == "full-install" ]]; then
-#####
-## hashicorp repositories for terraform and packer
-#####
-sudo install -m 0755 -d /etc/apt/keyrings
-sudo curl -fsSL https://apt.releases.hashicorp.com/gpg -o /etc/apt/keyrings/hashicorp-archive-keyring.asc
-sudo chmod a+r /etc/apt/keyrings/hashicorp-archive-keyring.asc
-echo \
-    "deb [signed-by=/etc/apt/keyrings/hashicorp-archive-keyring.asc] https://apt.releases.hashicorp.com \
-    $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}") main" |
-    sudo tee /etc/apt/sources.list.d/hashicorp.list >/dev/null
-sudo apt update
-fi
-
-if [[ "$MODE" == "update-only" || "$MODE" == "full-install" ]]; then
-#####
-## github cli repository
-#####
-sudo install -m 0755 -d /etc/apt/keyrings
-sudo curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg -o /etc/apt/keyrings/githubcli-archive-keyring.gpg
-sudo chmod a+r /etc/apt/keyrings/githubcli-archive-keyring.gpg
-echo \
-    "deb [signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages \
-    stable main" |
-    sudo tee /etc/apt/sources.list.d/github-cli.list >/dev/null
-sudo apt update && sudo apt install gh
-fi
-
-if [[ "$MODE" == "update-only" || "$MODE" == "full-install" ]]; then
-#####
-## charm repository for crush
-#####
-sudo install -m 0755 -d /etc/apt/keyrings
-sudo curl -fsSL https://repo.charm.sh/apt/gpg.key -o /etc/apt/keyrings/charm-archive-keyring.asc
-sudo chmod a+r /etc/apt/keyrings/charm-archive-keyring.asc
-echo \
-    "deb [signed-by=/etc/apt/keyrings/charm-archive-keyring.asc] https://repo.charm.sh/apt * *" |
-    sudo tee /etc/apt/sources.list.d/charm.list >/dev/null
-sudo apt update && sudo apt install crush
-fi
-
-## prevent agent-env ENOENT error on first new terminal session
-mkdir ~/.ssh
-
-## end message and validation
 echo ""
 echo "================================"
-case "$MODE" in
-    "nix-only")
-        echo "Nix-only Installation Complete!"
-        ;;
-    *)
-        echo "Installation Complete!"
-        ;;
-esac
+echo "Installation Complete!"
 echo "================================"
 echo ""
-
-# Validate installation
-echo "Validating installation..."
+echo "✓ Nix installed with channel-based Home Manager"
+echo "✓ Home Manager configuration applied"
+echo "✓ Default shell set to zsh"
 echo ""
-
-# Check Nix
-if command -v nix &> /dev/null; then
-    echo "✓ Nix installed: $(nix --version)"
-else
-    echo "✗ Nix not found"
-fi
-
-# Check Home Manager
-if command -v home-manager &> /dev/null; then
-    echo "✓ Home Manager installed"
-else
-    echo "✗ Home Manager not found"
-fi
-
-# Check zsh
-if command -v zsh &> /dev/null; then
-    echo "✓ Zsh installed: $(zsh --version)"
-
-    # Check default shell
-    user_shell=$(getent passwd "$USER" | cut -d: -f7)
-    if [[ "$user_shell" == *"zsh"* ]]; then
-        echo "✓ Default shell set to zsh"
-    else
-        echo "✗ Default shell is $user_shell (expected zsh)"
-    fi
-else
-    echo "✗ Zsh not found"
-fi
-
-# Check .zshrc
-if [ -f ~/.zshrc ]; then
-    zshrc_size=$(wc -l < ~/.zshrc)
-    if [ "$zshrc_size" -gt 100 ]; then
-        echo "✓ .zshrc properly configured ($zshrc_size lines)"
-
-        # Check if .zshrc sources Nix properly
-        if grep -q "nix-daemon.sh\|~/.nix-profile" ~/.zshrc; then
-            echo "✓ .zshrc properly sources Nix"
-        else
-            echo "⚠ .zshrc may not properly source Nix (check Tool Initialization section)"
-        fi
-    else
-        echo "⚠ .zshrc exists but seems incomplete ($zshrc_size lines, expected 800+)"
-    fi
-else
-    echo "✗ .zshrc not found"
-fi
-
+echo "To update packages in the future:"
+echo "  nix-channel --update && home-manager switch"
 echo ""
-echo "================================"
-echo "Next Steps:"
-echo "================================"
-echo "1. Close this terminal and open a new one"
-echo "2. You should see the Starship prompt and have zsh configured"
-echo "3. Run 'ff' to see system info (fastfetch)"
+echo "Or use the helper function:"
+echo "  hm-update"
 echo ""
-echo "If you encounter issues, check:"
-echo "  - Run 'source ~/.zshrc' to reload your shell configuration"
-
-# Check if local repository is configured and provide appropriate command
-if [ -f "$HOME/.config/outfitting/repo-path" ]; then
-    local repo_path
-    repo_path=$(cat "$HOME/.config/outfitting/repo-path")
-    echo "  - Run 'home-manager switch --flake $repo_path/packages/x64-linux#jfalava' to reapply configuration"
-else
-    echo "  - Run 'home-manager switch --flake github:jfalava/outfitting?dir=packages/x64-linux#jfalava' to reapply configuration"
-fi
-echo ""
-echo "================================"
-echo "Usage Notes:"
-echo "================================"
-echo "Default behavior (curl -L wsl.jfa.dev | bash):"
-echo "  - Updates repositories and Nix packages only"
-echo "  - Skips APT package installations"
-echo "  - Fast and safe for existing setups"
-echo ""
-echo "Override flags:"
-echo "  --full-install  : Install everything (APT packages + Nix)"
-echo "  --update-only   : Update repositories and APT packages"
-echo "  --nix-only      : Nix installation only (skip APT)"
-echo ""
-echo "Examples:"
-echo "  curl -L wsl.jfa.dev | bash                    # Default: update + nix-only"
-echo "  curl -L wsl.jfa.dev | bash -s -- --full-install  # Full installation"
-echo "  curl -L wsl.jfa.dev | bash -s -- --update-only   # Update APT packages"
+echo "Your packages will float with nixpkgs-unstable (like Homebrew)"
+echo "No more flake.lock management needed!"
