@@ -1,7 +1,11 @@
 # Home Manager configuration using Nix channels instead of flakes
 # This file provides a unified configuration with profile switching capability
 
-{ config, pkgs, lib, ... }:
+{
+  config,
+  pkgs,
+  ...
+}:
 
 let
   # Profile selection - change this to switch profiles
@@ -22,7 +26,7 @@ let
       zsh
       zsh-autosuggestions
       zsh-syntax-highlighting
-      
+
       # Development tools
       deno
       go
@@ -36,35 +40,28 @@ let
       jq
       less
       shellcheck
-      
+
       # Archive tools
       zip
       _7zz # 7zip
       p7zip
       unrar
-      
+
       # Nix tools
       nixd
       nil
-      
+
       # Package managers
       pnpm
-      
-      # AI/ML tools
-      opencode
-      gemini-cli
-      codex
-      claude-code
-      qwen-code
     ];
-    
+
     gitEmail = "git@jfa.dev";
     gitSigningKey = "${config.home.homeDirectory}/.ssh/jfalava-gitSign-elliptic";
-    
-    sessionVariables = {};
+
+    sessionVariables = { };
   };
 
-  # Work profile configuration  
+  # Work profile configuration
   workConfig = {
     packages = with pkgs; [
       # Personal packages + work packages
@@ -103,7 +100,7 @@ let
       codex
       claude-code
       qwen-code
-      
+
       # Work-specific packages
       awscli2
       azure-cli
@@ -123,10 +120,10 @@ let
       slack
       zoom-us
     ];
-    
+
     gitEmail = "jorgefernando.alava@seidor.com";
     gitSigningKey = "${config.home.homeDirectory}/.ssh/jfalava-seidor-ed25519";
-    
+
     sessionVariables = {
       AWS_PROFILE = "default";
       AWS_REGION = "us-east-1";
@@ -136,7 +133,8 @@ let
   # Select active configuration
   selectedConfig = if activeProfile == "work" then workConfig else personalConfig;
 
-in {
+in
+{
   nixpkgs.config.allowUnfree = true;
 
   # Home Manager needs a bit of information about you and the paths it should manage
@@ -169,9 +167,10 @@ in {
     PNPM_HOME = "${config.home.homeDirectory}/.local/share/pnpm";
     BUN_INSTALL = "${config.home.homeDirectory}/.bun";
     DENO_INSTALL = "${config.home.homeDirectory}/.deno";
-    
+
     # Profile-specific variables
-  } // selectedConfig.sessionVariables;
+  }
+  // selectedConfig.sessionVariables;
 
   # Add directories to PATH
   home.sessionPath = [

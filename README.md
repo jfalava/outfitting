@@ -19,8 +19,6 @@ Scripts, dotfiles and lambdas for the automatic outfitting of my personal machin
 
 Choose a profile based on your machine's purpose (all commands require elevated PowerShell):
 
-#### Base Profiles
-
 ##### Base profile (default)
 
 ```powershell
@@ -57,15 +55,12 @@ irm win.jfa.dev/<profile>+<profile>+<component> | iex # any arbitrary combinatio
 
 ### WSL
 
-> [!IMPORTANT]
-> This is designed **exclusively** for `apt`-based Linux distributions **and** only tested on Ubuntu and Ubuntu 24.04.
+For Ubuntu-based WSL:
 
 ```sh
-curl -L https://wsl.jfa.dev | bash
+curl -L https://wsl.jfa.dev | bash         # Quick update
+curl -L https://wsl.jfa.dev | bash -s -- --full-install  # Full install
 ```
-
-> [!NOTE]
-> The default installation now runs in **update + nix-only mode** (skips APT packages for faster, safer updates). Use `--full-install` for complete installation including APT packages.
 
 #### Installation Modes
 
@@ -92,41 +87,22 @@ curl -L https://wsl.jfa.dev | bash -s -- --nix-only      # Nix only
 
 ### macOS
 
-> [!IMPORTANT]
-> This is designed for macOS and installs Nix package manager using the Determinate Systems installer.
-
-> [!NOTE]
-> You need `cURL` to execute this command.
+Installs Nix + Home Manager via channels:
 
 ```sh
 curl -L mac.jfa.dev | bash
 ```
 
-After installation, you'll need to install nix-darwin for system management:
-```sh
-nix run nix-darwin -- switch --flake github:jfalava/outfitting?dir=packages/aarch64-darwin
-```
+## Repository Configuration
 
-## Repository Configuration - WSL and macOS
+Auto-configured during install (default: `~/Workspace/outfitting`). Required for:
+- Local commands: `hm-sync`, `hm-personal`, `hm-work`
+- Profile switching and local development
 
-During installation, you'll be prompted to configure a local repository location for the best nix experience. This enables:
-
-- Local development and customization  
-- Commands like `hm-sync`, `hm-switch`, and `hm-update`
-- Automatic commit/push prompts when making changes
-
-**Configuration options:**
-- **Default**: `~/Workspace/outfitting`
-- **Custom**: Any location you prefer
-- **Existing**: Point to an existing clone
-- **Skip**: Use remote configuration only (local commands won't work)
-
-**To configure later or change location:**
+Change location:
 ```bash
 setup-outfitting-repo
 ```
-
-**Configuration is stored in**: `~/.config/outfitting/repo-path`
 
 ## Updating After Installation
 
@@ -134,16 +110,13 @@ setup-outfitting-repo
 
 #### Default Update
 
-Fast and safe update that skips APT packages:
+Quick update using channels:
 
 ```bash
 curl -L https://wsl.jfa.dev | bash
 ```
 
-This will:
-- Update repositories and Nix packages
-- Skip APT package installations (faster, safer)
-- Apply Home Manager configuration changes
+Updates Nix packages via channels and applies Home Manager config.
 
 #### Installation Modes
 
@@ -159,8 +132,6 @@ curl -L https://wsl.jfa.dev | bash -s -- --full-install
 
 **Update APT packages only**:
 ```bash
-remote-update
-# OR
 curl -L https://wsl.jfa.dev | bash -s -- --update-only
 ```
 
@@ -178,30 +149,28 @@ This will:
 
 #### Sync Home Manager Configuration
 
-Update your Home Manager configuration with latest changes from your local clone (remote flakes cannot be updated and the sync does not do anything):
+Apply latest config from your local repo:
 
 ```bash
-hm-sync
-# OR
-home-manager switch --flake ~/path/to/your/outfitting/clone/packages/x64-linux#jfalava
+hm-sync           # Copy config and apply
+hm-personal       # Switch to personal profile
+hm-work          # Switch to work profile
 ```
 
 ### Windows
 
 ```powershell
-irm win.jfa.dev/config/pwsh-profile | iex # Update PowerShell profile with automatic backup
+irm win.jfa.dev/config/pwsh-profile | iex  # Update PowerShell profile
 ```
 
 ### macOS
 
 #### Sync Home Manager Configuration
 
-Update your Home Manager configuration with latest changes from your local clone (remote flakes cannot be updated and the sync does not do anything):
+Apply latest config from your local repo:
 
 ```bash
-hm-sync
-# OR
-darwin-rebuild switch --flake ~/path/to/outfitting/clone/packages/aarch64-darwin#jfalava
+hm-sync           # Copy config and apply
+hm-personal       # Switch to personal profile  
+hm-work          # Switch to work profile
 ```
-
-For detailed API documentation and more examples, see the [API config documentation](installer/docs/config-api.md).

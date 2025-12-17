@@ -1,4 +1,4 @@
-{ config, pkgs, lib, ... }:
+{ config, pkgs, ... }:
 
 let
   # Profile selection - change this to switch profiles
@@ -50,7 +50,7 @@ let
     gitEmail = "git@jfa.dev";
     gitSigningKey = "${config.home.homeDirectory}/.ssh/jfalava-gitSign-elliptic";
 
-    sessionVariables = {};
+    sessionVariables = { };
   };
 
   # Work profile configuration
@@ -88,11 +88,6 @@ let
       nil
       pnpm
       git
-      opencode
-      gemini-cli
-      codex
-      claude-code
-      qwen-code
       ghostty
       zed-editor
 
@@ -128,7 +123,8 @@ let
   # Select active configuration
   selectedConfig = if activeProfile == "work" then workConfig else personalConfig;
 
-in {
+in
+{
   nixpkgs.config.allowUnfree = true;
 
   # Home Manager needs a bit of information about you and the paths it should manage
@@ -163,7 +159,8 @@ in {
     DENO_INSTALL = "${config.home.homeDirectory}/.deno";
 
     # Profile-specific variables
-  } // selectedConfig.sessionVariables;
+  }
+  // selectedConfig.sessionVariables;
 
   # Add directories to PATH
   home.sessionPath = [
