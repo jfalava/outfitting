@@ -145,8 +145,6 @@ if [[ "$MODE" != "update-only" ]]; then
 #####
 ## nix
 #####
-## install nix using official Nix installer (multi-user installation)
-# Official installer is simpler and doesn't show flake deprecation warnings for channel-based usage
 curl --proto '=https' --tlsv1.2 -sSf -L https://nixos.org/nix/install | sh -s -- --daemon --yes || {
     echo "Failed to install Nix. Exiting..."
     exit 1
@@ -156,7 +154,6 @@ curl --proto '=https' --tlsv1.2 -sSf -L https://nixos.org/nix/install | sh -s --
 # shellcheck source=/dev/null
 source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh || source ~/.nix-profile/etc/profile.d/nix.sh || true
 
-# Ensure Nix is added to shell profiles
 if ! grep -q "nix-daemon.sh" ~/.bashrc 2>/dev/null; then
     (
         echo
@@ -169,11 +166,9 @@ if ! grep -q "nix-daemon.sh" ~/.bashrc 2>/dev/null; then
     ) >> ~/.bashrc
 fi
 
-# Add custom nix configuration for performance and cache optimization
 sudo mkdir -p /etc/nix
 sudo tee -a /etc/nix/nix.conf > /dev/null << 'EOF'
 
-# Custom configuration for jfalava outfitting
 substituters = https://cache.nixos.org/ https://nix-community.cachix.org
 trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs=
 auto-optimise-store = true
@@ -185,28 +180,21 @@ EOF
 if command -v nix >/dev/null; then
     echo "Installing Home Manager using Nix channels..."
 
-    # Add nixpkgs channel pointing to unstable (required for Home Manager)
-    # Using unstable gives us latest packages (like Homebrew) without flake.lock management
-    echo "Adding nixpkgs channel (tracking unstable)..."
+    echo "Adding nixpkgs channel..."
     nix-channel --add https://nixos.org/channels/nixpkgs-unstable nixpkgs
 
-    # Add Home Manager channel
     echo "Adding Home Manager channel..."
     nix-channel --add https://github.com/nix-community/home-manager/archive/release-25.11.tar.gz home-manager
 
-    # Update all channels in one go (more efficient than multiple updates)
-    echo "Updating channels (this may take a minute)..."
+    echo "Updating channels..."
     nix-channel --update
 
-    # Set NIX_PATH to include user channels (not root)
     export NIX_PATH="$HOME/.nix-defexpr/channels${NIX_PATH:+:$NIX_PATH}"
     echo "NIX_PATH set to: $NIX_PATH"
 
-    # Verify channels are set up
     echo "Verifying channels..."
     nix-channel --list
 
-    # Install Home Manager
     echo "Running Home Manager installation..."
     nix-shell '<home-manager>' -A install
 

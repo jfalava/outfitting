@@ -58,14 +58,6 @@ check_architecture() {
     fi
 }
 
-# Install Nix using Determinate Systems installer
-# Note: We use Determinate Nix on macOS (instead of official installer) because it:
-# - Provides better Apple Silicon support out of the box
-# - Handles macOS-specific volume management automatically
-# - Has more robust daemon setup for macOS
-# You'll see "nix-channel is deprecated" warnings during installation. These warnings
-# are SAFE TO IGNORE - channels remain fully supported. Determinate prefers flakes, but
-# we intentionally use channels for simpler package management without flake.lock files.
 install_nix() {
     if command -v nix &> /dev/null; then
         info "Nix is already installed"
@@ -87,42 +79,31 @@ install_nix() {
 install_nix_darwin() {
     info "Setting up nix-darwin and Home Manager using channels..."
 
-    # Add nixpkgs channel pointing to unstable (required for nix-darwin and Home Manager)
-    # Using unstable gives us latest packages (like Homebrew) without flake.lock management
-    info "Adding nixpkgs channel (tracking unstable)..."
+    info "Adding nixpkgs channel..."
     nix-channel --add https://nixos.org/channels/nixpkgs-unstable nixpkgs
 
-    # Add nix-darwin channel
     info "Adding nix-darwin channel..."
     nix-channel --add https://github.com/LnL7/nix-darwin/archive/master.tar.gz darwin
 
-    # Add Home Manager channel
     info "Adding Home Manager channel..."
     nix-channel --add https://github.com/nix-community/home-manager/archive/release-25.11.tar.gz home-manager
 
-    # Update all channels in one go (more efficient than multiple updates)
-    info "Updating channels (this may take a minute)..."
+    info "Updating channels..."
     nix-channel --update
 
-    # Set NIX_PATH to include user channels
     export NIX_PATH="$HOME/.nix-defexpr/channels${NIX_PATH:+:$NIX_PATH}"
     info "NIX_PATH set to: $NIX_PATH"
 
-    # Verify channels are set up
     info "Verifying channels..."
     nix-channel --list
 
-    # Bootstrap nix-darwin by building darwin-rebuild
     info "Bootstrapping nix-darwin..."
     nix-build '<darwin>' -A darwin-rebuild
 
-    # Install nix-darwin using the built darwin-rebuild
     ./result/bin/darwin-rebuild switch
 
-    # Clean up the result symlink
     rm -f result
 
-    # Create necessary directories
     mkdir -p ~/.config/home-manager
     mkdir -p ~/.nixpkgs
 
