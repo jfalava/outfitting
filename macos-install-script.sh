@@ -59,6 +59,12 @@ check_architecture() {
 }
 
 # Install Nix using Determinate Systems installer
+# Note: We use Determinate Nix on macOS (instead of official installer) because it:
+# - Provides better Apple Silicon support out of the box
+# - Handles macOS-specific volume management automatically
+# - Has more robust daemon setup for macOS
+# Yes, it shows flake deprecation warnings for channel usage, but channels remain
+# fully supported and those warnings are harmless. The macOS-specific benefits outweigh the noise.
 install_nix() {
     if command -v nix &> /dev/null; then
         info "Nix is already installed"

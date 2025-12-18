@@ -145,10 +145,10 @@ if [[ "$MODE" != "update-only" ]]; then
 #####
 ## nix
 #####
-## install nix using Determinate Nix installer
-# Determinate Nix provides better WSL support, FlakeHub integration, and improved defaults
-curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install --no-confirm || {
-    echo "Failed to install Determinate Nix. Exiting..."
+## install nix using official Nix installer (multi-user installation)
+# Official installer is simpler and doesn't show flake deprecation warnings for channel-based usage
+curl --proto '=https' --tlsv1.2 -sSf -L https://nixos.org/nix/install | sh -s -- --daemon --yes || {
+    echo "Failed to install Nix. Exiting..."
     exit 1
 }
 
@@ -156,7 +156,7 @@ curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix 
 # shellcheck source=/dev/null
 source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh || source ~/.nix-profile/etc/profile.d/nix.sh || true
 
-# Determinate installer already adds nix to shell profiles, but ensure it's in bashrc
+# Ensure Nix is added to shell profiles
 if ! grep -q "nix-daemon.sh" ~/.bashrc 2>/dev/null; then
     (
         echo
@@ -169,7 +169,7 @@ if ! grep -q "nix-daemon.sh" ~/.bashrc 2>/dev/null; then
     ) >> ~/.bashrc
 fi
 
-# Add custom nix configuration (Determinate sets good defaults, but we add our preferences)
+# Add custom nix configuration for performance and cache optimization
 sudo mkdir -p /etc/nix
 sudo tee -a /etc/nix/nix.conf > /dev/null << 'EOF'
 
@@ -178,6 +178,7 @@ substituters = https://cache.nixos.org/ https://nix-community.cachix.org
 trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs=
 auto-optimise-store = true
 max-jobs = auto
+experimental-features = nix-command
 EOF
 
 ## install home-manager using CHANNELS (no flakes)
