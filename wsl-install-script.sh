@@ -185,26 +185,22 @@ EOF
 if command -v nix >/dev/null; then
     echo "Installing Home Manager using Nix channels..."
 
-    # Add base nixpkgs channel (required for Home Manager)
-    echo "Adding nixpkgs channel..."
+    # Add nixpkgs channel pointing to unstable (required for Home Manager)
+    # Using unstable gives us latest packages (like Homebrew) without flake.lock management
+    echo "Adding nixpkgs channel (tracking unstable)..."
     nix-channel --add https://nixos.org/channels/nixpkgs-unstable nixpkgs
 
-    # Add nixpkgs-unstable channel for latest packages
-    echo "Adding nixpkgs-unstable channel..."
-    nix-channel --add https://nixos.org/channels/nixpkgs-unstable nixpkgs-unstable
+    # Add Home Manager channel
+    echo "Adding Home Manager channel..."
+    nix-channel --add https://github.com/nix-community/home-manager/archive/release-25.11.tar.gz home-manager
 
-    # Update all channels
+    # Update all channels in one go (more efficient than multiple updates)
     echo "Updating channels (this may take a minute)..."
     nix-channel --update
 
     # Set NIX_PATH to include user channels (not root)
     export NIX_PATH="$HOME/.nix-defexpr/channels${NIX_PATH:+:$NIX_PATH}"
     echo "NIX_PATH set to: $NIX_PATH"
-
-    # Install Home Manager using channel
-    echo "Installing Home Manager..."
-    nix-channel --add https://github.com/nix-community/home-manager/archive/release-25.11.tar.gz home-manager
-    nix-channel --update
 
     # Verify channels are set up
     echo "Verifying channels..."

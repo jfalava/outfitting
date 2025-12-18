@@ -63,8 +63,9 @@ check_architecture() {
 # - Provides better Apple Silicon support out of the box
 # - Handles macOS-specific volume management automatically
 # - Has more robust daemon setup for macOS
-# Yes, it shows flake deprecation warnings for channel usage, but channels remain
-# fully supported and those warnings are harmless. The macOS-specific benefits outweigh the noise.
+# You'll see "nix-channel is deprecated" warnings during installation. These warnings
+# are SAFE TO IGNORE - channels remain fully supported. Determinate prefers flakes, but
+# we intentionally use channels for simpler package management without flake.lock files.
 install_nix() {
     if command -v nix &> /dev/null; then
         info "Nix is already installed"
@@ -86,26 +87,26 @@ install_nix() {
 install_nix_darwin() {
     info "Setting up nix-darwin and Home Manager using channels..."
 
-    # Add base nixpkgs channel (required for nix-darwin and Home Manager)
-    info "Adding nixpkgs channel..."
+    # Add nixpkgs channel pointing to unstable (required for nix-darwin and Home Manager)
+    # Using unstable gives us latest packages (like Homebrew) without flake.lock management
+    info "Adding nixpkgs channel (tracking unstable)..."
     nix-channel --add https://nixos.org/channels/nixpkgs-unstable nixpkgs
 
-    # Add nixpkgs-unstable channel for latest packages
-    info "Adding nixpkgs-unstable channel..."
-    nix-channel --add https://nixos.org/channels/nixpkgs-unstable nixpkgs-unstable
+    # Add nix-darwin channel
+    info "Adding nix-darwin channel..."
+    nix-channel --add https://github.com/LnL7/nix-darwin/archive/master.tar.gz darwin
 
-    # Update all channels
+    # Add Home Manager channel
+    info "Adding Home Manager channel..."
+    nix-channel --add https://github.com/nix-community/home-manager/archive/release-25.11.tar.gz home-manager
+
+    # Update all channels in one go (more efficient than multiple updates)
     info "Updating channels (this may take a minute)..."
     nix-channel --update
 
     # Set NIX_PATH to include user channels
     export NIX_PATH="$HOME/.nix-defexpr/channels${NIX_PATH:+:$NIX_PATH}"
     info "NIX_PATH set to: $NIX_PATH"
-
-    # Install nix-darwin using channel
-    info "Installing nix-darwin..."
-    nix-channel --add https://github.com/LnL7/nix-darwin/archive/master.tar.gz darwin
-    nix-channel --update
 
     # Verify channels are set up
     info "Verifying channels..."
@@ -120,11 +121,6 @@ install_nix_darwin() {
 
     # Clean up the result symlink
     rm -f result
-
-    # Install Home Manager using channel
-    info "Installing Home Manager..."
-    nix-channel --add https://github.com/nix-community/home-manager/archive/release-25.11.tar.gz home-manager
-    nix-channel --update
 
     # Create necessary directories
     mkdir -p ~/.config/home-manager
