@@ -97,13 +97,6 @@ install_nix_darwin() {
     info "Verifying channels..."
     nix-channel --list
 
-    info "Bootstrapping nix-darwin..."
-    nix-build '<darwin>' -A darwin-rebuild
-
-    ./result/bin/darwin-rebuild switch
-
-    rm -f result
-
     mkdir -p ~/.config/home-manager
     mkdir -p ~/.nixpkgs
 
@@ -161,23 +154,26 @@ configure_outfitting_repo() {
 # Apply initial nix-darwin configuration
 apply_initial_config() {
     info "Applying initial nix-darwin configuration..."
-    
-    # Check if local repository is configured
+
     config_file="$HOME/.config/outfitting/repo-path"
     if [ -f "$config_file" ]; then
         repo_path=$(cat "$config_file")
         info "Using local repository: $repo_path"
-        
-        # Copy configuration files
+
         cp "$repo_path/packages/aarch64-darwin/darwin.nix" ~/.nixpkgs/darwin-configuration.nix
         cp "$repo_path/packages/aarch64-darwin/home.nix" ~/.config/home-manager/
-        
-        # Apply configuration using channels (no flakes)
-        darwin-rebuild switch || {
+
+        info "Bootstrapping nix-darwin..."
+        nix-build '<darwin>' -A darwin-rebuild
+
+        info "Applying configuration..."
+        ./result/bin/darwin-rebuild switch || {
             warning "Initial nix-darwin configuration failed."
             warning "You can try again after the script completes:"
             warning "  darwin-rebuild switch"
         }
+
+        rm -f result
     else
         info "No local repository found. You'll need to manually configure nix-darwin."
         info "Run 'setup-outfitting-repo' to set up a local repository."
