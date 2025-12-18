@@ -184,21 +184,34 @@ EOF
 if command -v nix >/dev/null; then
     echo "Installing Home Manager using Nix channels..."
 
+    # Add base nixpkgs channel (required for Home Manager)
+    echo "Adding nixpkgs channel..."
+    nix-channel --add https://nixos.org/channels/nixpkgs-unstable nixpkgs
+
     # Add nixpkgs-unstable channel for latest packages
     echo "Adding nixpkgs-unstable channel..."
     nix-channel --add https://nixos.org/channels/nixpkgs-unstable nixpkgs-unstable
+
+    # Update all channels
+    echo "Updating channels (this may take a minute)..."
     nix-channel --update
+
+    # Set NIX_PATH to include user channels (not root)
+    export NIX_PATH="$HOME/.nix-defexpr/channels${NIX_PATH:+:$NIX_PATH}"
+    echo "NIX_PATH set to: $NIX_PATH"
 
     # Install Home Manager using channel
     echo "Installing Home Manager..."
     nix-channel --add https://github.com/nix-community/home-manager/archive/release-25.11.tar.gz home-manager
     nix-channel --update
 
-    # Source the Home Manager installation
-    export NIX_PATH="$HOME/.nix-defexpr/channels:/nix/var/nix/profiles/per-user/root/channels${NIX_PATH:+:$NIX_PATH}"
+    # Verify channels are set up
+    echo "Verifying channels..."
+    nix-channel --list
 
     # Install Home Manager
-    nix-shell "${HOME}/.nix-defexpr/channels/home-manager" -A install
+    echo "Running Home Manager installation..."
+    nix-shell '<home-manager>' -A install
 
     # Check if local repository is configured
     config_file="$HOME/.config/outfitting/repo-path"

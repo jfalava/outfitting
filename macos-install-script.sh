@@ -79,36 +79,51 @@ install_nix() {
 # Install nix-darwin and Home Manager using channels (no flakes)
 install_nix_darwin() {
     info "Setting up nix-darwin and Home Manager using channels..."
-    
+
+    # Add base nixpkgs channel (required for nix-darwin and Home Manager)
+    info "Adding nixpkgs channel..."
+    nix-channel --add https://nixos.org/channels/nixpkgs-unstable nixpkgs
+
     # Add nixpkgs-unstable channel for latest packages
     info "Adding nixpkgs-unstable channel..."
     nix-channel --add https://nixos.org/channels/nixpkgs-unstable nixpkgs-unstable
+
+    # Update all channels
+    info "Updating channels (this may take a minute)..."
     nix-channel --update
-    
+
+    # Set NIX_PATH to include user channels
+    export NIX_PATH="$HOME/.nix-defexpr/channels${NIX_PATH:+:$NIX_PATH}"
+    info "NIX_PATH set to: $NIX_PATH"
+
     # Install nix-darwin using channel
     info "Installing nix-darwin..."
     nix-channel --add https://github.com/LnL7/nix-darwin/archive/master.tar.gz darwin
     nix-channel --update
-    
+
+    # Verify channels are set up
+    info "Verifying channels..."
+    nix-channel --list
+
     # Bootstrap nix-darwin by building darwin-rebuild
     info "Bootstrapping nix-darwin..."
     nix-build '<darwin>' -A darwin-rebuild
-    
+
     # Install nix-darwin using the built darwin-rebuild
     ./result/bin/darwin-rebuild switch
-    
+
     # Clean up the result symlink
     rm -f result
-    
+
     # Install Home Manager using channel
     info "Installing Home Manager..."
     nix-channel --add https://github.com/nix-community/home-manager/archive/release-25.11.tar.gz home-manager
     nix-channel --update
-    
+
     # Create necessary directories
     mkdir -p ~/.config/home-manager
     mkdir -p ~/.nixpkgs
-    
+
     success "Channels configured successfully!"
 }
 
