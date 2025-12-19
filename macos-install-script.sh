@@ -94,13 +94,8 @@ install_nix_darwin() {
     export NIX_PATH="$HOME/.nix-defexpr/channels${NIX_PATH:+:$NIX_PATH}"
     info "NIX_PATH set to: $NIX_PATH"
 
-    if [ -f ~/.zshrc ] && ! grep -q "NIX_PATH" ~/.zshrc 2>/dev/null; then
-        (
-            echo
-            echo 'export NIX_PATH="$HOME/.nix-defexpr/channels${NIX_PATH:+:$NIX_PATH}"'
-        ) >> ~/.zshrc
-        info "Added NIX_PATH to ~/.zshrc"
-    fi
+    # Note: NIX_PATH is managed by Home Manager via .zshrc-base
+    # No need to manually append to .zshrc here
 
     info "Verifying channels..."
     nix-channel --list
@@ -168,8 +163,17 @@ apply_initial_config() {
         repo_path=$(cat "$config_file")
         info "Using local repository: $repo_path"
 
-        cp "$repo_path/packages/aarch64-darwin/darwin.nix" ~/.nixpkgs/darwin-configuration.nix
-        cp "$repo_path/packages/aarch64-darwin/home.nix" ~/.config/home-manager/
+        # Symlink darwin configuration
+        info "Creating symlink for darwin configuration..."
+        ln -sfn "$repo_path/packages/aarch64-darwin/darwin.nix" ~/.nixpkgs/darwin-configuration.nix
+
+        # Symlink home-manager directory (preserves relative paths to dotfiles)
+        info "Creating symlink for home-manager configuration..."
+        if [ -d ~/.config/home-manager ] && [ ! -L ~/.config/home-manager ]; then
+            info "Backing up existing home-manager directory..."
+            mv ~/.config/home-manager ~/.config/home-manager.backup.$(date +%Y%m%d-%H%M%S)
+        fi
+        ln -sfn "$repo_path/packages/aarch64-darwin" ~/.config/home-manager
 
         info "Bootstrapping nix-darwin..."
         nix-build '<darwin>' -A darwin-rebuild
@@ -247,6 +251,12 @@ main() {
 # Install Bun global packages from bun.txt
 install_bun_packages() {
     info "Installing Bun global packages..."
+    
+    # Source the new zsh environment to get bun in PATH
+    # (bun is installed via nix-darwin/Home Manager)
+    if [ -e /etc/zshrc ]; then
+        source /etc/zshrc 2>/dev/null || true
+    fi
 
     if command -v bun >/dev/null 2>&1; then
         local bunPackagesUrl="https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/packages/bun.txt"
@@ -269,7 +279,9 @@ install_bun_packages() {
             warning "Failed to fetch Bun packages list, skipping global package installations"
         fi
     else
-        warning "Bun not found, skipping global package installations"
+        warning "Bun not found in PATH, skipping global package installations"
+        warning "After opening a new terminal, you can install them with:"
+        warning "  curl -fsSL https://raw.githubusercontent.com/jfalava/outfitting/main/packages/bun.txt | xargs -I {} bun install -g {}"
     fi
 }
 
