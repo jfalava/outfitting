@@ -27,13 +27,13 @@
       };
     in
     {
-      darwinConfigurations."jfalava-mac" = nix-darwin.lib.darwinSystem {
+      darwinConfigurations."Mac-mini-de-Jorge" = nix-darwin.lib.darwinSystem {
         system = "aarch64-darwin";
         modules = [ configuration ];
       };
 
       # Standalone home-manager configuration for testing
-      homeConfigurations.jfalava = home-manager.lib.homeManagerConfiguration {
+      homeConfigurations."Mac-mini-de-Jorge" = home-manager.lib.homeManagerConfiguration {
         pkgs = nixpkgs.legacyPackages.aarch64-darwin;
         modules = [ 
           ./home.nix
