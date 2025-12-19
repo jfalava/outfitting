@@ -221,10 +221,13 @@ main() {
     # Apply initial configuration
     apply_initial_config
 
-    post_install_info
-
     # Install Bun global packages from bun.txt
     install_bun_packages
+
+    # Install Claude Code
+    install_claude_code
+
+    post_install_info
 }
 
 # Install Bun global packages from bun.txt
@@ -263,7 +266,10 @@ install_bun_packages() {
 }
 
 # Install Claude Code
-curl -fsSL https://claude.ai/install.sh | bash
+install_claude_code() {
+    info "Installing Claude Code..."
+    curl -fsSL https://claude.ai/install.sh | bash
+}
 
 # Run main function
 main
