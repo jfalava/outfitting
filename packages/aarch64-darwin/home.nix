@@ -38,13 +38,6 @@ let
       nil
       pnpm
       git
-      opencode
-      gemini-cli
-      codex
-      claude-code
-      qwen-code
-      ghostty
-      zed-editor
     ];
 
     gitEmail = "git@jfa.dev";
@@ -56,7 +49,6 @@ let
   # Work profile configuration
   workConfig = {
     packages = with pkgs; [
-      # Personal packages + work packages
       bat
       eza
       fastfetch
@@ -88,10 +80,6 @@ let
       nil
       pnpm
       git
-      ghostty
-      zed-editor
-
-      # Work-specific packages
       awscli2
       azure-cli
       terraform

@@ -3,7 +3,6 @@
 # ========================================
 # macOS Outfitting Installation Script
 # ========================================
-# Channel-based nix-darwin + Home Manager setup (no flakes)
 
 set -euo pipefail
 
@@ -117,7 +116,7 @@ configure_outfitting_repo() {
     # Always use default location for remote installation
     repo_path="$HOME/Workspace/outfitting"
     echo "❖ Using default repository location: $repo_path"
-    
+
     # Handle the repository setup
     if [ ! -d "$repo_path" ]; then
         echo "❖ Directory doesn't exist. Creating: $repo_path"
@@ -195,27 +194,7 @@ apply_initial_config() {
 # Post-installation instructions
 post_install_info() {
     echo ""
-    echo "======================================"
     echo "Installation Complete!"
-    echo "======================================"
-    echo ""
-    echo "✓ Nix installed with channel-based management"
-    echo "✓ nix-darwin and Home Manager configured"
-    echo "✓ Repository location configured"
-    echo ""
-    echo "❖ Next steps:"
-    echo "  1. Close this terminal and open a new one (or run: source /etc/zshrc)"
-    echo "  2. Use 'hm-sync' to apply configuration changes from your repository"
-    echo "  3. Use 'hm-update' to update packages (like brew upgrade)"
-    echo ""
-    echo "❖ To update packages in the future:"
-    echo "  nix-channel --update && darwin-rebuild switch"
-    echo ""
-    echo "❖ Or use the helper functions:"
-    echo "  hm-update"
-    echo ""
-    echo "❖ Your packages will float with nixpkgs-unstable (like Homebrew)"
-    echo "❖ No more flake.lock management needed!"
     echo ""
 }
 
@@ -235,10 +214,10 @@ main() {
 
     install_nix
     install_nix_darwin
-    
+
     # Configure repository for local development
     configure_outfitting_repo
-    
+
     # Apply initial configuration
     apply_initial_config
 
@@ -251,7 +230,7 @@ main() {
 # Install Bun global packages from bun.txt
 install_bun_packages() {
     info "Installing Bun global packages..."
-    
+
     # Source the new zsh environment to get bun in PATH
     # (bun is installed via nix-darwin/Home Manager)
     if [ -e /etc/zshrc ]; then
@@ -280,10 +259,11 @@ install_bun_packages() {
         fi
     else
         warning "Bun not found in PATH, skipping global package installations"
-        warning "After opening a new terminal, you can install them with:"
-        warning "  curl -fsSL https://raw.githubusercontent.com/jfalava/outfitting/main/packages/bun.txt | xargs -I {} bun install -g {}"
     fi
 }
+
+# Install Claude Code
+curl -fsSL https://claude.ai/install.sh | bash
 
 # Run main function
 main

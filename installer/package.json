@@ -1,6 +1,6 @@
 {
   "name": "outfitting-redirects",
-  "version": "0.3",
+  "version": "0.9",
   "private": true,
   "scripts": {
     "deploy": "bun run cf-typegen && bun run typecheck && bun run lint && bun run format && wrangler deploy",
