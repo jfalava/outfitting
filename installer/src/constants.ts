@@ -16,6 +16,7 @@ export const SCRIPT_URLS = {
   windows: `${GITHUB_RAW_BASE}/windows-install-script.ps1`,
   wsl: `${GITHUB_RAW_BASE}/wsl-install-script.sh`,
   macos: `${GITHUB_RAW_BASE}/macos-install-script.sh`,
+  bunPackages: `${GITHUB_RAW_BASE}/packages/bun.txt`,
 } as const;
 
 /**

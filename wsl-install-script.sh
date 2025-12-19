@@ -267,7 +267,7 @@ if command -v bun >/dev/null 2>&1; then
             # Remove leading/trailing whitespace
             package=$(echo "$package" | xargs)
             if [[ -n "$package" ]]; then
-                echo "❖ Installing Bun package: $package"
+                echo "Installing Bun package: $package"
                 bun install -g "$package" || echo "❖ Warning: Failed to install $package"
             fi
         done < "$BUN_PACKAGES_FILE"

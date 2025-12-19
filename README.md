@@ -1,6 +1,6 @@
 # Outfitting
 
-Scripts, dotfiles and lambdas for the automatic outfitting of my personal machines and VMs.
+Automated setup scripts, dotfiles, and Cloudflare Workers for provisioning personal development environments across Windows, WSL/Linux, and macOS.
 
 > [!WARNING]
 > Are you installing an LTSC version of Windows? Those are missing the Microsoft Store app, install it along WinGet with [this tool](https://github.com/kkkgo/LTSC-Add-MicrosoftStore).
@@ -53,124 +53,167 @@ irm win.jfa.dev/<profile>+<profile>+<component> | iex # any arbitrary combinatio
 - `msstore-base`, `msstore-dev`, `msstore-gaming`, `msstore-work`, `msstore-qol`
 - `pwsh-modules`
 
-### WSL
+### WSL/Linux
 
-For Ubuntu-based WSL:
-
-```sh
-curl -L https://wsl.jfa.dev | bash         # Quick update
-curl -L https://wsl.jfa.dev | bash -s -- --full-install  # Full install
-```
+For Ubuntu-based WSL distributions:
 
 #### Installation Modes
 
-**Default**:
+**Default mode**:
 ```bash
-curl -L https://wsl.jfa.dev | bash
+curl -L wsl.jfa.dev | bash
 ```
-- Updates repositories and Nix packages
-- Skips APT installations
+- Updates Nix channels and packages
 - Applies Home Manager configuration
+- Skips APT package installation
 
-**Full installation** (for new setups):
+**Full installation**:
 ```bash
-curl -L https://wsl.jfa.dev | bash -s -- --full-install
+curl -L wsl.jfa.dev | bash -s -- --full-install
 ```
-- Complete installation including APT packages
-- Use this for first-time installations
 
 **Other modes**:
 ```bash
-curl -L https://wsl.jfa.dev | bash -s -- --update-only   # APT packages only
-curl -L https://wsl.jfa.dev | bash -s -- --nix-only      # Nix only
+curl -L wsl.jfa.dev | bash -s -- --update-only   # APT + system packages only
+curl -L wsl.jfa.dev | bash -s -- --nix-only      # Nix installation only
 ```
 
 ### macOS
 
-Installs Nix + Home Manager via channels:
-
-```sh
+```bash
 curl -L mac.jfa.dev | bash
+```
+
+#### What Gets Installed
+
+#### Post-Installation
+
+After installation, open a new terminal. Bun global packages will be installed automatically during setup. If they're skipped, install them manually:
+```bash
+curl -fsSL mac.jfa.dev/packages/bun | xargs -I {} bun install -g {}
 ```
 
 ## Repository Configuration
 
-Auto-configured during install (default: `~/Workspace/outfitting`). Required for:
-- Local commands: `hm-sync`, `hm-personal`, `hm-work`
-- Profile switching and local development
+### Automatic Setup
 
-Change location:
+During installation, the repository is automatically cloned to `~/Workspace/outfitting` and **symlinked** to configuration directories:
+
+**WSL/Linux:**
 ```bash
-setup-outfitting-repo
+~/.config/home-manager → ~/Workspace/outfitting/packages/x64-linux
 ```
+
+**macOS:**
+```bash
+~/.config/home-manager → ~/Workspace/outfitting/packages/aarch64-darwin
+~/.nixpkgs/darwin-configuration.nix → ~/Workspace/outfitting/packages/aarch64-darwin/darwin.nix
+```
+
+### Reconfigure Repository Location
+
+```bash
+setup-outfitting-repo  # Interactive setup
+```
+
+### Profile Switching
+
+Profile switching creates **copies** (not symlinks) to safely modify configuration without affecting the repository:
+
+```bash
+hm-personal  # Switch to personal profile (AI tools, personal git config)
+hm-work      # Switch to work profile (AWS, K8s, Terraform, work git config)
+hm-profile   # Check current active profile
+```
+
+**Note**: After switching profiles, use `hm-sync` to return to symlink mode for instant repo changes.
 
 ## Updating After Installation
 
-### WSL
+### WSL/Linux
 
-#### Default Update
-
-Quick update using channels:
+#### Quick Update
 
 ```bash
-curl -L https://wsl.jfa.dev | bash
+curl -L wsl.jfa.dev | bash
 ```
 
-Updates Nix packages via channels and applies Home Manager config.
+#### Update Local Configuration
 
-#### Installation Modes
+After editing files in `~/Workspace/outfitting`:
 
-**Default mode** (update + nix-only):
 ```bash
-curl -L https://wsl.jfa.dev | bash
+git pull                    # Pull latest changes from GitHub
+hm-sync                     # Apply configuration (symlinks mean instant changes)
 ```
 
-**Full installation** (includes APT packages):
+#### Update Packages
+
 ```bash
-curl -L https://wsl.jfa.dev | bash -s -- --full-install
+hm-update                   # Update Nix channels + apply configuration
+update-all                  # Update APT + Nix + Bun packages + cleanup
 ```
 
-**Update APT packages only**:
+#### Other Update Modes
+
 ```bash
-curl -L https://wsl.jfa.dev | bash -s -- --update-only
+curl -L wsl.jfa.dev | bash -s -- --update-only   # APT packages only
+curl -L wsl.jfa.dev | bash -s -- --full-install  # Full reinstall (use sparingly)
 ```
 
-**Nix-only installation**:
+### macOS
+
+#### Update Local Configuration
+
+After editing files in `~/Workspace/outfitting`:
+
 ```bash
-curl -L https://wsl.jfa.dev | bash -s -- --nix-only
+git pull                    # Pull latest changes from GitHub
+hm-sync                     # Apply configuration via symlinks
 ```
 
-#### Legacy Update Command
-
-This will:
-- Add any new repositories
-- Reinstall APT packages from the package list
-- **Skip Nix, Home Manager, runtimes, and Bun global packages**
-
-#### Sync Home Manager Configuration
-
-Apply latest config from your local repo:
+#### Update Packages
 
 ```bash
-hm-sync           # Copy config and apply
-hm-personal       # Switch to personal profile
-hm-work          # Switch to work profile
+hm-update                   # Update Nix channels + apply configuration
+update-all                  # Update Homebrew + Nix + Bun packages + cleanup
+```
+
+#### Reinstall from Script
+
+```bash
+curl -L mac.jfa.dev | bash  # Full reinstall (use sparingly)
 ```
 
 ### Windows
+
+#### Update PowerShell Profile
 
 ```powershell
 irm win.jfa.dev/config/pwsh-profile | iex  # Update PowerShell profile
 ```
 
-### macOS
+### Install/Update Bun Global Packages
 
-#### Sync Home Manager Configuration
+**WSL/Linux:**
+```bash
+curl -fsSL wsl.jfa.dev/packages/bun | xargs -I {} bun install -g {}
+```
 
-Apply latest config from your local repo:
+**macOS:**
+```bash
+curl -fsSL mac.jfa.dev/packages/bun | xargs -I {} bun install -g {}
+```
+
+### macOS Specific
 
 ```bash
-hm-sync           # Copy config and apply
-hm-personal       # Switch to personal profile  
-hm-work          # Switch to work profile
+darwin-rebuild switch  # Apply nix-darwin configuration
+```
+
+### Development
+
+```bash
+setup-outfitting-repo  # Reconfigure repository location
+get_outfitting_repo    # Show current repository path
 ```
