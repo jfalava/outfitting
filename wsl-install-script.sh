@@ -154,19 +154,8 @@ curl --proto '=https' --tlsv1.2 -sSf -L https://nixos.org/nix/install | sh -s --
 # shellcheck source=/dev/null
 source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh || source ~/.nix-profile/etc/profile.d/nix.sh || true
 
-# Add Nix configuration to .zshrc (primary shell)
-if ! grep -q "nix-daemon.sh" ~/.zshrc 2>/dev/null; then
-    (
-        echo
-        echo '# Nix'
-        echo 'if [ -e /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh ]; then'
-        echo '  source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh'
-        echo 'elif [ -e ~/.nix-profile/etc/profile.d/nix.sh ]; then'
-        echo '  source ~/.nix-profile/etc/profile.d/nix.sh'
-        echo 'fi'
-        echo 'export NIX_PATH="$HOME/.nix-defexpr/channels${NIX_PATH:+:$NIX_PATH}"'
-    ) >> ~/.zshrc
-fi
+# Note: Nix configuration is managed by Home Manager via .zshrc-base
+# No need to manually append to .zshrc here
 
 sudo mkdir -p /etc/nix
 sudo tee -a /etc/nix/nix.conf > /dev/null << 'EOF'
@@ -260,9 +249,23 @@ if [[ "$MODE" != "update-only" ]]; then
 #####
 ## runtimes
 #####
+echo "Installing runtimes (Bun, Deno, uv)..."
+
+# Install Bun
 curl -fsSL https://bun.sh/install | bash
-deno jupyter --install # if the deno flake fails to install, this will fail gracefully
+
+# Source Bun in current session
+export BUN_INSTALL="$HOME/.bun"
+export PATH="$BUN_INSTALL/bin:$PATH"
+
+# Install Deno (via Nix, already in PATH from Home Manager)
+deno jupyter --install 2>/dev/null || echo "Note: Deno jupyter install skipped (deno may not be available yet)"
+
+# Install uv
 curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Source uv in current session
+export PATH="$HOME/.local/share/uv/bin:$PATH"
 
 #####
 ## install bun global packages from bun.txt

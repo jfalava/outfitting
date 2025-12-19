@@ -566,6 +566,9 @@ elif [ -e ~/.nix-profile/etc/profile.d/nix.sh ]; then
     source ~/.nix-profile/etc/profile.d/nix.sh
 fi
 
+# Export NIX_PATH for channel-based Home Manager
+export NIX_PATH="$HOME/.nix-defexpr/channels${NIX_PATH:+:$NIX_PATH}"
+
 # Zoxide (smart cd)
 if command -v zoxide &> /dev/null; then
     eval "$(zoxide init zsh)"
