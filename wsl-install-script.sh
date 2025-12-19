@@ -3,7 +3,6 @@
 # ========================================
 # WSL Outfitting Installation Script
 # ========================================
-# Channel-based Home Manager setup (no flakes)
 
 # Default mode: update repositories and Nix packages only (skip APT installs)
 export UPDATE_ONLY=true
@@ -33,16 +32,16 @@ done
 
 case "$MODE" in
     "default")
-        echo "Running default mode (update + nix-only, skipping APT installs)..."
+        echo "❖ Running default mode (update + nix-only, skipping APT installs)..."
         ;;
     "update-only")
-        echo "Running update-only mode (update repositories and APT packages)..."
+        echo "❖ Running update-only mode (update repositories and APT packages)..."
         ;;
     "nix-only")
-        echo "Running nix-only mode (Nix installation only, skip APT)..."
+        echo "❖ Running nix-only mode (Nix installation only, skip APT)..."
         ;;
     "full-install")
-        echo "Running full WSL setup..."
+        echo "❖ Running full WSL setup..."
         ;;
 esac
 
@@ -89,17 +88,13 @@ if [[ "$MODE" != "update-only" ]]; then
 #####
 configure_outfitting_repo() {
     echo ""
-    echo "================================"
-    echo "Repository Configuration"
-    echo "================================"
+    echo "❖ Setting up outfitting repository location..."
     echo ""
-    echo "Setting up outfitting repository location..."
-    echo ""
-    
+
     # Always use default location for remote installation
     repo_path="$HOME/Workspace/outfitting"
     echo "Using default repository location: $repo_path"
-    
+
     # Handle the repository setup
     if [ ! -d "$repo_path" ]; then
         echo "Directory doesn't exist. Creating: $repo_path"
@@ -127,12 +122,6 @@ configure_outfitting_repo() {
     chmod 600 "$config_file"
 
     echo "✓ Repository location configured successfully!"
-    echo "  Repository path: $repo_path"
-    echo "  Configuration stored in: $config_file"
-    echo ""
-    echo "You can now use local commands like: hm-sync, hm-switch, hm-update"
-    echo "To change location later, run: setup-outfitting-repo"
-    
     return 0
 }
 
@@ -146,7 +135,7 @@ if [[ "$MODE" != "update-only" ]]; then
 ## nix
 #####
 curl --proto '=https' --tlsv1.2 -sSf -L https://nixos.org/nix/install | sh -s -- --daemon || {
-    echo "Failed to install Nix. Exiting..."
+    echo "❖ Failed to install Nix. Exiting..."
     exit 1
 }
 
@@ -169,49 +158,46 @@ EOF
 
 ## install home-manager using CHANNELS (no flakes)
 if command -v nix >/dev/null; then
-    echo "Installing Home Manager using Nix channels..."
+    echo "❖ Installing Home Manager using Nix channels..."
 
-    echo "Adding nixpkgs channel..."
+    echo "❖ Adding nixpkgs channel..."
     nix-channel --add https://nixos.org/channels/nixpkgs-unstable nixpkgs
 
-    echo "Adding Home Manager channel..."
+    echo "❖ Adding Home Manager channel..."
     nix-channel --add https://github.com/nix-community/home-manager/archive/master.tar.gz home-manager
 
-    echo "Updating channels..."
+    echo "❖ Updating channels..."
     nix-channel --update
 
     export NIX_PATH="$HOME/.nix-defexpr/channels${NIX_PATH:+:$NIX_PATH}"
     echo "NIX_PATH set to: $NIX_PATH"
 
-    echo "Verifying channels..."
+    echo "❖ Verifying channels..."
     nix-channel --list
 
-    echo "Running Home Manager installation..."
+    echo "❖ Running Home Manager installation..."
     nix-shell '<home-manager>' -A install
 
     # Check if local repository is configured
     config_file="$HOME/.config/outfitting/repo-path"
     if [ -f "$config_file" ]; then
         repo_path=$(cat "$config_file")
-        echo "Using local repository: $repo_path"
-
         # Symlink to repository instead of copying (preserves relative paths)
         mkdir -p ~/.config
-        
+
         # Remove old home-manager directory if it exists and is not a symlink
         if [ -d ~/.config/home-manager ] && [ ! -L ~/.config/home-manager ]; then
-            echo "Backing up existing home-manager directory..."
             mv ~/.config/home-manager ~/.config/home-manager.backup.$(date +%Y%m%d-%H%M%S)
         fi
-        
+
         # Create symlink to the x64-linux directory (maintains relative paths to dotfiles)
         ln -sfn "$repo_path/packages/x64-linux" ~/.config/home-manager
-        
+
         # Apply configuration using channels (no flakes)
         home-manager switch || {
-            echo "Warning: Home Manager configuration failed."
-            echo "After script completion, you can try:"
-            echo "  home-manager switch"
+            echo "❖ Warning: Home Manager configuration failed."
+            echo "❖ After script completion, you can try:"
+            echo "    home-manager switch"
         }
     else
         echo "Using default Home Manager configuration (no local repository found)"
@@ -220,15 +206,15 @@ if command -v nix >/dev/null; then
 
     # Now that Home Manager has installed zsh, set it as the default shell
     if command -v zsh &> /dev/null; then
-        echo "Setting zsh as default shell..."
+        echo "❖ Setting zsh as default shell..."
         sudo chsh -s "$(which zsh)" "$USER" || echo "Warning: Failed to set zsh as default shell. You can manually run: chsh -s \$(which zsh)"
     else
-        echo "Warning: zsh not found after Home Manager installation"
+        echo "❖ Warning: zsh not found after Home Manager installation"
     fi
 
     # Safety check: Verify Nix is still accessible after Home Manager configuration
     echo ""
-    echo "Verifying Nix accessibility after Home Manager setup..."
+    echo "❖ Verifying Nix accessibility after Home Manager setup..."
     if command -v nix &> /dev/null; then
         echo "✓ Nix is still accessible"
     else
@@ -240,7 +226,7 @@ if command -v nix >/dev/null; then
         echo "    3. Manually source Nix: source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh"
     fi
 else
-    echo "Nix not found, skipping home-manager installation"
+    echo "❖ Nix not found, skipping home-manager installation"
 fi
 fi
 fi
@@ -249,7 +235,6 @@ if [[ "$MODE" != "update-only" ]]; then
 #####
 ## runtimes
 #####
-echo "Installing runtimes (Bun, Deno, uv)..."
 
 # Install Bun
 curl -fsSL https://bun.sh/install | bash
@@ -295,20 +280,7 @@ else
 fi
 fi
 
-echo ""
-echo "================================"
-echo "Installation Complete!"
-echo "================================"
-echo ""
-echo "✓ Nix installed with channel-based Home Manager"
-echo "✓ Home Manager configuration applied"
-echo "✓ Default shell set to zsh"
-echo ""
-echo "To update packages in the future:"
-echo "  nix-channel --update && home-manager switch"
-echo ""
-echo "Or use the helper function:"
-echo "  hm-update"
-echo ""
-echo "Your packages will float with nixpkgs-unstable (like Homebrew)"
-echo "No more flake.lock management needed!"
+# Install Claude Code
+curl -fsSL https://claude.ai/install.sh | bash
+
+echo "❖ Installation Complete!"
