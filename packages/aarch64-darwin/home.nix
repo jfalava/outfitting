@@ -22,7 +22,7 @@ let
       deno
       go
       lazygit
-      nodejs_latest
+      nodejs
       python3
       zig
       zellij
@@ -33,10 +33,8 @@ let
       shellcheck
       zip
       p7zip
-      unrar
       nixd
       nil
-      nixfmt
       pnpm
       git
     ];
@@ -65,7 +63,7 @@ let
       deno
       go
       lazygit
-      nodejs_latest
+      nodejs
       python3
       zig
       zellij
@@ -77,7 +75,6 @@ let
       zip
       p7zip
       unrar
-      nixd
       nil
       pnpm
       git
@@ -114,8 +111,6 @@ let
 
 in
 {
-  nixpkgs.config.allowUnfree = true;
-
   # Home Manager needs a bit of information about you and the paths it should manage
   home.username = "jfalava";
   home.homeDirectory = "/Users/jfalava";
@@ -272,24 +267,21 @@ in
     ];
   };
 
-  # Nix configuration for the user
-  nix = {
-    package = pkgs.nix;
-    settings = {
-      experimental-features = [
-        "nix-command"
-        "flakes"
-      ];
-      substituters = [
-        "https://cache.nixos.org/"
-        "https://nix-community.cachix.org"
-      ];
-      trusted-public-keys = [
-        "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
-        "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
-      ];
-      auto-optimise-store = true;
-      max-jobs = "auto";
-    };
+  # Nix configuration for the user (settings only, package managed by nix-darwin)
+  nix.settings = {
+    experimental-features = [
+      "nix-command"
+      "flakes"
+    ];
+    substituters = [
+      "https://cache.nixos.org/"
+      "https://nix-community.cachix.org"
+    ];
+    trusted-public-keys = [
+      "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
+      "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
+    ];
+    auto-optimise-store = true;
+    max-jobs = "auto";
   };
 }

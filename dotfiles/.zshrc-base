@@ -604,3 +604,24 @@ fi
 if command -v bun &> /dev/null; then
     [ -s "$HOME/.bun/_bun" ] && source "$HOME/.bun/_bun"
 fi
+
+# Temporary fix for nix packages until flake system is fully working
+# Add common nix store paths for packages that should be available
+if [ -d "/nix/store/wwxcmvd195g5bfzbz5k25z1cx5hm8w65-bat-0.26.1/bin" ]; then
+    export PATH="/nix/store/wwxcmvd195g5bfzbz5k25z1cx5hm8w65-bat-0.26.1/bin:$PATH"
+fi
+if [ -d "/nix/store/rqy1v1px7narahsl37yq7qchfnk7b0fg-eza-0.23.4/bin" ]; then
+    export PATH="/nix/store/rqy1v1px7narahsl37yq7qchfnk7b0fg-eza-0.23.4/bin:$PATH"
+fi
+if [ -d "/nix/store/xrg598pzlspl3ayvidaivf5h6c2cpqw2-fzf-0.67.0/bin" ]; then
+    export PATH="/nix/store/xrg598pzlspl3ayvidaivf5h6c2cpqw2-fzf-0.67.0/bin:$PATH"
+fi
+if [ -d "/nix/store/mhv88knw2x5qdnzl7p06wxa9bxrkgghv-ripgrep-15.1.0/bin" ]; then
+    export PATH="/nix/store/mhv88knw2x5qdnzl7p06wxa9bxrkgghv-ripgrep-15.1.0/bin:$PATH"
+fi
+if [ -d "/nix/store/gv1kzwpcbg9ng3d4p2gnv9sia8ldsp0n-starship-1.24.1/bin" ]; then
+    export PATH="/nix/store/gv1kzwpcbg9ng3d4p2gnv9sia8ldsp0n-starship-1.24.1/bin:$PATH"
+fi
+if [ -d "/nix/store/capwkgfw0hvpsqmflz49rp31z9spay0b-zoxide-0.9.8/bin" ]; then
+    export PATH="/nix/store/capwkgfw0hvpsqmflz49rp31z9spay0b-zoxide-0.9.8/bin:$PATH"
+fi
