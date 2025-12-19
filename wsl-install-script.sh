@@ -192,7 +192,7 @@ if command -v nix >/dev/null; then
     nix-channel --add https://nixos.org/channels/nixpkgs-unstable nixpkgs
 
     echo "Adding Home Manager channel..."
-    nix-channel --add https://github.com/nix-community/home-manager/archive/release-25.11.tar.gz home-manager
+    nix-channel --add https://github.com/nix-community/home-manager/archive/master.tar.gz home-manager
 
     echo "Updating channels..."
     nix-channel --update

@@ -86,7 +86,7 @@ install_nix_darwin() {
     nix-channel --add https://github.com/LnL7/nix-darwin/archive/master.tar.gz darwin
 
     info "Adding Home Manager channel..."
-    nix-channel --add https://github.com/nix-community/home-manager/archive/release-25.11.tar.gz home-manager
+    nix-channel --add https://github.com/nix-community/home-manager/archive/master.tar.gz home-manager
 
     info "Updating channels..."
     nix-channel --update
@@ -175,13 +175,13 @@ apply_initial_config() {
         nix-build '<darwin>' -A darwin-rebuild
 
         info "Applying configuration..."
-        ./result/bin/darwin-rebuild switch || {
+        if ./result/bin/darwin-rebuild switch; then
+            rm -f result
+        else
             warning "Initial nix-darwin configuration failed."
             warning "You can try again after the script completes:"
             warning "  darwin-rebuild switch"
-        }
-
-        rm -f result
+        fi
     else
         info "No local repository found. You'll need to manually configure nix-darwin."
         info "Run 'setup-outfitting-repo' to set up a local repository."
