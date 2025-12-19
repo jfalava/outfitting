@@ -27,20 +27,31 @@
       };
     in
     {
-      darwinConfigurations."Mac-mini-de-Jorge" = nix-darwin.lib.darwinSystem {
-        system = "aarch64-darwin";
-        modules = [ configuration ];
+      # Generic darwin configuration that works for any hostname
+      darwinConfigurations = {
+        # Generic name that works on any Mac
+        macos = nix-darwin.lib.darwinSystem {
+          system = "aarch64-darwin";
+          modules = [ configuration ];
+        };
+        # Alias for convenience
+        default = self.darwinConfigurations.macos;
       };
 
-      # Standalone home-manager configuration for testing
-      homeConfigurations."Mac-mini-de-Jorge" = home-manager.lib.homeManagerConfiguration {
-        pkgs = nixpkgs.legacyPackages.aarch64-darwin;
-        modules = [ 
-          ./home.nix
-          {
-            nix.package = nixpkgs.legacyPackages.aarch64-darwin.nix;
-          }
-        ];
+      # Standalone home-manager configuration
+      homeConfigurations = {
+        # Generic name
+        macos = home-manager.lib.homeManagerConfiguration {
+          pkgs = nixpkgs.legacyPackages.aarch64-darwin;
+          modules = [ 
+            ./home.nix
+            {
+              nix.package = nixpkgs.legacyPackages.aarch64-darwin.nix;
+            }
+          ];
+        };
+        # Alias for convenience
+        default = self.homeConfigurations.macos;
       };
 
       # For development/testing
