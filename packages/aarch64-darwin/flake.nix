@@ -43,12 +43,7 @@
         # Generic name
         macos = home-manager.lib.homeManagerConfiguration {
           pkgs = nixpkgs.legacyPackages.aarch64-darwin;
-          modules = [ 
-            ./home.nix
-            {
-              nix.package = nixpkgs.legacyPackages.aarch64-darwin.nix;
-            }
-          ];
+          modules = [ ./home.nix ];
         };
         # Alias for convenience
         default = self.homeConfigurations.macos;
