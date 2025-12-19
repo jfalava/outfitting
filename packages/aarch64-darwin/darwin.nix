@@ -36,7 +36,7 @@
       auto-optimise-store = true;
       max-jobs = "auto";
     };
-    
+
     # Enable garbage collection
     gc = {
       automatic = true;
@@ -76,14 +76,14 @@
       NSAutomaticCapitalizationEnabled = false;
       NSAutomaticPeriodSubstitutionEnabled = false;
     };
-    
+
     # Trackpad settings
     trackpad = {
       Clicking = true;
       DragLock = false;
       TrackpadThreeFingerDrag = true;
     };
-    
+
     # Security settings
     screensaver = {
       askForPassword = true;

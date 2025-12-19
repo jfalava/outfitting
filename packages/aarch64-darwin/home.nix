@@ -36,6 +36,7 @@ let
       unrar
       nixd
       nil
+      nixfmt
       pnpm
       git
     ];
