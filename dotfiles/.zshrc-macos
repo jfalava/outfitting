@@ -42,7 +42,44 @@ path_append "$HOME/.cargo/bin"
 alias show='open'  # macOS equivalent of explorer
 alias finder='open .'  # Open current directory in Finder
 
+# Nix-darwin rebuild aliases with proper quoting for flake syntax
+alias drb='darwin-rebuild build --flake ".#macos"'
+alias drs='darwin-rebuild switch --flake ".#macos"'
+alias dru='darwin-rebuild switch --flake ".#macos" --upgrade'
+alias drd='darwin-rebuild switch --flake ".#macos" --dry-run'
+alias drl='darwin-rebuild --list-generations'
+alias drr='darwin-rebuild rollback'
+
+# Quick nix commands
+alias nix-clean='sudo nix-collect-garbage -d'
+alias nix-search='nix search nixpkgs'
+alias nix-shell='nix shell nixpkgs#'
+
 # ---- macOS-Specific Functions ----
+
+# Quick nix package test (creates temporary shell with package)
+nix-test() {
+    if [ -z "$1" ]; then
+        echo "Usage: nix-test <package-name>"
+        echo "Example: nix-test bat"
+        return 1
+    fi
+    echo "Testing package: $1"
+    nix shell "nixpkgs#$1" --command "$1" --version
+}
+
+# Search and install test (search then test)
+nix-try() {
+    if [ -z "$1" ]; then
+        echo "Usage: nix-try <search-term>"
+        echo "Example: nix-try ripgrep"
+        return 1
+    fi
+    echo "Searching for packages matching: $1"
+    nix search nixpkgs "$1"
+    echo ""
+    echo "To test a specific package: nix-test <package-name>"
+}
 
 # Find process using a port (macOS native)
 port() {
@@ -239,3 +276,51 @@ update-all() {
     command -v bun >/dev/null && bun update -g
     echo "✓ System updated"
 }
+
+# Quick nix-darwin rebuild from anywhere in the system
+outfit-rebuild() {
+    local repo_path=$(get_outfitting_repo) || { setup_outfitting_repo; repo_path=$(get_outfitting_repo); }
+    cd "$repo_path/packages/aarch64-darwin" || return 1
+    
+    case "${1:-switch}" in
+        build|b)
+            echo "🔨 Building nix-darwin configuration..."
+            darwin-rebuild build --flake ".#macos"
+            ;;
+        switch|s)
+            echo "🚀 Applying nix-darwin configuration..."
+            sudo darwin-rebuild switch --flake ".#macos"
+            ;;
+        test|t)
+            echo "🧪 Testing nix-darwin configuration..."
+            darwin-rebuild build --flake ".#macos" && echo "✅ Build successful - ready to switch"
+            ;;
+        dry|d)
+            echo "🔍 Dry-run check..."
+            darwin-rebuild switch --flake ".#macos" --dry-run
+            ;;
+        upgrade|u)
+            echo "⬆️  Upgrading packages and applying..."
+            sudo darwin-rebuild switch --flake ".#macos" --upgrade
+            ;;
+        *)
+            echo "Usage: outfit-rebuild [build|switch|test|dry|upgrade]"
+            echo "  build/b    - Build configuration only"
+            echo "  switch/s   - Build and apply configuration (default)"
+            echo "  test/t     - Test build only"
+            echo "  dry/d      - Dry-run to see what would change"
+            echo "  upgrade/u  - Upgrade packages and apply"
+            ;;
+    esac
+    
+    # Return to original directory
+    cd - > /dev/null || return 0
+}
+
+# Short aliases for outfit-rebuild
+alias or='outfit-rebuild'
+alias obr='outfit-rebuild build'
+alias osr='outfit-rebuild switch'
+alias otr='outfit-rebuild test'
+alias odr='outfit-rebuild dry'
+alias our='outfit-rebuild upgrade'
