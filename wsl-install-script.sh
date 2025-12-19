@@ -206,9 +206,17 @@ if command -v nix >/dev/null; then
         repo_path=$(cat "$config_file")
         echo "Using local repository: $repo_path"
 
-        # Copy home.nix to Home Manager location
-        mkdir -p ~/.config/home-manager
-        cp "$repo_path/packages/x64-linux/home.nix" ~/.config/home-manager/
+        # Symlink to repository instead of copying (preserves relative paths)
+        mkdir -p ~/.config
+        
+        # Remove old home-manager directory if it exists and is not a symlink
+        if [ -d ~/.config/home-manager ] && [ ! -L ~/.config/home-manager ]; then
+            echo "Backing up existing home-manager directory..."
+            mv ~/.config/home-manager ~/.config/home-manager.backup.$(date +%Y%m%d-%H%M%S)
+        fi
+        
+        # Create symlink to the x64-linux directory (maintains relative paths to dotfiles)
+        ln -sfn "$repo_path/packages/x64-linux" ~/.config/home-manager
         
         # Apply configuration using channels (no flakes)
         home-manager switch || {
