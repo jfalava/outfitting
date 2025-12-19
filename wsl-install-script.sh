@@ -163,7 +163,15 @@ if ! grep -q "nix-daemon.sh" ~/.bashrc 2>/dev/null; then
         echo 'elif [ -e ~/.nix-profile/etc/profile.d/nix.sh ]; then'
         echo '  source ~/.nix-profile/etc/profile.d/nix.sh'
         echo 'fi'
+        echo 'export NIX_PATH="$HOME/.nix-defexpr/channels${NIX_PATH:+:$NIX_PATH}"'
     ) >> ~/.bashrc
+fi
+
+if [ -f ~/.zshrc ] && ! grep -q "NIX_PATH" ~/.zshrc 2>/dev/null; then
+    (
+        echo
+        echo 'export NIX_PATH="$HOME/.nix-defexpr/channels${NIX_PATH:+:$NIX_PATH}"'
+    ) >> ~/.zshrc
 fi
 
 sudo mkdir -p /etc/nix

@@ -94,6 +94,14 @@ install_nix_darwin() {
     export NIX_PATH="$HOME/.nix-defexpr/channels${NIX_PATH:+:$NIX_PATH}"
     info "NIX_PATH set to: $NIX_PATH"
 
+    if [ -f ~/.zshrc ] && ! grep -q "NIX_PATH" ~/.zshrc 2>/dev/null; then
+        (
+            echo
+            echo 'export NIX_PATH="$HOME/.nix-defexpr/channels${NIX_PATH:+:$NIX_PATH}"'
+        ) >> ~/.zshrc
+        info "Added NIX_PATH to ~/.zshrc"
+    fi
+
     info "Verifying channels..."
     nix-channel --list
 
