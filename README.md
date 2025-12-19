@@ -84,15 +84,6 @@ curl -L wsl.jfa.dev | bash -s -- --nix-only      # Nix installation only
 curl -L mac.jfa.dev | bash
 ```
 
-#### What Gets Installed
-
-#### Post-Installation
-
-After installation, open a new terminal. Bun global packages will be installed automatically during setup. If they're skipped, install them manually:
-```bash
-curl -fsSL mac.jfa.dev/packages/bun | xargs -I {} bun install -g {}
-```
-
 ## Repository Configuration
 
 ### Automatic Setup
@@ -110,19 +101,19 @@ During installation, the repository is automatically cloned to `~/Workspace/outf
 ~/.nixpkgs/darwin-configuration.nix → ~/Workspace/outfitting/packages/aarch64-darwin/darwin.nix
 ```
 
-### Reconfigure Repository Location
+### Reconfigure the repository location
 
 ```bash
 setup-outfitting-repo  # Interactive setup
 ```
 
-### Profile Switching
+### Nix profile switching
 
 Profile switching creates **copies** (not symlinks) to safely modify configuration without affecting the repository:
 
 ```bash
-hm-personal  # Switch to personal profile (AI tools, personal git config)
-hm-work      # Switch to work profile (AWS, K8s, Terraform, work git config)
+hm-personal  # Switch to personal profile
+hm-work      # Switch to work profile
 hm-profile   # Check current active profile
 ```
 
@@ -144,7 +135,7 @@ After editing files in `~/Workspace/outfitting`:
 
 ```bash
 git pull                    # Pull latest changes from GitHub
-hm-sync                     # Apply configuration (symlinks mean instant changes)
+hm-sync                     # Apply configuration<
 ```
 
 #### Update Packages
@@ -158,7 +149,7 @@ update-all                  # Update APT + Nix + Bun packages + cleanup
 
 ```bash
 curl -L wsl.jfa.dev | bash -s -- --update-only   # APT packages only
-curl -L wsl.jfa.dev | bash -s -- --full-install  # Full reinstall (use sparingly)
+curl -L wsl.jfa.dev | bash -s -- --full-install  # Full reinstall
 ```
 
 ### macOS
@@ -177,12 +168,6 @@ hm-sync                     # Apply configuration via symlinks
 ```bash
 hm-update                   # Update Nix channels + apply configuration
 update-all                  # Update Homebrew + Nix + Bun packages + cleanup
-```
-
-#### Reinstall from Script
-
-```bash
-curl -L mac.jfa.dev | bash  # Full reinstall (use sparingly)
 ```
 
 ### Windows
@@ -209,11 +194,4 @@ curl -fsSL mac.jfa.dev/packages/bun | xargs -I {} bun install -g {}
 
 ```bash
 darwin-rebuild switch  # Apply nix-darwin configuration
-```
-
-### Development
-
-```bash
-setup-outfitting-repo  # Reconfigure repository location
-get_outfitting_repo    # Show current repository path
 ```

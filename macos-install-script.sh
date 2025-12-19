@@ -57,54 +57,6 @@ check_architecture() {
     fi
 }
 
-install_nix() {
-    if command -v nix &> /dev/null; then
-        info "Nix is already installed"
-        nix --version
-    else
-        info "Installing Nix (Determinate Systems installer)..."
-        curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install
-
-        # Source Nix profile
-        if [ -e '/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh' ]; then
-            . '/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh'
-        fi
-
-        success "Nix installed successfully"
-    fi
-}
-
-# Install nix-darwin and Home Manager using channels (no flakes)
-install_nix_darwin() {
-    info "Setting up nix-darwin and Home Manager using channels..."
-
-    info "Adding nixpkgs channel..."
-    nix-channel --add https://nixos.org/channels/nixpkgs-unstable nixpkgs
-
-    info "Adding nix-darwin channel..."
-    nix-channel --add https://github.com/LnL7/nix-darwin/archive/master.tar.gz darwin
-
-    info "Adding Home Manager channel..."
-    nix-channel --add https://github.com/nix-community/home-manager/archive/master.tar.gz home-manager
-
-    info "Updating channels..."
-    nix-channel --update
-
-    export NIX_PATH="$HOME/.nix-defexpr/channels${NIX_PATH:+:$NIX_PATH}"
-    info "NIX_PATH set to: $NIX_PATH"
-
-    # Note: NIX_PATH is managed by Home Manager via .zshrc-base
-    # No need to manually append to .zshrc here
-
-    info "Verifying channels..."
-    nix-channel --list
-
-    mkdir -p ~/.config/home-manager
-    mkdir -p ~/.nixpkgs
-
-    success "Channels configured successfully!"
-}
-
 # Configure outfitting repository location
 configure_outfitting_repo() {
     echo ""
@@ -146,55 +98,203 @@ configure_outfitting_repo() {
     echo "✓ Repository location configured successfully!"
     echo "  Repository path: $repo_path"
     echo "  Configuration stored in: $config_file"
-    echo ""
-    echo "❖ You can now use local commands like: hm-sync, hm-switch, hm-update"
-    echo "❖ To change location later, run: setup-outfitting-repo"
 
     return 0
 }
 
-# Apply initial nix-darwin configuration
-apply_initial_config() {
-    info "Applying initial nix-darwin configuration..."
+# Copy dotfiles before Nix installation
+copy_dotfiles() {
+    info "Copying dotfiles..."
 
     config_file="$HOME/.config/outfitting/repo-path"
     if [ -f "$config_file" ]; then
         repo_path=$(cat "$config_file")
-        info "Using local repository: $repo_path"
+        info "Using repository at: $repo_path"
 
-        # Symlink darwin configuration
-        info "Creating symlink for darwin configuration..."
-        ln -sfn "$repo_path/packages/aarch64-darwin/darwin.nix" ~/.nixpkgs/darwin-configuration.nix
-
-        # Symlink home-manager directory (preserves relative paths to dotfiles)
-        info "Creating symlink for home-manager configuration..."
-        if [ -d ~/.config/home-manager ] && [ ! -L ~/.config/home-manager ]; then
-            info "Backing up existing home-manager directory..."
-            mv ~/.config/home-manager ~/.config/home-manager.backup.$(date +%Y%m%d-%H%M%S)
+        # Backup existing zsh files if they exist
+        if [ -f "$HOME/.zshrc" ] && [ ! -L "$HOME/.zshrc" ]; then
+            info "Backing up existing .zshrc..."
+            mv "$HOME/.zshrc" "$HOME/.zshrc.backup.$(date +%Y%m%d-%H%M%S)"
         fi
-        ln -sfn "$repo_path/packages/aarch64-darwin" ~/.config/home-manager
-
-        info "Bootstrapping nix-darwin..."
-        nix-build '<darwin>' -A darwin-rebuild
-
-        info "Applying configuration..."
-        if ./result/bin/darwin-rebuild switch; then
-            rm -f result
-        else
-            warning "Initial nix-darwin configuration failed."
-            warning "You can try again after the script completes:"
-            warning "  darwin-rebuild switch"
+        if [ -f "$HOME/.zshrc-base" ] && [ ! -L "$HOME/.zshrc-base" ]; then
+            info "Backing up existing .zshrc-base..."
+            mv "$HOME/.zshrc-base" "$HOME/.zshrc-base.backup.$(date +%Y%m%d-%H%M%S)"
         fi
+
+        # Copy dotfiles
+        info "Copying .zshrc-macos to .zshrc..."
+        cp "$repo_path/dotfiles/.zshrc-macos" "$HOME/.zshrc"
+
+        info "Copying .zshrc-base..."
+        cp "$repo_path/dotfiles/.zshrc-base" "$HOME/.zshrc-base"
+
+        success "Dotfiles copied successfully!"
     else
-        info "No local repository found. You'll need to manually configure nix-darwin."
-        info "Run 'setup-outfitting-repo' to set up a local repository."
+        warning "Repository not configured. Skipping dotfile copy."
+    fi
+}
+
+# Install Bun via official installer
+install_bun() {
+    info "Installing Bun..."
+
+    if command -v bun &> /dev/null; then
+        success "Bun is already installed ($(bun --version))"
+        # Still export for current session
+        export BUN_INSTALL="$HOME/.bun"
+        export PATH="$BUN_INSTALL/bin:$PATH"
+        return 0
+    fi
+
+    if curl -fsSL https://bun.sh/install | bash; then
+        # Source Bun in current session
+        export BUN_INSTALL="$HOME/.bun"
+        export PATH="$BUN_INSTALL/bin:$PATH"
+        success "Bun installed successfully"
+    else
+        warning "Failed to install Bun (network error or already installed)"
+        # Try to source it anyway in case it's already there
+        export BUN_INSTALL="$HOME/.bun"
+        export PATH="$BUN_INSTALL/bin:$PATH"
+    fi
+}
+
+# Install Bun global packages from bun.txt
+install_bun_packages() {
+    info "Installing Bun global packages..."
+
+    if ! command -v bun >/dev/null 2>&1; then
+        warning "Bun not found in PATH, skipping global package installations"
+        return 0
+    fi
+
+    local bunPackagesUrl="https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/packages/bun.txt"
+    local bunPackagesFile="/tmp/bun-packages.txt"
+
+    if ! curl -fsSL "$bunPackagesUrl" -o "$bunPackagesFile" 2>/dev/null; then
+        warning "Failed to fetch Bun packages list (network error), skipping"
+        return 0
+    fi
+
+    local installed=0
+    local failed=0
+    while IFS= read -r package; do
+        # Skip empty lines and comments
+        [[ -z "$package" || "$package" =~ ^[[:space:]]*# ]] && continue
+        # Remove leading/trailing whitespace
+        package=$(echo "$package" | xargs)
+        if [[ -n "$package" ]]; then
+            # Check if already installed (idempotent)
+            if bun pm ls -g 2>/dev/null | grep -q "^$package@"; then
+                info "Package already installed: $package"
+                ((installed++))
+            else
+                info "Installing Bun package: $package"
+                if bun install -g "$package" 2>/dev/null; then
+                    ((installed++))
+                else
+                    warning "Failed to install: $package"
+                    ((failed++))
+                fi
+            fi
+        fi
+    done < "$bunPackagesFile"
+    rm -f "$bunPackagesFile"
+
+    if [[ $installed -gt 0 ]]; then
+        success "Bun packages: $installed installed/verified"
+    fi
+    if [[ $failed -gt 0 ]]; then
+        warning "Bun packages: $failed failed"
+    fi
+}
+
+# Install Claude Code
+install_claude_code() {
+    info "Installing Claude Code..."
+
+    # Check if already installed
+    if command -v claude &> /dev/null; then
+        success "Claude Code is already installed"
+        return 0
+    fi
+
+    if curl -fsSL https://claude.ai/install.sh 2>/dev/null | bash; then
+        success "Claude Code installed"
+    else
+        warning "Failed to install Claude Code (network error or already installed)"
+    fi
+}
+
+# Install Nix with flakes support
+install_nix() {
+    if command -v nix &> /dev/null; then
+        success "Nix is already installed ($(nix --version | head -1))"
+        return 0
+    fi
+
+    info "Installing Nix (Determinate Systems installer with flakes)..."
+    if curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix 2>/dev/null | sh -s -- install; then
+        # Source Nix profile
+        if [ -e '/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh' ]; then
+            . '/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh'
+        fi
+        success "Nix installed successfully with flakes enabled"
+    else
+        error "Failed to install Nix (network error)"
+        return 1
+    fi
+}
+
+# Install nix-darwin using flakes
+install_nix_darwin() {
+    # Check if already installed
+    if command -v darwin-rebuild &> /dev/null; then
+        success "nix-darwin is already installed"
+        info "To update: darwin-rebuild switch --flake ~/.config/home-manager"
+        return 0
+    fi
+
+    info "Installing nix-darwin with flakes..."
+
+    config_file="$HOME/.config/outfitting/repo-path"
+    if [ ! -f "$config_file" ]; then
+        error "Repository not configured. Cannot install nix-darwin."
+        return 1
+    fi
+
+    repo_path=$(cat "$config_file")
+    info "Using flake from: $repo_path"
+
+    # The flake will be at repo_path/packages/aarch64-darwin
+    flake_path="$repo_path/packages/aarch64-darwin"
+
+    # Backup /etc/zshenv if it exists
+    if [ -f /etc/zshenv ]; then
+        info "Backing up /etc/zshenv..."
+        sudo mv /etc/zshenv /etc/zshenv.before-nix-darwin
+    fi
+
+    info "Building nix-darwin from flake..."
+    if nix run nix-darwin -- switch --flake "$flake_path" 2>&1; then
+        success "nix-darwin installed successfully!"
+        info "Configuration is now managed via flake at: $flake_path/flake.nix"
+        info "To update in the future, run: darwin-rebuild switch --flake ~/.config/home-manager"
+    else
+        error "Failed to install nix-darwin"
+        warning "You can retry manually with: nix run nix-darwin -- switch --flake $flake_path"
+        return 1
     fi
 }
 
 # Post-installation instructions
 post_install_info() {
     echo ""
+    echo "======================================"
     echo "Installation Complete!"
+    echo "======================================"
+    echo ""
+    echo "To update nix-darwin: darwin-rebuild switch --flake ~/.config/home-manager"
     echo ""
 }
 
@@ -202,73 +302,35 @@ post_install_info() {
 main() {
     echo ""
     echo "======================================"
-    echo "macOS Nix Installation (Channel-based)"
+    echo "macOS Installation (Flake-based)"
     echo "======================================"
     echo ""
 
     check_macos
     check_architecture
 
-    info "Starting Nix installation..."
-    echo ""
+    # Step 1: Configure repository
+    configure_outfitting_repo
 
+    # Step 2: Copy dotfiles first (before Nix, so shell works)
+    copy_dotfiles
+
+    # Step 3: Install Bun
+    install_bun
+
+    # Step 4: Install Bun packages
+    install_bun_packages
+
+    # Step 5: Install Claude Code
+    install_claude_code
+
+    # Step 6: Install Nix (last, with flakes)
+    info "Now installing Nix and nix-darwin..."
+    echo ""
     install_nix
     install_nix_darwin
 
-    # Configure repository for local development
-    configure_outfitting_repo
-
-    # Apply initial configuration
-    apply_initial_config
-
-    # Install Bun global packages from bun.txt
-    install_bun_packages
-
-    # Install Claude Code
-    install_claude_code
-
     post_install_info
-}
-
-# Install Bun global packages from bun.txt
-install_bun_packages() {
-    info "Installing Bun global packages..."
-
-    # Source the new zsh environment to get bun in PATH
-    # (bun is installed via nix-darwin/Home Manager)
-    if [ -e /etc/zshrc ]; then
-        source /etc/zshrc 2>/dev/null || true
-    fi
-
-    if command -v bun >/dev/null 2>&1; then
-        local bunPackagesUrl="https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/packages/bun.txt"
-        local bunPackagesFile="/tmp/bun-packages.txt"
-
-        if curl -fsSL "$bunPackagesUrl" -o "$bunPackagesFile"; then
-            while IFS= read -r package; do
-                # Skip empty lines and comments
-                [[ -z "$package" || "$package" =~ ^[[:space:]]*# ]] && continue
-                # Remove leading/trailing whitespace
-                package=$(echo "$package" | xargs)
-                if [[ -n "$package" ]]; then
-                    info "Installing Bun package: $package"
-                    bun install -g "$package" || warning "Failed to install $package"
-                fi
-            done < "$bunPackagesFile"
-            rm -f "$bunPackagesFile"
-            success "Bun global packages installed"
-        else
-            warning "Failed to fetch Bun packages list, skipping global package installations"
-        fi
-    else
-        warning "Bun not found in PATH, skipping global package installations"
-    fi
-}
-
-# Install Claude Code
-install_claude_code() {
-    info "Installing Claude Code..."
-    curl -fsSL https://claude.ai/install.sh | bash
 }
 
 # Run main function
