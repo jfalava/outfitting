@@ -58,7 +58,6 @@ check_architecture() {
     fi
 }
 
-# Install Nix using Determinate Systems installer
 install_nix() {
     if command -v nix &> /dev/null; then
         info "Nix is already installed"
@@ -79,36 +78,36 @@ install_nix() {
 # Install nix-darwin and Home Manager using channels (no flakes)
 install_nix_darwin() {
     info "Setting up nix-darwin and Home Manager using channels..."
-    
-    # Add nixpkgs-unstable channel for latest packages
-    info "Adding nixpkgs-unstable channel..."
-    nix-channel --add https://nixos.org/channels/nixpkgs-unstable nixpkgs-unstable
-    nix-channel --update
-    
-    # Install nix-darwin using channel
-    info "Installing nix-darwin..."
+
+    info "Adding nixpkgs channel..."
+    nix-channel --add https://nixos.org/channels/nixpkgs-unstable nixpkgs
+
+    info "Adding nix-darwin channel..."
     nix-channel --add https://github.com/LnL7/nix-darwin/archive/master.tar.gz darwin
+
+    info "Adding Home Manager channel..."
+    nix-channel --add https://github.com/nix-community/home-manager/archive/master.tar.gz home-manager
+
+    info "Updating channels..."
     nix-channel --update
-    
-    # Bootstrap nix-darwin by building darwin-rebuild
-    info "Bootstrapping nix-darwin..."
-    nix-build '<darwin>' -A darwin-rebuild
-    
-    # Install nix-darwin using the built darwin-rebuild
-    ./result/bin/darwin-rebuild switch
-    
-    # Clean up the result symlink
-    rm -f result
-    
-    # Install Home Manager using channel
-    info "Installing Home Manager..."
-    nix-channel --add https://github.com/nix-community/home-manager/archive/release-25.11.tar.gz home-manager
-    nix-channel --update
-    
-    # Create necessary directories
+
+    export NIX_PATH="$HOME/.nix-defexpr/channels${NIX_PATH:+:$NIX_PATH}"
+    info "NIX_PATH set to: $NIX_PATH"
+
+    if [ -f ~/.zshrc ] && ! grep -q "NIX_PATH" ~/.zshrc 2>/dev/null; then
+        (
+            echo
+            echo 'export NIX_PATH="$HOME/.nix-defexpr/channels${NIX_PATH:+:$NIX_PATH}"'
+        ) >> ~/.zshrc
+        info "Added NIX_PATH to ~/.zshrc"
+    fi
+
+    info "Verifying channels..."
+    nix-channel --list
+
     mkdir -p ~/.config/home-manager
     mkdir -p ~/.nixpkgs
-    
+
     success "Channels configured successfully!"
 }
 
@@ -163,23 +162,26 @@ configure_outfitting_repo() {
 # Apply initial nix-darwin configuration
 apply_initial_config() {
     info "Applying initial nix-darwin configuration..."
-    
-    # Check if local repository is configured
+
     config_file="$HOME/.config/outfitting/repo-path"
     if [ -f "$config_file" ]; then
         repo_path=$(cat "$config_file")
         info "Using local repository: $repo_path"
-        
-        # Copy configuration files
+
         cp "$repo_path/packages/aarch64-darwin/darwin.nix" ~/.nixpkgs/darwin-configuration.nix
         cp "$repo_path/packages/aarch64-darwin/home.nix" ~/.config/home-manager/
-        
-        # Apply configuration using channels (no flakes)
-        darwin-rebuild switch || {
+
+        info "Bootstrapping nix-darwin..."
+        nix-build '<darwin>' -A darwin-rebuild
+
+        info "Applying configuration..."
+        if ./result/bin/darwin-rebuild switch; then
+            rm -f result
+        else
             warning "Initial nix-darwin configuration failed."
             warning "You can try again after the script completes:"
             warning "  darwin-rebuild switch"
-        }
+        fi
     else
         info "No local repository found. You'll need to manually configure nix-darwin."
         info "Run 'setup-outfitting-repo' to set up a local repository."

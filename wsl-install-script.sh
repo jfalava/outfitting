@@ -145,10 +145,8 @@ if [[ "$MODE" != "update-only" ]]; then
 #####
 ## nix
 #####
-## install nix using Determinate Nix installer
-# Determinate Nix provides better WSL support, FlakeHub integration, and improved defaults
-curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install --no-confirm || {
-    echo "Failed to install Determinate Nix. Exiting..."
+curl --proto '=https' --tlsv1.2 -sSf -L https://nixos.org/nix/install | sh -s -- --daemon || {
+    echo "Failed to install Nix. Exiting..."
     exit 1
 }
 
@@ -156,7 +154,6 @@ curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix 
 # shellcheck source=/dev/null
 source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh || source ~/.nix-profile/etc/profile.d/nix.sh || true
 
-# Determinate installer already adds nix to shell profiles, but ensure it's in bashrc
 if ! grep -q "nix-daemon.sh" ~/.bashrc 2>/dev/null; then
     (
         echo
@@ -166,39 +163,48 @@ if ! grep -q "nix-daemon.sh" ~/.bashrc 2>/dev/null; then
         echo 'elif [ -e ~/.nix-profile/etc/profile.d/nix.sh ]; then'
         echo '  source ~/.nix-profile/etc/profile.d/nix.sh'
         echo 'fi'
+        echo 'export NIX_PATH="$HOME/.nix-defexpr/channels${NIX_PATH:+:$NIX_PATH}"'
     ) >> ~/.bashrc
 fi
 
-# Add custom nix configuration (Determinate sets good defaults, but we add our preferences)
+if [ -f ~/.zshrc ] && ! grep -q "NIX_PATH" ~/.zshrc 2>/dev/null; then
+    (
+        echo
+        echo 'export NIX_PATH="$HOME/.nix-defexpr/channels${NIX_PATH:+:$NIX_PATH}"'
+    ) >> ~/.zshrc
+fi
+
 sudo mkdir -p /etc/nix
 sudo tee -a /etc/nix/nix.conf > /dev/null << 'EOF'
 
-# Custom configuration for jfalava outfitting
 substituters = https://cache.nixos.org/ https://nix-community.cachix.org
 trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs=
 auto-optimise-store = true
 max-jobs = auto
+experimental-features = nix-command
 EOF
 
 ## install home-manager using CHANNELS (no flakes)
 if command -v nix >/dev/null; then
     echo "Installing Home Manager using Nix channels..."
 
-    # Add nixpkgs-unstable channel for latest packages
-    echo "Adding nixpkgs-unstable channel..."
-    nix-channel --add https://nixos.org/channels/nixpkgs-unstable nixpkgs-unstable
+    echo "Adding nixpkgs channel..."
+    nix-channel --add https://nixos.org/channels/nixpkgs-unstable nixpkgs
+
+    echo "Adding Home Manager channel..."
+    nix-channel --add https://github.com/nix-community/home-manager/archive/master.tar.gz home-manager
+
+    echo "Updating channels..."
     nix-channel --update
 
-    # Install Home Manager using channel
-    echo "Installing Home Manager..."
-    nix-channel --add https://github.com/nix-community/home-manager/archive/release-25.11.tar.gz home-manager
-    nix-channel --update
+    export NIX_PATH="$HOME/.nix-defexpr/channels${NIX_PATH:+:$NIX_PATH}"
+    echo "NIX_PATH set to: $NIX_PATH"
 
-    # Source the Home Manager installation
-    export NIX_PATH="$HOME/.nix-defexpr/channels:/nix/var/nix/profiles/per-user/root/channels${NIX_PATH:+:$NIX_PATH}"
+    echo "Verifying channels..."
+    nix-channel --list
 
-    # Install Home Manager
-    nix-shell "${HOME}/.nix-defexpr/channels/home-manager" -A install
+    echo "Running Home Manager installation..."
+    nix-shell '<home-manager>' -A install
 
     # Check if local repository is configured
     config_file="$HOME/.config/outfitting/repo-path"
