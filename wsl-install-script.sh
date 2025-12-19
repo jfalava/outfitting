@@ -145,7 +145,7 @@ if [[ "$MODE" != "update-only" ]]; then
 #####
 ## nix
 #####
-curl --proto '=https' --tlsv1.2 -sSf -L https://nixos.org/nix/install | sh -s -- --daemon --yes || {
+curl --proto '=https' --tlsv1.2 -sSf -L https://nixos.org/nix/install | sh -s -- --daemon || {
     echo "Failed to install Nix. Exiting..."
     exit 1
 }
