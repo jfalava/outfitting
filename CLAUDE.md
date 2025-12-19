@@ -53,24 +53,35 @@ Declarative environment management using Nix channels with Home Manager/nix-darw
 - **packages/x64-linux/** - WSL/Linux using Home Manager with channels
 - **packages/aarch64-darwin/** - macOS using nix-darwin with channels
 
+**Configuration Approach (Symlinks):**
+- Install scripts **symlink** configuration directories (not copy)
+- WSL: `~/.config/home-manager` → `~/Workspace/outfitting/packages/x64-linux`
+- macOS: `~/.config/home-manager` → `~/Workspace/outfitting/packages/aarch64-darwin`
+- macOS: `~/.nixpkgs/darwin-configuration.nix` → `~/Workspace/outfitting/packages/aarch64-darwin/darwin.nix`
+- **Benefit**: Changes to repo files immediately apply via `home-manager switch` or `darwin-rebuild switch`
+- **Benefit**: Preserves relative paths to `../../dotfiles/` in home.nix
+
 **Key Files:**
-- **flake.nix** - Defines configurations: `jfalava` (personal) and `jfalava-work` (work environment)
 - **home.nix** - Base configuration with packages, dotfile management, and program configurations
-- **work.nix** - Extends home.nix with work-specific packages (AWS, Kubernetes, Terraform, Azure tools)
-- **darwin.nix** - macOS system configuration using nix-darwin
+- **work.nix** (WSL only) - Extends home.nix with work-specific packages (AWS, Kubernetes, Terraform, Azure tools)
+- **darwin.nix** (macOS only) - macOS system configuration using nix-darwin
+- **dotfiles/.zshrc-base** - Universal zsh configuration (shared across WSL/macOS)
+- **dotfiles/.zshrc-wsl** - WSL-specific zsh configuration (sources .zshrc-base)
+- **dotfiles/.zshrc-macos** - macOS-specific zsh configuration (sources .zshrc-base)
 
 **Managed by Nix/Home Manager/nix-darwin:**
 - All development tools and CLI utilities
-- Dotfiles (.zshrc via symlink)
+- Dotfiles (.zshrc via Home Manager's home.file symlinks)
 - Git configuration with SSH signing
 - Tool-specific configs (bat, eza, ripgrep, fzf, etc.) via programs.* modules
 - Environment variables and PATH additions
 - macOS system settings (via nix-darwin)
+- NIX_PATH export (via .zshrc-base)
 
 **NOT Managed by Nix:**
 - APT packages and system libraries (WSL/Linux)
 - Docker (via Docker's APT repository)
-- Runtime installers (Bun, uv)
+- Runtime installers (Bun, uv - installed separately but PATH managed by dotfiles)
 - Some LLM CLIs (installed via Bun globally)
 - Homebrew packages (macOS)
 
@@ -172,45 +183,90 @@ After modifying dotfiles or installation scripts, they're automatically served b
 
 ### Adding Packages to Home Manager
 
-1. Edit `packages/x64-linux/home.nix` or `packages/x64-linux/work.nix`
-2. Add package to `home.packages` array
-3. Test locally: `hm-sync` (requires local repository configured)
+**WSL/Linux:**
+1. Edit `packages/x64-linux/home.nix` (personal packages)
+2. Or edit `packages/x64-linux/work.nix` (work-specific packages)
+3. Add package to `home.packages` array
+4. Test locally: `hm-sync` (applies changes via symlink)
+5. Commit and push to GitHub
+6. On other machines: `git pull` then `hm-sync`
+
+**macOS:**
+1. Edit `packages/aarch64-darwin/home.nix`
+2. Add package to appropriate profile's packages array
+3. Test locally: `hm-sync` (applies changes via symlink)
 4. Commit and push to GitHub
-5. On other machines: `hm-sync` to apply the changes
+5. On other machines: `git pull` then `hm-sync`
 
 ### Updating Dotfiles and Program Configurations
 
-1. Configure local repository with `setup-outfitting-repo` (if not done during installation)
-2. Edit configuration in platform-specific packages:
-   - WSL: `packages/x64-linux/home.nix` (ripgrep, bat, eza, fzf configs, etc.)
-   - macOS: `packages/aarch64-darwin/home.nix` (same configs)
-3. Commit and push to GitHub
-4. Apply changes locally: `hm-sync` (uses configured local repository)
-5. On other machines: Pull updates and run `hm-sync` to apply
-6. For Windows PowerShell profile:
-   - Users run `irm win.jfa.dev/config/pwsh-profile | iex` to pull latest
+**Shell Configuration (.zshrc, .zshrc-base):**
+1. Edit files in `dotfiles/` directory:
+   - `dotfiles/.zshrc-base` - Universal configuration (shared)
+   - `dotfiles/.zshrc-wsl` - WSL-specific configuration
+   - `dotfiles/.zshrc-macos` - macOS-specific configuration
+2. Commit and push to GitHub
+3. Apply locally: `hm-sync` (symlinks mean changes apply immediately)
+4. On other machines: `git pull` then `hm-sync`
+
+**Program Configurations (bat, ripgrep, etc.):**
+1. Edit platform-specific `home.nix`:
+   - WSL: `packages/x64-linux/home.nix`
+   - macOS: `packages/aarch64-darwin/home.nix`
+2. Modify `programs.*` sections (e.g., `programs.ripgrep.arguments`)
+3. Test locally: `hm-sync`
+4. Commit and push to GitHub
+5. On other machines: `git pull` then `hm-sync`
+
+**Windows PowerShell Profile:**
+- Users run `irm win.jfa.dev/config/pwsh-profile | iex` to pull latest
 
 ### Modifying Installation Scripts
 
-1. Edit `windows-install-script.ps1`, `windows-post-install-script.ps1`, or `wsl-install-script.sh`
+1. Edit installation scripts:
+   - `windows-install-script.ps1` - Main Windows installation
+   - `windows-post-install-script.ps1` - Windows post-install
+   - `wsl-install-script.sh` - WSL/Linux installation
+   - `macos-install-script.sh` - macOS installation
 2. Commit and push to GitHub
 3. Changes are immediately available via short URLs (scripts are fetched from GitHub)
 
+**Important: Installation Script Patterns**
+- **DO NOT** manually append to `~/.zshrc` - Home Manager creates it
+- **DO** use symlinks for config directories (preserves relative paths)
+- **DO** source runtime PATHs in current session after installing (for immediate use)
+- **DO** let dotfiles manage NIX_PATH (via `.zshrc-base`)
+- **DO** back up existing directories before symlinking
+
 ## Repository Configuration System
 
-Both WSL and macOS installations now include a configurable repository location system that enables local development and customization.
+Both WSL and macOS installations include a configurable repository location system that enables local development and customization via symlinks.
 
 ### Configuration Process
 
-During installation, users are prompted to choose a repository location:
-- **Default**: `~/Workspace/outfitting`
-- **Custom**: Any user-specified location
-- **Existing**: Point to an existing clone
-- **Skip**: Use remote configuration only
+During installation, the default repository location is set to:
+- **Default**: `~/Workspace/outfitting` (cloned automatically if doesn't exist)
 
 ### Configuration Storage
 
 Repository location is stored in: `~/.config/outfitting/repo-path`
+
+### Symlink Structure
+
+**WSL/Linux:**
+```bash
+~/.config/home-manager → ~/Workspace/outfitting/packages/x64-linux
+~/.zshrc → ~/Workspace/outfitting/packages/x64-linux/../../dotfiles/.zshrc-wsl (via Home Manager)
+~/.zshrc-base → ~/Workspace/outfitting/dotfiles/.zshrc-base (via Home Manager)
+```
+
+**macOS:**
+```bash
+~/.config/home-manager → ~/Workspace/outfitting/packages/aarch64-darwin
+~/.nixpkgs/darwin-configuration.nix → ~/Workspace/outfitting/packages/aarch64-darwin/darwin.nix
+~/.zshrc → ~/Workspace/outfitting/packages/aarch64-darwin/../../dotfiles/.zshrc-macos (via Home Manager)
+~/.zshrc-base → ~/Workspace/outfitting/dotfiles/.zshrc-base (via Home Manager)
+```
 
 ### Setup Commands
 
@@ -224,10 +280,11 @@ set_outfitting_repo ~/path/to/outfitting
 
 ### Benefits
 
-- **Local Development**: Edit configurations locally before committing
-- **Git Workflow**: Automatic commit/push prompts when making changes
-- **Cross-Machine Sync**: Push changes and pull on other machines
-- **Offline Work**: No dependency on GitHub availability for local changes
+- **Immediate Changes**: Edit repo files → run `hm-sync` → changes apply (no manual copying)
+- **Relative Paths Work**: Symlinks preserve directory structure for `../../dotfiles/` references
+- **Git Workflow**: Edit → commit → push → pull on other machines → `hm-sync`
+- **Profile Switching**: `hm-personal`/`hm-work` safely copy files to avoid modifying repo
+- **Offline Work**: Local edits work without GitHub dependency
 
 ## Important Configuration Details
 
@@ -240,11 +297,43 @@ set_outfitting_repo ~/path/to/outfitting
 
 ### Home Manager Configuration Structure
 
-Two configurations defined in `flake.nix`:
-- `jfalava` - Personal environment (uses `./home.nix`)
-- `jfalava-work` - Work environment (imports `./home.nix` + `./work.nix` overrides)
+**Profile System:**
+- Personal profile: `activeProfile = "personal"` in home.nix
+- Work profile: `activeProfile = "work"` in home.nix
+- Switch profiles with: `hm-personal` or `hm-work`
+- Check current profile: `hm-profile`
 
-These configurations are installed via Nix channels (not flakes) for simpler, more robust package management. Use `hm-personal` and `hm-work` to switch between profiles.
+**How Profile Switching Works:**
+1. Removes symlinks to avoid modifying source repository
+2. Copies configuration files + dotfiles to `~/.config/home-manager/`
+3. Modifies the copied `home.nix` to change `activeProfile` value
+4. Runs `home-manager switch` or `darwin-rebuild switch`
+5. Result: Profile switched without contaminating git repository
+
+**Default Workflow (No Profile Switch):**
+- Use `hm-sync` to apply repo changes via symlinks
+- Edit files in repo → commit → `hm-sync` → changes apply
+- Clean, immediate, no file copying
+
+### Shell Configuration (NIX_PATH Management)
+
+**Important: NIX_PATH is NOT appended by install scripts**
+- NIX_PATH is managed declaratively via `dotfiles/.zshrc-base`
+- Line 569: `export NIX_PATH="$HOME/.nix-defexpr/channels${NIX_PATH:+:$NIX_PATH}"`
+- This ensures NIX_PATH is available in all zsh sessions
+- Install scripts DO NOT modify `.zshrc` (avoids chicken-and-egg problems)
+
+**Shell Configuration Flow:**
+1. Install scripts create symlinks (WSL/macOS)
+2. Home Manager/nix-darwin runs and creates `~/.zshrc` via `home.file`
+3. `~/.zshrc` is symlinked to `.zshrc-wsl` or `.zshrc-macos`
+4. Those files source `~/.zshrc-base` which exports NIX_PATH
+5. User opens new zsh → everything loaded correctly
+
+**Runtime PATH Management:**
+- Bun, uv, deno PATHs are in `.zshrc-wsl` and `.zshrc-macos`
+- Install scripts source runtimes for current session (for bun global packages)
+- Future sessions get PATHs from dotfiles automatically
 
 ### WSL Update Modes
 
