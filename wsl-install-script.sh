@@ -154,7 +154,8 @@ curl --proto '=https' --tlsv1.2 -sSf -L https://nixos.org/nix/install | sh -s --
 # shellcheck source=/dev/null
 source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh || source ~/.nix-profile/etc/profile.d/nix.sh || true
 
-if ! grep -q "nix-daemon.sh" ~/.bashrc 2>/dev/null; then
+# Add Nix configuration to .zshrc (primary shell)
+if ! grep -q "nix-daemon.sh" ~/.zshrc 2>/dev/null; then
     (
         echo
         echo '# Nix'
@@ -163,13 +164,6 @@ if ! grep -q "nix-daemon.sh" ~/.bashrc 2>/dev/null; then
         echo 'elif [ -e ~/.nix-profile/etc/profile.d/nix.sh ]; then'
         echo '  source ~/.nix-profile/etc/profile.d/nix.sh'
         echo 'fi'
-        echo 'export NIX_PATH="$HOME/.nix-defexpr/channels${NIX_PATH:+:$NIX_PATH}"'
-    ) >> ~/.bashrc
-fi
-
-if [ -f ~/.zshrc ] && ! grep -q "NIX_PATH" ~/.zshrc 2>/dev/null; then
-    (
-        echo
         echo 'export NIX_PATH="$HOME/.nix-defexpr/channels${NIX_PATH:+:$NIX_PATH}"'
     ) >> ~/.zshrc
 fi
@@ -244,8 +238,8 @@ if command -v nix >/dev/null; then
         echo "⚠ Warning: Nix is no longer in PATH after Home Manager setup!"
         echo "  This may happen if your shell profile wasn't properly sourced."
         echo "  Try one of the following:"
-        echo "    1. Close this terminal and open a new one (sources ~/.bashrc)"
-        echo "    2. Run: source ~/.bashrc && source ~/.zshrc"
+        echo "    1. Close this terminal and open a new one (sources ~/.zshrc)"
+        echo "    2. Run: source ~/.zshrc"
         echo "    3. Manually source Nix: source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh"
     fi
 else
