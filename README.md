@@ -101,24 +101,6 @@ During installation, the repository is automatically cloned to `~/Workspace/outf
 ~/.nixpkgs/darwin-configuration.nix → ~/Workspace/outfitting/packages/aarch64-darwin/darwin.nix
 ```
 
-### Reconfigure the repository location
-
-```bash
-setup-outfitting-repo  # Interactive setup
-```
-
-### Nix profile switching
-
-Profile switching creates **copies** (not symlinks) to safely modify configuration without affecting the repository:
-
-```bash
-hm-personal  # Switch to personal profile
-hm-work      # Switch to work profile
-hm-profile   # Check current active profile
-```
-
-**Note**: After switching profiles, use `hm-sync` to return to symlink mode for instant repo changes.
-
 ## Updating After Installation
 
 ### WSL/Linux
@@ -135,7 +117,7 @@ After editing files in `~/Workspace/outfitting`:
 
 ```bash
 git pull                    # Pull latest changes from GitHub
-hm-sync                     # Apply configuration<
+hm-sync                     # Apply configuration
 ```
 
 #### Update Packages
@@ -243,28 +225,4 @@ drr                         # Rollback to previous generation
 # Traditional nix-darwin commands (from repo directory)
 darwin-rebuild switch --flake ".#macos"  # Apply configuration
 darwin-rebuild build --flake ".#macos"   # Test build only
-```
-
-#### Profile Switching
-
-Switch between personal and work profiles:
-
-```bash
-hm-personal  # Switch to personal profile (AI tools, personal git config)
-hm-work      # Switch to work profile (AWS, Kubernetes, Terraform, work git config)
-hm-profile   # Check current active profile
-```
-
-**Note**: After switching profiles, use `hm-sync` to return to symlink mode for instant repo changes.
-
-#### Zed Editor Integration
-
-Open files and projects in new Zed windows:
-
-```bash
-z.                          # Open current directory in NEW Zed window
-zcd ~/Documents             # Open specific directory in NEW window
-zgit                        # Open current git repo in NEW window
-znew                        # Open empty NEW Zed window
-test-zed                    # Test Zed installation
 ```
