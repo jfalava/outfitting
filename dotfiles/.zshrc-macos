@@ -404,8 +404,8 @@ alias our='outfit-rebuild upgrade'
 # Zed editor configuration
 # This allows opening new windows instead of focusing existing instance
 
-# Add Zed CLI to PATH
-path_prepend "/Applications/Zed.app/Contents/MacOS"
+# Use full paths in aliases and functions to avoid PATH conflicts
+# Don't add entire directory to PATH to prevent conflicts with other tools
 
 # Use the CLI binary which supports --new flag
 alias zed='/Applications/Zed.app/Contents/MacOS/cli -n'
