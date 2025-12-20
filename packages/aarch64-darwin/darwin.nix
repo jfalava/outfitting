@@ -12,6 +12,10 @@
   # Primary user for system settings (required for nix-darwin)
   system.primaryUser = "jfalava";
 
+  # Set the Mac hostname
+  networking.hostName = "jfa-mac-mini";
+  networking.computerName = "jfa-mac-mini";
+
   # System-wide packages (minimal - most packages in home.nix)
   environment.systemPackages = with pkgs; [
     vim

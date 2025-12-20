@@ -45,6 +45,8 @@
         };
         # Alias for convenience
         default = self.darwinConfigurations.macos;
+        # Hostname-specific configuration
+        jfa-mac-mini = self.darwinConfigurations.macos;
       };
 
       # Standalone home-manager configuration
