@@ -412,49 +412,44 @@ alias otr='outfit-rebuild test'
 alias odr='outfit-rebuild dry'
 alias our='outfit-rebuild upgrade'
 
+
 # Zed editor configuration
+# This allows opening new windows instead of focusing existing instance
+
 # Add Zed CLI to PATH
 path_prepend "/Applications/Zed.app/Contents/MacOS"
 
-# Zed-specific aliases
-alias zed='zed'
-alias z.='zed .'  # Open current directory in Zed
-alias zed-wait='zed --wait'  # For git commit messages, etc.
+# Use the CLI binary which supports --new flag
+alias zed='/Applications/Zed.app/Contents/MacOS/cli -n'
+alias z.='/Applications/Zed.app/Contents/MacOS/cli -n .'
+alias zed-wait='/Applications/Zed.app/Contents/MacOS/cli -n --wait'
 
-# Quick open functions for Zed
+# Quick open functions that ACTUALLY open new windows
 zcd() {
     if [ -z "$1" ]; then
-        zed .
+        /Applications/Zed.app/Contents/MacOS/cli -n .
     else
-        zed "$1"
+        /Applications/Zed.app/Contents/MacOS/cli -n "$1"
     fi
 }
 
-# Open recent projects in Zed
-zrecent() {
-    echo "Opening Zed recent projects..."
-    zed "zed:recent"
-}
-
-# Git integration - open current repo in Zed
+# Git integration - opens in NEW window
 zgit() {
     local git_root=$(git rev-parse --show-toplevel 2>/dev/null)
     if [ -n "$git_root" ]; then
-        zed "$git_root"
+        /Applications/Zed.app/Contents/MacOS/cli -n "$git_root"
     else
-        echo "Not in a git repository"
+        echo "❌ Not in a git repository"
         return 1
     fi
 }
 
-# Test if Zed CLI is working
-test-zed() {
-    if command -v zed >/dev/null 2>&1; then
-        echo "✅ Zed CLI is available"
-        zed --version
-    else
-        echo "❌ Zed CLI not found in PATH"
-        echo "PATH includes: $PATH"
-        return 1
-    fi
+# Open NEW Zed window
+znew() {
+    /Applications/Zed.app/Contents/MacOS/cli -n
+}
+
+# Open recent projects (opens in new window)
+zrecent() {
+    /Applications/Zed.app/Contents/MacOS/cli -n
 }
