@@ -172,10 +172,6 @@ in
     enable = true;
     enableAutosuggestions = true;
     enableSyntaxHighlighting = true;
-    
-    # Ensure zsh-autosuggestions and zsh-syntax-highlighting are properly configured
-    autosuggestions.enable = true;
-    syntaxHighlighting.enable = true;
   };
 
   programs.git = {
