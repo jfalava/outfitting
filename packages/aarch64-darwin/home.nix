@@ -22,7 +22,7 @@ let
       deno
       go
       lazygit
-      nodejs
+      nodejs_24
       python3
       zig
       zellij
@@ -63,7 +63,7 @@ let
       deno
       go
       lazygit
-      nodejs
+      nodejs_24
       python3
       zig
       zellij
@@ -156,7 +156,6 @@ in
     "${config.home.homeDirectory}/.local/share/uv/bin"
     "${config.home.homeDirectory}/.opencode/bin"
     "${config.home.homeDirectory}/.cargo/bin"
-    "/opt/homebrew/bin"
   ];
 
   # Dotfiles management - symlink your dotfiles to home directory
