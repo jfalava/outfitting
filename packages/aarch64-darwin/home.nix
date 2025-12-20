@@ -160,9 +160,19 @@ in
   ];
 
   # Dotfiles management - symlink your dotfiles to home directory
+  # With backup protection for existing files
   home.file = {
-    ".zshrc".source = ../../dotfiles/.zshrc-macos;
-    ".zshrc-base".source = ../../dotfiles/.zshrc-base;
+    ".zshrc" = {
+      source = ../../dotfiles/.zshrc-macos;
+      backup = true;  # Create .zshrc.backup before overwriting
+      force = true;   # Force overwrite if backup exists
+    };
+    
+    ".zshrc-base" = {
+      source = ../../dotfiles/.zshrc-base;
+      backup = true;  # Create .zshrc-base.backup before overwriting
+      force = true;   # Force overwrite if backup exists
+    };
   };
 
   # Program-specific configurations using Home Manager modules

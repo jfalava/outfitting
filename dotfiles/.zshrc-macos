@@ -17,6 +17,9 @@ path_prepend "/opt/homebrew/bin"
 path_prepend "$HOME/.local/bin"
 path_append "$HOME/go/bin"
 
+# Add Applications folder to PATH
+path_prepend "/Applications/"
+
 # pnpm
 export PNPM_HOME="$HOME/.local/share/pnpm"
 path_prepend "$PNPM_HOME"
@@ -144,11 +147,11 @@ setup_outfitting_repo() {
 # nix-darwin management functions - streamlined for personal use
 hm-sync() {
     local repo_path=$(get_outfitting_repo) || { setup_outfitting_repo; repo_path=$(get_outfitting_repo); }
-    
+
     # Ensure symlinks are set up correctly
     ln -sfn "$repo_path/packages/aarch64-darwin/darwin.nix" ~/.nixpkgs/darwin-configuration.nix
     ln -sfn "$repo_path/packages/aarch64-darwin" ~/.config/home-manager
-    
+
     darwin-rebuild switch
     echo "✓ Synced from $repo_path"
 }
@@ -156,16 +159,16 @@ hm-sync() {
 # Profile switching functions - streamlined for personal use
 hm-personal() {
     local repo_path=$(get_outfitting_repo) || { setup_outfitting_repo; repo_path=$(get_outfitting_repo); }
-    
+
     # Remove symlinks and copy files (to avoid modifying source repo)
     rm -f ~/.nixpkgs/darwin-configuration.nix
     rm -f ~/.config/home-manager
     mkdir -p ~/.config/home-manager
-    
+
     cp "$repo_path/packages/aarch64-darwin/darwin.nix" ~/.nixpkgs/darwin-configuration.nix
     cp "$repo_path/packages/aarch64-darwin/home.nix" ~/.config/home-manager/
     cp -r "$repo_path/dotfiles" ~/.config/home-manager/
-    
+
     # Portable sed approach (works on both BSD and GNU sed)
     sed 's/activeProfile = "[^"]*"/activeProfile = "personal"/' ~/.config/home-manager/home.nix > ~/.config/home-manager/home.nix.tmp && mv ~/.config/home-manager/home.nix.tmp ~/.config/home-manager/home.nix
     darwin-rebuild switch
@@ -174,16 +177,16 @@ hm-personal() {
 
 hm-work() {
     local repo_path=$(get_outfitting_repo) || { setup_outfitting_repo; repo_path=$(get_outfitting_repo); }
-    
+
     # Remove symlinks and copy files (to avoid modifying source repo)
     rm -f ~/.nixpkgs/darwin-configuration.nix
     rm -f ~/.config/home-manager
     mkdir -p ~/.config/home-manager
-    
+
     cp "$repo_path/packages/aarch64-darwin/darwin.nix" ~/.nixpkgs/darwin-configuration.nix
     cp "$repo_path/packages/aarch64-darwin/home.nix" ~/.config/home-manager/
     cp -r "$repo_path/dotfiles" ~/.config/home-manager/
-    
+
     # Portable sed approach (works on both BSD and GNU sed)
     sed 's/activeProfile = "[^"]*"/activeProfile = "work"/' ~/.config/home-manager/home.nix > ~/.config/home-manager/home.nix.tmp && mv ~/.config/home-manager/home.nix.tmp ~/.config/home-manager/home.nix
     darwin-rebuild switch
@@ -218,11 +221,11 @@ hm-switch-local() {
     }
 
     echo "Applying nix-darwin configuration from local repo..."
-    
+
     # Ensure symlinks are set up correctly
     ln -sfn "$repo_path/packages/aarch64-darwin/darwin.nix" ~/.nixpkgs/darwin-configuration.nix
     ln -sfn "$repo_path/packages/aarch64-darwin" ~/.config/home-manager
-    
+
     # Apply configuration
     darwin-rebuild switch
 
@@ -242,10 +245,10 @@ hm-switch-local() {
 
 hm-update() {
     echo "Updating Nix channels and nix-darwin..."
-    
+
     # Update channels (like brew update)
     nix-channel --update
-    
+
     # Apply updated configuration
     darwin-rebuild switch
 
@@ -281,7 +284,7 @@ update-all() {
 outfit-rebuild() {
     local repo_path=$(get_outfitting_repo) || { setup_outfitting_repo; repo_path=$(get_outfitting_repo); }
     cd "$repo_path/packages/aarch64-darwin" || return 1
-    
+
     case "${1:-switch}" in
         build|b)
             echo "🔨 Building nix-darwin configuration..."
@@ -312,7 +315,7 @@ outfit-rebuild() {
             echo "  upgrade/u  - Upgrade packages and apply"
             ;;
     esac
-    
+
     # Return to original directory
     cd - > /dev/null || return 0
 }
@@ -365,7 +368,7 @@ nix-try() {
 outfit-rebuild() {
     local repo_path=$(get_outfitting_repo) || { setup_outfitting_repo; repo_path=$(get_outfitting_repo); }
     cd "$repo_path/packages/aarch64-darwin" || return 1
-    
+
     case "${1:-switch}" in
         build|b)
             echo "🔨 Building nix-darwin configuration..."
@@ -396,7 +399,7 @@ outfit-rebuild() {
             echo "  upgrade/u  - Upgrade packages and apply"
             ;;
     esac
-    
+
     # Return to original directory
     cd - > /dev/null || return 0
 }
