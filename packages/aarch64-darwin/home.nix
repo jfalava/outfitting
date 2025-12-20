@@ -115,9 +115,6 @@ in
   home.username = "jfalava";
   home.homeDirectory = "/Users/jfalava";
   home.stateVersion = "25.11";
-  
-  # Configure backup for existing files
-  home-manager.backupFileExtension = "backup";
 
   # The home.packages option allows you to install Nix packages into your environment
   home.packages = selectedConfig.packages;
