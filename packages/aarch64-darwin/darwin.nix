@@ -1,7 +1,6 @@
 # nix-darwin configuration using Nix channels instead of flakes
-# This provides system-level macOS configuration with Home Manager integration
 
-{ config, pkgs, ... }:
+{ pkgs, ... }:
 
 {
   # User configuration
@@ -9,7 +8,7 @@
     home = "/Users/jfalava";
     shell = pkgs.zsh;
   };
-  
+
   # Primary user for system settings (required for nix-darwin)
   system.primaryUser = "jfalava";
 
@@ -24,7 +23,7 @@
   # Nix configuration - using flakes
   # Note: Using Determinate Nix, so we disable nix-darwin's Nix management
   nix.enable = false;
-  
+
   # Manual Nix settings for Determinate Nix compatibility
   # These settings will be managed by Determinate Nix instead
   programs.nix-index.enable = true;
@@ -56,14 +55,14 @@
       NSAutomaticCapitalizationEnabled = false;
       NSAutomaticPeriodSubstitutionEnabled = false;
     };
-    
+
     # Trackpad settings
     trackpad = {
       Clicking = true;
       DragLock = false;
       TrackpadThreeFingerDrag = true;
     };
-    
+
     # Security settings
     screensaver = {
       askForPassword = true;

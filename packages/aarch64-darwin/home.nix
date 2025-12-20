@@ -266,7 +266,4 @@ in
       "--glob=!.terragrunt-cache/"
     ];
   };
-
-  # Nix configuration removed - managed by Determinate Nix
-  # Home Manager will use the system Nix settings
 }

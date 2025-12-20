@@ -11,20 +11,28 @@
     };
   };
 
-  outputs = { self, nix-darwin, nixpkgs, home-manager }:
+  outputs =
+    {
+      self,
+      nix-darwin,
+      nixpkgs,
+      home-manager,
+    }:
     let
-      configuration = { pkgs, ... }: {
-        # Import the existing darwin.nix and home.nix files
-        imports = [
-          ./darwin.nix
-          home-manager.darwinModules.home-manager
-          {
-            home-manager.useGlobalPkgs = true;
-            home-manager.useUserPackages = true;
-            home-manager.users.jfalava = import ./home.nix;
-          }
-        ];
-      };
+      configuration =
+        { ... }:
+        {
+          # Import the existing darwin.nix and home.nix files
+          imports = [
+            ./darwin.nix
+            home-manager.darwinModules.home-manager
+            {
+              home-manager.useGlobalPkgs = true;
+              home-manager.useUserPackages = true;
+              home-manager.users.jfalava = import ./home.nix;
+            }
+          ];
+        };
     in
     {
       # Generic darwin configuration that works for any hostname
@@ -51,7 +59,7 @@
 
       # For development/testing
       devShells.aarch64-darwin.default = nixpkgs.legacyPackages.aarch64-darwin.mkShell {
-        buildInputs = with nixpkgs.legacyPackages.aarch64-darwin; [
+        buildInputs = [
           nix-darwin
           home-manager
         ];
