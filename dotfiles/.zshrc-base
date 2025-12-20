@@ -482,15 +482,6 @@ backup() {
     cp "$1" "${1}.backup.$(date +%Y%m%d_%H%M%S)"
 }
 
-# Dotfile and zshrc update docs
-update-dotfiles() {
-    echo "Dotfiles are now managed by Nix (via home-manager or nix-darwin)!"
-    echo "To update dotfiles:"
-    echo "  1. Edit files in ~/Workspace/outfitting/dotfiles/"
-    echo "  2. Commit changes: git add . && git commit"
-    echo "  3. Run: hm-sync"
-}
-
 # Ripgrep functions
 if command -v rg &> /dev/null; then
     # Search and edit results in editor

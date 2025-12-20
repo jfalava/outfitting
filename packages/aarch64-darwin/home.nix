@@ -167,13 +167,6 @@ in
   # Program-specific configurations using Home Manager modules
   programs.home-manager.enable = true;
 
-  # Zsh configuration with plugins
-  programs.zsh = {
-    enable = true;
-    enableAutosuggestions = true;
-    enableSyntaxHighlighting = true;
-  };
-
   programs.git = {
     enable = true;
 
