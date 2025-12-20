@@ -115,6 +115,9 @@ in
   home.username = "jfalava";
   home.homeDirectory = "/Users/jfalava";
   home.stateVersion = "25.11";
+  
+  # Configure backup for existing files
+  home-manager.backupFileExtension = "backup";
 
   # The home.packages option allows you to install Nix packages into your environment
   home.packages = selectedConfig.packages;
@@ -160,19 +163,9 @@ in
   ];
 
   # Dotfiles management - symlink your dotfiles to home directory
-  # With backup protection for existing files
   home.file = {
-    ".zshrc" = {
-      source = ../../dotfiles/.zshrc-macos;
-      backup = true;  # Create .zshrc.backup before overwriting
-      force = true;   # Force overwrite if backup exists
-    };
-    
-    ".zshrc-base" = {
-      source = ../../dotfiles/.zshrc-base;
-      backup = true;  # Create .zshrc-base.backup before overwriting
-      force = true;   # Force overwrite if backup exists
-    };
+    ".zshrc".source = ../../dotfiles/.zshrc-macos;
+    ".zshrc-base".source = ../../dotfiles/.zshrc-base;
   };
 
   # Program-specific configurations using Home Manager modules
