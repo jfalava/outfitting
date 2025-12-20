@@ -170,6 +170,34 @@ hm-update                   # Update Nix channels + apply configuration
 update-all                  # Update Homebrew + Nix + Bun packages + cleanup
 ```
 
+#### Nix-darwin profile management
+
+```bash
+# Build and apply changes
+or switch                   # Apply current configuration
+or build                    # Test build without applying
+or test                     # Test build and show results
+
+# Update with new packages
+or upgrade                  # Update packages and apply
+
+# Check what would change
+or dry                      # Dry-run to preview changes
+
+# List and rollback generations
+drl                         # List available generations
+drr                         # Rollback to previous generation
+```
+
+#### Nix package testing
+
+Test packages before adding them to your configuration:
+
+```bash
+nix-test bat                # Test if 'bat' package works
+nix-try ripgrep             # Search for ripgrep and suggest testing
+```
+
 ### Windows
 
 #### Update PowerShell Profile
@@ -192,6 +220,51 @@ curl -fsSL mac.jfa.dev/packages/bun | xargs -I {} bun install -g {}
 
 ### macOS Specific
 
+#### Nix-darwin Management
+
+Quick commands for managing your nix-darwin configuration:
+
 ```bash
-darwin-rebuild switch  # Apply nix-darwin configuration
+# Build and apply changes
+or switch                   # Apply current configuration
+or build                    # Test build without applying
+or test                     # Test build and show results
+
+# Update with new packages
+or upgrade                  # Update packages and apply
+
+# Check what would change
+or dry                      # Dry-run to preview changes
+
+# List and rollback generations
+drl                         # List available generations
+drr                         # Rollback to previous generation
+
+# Traditional nix-darwin commands (from repo directory)
+darwin-rebuild switch --flake ".#macos"  # Apply configuration
+darwin-rebuild build --flake ".#macos"   # Test build only
+```
+
+#### Profile Switching
+
+Switch between personal and work profiles:
+
+```bash
+hm-personal  # Switch to personal profile (AI tools, personal git config)
+hm-work      # Switch to work profile (AWS, Kubernetes, Terraform, work git config)
+hm-profile   # Check current active profile
+```
+
+**Note**: After switching profiles, use `hm-sync` to return to symlink mode for instant repo changes.
+
+#### Zed Editor Integration
+
+Open files and projects in new Zed windows:
+
+```bash
+z.                          # Open current directory in NEW Zed window
+zcd ~/Documents             # Open specific directory in NEW window
+zgit                        # Open current git repo in NEW window
+znew                        # Open empty NEW Zed window
+test-zed                    # Test Zed installation
 ```

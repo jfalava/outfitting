@@ -1,7 +1,6 @@
 # ========================================
 # ZSH Configuration for macOS
 # ========================================
-# This file sources the universal base configuration and adds macOS-specific settings
 
 # Source universal configuration
 source ~/.zshrc-base
@@ -10,9 +9,6 @@ source ~/.zshrc-base
 export VISUAL='zed --wait'
 
 # ---- macOS-Specific PATH Additions ----
-# Add Homebrew to PATH (if installed)
-path_prepend "/opt/homebrew/bin"
-
 # Add paths in order of precedence
 path_prepend "$HOME/.local/bin"
 path_append "$HOME/go/bin"
@@ -244,18 +240,12 @@ hm-switch-local() {
 }
 
 hm-update() {
-    echo "Updating Nix channels and nix-darwin..."
-
-    # Update channels (like brew update)
-    nix-channel --update
-
-    # Apply updated configuration
-    darwin-rebuild switch
-
+    echo "Updating nix-darwin with flakes..."
+    darwin-rebuild switch --flake ".#macos"
     echo ""
     echo "✓ Nix packages updated successfully!"
     echo ""
-    echo "Packages are now floating with nixpkgs-unstable channel (like Homebrew)"
+    echo "Packages are now floating with nixpkgs-unstable via flakes"
 }
 
 hm-rollback() {
@@ -274,10 +264,8 @@ hm-clean() {
 
 # Quick system update
 update-all() {
-    command -v brew >/dev/null && brew update && brew upgrade && brew cleanup
     hm-update && hm-clean
     command -v bun >/dev/null && bun update -g
-    echo "✓ System updated"
 }
 
 # Quick nix-darwin rebuild from anywhere in the system
