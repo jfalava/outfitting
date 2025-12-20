@@ -411,3 +411,50 @@ alias osr='outfit-rebuild switch'
 alias otr='outfit-rebuild test'
 alias odr='outfit-rebuild dry'
 alias our='outfit-rebuild upgrade'
+
+# Zed editor configuration
+# Add Zed CLI to PATH
+path_prepend "/Applications/Zed.app/Contents/MacOS"
+
+# Zed-specific aliases
+alias zed='zed'
+alias z.='zed .'  # Open current directory in Zed
+alias zed-wait='zed --wait'  # For git commit messages, etc.
+
+# Quick open functions for Zed
+zcd() {
+    if [ -z "$1" ]; then
+        zed .
+    else
+        zed "$1"
+    fi
+}
+
+# Open recent projects in Zed
+zrecent() {
+    echo "Opening Zed recent projects..."
+    zed "zed:recent"
+}
+
+# Git integration - open current repo in Zed
+zgit() {
+    local git_root=$(git rev-parse --show-toplevel 2>/dev/null)
+    if [ -n "$git_root" ]; then
+        zed "$git_root"
+    else
+        echo "Not in a git repository"
+        return 1
+    fi
+}
+
+# Test if Zed CLI is working
+test-zed() {
+    if command -v zed >/dev/null 2>&1; then
+        echo "✅ Zed CLI is available"
+        zed --version
+    else
+        echo "❌ Zed CLI not found in PATH"
+        echo "PATH includes: $PATH"
+        return 1
+    fi
+}
