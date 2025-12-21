@@ -146,12 +146,6 @@ hm-switch() {
     home-manager switch --flake "$repo_path/packages/x64-linux"
 }
 
-# Deprecated: Use hm-work() instead
-hm-switch-work() {
-    echo "⚠️  This function is deprecated. Use 'hm-work' instead."
-    hm-work
-}
-
 hm-update() {
     echo "Updating flake inputs and Home Manager..."
     local repo_path=$(get_outfitting_repo) || { setup_outfitting_repo; repo_path=$(get_outfitting_repo); }
