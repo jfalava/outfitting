@@ -9,7 +9,7 @@
 
 let
   # Profile selection - change this to switch profiles
-  activeProfile = "personal"; # Options: "personal", "work"
+  activeProfile = "work"; # Options: "personal", "work"
 
   # Personal profile configuration
   personalConfig = {
@@ -40,18 +40,11 @@ let
       jq
       less
       shellcheck
-
-      # Archive tools
       zip
       _7zz # 7zip
       p7zip
-      unrar
-
-      # Nix tools
       nixd
       nil
-
-      # Package managers
       pnpm
     ];
 
@@ -91,21 +84,12 @@ let
       zip
       _7zz
       p7zip
-      unrar
       nixd
       nil
       pnpm
-      opencode
-      gemini-cli
-      codex
-      claude-code
-      qwen-code
-
-      # Work-specific packages
       awscli2
       azure-cli
       terraform
-      terragrunt
       opentofu
       tflint
       kubectl
@@ -116,9 +100,6 @@ let
       ansible
       cloudlens
       postgresql
-      redis
-      slack
-      zoom-us
     ];
 
     gitEmail = "jorgefernando.alava@seidor.com";
