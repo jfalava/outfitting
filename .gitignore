@@ -16,6 +16,3 @@ Thumbs.db
 result
 result-*
 .direnv/
-
-# Flake lock files (using channels instead)
-packages/*/flake.lock

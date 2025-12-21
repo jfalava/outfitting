@@ -160,70 +160,44 @@ substituters = https://cache.nixos.org/ https://nix-community.cachix.org
 trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs=
 auto-optimise-store = true
 max-jobs = auto
-experimental-features = nix-command
+experimental-features = nix-command flakes
 EOF
 
-## install home-manager using CHANNELS (no flakes)
+## install home-manager using FLAKES
 if command -v nix >/dev/null; then
-    echo "❖ Installing Home Manager using Nix channels..."
-
-    echo "❖ Adding nixpkgs channel..."
-    nix-channel --add https://nixos.org/channels/nixpkgs-unstable nixpkgs
-
-    echo "❖ Adding Home Manager channel..."
-    nix-channel --add https://github.com/nix-community/home-manager/archive/master.tar.gz home-manager
-
-    echo "❖ Updating channels..."
-    nix-channel --update
-
-    export NIX_PATH="$HOME/.nix-defexpr/channels${NIX_PATH:+:$NIX_PATH}"
-    echo "NIX_PATH set to: $NIX_PATH"
-
-    echo "❖ Verifying channels..."
-    nix-channel --list
-
-    echo "❖ Running Home Manager installation..."
-    nix-shell '<home-manager>' -A install
+    echo "❖ Installing Home Manager using flakes..."
 
     # Check if local repository is configured
     config_file="$HOME/.config/outfitting/repo-path"
     if [ -f "$config_file" ]; then
         repo_path=$(cat "$config_file")
-        # Symlink to repository instead of copying (preserves relative paths)
-        mkdir -p ~/.config
-
-        # Remove old home-manager directory if it exists and is not a symlink
-        if [ -d ~/.config/home-manager ] && [ ! -L ~/.config/home-manager ]; then
-            mv ~/.config/home-manager ~/.config/home-manager.backup.$(date +%Y%m%d-%H%M%S)
-        fi
-
-        # If work profile is requested, copy and modify instead of symlinking
+        flake_path="$repo_path/packages/x64-linux"
+        
+        # If work profile is requested, copy and modify the flake
         if [ "$PROFILE" = "work" ]; then
             echo "❖ Configuring work profile..."
-            # Remove symlink if exists
-            rm -f ~/.config/home-manager
-            # Copy the configuration
-            cp -r "$repo_path/packages/x64-linux" ~/.config/home-manager
+            # Create a local flake copy
+            mkdir -p ~/.config/home-manager
+            cp -r "$flake_path"/* ~/.config/home-manager/
             # Modify the activeProfile in home.nix
             sed -i 's/activeProfile = "personal";/activeProfile = "work";/' ~/.config/home-manager/home.nix
+            flake_path="$HOME/.config/home-manager"
             echo "✓ Profile set to: work"
             echo "✓ Configuration copied to ~/.config/home-manager"
             echo "✓ Dotfiles will be referenced from: $repo_path/dotfiles"
         else
             echo "✓ Using personal profile (default)"
-            # Create symlink to the x64-linux directory (maintains relative paths to dotfiles)
-            ln -sfn "$repo_path/packages/x64-linux" ~/.config/home-manager
+            echo "✓ Configuration will be used from: $flake_path"
         fi
 
-        # Apply configuration using channels (no flakes)
-        home-manager switch || {
-            echo "❖ Warning: Home Manager configuration failed."
-            echo "❖ After script completion, you can try:"
-            echo "    home-manager switch"
+        echo "❖ Building Home Manager configuration from flake..."
+        nix run home-manager/master -- init --switch "$flake_path" || {
+            echo "❖ Flake init failed, trying direct switch..."
+            nix run home-manager/master -- switch --flake "$flake_path"
         }
     else
-        echo "Using default Home Manager configuration (no local repository found)"
-        # Home Manager will use default config
+        echo "❖ Error: No repository configured. Cannot install Home Manager."
+        exit 1
     fi
 
     # Now that Home Manager has installed zsh, set it as the default shell

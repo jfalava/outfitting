@@ -535,18 +535,37 @@ if command -v rg &> /dev/null; then
 fi
 
 # ---- Plugin Loading ----
-if [ -f /nix/store/fa6qg3bwh6aphkqfjn9878rbqi579sf7-zsh-autosuggestions-0.7.0/share/zsh-autosuggestions/zsh-autosuggestions.zsh ]; then
-    source /nix/store/fa6qg3bwh6aphkqfjn9878rbqi579sf7-zsh-autosuggestions-0.7.0/share/zsh-autosuggestions/zsh-autosuggestions.zsh
-    ZSH_AUTOSUGGEST_STRATEGY=(history completion)
-    ZSH_AUTOSUGGEST_BUFFER_MAX_SIZE=20
-fi
+# Source zsh plugins from Nix profile (works with flakes and doesn't break on updates)
+if [ -n "$HOME" ]; then
+    # Try to find autosuggestions plugin
+    for plugin_path in \
+        "$HOME/.nix-profile/share/zsh-autosuggestions/zsh-autosuggestions.zsh" \
+        "$HOME/.nix-profile/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh" \
+        /nix/var/nix/profiles/per-user/"$USER"/profile/share/zsh-autosuggestions/zsh-autosuggestions.zsh \
+        /run/current-system/sw/share/zsh-autosuggestions/zsh-autosuggestions.zsh; do
+        if [ -f "$plugin_path" ]; then
+            source "$plugin_path"
+            ZSH_AUTOSUGGEST_STRATEGY=(history completion)
+            ZSH_AUTOSUGGEST_BUFFER_MAX_SIZE=20
+            break
+        fi
+    done
 
-if [ -f /nix/store/qmcb181cs65yafh0m36pagr296gw5nan-zsh-syntax-highlighting-0.8.0/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh ]; then
-    source /nix/store/qmcb181cs65yafh0m36pagr296gw5nan-zsh-syntax-highlighting-0.8.0/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
-    ZSH_HIGHLIGHT_STYLES[command]='fg=green,bold'
-    ZSH_HIGHLIGHT_STYLES[alias]='fg=cyan,bold'
-    ZSH_HIGHLIGHT_STYLES[builtin]='fg=yellow,bold'
-    ZSH_HIGHLIGHT_STYLES[function]='fg=blue,bold'
+    # Try to find syntax-highlighting plugin
+    for plugin_path in \
+        "$HOME/.nix-profile/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" \
+        "$HOME/.nix-profile/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" \
+        /nix/var/nix/profiles/per-user/"$USER"/profile/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh \
+        /run/current-system/sw/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh; do
+        if [ -f "$plugin_path" ]; then
+            source "$plugin_path"
+            ZSH_HIGHLIGHT_STYLES[command]='fg=green,bold'
+            ZSH_HIGHLIGHT_STYLES[alias]='fg=cyan,bold'
+            ZSH_HIGHLIGHT_STYLES[builtin]='fg=yellow,bold'
+            ZSH_HIGHLIGHT_STYLES[function]='fg=blue,bold'
+            break
+        fi
+    done
 fi
 
 # ---- Tool Initialization ----

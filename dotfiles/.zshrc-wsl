@@ -103,28 +103,30 @@ setup_outfitting_repo() {
 # Home Manager management functions - streamlined for personal use
 hm-sync() {
     local repo_path=$(get_outfitting_repo) || { setup_outfitting_repo; repo_path=$(get_outfitting_repo); }
-    cp "$repo_path/packages/x64-linux/home.nix" ~/.config/home-manager/ && home-manager switch
+    home-manager switch --flake "$repo_path/packages/x64-linux"
     echo "✓ Synced from $repo_path"
 }
 
 # Profile switching functions - optimized for personal use
 hm-personal() {
     local repo_path=$(get_outfitting_repo) || { setup_outfitting_repo; repo_path=$(get_outfitting_repo); }
-    # Copy first, then modify the copy (don't touch source repo)
-    cp "$repo_path/packages/x64-linux/home.nix" ~/.config/home-manager/
+    # Copy flake and modify for personal profile
+    mkdir -p ~/.config/home-manager
+    cp -r "$repo_path/packages/x64-linux"/* ~/.config/home-manager/
     # Portable sed approach (works on both BSD and GNU sed)
     sed 's/activeProfile = "[^"]*"/activeProfile = "personal"/' ~/.config/home-manager/home.nix > ~/.config/home-manager/home.nix.tmp && mv ~/.config/home-manager/home.nix.tmp ~/.config/home-manager/home.nix
-    home-manager switch
+    home-manager switch --flake ~/.config/home-manager
     echo "✓ Personal profile active"
 }
 
 hm-work() {
     local repo_path=$(get_outfitting_repo) || { setup_outfitting_repo; repo_path=$(get_outfitting_repo); }
-    # Copy first, then modify the copy (don't touch source repo)
-    cp "$repo_path/packages/x64-linux/home.nix" ~/.config/home-manager/
+    # Copy flake and modify for work profile
+    mkdir -p ~/.config/home-manager
+    cp -r "$repo_path/packages/x64-linux"/* ~/.config/home-manager/
     # Portable sed approach (works on both BSD and GNU sed)
     sed 's/activeProfile = "[^"]*"/activeProfile = "work"/' ~/.config/home-manager/home.nix > ~/.config/home-manager/home.nix.tmp && mv ~/.config/home-manager/home.nix.tmp ~/.config/home-manager/home.nix
-    home-manager switch
+    home-manager switch --flake ~/.config/home-manager
     echo "✓ Work profile active (AWS, K8s, etc.)"
 }
 
@@ -154,18 +156,19 @@ hm-switch-work() {
 }
 
 hm-update() {
-    echo "Updating Nix channels and Home Manager..."
+    echo "Updating flake inputs and Home Manager..."
+    local repo_path=$(get_outfitting_repo) || { setup_outfitting_repo; repo_path=$(get_outfitting_repo); }
     
-    # Update channels (like brew update)
-    nix-channel --update
+    # Update flake inputs (updates flake.lock)
+    nix flake update "$repo_path/packages/x64-linux"
     
     # Apply updated configuration
-    home-manager switch
+    home-manager switch --flake "$repo_path/packages/x64-linux"
 
     echo ""
     echo "✓ Nix packages updated successfully!"
     echo ""
-    echo "Packages are now floating with nixpkgs-unstable channel (like Homebrew)"
+    echo "Flake lock file updated with latest nixpkgs"
 }
 
 hm-rollback() {
