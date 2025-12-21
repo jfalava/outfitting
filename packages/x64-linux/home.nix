@@ -9,7 +9,7 @@
 
 let
   # Profile selection - change this to switch profiles
-  activeProfile = "work"; # Options: "personal", "work"
+  activeProfile = "personal"; # Options: "personal", "work"
 
   # Personal profile configuration
   personalConfig = {

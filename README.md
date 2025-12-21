@@ -59,12 +59,12 @@ For Ubuntu-based WSL distributions:
 
 #### Installation Modes
 
-**Default mode**:
+**Default mode** (personal profile):
 ```bash
 curl -L wsl.jfa.dev | bash
 ```
 - Updates Nix channels and packages
-- Applies Home Manager configuration
+- Applies Home Manager configuration (personal profile)
 - Skips APT package installation
 
 **Full installation**:
@@ -78,10 +78,67 @@ curl -L wsl.jfa.dev | bash -s -- --update-only   # APT + system packages only
 curl -L wsl.jfa.dev | bash -s -- --nix-only      # Nix installation only
 ```
 
-### macOS
+#### Profile Selection
+
+Choose between personal or work profiles at installation time:
 
 ```bash
+# Personal profile (default)
+curl -L wsl.jfa.dev | bash
+
+# Work profile
+curl -L wsl.jfa.dev | bash -s -- --work-profile
+
+# Explicit personal profile selection
+curl -L wsl.jfa.dev | bash -s -- --personal-profile
+
+# Combine with installation modes
+curl -L wsl.jfa.dev | bash -s -- --full-install --work-profile
+```
+
+After installation, switch profiles with `hm-work` or `hm-personal` commands.
+
+### macOS
+
+#### Default Installation
+
+**Default mode** (personal profile):
+```bash
 curl -L mac.jfa.dev | bash
+```
+
+#### Profile Selection
+
+Choose between personal or work profiles at installation time:
+
+```bash
+# Personal profile (default) - Base packages + personal git config
+curl -L mac.jfa.dev | bash
+
+# Work profile - Includes AWS, Kubernetes, Terraform, Azure tools + work git config
+curl -L mac.jfa.dev | bash -s -- --work-profile
+
+# Explicit personal profile selection
+curl -L mac.jfa.dev | bash -s -- --personal-profile
+```
+
+### Profile Commands
+
+```bash
+# Check current active profile
+hm-profile
+
+# Switch to personal profile
+hm-personal
+
+# Switch to work profile
+hm-work
+
+# Apply configuration changes
+hm-sync
+
+# Update packages and apply configuration
+hm-update
 ```
 
 ## Repository Configuration

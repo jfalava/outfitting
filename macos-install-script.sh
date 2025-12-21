@@ -30,6 +30,21 @@ error() {
     echo -e "${RED}❖${NC} $1"
 }
 
+# Default profile
+PROFILE="personal"  # Options: "personal", "work"
+
+# Parse command line arguments
+for arg in "$@"; do
+    case "$arg" in
+        --work-profile)
+            PROFILE="work"
+            ;;
+        --personal-profile)
+            PROFILE="personal"
+            ;;
+    esac
+done
+
 # Check if running on macOS
 check_macos() {
     if [[ "$(uname)" != "Darwin" ]]; then
@@ -264,10 +279,7 @@ install_nix_darwin() {
     fi
 
     repo_path=$(cat "$config_file")
-    info "Using flake from: $repo_path"
-
-    # The flake will be at repo_path/packages/aarch64-darwin
-    flake_path="$repo_path/packages/aarch64-darwin"
+    info "Using repository at: $repo_path"
 
     # Backup /etc/zshenv if it exists
     if [ -f /etc/zshenv ]; then
@@ -275,11 +287,34 @@ install_nix_darwin() {
         sudo mv /etc/zshenv /etc/zshenv.before-nix-darwin
     fi
 
-    info "Building nix-darwin from flake..."
+    # Prepare configuration based on profile
+    if [ "$PROFILE" = "work" ]; then
+        info "Configuring work profile..."
+        # Copy configuration to ~/.config/home-manager and modify
+        mkdir -p ~/.config
+        if [ -d ~/.config/home-manager ]; then
+            mv ~/.config/home-manager ~/.config/home-manager.backup.$(date +%Y%m%d-%H%M%S)
+        fi
+        cp -r "$repo_path/packages/aarch64-darwin" ~/.config/home-manager
+        # Modify the activeProfile in home.nix
+        sed -i '' 's/activeProfile = "personal";/activeProfile = "work";/' ~/.config/home-manager/home.nix
+        flake_path="$HOME/.config/home-manager"
+        success "Profile set to: work"
+    else
+        info "Using personal profile (default)"
+        # Use repository directly
+        flake_path="$repo_path/packages/aarch64-darwin"
+    fi
+
+    info "Building nix-darwin from flake at: $flake_path"
     if nix run nix-darwin -- switch --flake "$flake_path" 2>&1; then
         success "nix-darwin installed successfully!"
         info "Configuration is now managed via flake at: $flake_path/flake.nix"
-        info "To update in the future, run: darwin-rebuild switch --flake ~/.config/home-manager"
+        if [ "$PROFILE" = "work" ]; then
+            info "To update in the future, run: darwin-rebuild switch --flake ~/.config/home-manager"
+        else
+            info "To update in the future, run: hm-sync (or darwin-rebuild switch --flake $flake_path)"
+        fi
     else
         error "Failed to install nix-darwin"
         warning "You can retry manually with: nix run nix-darwin -- switch --flake $flake_path"

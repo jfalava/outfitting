@@ -8,6 +8,7 @@
 export UPDATE_ONLY=true
 export NIX_ONLY=true
 MODE="default"
+PROFILE="personal"  # Default profile: "personal" or "work"
 
 # Parse command line arguments for override flags
 for arg in "$@"; do
@@ -26,6 +27,12 @@ for arg in "$@"; do
             UPDATE_ONLY=false
             NIX_ONLY=true
             MODE="nix-only"
+            ;;
+        --work-profile)
+            PROFILE="work"
+            ;;
+        --personal-profile)
+            PROFILE="personal"
             ;;
     esac
 done
@@ -190,8 +197,21 @@ if command -v nix >/dev/null; then
             mv ~/.config/home-manager ~/.config/home-manager.backup.$(date +%Y%m%d-%H%M%S)
         fi
 
-        # Create symlink to the x64-linux directory (maintains relative paths to dotfiles)
-        ln -sfn "$repo_path/packages/x64-linux" ~/.config/home-manager
+        # If work profile is requested, copy and modify instead of symlinking
+        if [ "$PROFILE" = "work" ]; then
+            echo "❖ Configuring work profile..."
+            # Remove symlink if exists
+            rm -f ~/.config/home-manager
+            # Copy the configuration
+            cp -r "$repo_path/packages/x64-linux" ~/.config/home-manager
+            # Modify the activeProfile in home.nix
+            sed -i 's/activeProfile = "personal";/activeProfile = "work";/' ~/.config/home-manager/home.nix
+            echo "✓ Profile set to: work"
+        else
+            echo "✓ Using personal profile (default)"
+            # Create symlink to the x64-linux directory (maintains relative paths to dotfiles)
+            ln -sfn "$repo_path/packages/x64-linux" ~/.config/home-manager
+        fi
 
         # Apply configuration using channels (no flakes)
         home-manager switch || {
