@@ -8,6 +8,11 @@
 }:
 
 let
+  # Repository path - customize if your outfitting repo is in a different location
+  # Default: ~/Workspace/outfitting
+  # If you change this, also update ~/.config/outfitting/repo-path (or run set_outfitting_repo)
+  outfittingRepo = "${config.home.homeDirectory}/Workspace/outfitting";
+  
   # Profile selection - change this to switch profiles
   activeProfile = "personal"; # Options: "personal", "work"
 
@@ -167,8 +172,8 @@ in
 
   # Dotfiles management - symlink your dotfiles to home directory
   home.file = {
-    ".zshrc".source = ../../dotfiles/.zshrc-wsl;
-    ".zshrc-base".source = ../../dotfiles/.zshrc-base;
+    ".zshrc".source = "${outfittingRepo}/dotfiles/.zshrc-wsl";
+    ".zshrc-base".source = "${outfittingRepo}/dotfiles/.zshrc-base";
   };
 
   # Program-specific configurations using Home Manager modules
