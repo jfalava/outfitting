@@ -204,9 +204,14 @@ if command -v nix >/dev/null; then
             rm -f ~/.config/home-manager
             # Copy the configuration
             cp -r "$repo_path/packages/x64-linux" ~/.config/home-manager
+            # Copy the dotfiles directory to maintain relative paths (../../dotfiles from home.nix)
+            # home.nix is at ~/.config/home-manager/home.nix, so ../../dotfiles should be at ~/.config/dotfiles
+            mkdir -p ~/.config/dotfiles
+            cp -r "$repo_path/dotfiles/"* ~/.config/dotfiles/
             # Modify the activeProfile in home.nix
             sed -i 's/activeProfile = "personal";/activeProfile = "work";/' ~/.config/home-manager/home.nix
             echo "✓ Profile set to: work"
+            echo "✓ Configuration copied to ~/.config/home-manager (isolated from repository)"
         else
             echo "✓ Using personal profile (default)"
             # Create symlink to the x64-linux directory (maintains relative paths to dotfiles)
