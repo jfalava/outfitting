@@ -21,13 +21,17 @@
 
   # Override git settings for work
   programs.git = {
+    enable = true;
+
     settings = {
       user = {
         email = "jorgefernando.alava@seidor.com";
       };
     };
+
     signing = {
       key = "${config.home.homeDirectory}/.ssh/jfalava-seidor-ed25519";
+      signByDefault = true;
     };
   };
 
@@ -36,8 +40,4 @@
     AWS_PROFILE = "default";
     AWS_REGION = "eu-west-1";
   };
-
-  # Additional work-specific program configurations
-  programs.terraform.enable = true;
-  programs.kubectl.enable = true;
 }
