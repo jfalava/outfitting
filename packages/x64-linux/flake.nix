@@ -1,5 +1,5 @@
 {
-  description = "Home Manager configuration for WSL/Linux";
+  description = "Home Manager configuration with flake composition for WSL/Linux";
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
@@ -9,15 +9,34 @@
     };
   };
 
-  outputs = { nixpkgs, home-manager, ... }:
+  outputs =
+    {
+      self,
+      nixpkgs,
+      home-manager,
+      ...
+    }:
     let
       system = "x86_64-linux";
       pkgs = nixpkgs.legacyPackages.${system};
-    in {
-      homeConfigurations."jfalava" = home-manager.lib.homeManagerConfiguration {
+    in
+    {
+      # Personal configuration (base)
+      homeConfigurations."jfalava-personal" = home-manager.lib.homeManagerConfiguration {
         inherit pkgs;
-
-        modules = [ ./home.nix ];
+        modules = [ ./base.nix ];
       };
+
+      # Work configuration (extends base)
+      homeConfigurations."jfalava-work" = home-manager.lib.homeManagerConfiguration {
+        inherit pkgs;
+        modules = [
+          ./base.nix
+          ./work.nix
+        ];
+      };
+
+      # Default configuration (personal)
+      homeConfigurations."jfalava" = self.homeConfigurations."jfalava-personal";
     };
 }

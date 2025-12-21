@@ -173,28 +173,26 @@ if command -v nix >/dev/null; then
         repo_path=$(cat "$config_file")
         flake_path="$repo_path/packages/x64-linux"
         
-        # If work profile is requested, copy and modify the flake
+        # Profile selection is now handled by flake composition
         if [ "$PROFILE" = "work" ]; then
-            echo "❖ Configuring work profile..."
-            # Create a local flake copy
-            mkdir -p ~/.config/home-manager
-            cp -r "$flake_path"/* ~/.config/home-manager/
-            # Modify the activeProfile in home.nix
-            sed -i 's/activeProfile = "personal";/activeProfile = "work";/' ~/.config/home-manager/home.nix
-            flake_path="$HOME/.config/home-manager"
-            echo "✓ Profile set to: work"
-            echo "✓ Configuration copied to ~/.config/home-manager"
-            echo "✓ Dotfiles will be referenced from: $repo_path/dotfiles"
+            echo "❖ Will configure work profile using flake composition"
         else
-            echo "✓ Using personal profile (default)"
-            echo "✓ Configuration will be used from: $flake_path"
+            echo "❖ Will configure personal profile using flake composition"
         fi
 
         echo "❖ Building Home Manager configuration from flake..."
-        nix run home-manager/master -- init --switch "$flake_path" || {
-            echo "❖ Flake init failed, trying direct switch..."
-            nix run home-manager/master -- switch --flake "$flake_path"
-        }
+        
+        # Use --impure flag to allow access to absolute paths for dotfiles
+        if [ "$PROFILE" = "work" ]; then
+            echo "❖ Configuring work profile..."
+            nix run home-manager/master -- switch --flake "$flake_path#jfalava-work" --impure || {
+                echo "❖ Work flake failed, trying personal flake..."
+                nix run home-manager/master -- switch --flake "$flake_path#jfalava-personal" --impure
+            }
+        else
+            echo "❖ Configuring personal profile..."
+            nix run home-manager/master -- switch --flake "$flake_path#jfalava-personal" --impure
+        fi
     else
         echo "❖ Error: No repository configured. Cannot install Home Manager."
         exit 1

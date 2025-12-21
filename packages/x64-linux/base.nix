@@ -1,139 +1,57 @@
-# Home Manager configuration using Nix channels instead of flakes
-# This file provides a unified configuration with profile switching capability
+# Base (personal) Home Manager configuration using flake composition
+# This serves as the foundation that work configuration extends
 
-{
-  config,
-  pkgs,
-  ...
-}:
+{ config, pkgs, ... }:
 
 let
-  # Repository path - customize if your outfitting repo is in a different location
-  # Default: ~/Workspace/outfitting
-  # If you change this, also update ~/.config/outfitting/repo-path (or run set_outfitting_repo)
+  # Repository path - used for dotfile symlinks
   outfittingRepo = "${config.home.homeDirectory}/Workspace/outfitting";
-  
-  # Profile selection - change this to switch profiles
-  activeProfile = "personal"; # Options: "personal", "work"
-
-  # Personal profile configuration
-  personalConfig = {
-    packages = with pkgs; [
-      # Core utilities
-      bat
-      eza
-      fastfetch
-      fzf
-      ripgrep
-      starship
-      tree
-      zoxide
-      zsh
-      zsh-autosuggestions
-      zsh-syntax-highlighting
-
-      # Development tools
-      deno
-      go
-      lazygit
-      nodejs_latest
-      python3
-      zig
-      zellij
-      neovim
-      fd
-      jq
-      less
-      shellcheck
-      zip
-      _7zz # 7zip
-      p7zip
-      nixd
-      nil
-      pnpm
-    ];
-
-    gitEmail = "git@jfa.dev";
-    gitSigningKey = "${config.home.homeDirectory}/.ssh/jfalava-gitSign-elliptic";
-
-    sessionVariables = { };
-  };
-
-  # Work profile configuration
-  workConfig = {
-    packages = with pkgs; [
-      # Personal packages + work packages
-      bat
-      eza
-      fastfetch
-      fzf
-      ripgrep
-      starship
-      tree
-      zoxide
-      zsh
-      zsh-autosuggestions
-      zsh-syntax-highlighting
-      deno
-      go
-      lazygit
-      nodejs_latest
-      python3
-      zig
-      zellij
-      neovim
-      fd
-      jq
-      less
-      shellcheck
-      zip
-      _7zz
-      p7zip
-      nixd
-      nil
-      pnpm
-      awscli2
-      azure-cli
-      terraform
-      opentofu
-      tflint
-      kubectl
-      kubectx
-      k9s
-      kubernetes-helm
-      eksctl
-      ansible
-      cloudlens
-      postgresql
-    ];
-
-    gitEmail = "jorgefernando.alava@seidor.com";
-    gitSigningKey = "${config.home.homeDirectory}/.ssh/jfalava-seidor-ed25519";
-
-    sessionVariables = {
-      AWS_PROFILE = "default";
-      AWS_REGION = "us-east-1";
-    };
-  };
-
-  # Select active configuration
-  selectedConfig = if activeProfile == "work" then workConfig else personalConfig;
 
 in
 {
-  nixpkgs.config.allowUnfree = true;
-
-  # Home Manager needs a bit of information about you and the paths it should manage
+  # Basic home manager settings
   home.username = "jfalava";
   home.homeDirectory = "/home/jfalava";
   home.stateVersion = "25.11";
 
-  # The home.packages option allows you to install Nix packages into your environment
-  home.packages = selectedConfig.packages;
+  # Nixpkgs configuration
+  nixpkgs.config.allowUnfree = true;
 
-  # Home Manager can also manage your environment variables through
-  # 'home.sessionVariables'. These will be explicitly sourced when using a
-  # shell provided by Home Manager.
+  # Core personal packages
+  home.packages = with pkgs; [
+    # Core utilities
+    bat
+    eza
+    fastfetch
+    fzf
+    ripgrep
+    starship
+    tree
+    zoxide
+    zsh
+    zsh-autosuggestions
+    zsh-syntax-highlighting
+    deno
+    go
+    lazygit
+    nodejs_latest
+    python3
+    zig
+    zellij
+    neovim
+    fd
+    jq
+    less
+    shellcheck
+    zip
+    _7zz
+    p7zip
+    nixd
+    nil
+    pnpm
+  ];
+
+  # Session variables
   home.sessionVariables = {
     EDITOR = "vim";
     VISUAL = "zed --wait";
@@ -153,12 +71,9 @@ in
     PNPM_HOME = "${config.home.homeDirectory}/.local/share/pnpm";
     BUN_INSTALL = "${config.home.homeDirectory}/.bun";
     DENO_INSTALL = "${config.home.homeDirectory}/.deno";
+  };
 
-    # Profile-specific variables
-  }
-  // selectedConfig.sessionVariables;
-
-  # Add directories to PATH
+  # PATH additions
   home.sessionPath = [
     "${config.home.homeDirectory}/.local/bin"
     "${config.home.homeDirectory}/go/bin"
@@ -170,27 +85,26 @@ in
     "${config.home.homeDirectory}/.cargo/bin"
   ];
 
-  # Dotfiles management - symlink your dotfiles to home directory
+  # Dotfiles management - symlink to home directory
+  # Using absolute paths with --impure flag for installation
   home.file = {
     ".zshrc".source = "${outfittingRepo}/dotfiles/.zshrc-wsl";
     ".zshrc-base".source = "${outfittingRepo}/dotfiles/.zshrc-base";
   };
 
-  # Program-specific configurations using Home Manager modules
-  programs.home-manager.enable = true;
-
+  # Git configuration (personal)
   programs.git = {
     enable = true;
 
     signing = {
-      key = selectedConfig.gitSigningKey;
+      key = "${config.home.homeDirectory}/.ssh/jfalava-gitSign-elliptic";
       signByDefault = true;
     };
 
     settings = {
       user = {
         name = "Jorge Fernando Álava";
-        email = selectedConfig.gitEmail;
+        email = "git@jfa.dev";
       };
 
       color.ui = "auto";
@@ -210,6 +124,9 @@ in
       };
     };
   };
+
+  # Program configurations
+  programs.home-manager.enable = true;
 
   programs.bat = {
     enable = true;
@@ -278,7 +195,7 @@ in
     ];
   };
 
-  # Nix configuration for the user - enable channels
+  # Nix configuration for the user
   nix = {
     package = pkgs.nix;
     settings = {

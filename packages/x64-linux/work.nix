@@ -1,0 +1,43 @@
+# Work configuration extension for Home Manager
+# This extends the base (personal) configuration with work-specific settings
+
+{ config, pkgs, ... }:
+
+{
+  # Work-specific packages (appended to base packages)
+  home.packages = with pkgs; [
+    # Cloud and infrastructure tools
+    awscli2
+    azure-cli
+    tflint
+    kubectl
+    kubectx
+    k9s
+    kubernetes-helm
+    eksctl
+    ansible
+    cloudlens
+  ];
+
+  # Override git settings for work
+  programs.git = {
+    settings = {
+      user = {
+        email = "jorgefernando.alava@seidor.com";
+      };
+    };
+    signing = {
+      key = "${config.home.homeDirectory}/.ssh/jfalava-seidor-ed25519";
+    };
+  };
+
+  # Work-specific session variables
+  home.sessionVariables = {
+    AWS_PROFILE = "default";
+    AWS_REGION = "eu-west-1";
+  };
+
+  # Additional work-specific program configurations
+  programs.terraform.enable = true;
+  programs.kubectl.enable = true;
+}

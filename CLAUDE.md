@@ -122,17 +122,21 @@ The deploy script automatically runs: cf-typegen → typecheck → lint → form
 # Switch to personal profile (AI tools, personal git config)
 hm-personal
 
-# Switch to work profile (AWS, Kubernetes, Terraform, work git config)
+# Switch to work profile (AWS, Kubernetes, Terraform, work git config)  
 hm-work
 
 # Check current active profile
 hm-profile
 
-# Update packages via channels and apply configuration
+# Update packages via flakes and apply configuration (maintains current profile)
 hm-update
 
 # Sync configuration from local repository and apply
 hm-sync
+
+# Advanced: Build specific configurations directly
+home-manager switch --flake .#jfalava-personal  # Personal
+home-manager switch --flake .#jfalava-work      # Work
 ```
 
 **System-Wide Updates:**
@@ -210,9 +214,9 @@ After modifying dotfiles or installation scripts, they're automatically served b
 4. On other machines: `git pull` then `hm-sync`
 
 **Program Configurations (bat, ripgrep, etc.):**
-1. Edit platform-specific `home.nix`:
-   - WSL: `packages/x64-linux/home.nix`
-   - macOS: `packages/aarch64-darwin/home.nix`
+1. Edit platform-specific configuration files:
+   - WSL: `packages/x64-linux/base.nix` (personal) or `work.nix` (work extensions)
+   - macOS: `packages/aarch64-darwin/home.nix` (personal) or `work.nix` (work extensions)
 2. Modify `programs.*` sections (e.g., `programs.ripgrep.arguments`)
 3. Test locally: `hm-sync`
 4. Commit and push to GitHub
@@ -283,7 +287,7 @@ set_outfitting_repo ~/path/to/outfitting
 - **Immediate Changes**: Edit repo files → run `hm-sync` → changes apply (no manual copying)
 - **Relative Paths Work**: Symlinks preserve directory structure for `../../dotfiles/` references
 - **Git Workflow**: Edit → commit → push → pull on other machines → `hm-sync`
-- **Profile Switching**: `hm-personal`/`hm-work` safely copy files to avoid modifying repo
+- **Profile Switching**: `hm-personal`/`hm-work` use flake composition to switch configurations
 - **Offline Work**: Local edits work without GitHub dependency
 
 ## Important Configuration Details
@@ -297,20 +301,21 @@ set_outfitting_repo ~/path/to/outfitting
 
 ### Home Manager Configuration Structure
 
-**Profile System:**
-- Personal profile: `activeProfile = "personal"` in home.nix
-- Work profile: `activeProfile = "work"` in home.nix
-- Switch profiles with: `hm-personal` or `hm-work`
-- Check current profile: `hm-profile`
+**Flake Composition System:**
+- **WSL/Linux**: Uses `base.nix` (personal) + `work.nix` (work extensions)
+- **macOS**: Uses `home.nix` (personal) + `work.nix` (work extensions) 
+- **Personal profile**: `home-manager switch --flake .#jfalava-personal`
+- **Work profile**: `home-manager switch --flake .#jfalava-work` (adds AWS, K8s tools)
+- **Switch profiles**: `hm-personal` or `hm-work` commands
+- **Check current**: `hm-profile`
 
 **How Profile Switching Works:**
-1. Removes symlinks to avoid modifying source repository
-2. Copies configuration files + dotfiles to `~/.config/home-manager/`
-3. Modifies the copied `home.nix` to change `activeProfile` value
-4. Runs `home-manager switch` or `darwin-rebuild switch`
-5. Result: Profile switched without contaminating git repository
+- Uses Nix flake composition to extend base configuration
+- Work profile automatically inherits all personal settings
+- No file copying - pure flake-based module system
+- Profiles are separate flake outputs that can be built independently
 
-**Default Workflow (No Profile Switch):**
+**Default Workflow:**
 - Use `hm-sync` to apply repo changes via symlinks
 - Edit files in repo → commit → `hm-sync` → changes apply
 - Clean, immediate, no file copying
@@ -371,8 +376,11 @@ curl -L wsl.jfa.dev | bash
 # Install Nix
 curl -L mac.jfa.dev | bash
 
-# Install nix-darwin for system management
-nix run nix-darwin -- switch --flake github:jfalava/outfitting?dir=packages/aarch64-darwin
+# Install nix-darwin for system management (personal profile by default)
+nix run nix-darwin -- switch --flake github:jfalava/outfitting?dir=packages/aarch64-darwin#jfalava-personal
+
+# Or install with work profile
+nix run nix-darwin -- switch --flake github:jfalava/outfitting?dir=packages/aarch64-darwin#jfalava-work
 ```
 
 ## Technology Stack
