@@ -153,7 +153,7 @@ setup_outfitting_repo() {
     echo "✓ Repository ready: $repo_path"
 }
 
-# nix-darwin management functions - streamlined for personal use
+# nix-darwin management functions
 hm-sync() {
     local repo_path=$(get_outfitting_repo) || { setup_outfitting_repo; repo_path=$(get_outfitting_repo); }
 
@@ -161,58 +161,8 @@ hm-sync() {
     ln -sfn "$repo_path/packages/aarch64-darwin/darwin.nix" ~/.nixpkgs/darwin-configuration.nix
     ln -sfn "$repo_path/packages/aarch64-darwin" ~/.config/home-manager
 
-    darwin-rebuild switch
+    darwin-rebuild switch --flake "$repo_path/packages/aarch64-darwin"
     echo "✓ Synced from $repo_path"
-}
-
-# Profile switching functions - streamlined for personal use
-hm-personal() {
-    local repo_path=$(get_outfitting_repo) || { setup_outfitting_repo; repo_path=$(get_outfitting_repo); }
-
-    # Remove symlinks and copy files (to avoid modifying source repo)
-    rm -f ~/.nixpkgs/darwin-configuration.nix
-    rm -f ~/.config/home-manager
-    mkdir -p ~/.config/home-manager
-
-    cp "$repo_path/packages/aarch64-darwin/darwin.nix" ~/.nixpkgs/darwin-configuration.nix
-    cp "$repo_path/packages/aarch64-darwin/home.nix" ~/.config/home-manager/
-    cp -r "$repo_path/dotfiles" ~/.config/home-manager/
-
-    # Portable sed approach (works on both BSD and GNU sed)
-    sed 's/activeProfile = "[^"]*"/activeProfile = "personal"/' ~/.config/home-manager/home.nix > ~/.config/home-manager/home.nix.tmp && mv ~/.config/home-manager/home.nix.tmp ~/.config/home-manager/home.nix
-    darwin-rebuild switch
-    echo "✓ Personal profile active"
-}
-
-hm-work() {
-    local repo_path=$(get_outfitting_repo) || { setup_outfitting_repo; repo_path=$(get_outfitting_repo); }
-
-    # Remove symlinks and copy files (to avoid modifying source repo)
-    rm -f ~/.nixpkgs/darwin-configuration.nix
-    rm -f ~/.config/home-manager
-    mkdir -p ~/.config/home-manager
-
-    cp "$repo_path/packages/aarch64-darwin/darwin.nix" ~/.nixpkgs/darwin-configuration.nix
-    cp "$repo_path/packages/aarch64-darwin/home.nix" ~/.config/home-manager/
-    cp -r "$repo_path/dotfiles" ~/.config/home-manager/
-
-    # Portable sed approach (works on both BSD and GNU sed)
-    sed 's/activeProfile = "[^"]*"/activeProfile = "work"/' ~/.config/home-manager/home.nix > ~/.config/home-manager/home.nix.tmp && mv ~/.config/home-manager/home.nix.tmp ~/.config/home-manager/home.nix
-    darwin-rebuild switch
-    echo "✓ Work profile active (AWS, K8s, etc.)"
-}
-
-# Quick profile check
-hm-profile() {
-    local current=$(grep 'activeProfile' ~/.config/home-manager/home.nix 2>/dev/null | cut -d'"' -f2)
-    if [[ -n "$1" ]]; then
-        case "$1" in
-            personal|work) hm-"$1" ;;
-            *) echo "Usage: hm-profile <personal|work>" ;;
-        esac
-    else
-        echo "Current: $current"
-    fi
 }
 
 hm-switch() {
@@ -253,12 +203,20 @@ hm-switch-local() {
 }
 
 hm-update() {
-    echo "Updating nix-darwin with flakes..."
-    darwin-rebuild switch --flake ".#macos"
+    local repo_path=$(get_outfitting_repo) || { setup_outfitting_repo; repo_path=$(get_outfitting_repo); }
+    
+    echo "Updating flake inputs and nix-darwin..."
+    
+    # Update flake lock file
+    nix flake update "$repo_path/packages/aarch64-darwin"
+    
+    # Apply updated configuration
+    darwin-rebuild switch --flake "$repo_path/packages/aarch64-darwin"
+    
     echo ""
     echo "✓ Nix packages updated successfully!"
     echo ""
-    echo "Packages are now floating with nixpkgs-unstable via flakes"
+    echo "Flake lock file updated with latest nixpkgs"
 }
 
 hm-rollback() {

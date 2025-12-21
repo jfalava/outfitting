@@ -5,114 +5,6 @@ let
   # Default: ~/Workspace/outfitting
   # If you change this, also update ~/.config/outfitting/repo-path (or run set_outfitting_repo)
   outfittingRepo = "${config.home.homeDirectory}/Workspace/outfitting";
-  
-  # Profile selection - change this to switch profiles
-  activeProfile = "personal"; # Options: "personal", "work"
-
-  # Personal profile configuration
-  personalConfig = {
-    packages = with pkgs; [
-      bat
-      eza
-      fastfetch
-      fzf
-      ripgrep
-      starship
-      tree
-      btop
-      zoxide
-      zsh
-      zsh-autosuggestions
-      zsh-syntax-highlighting
-      deno
-      go
-      lazygit
-      nodejs_24
-      python3
-      zig
-      zellij
-      neovim
-      fd
-      jq
-      less
-      shellcheck
-      zip
-      p7zip
-      nixd
-      nil
-      pnpm
-      git
-    ];
-
-    gitEmail = "git@jfa.dev";
-    gitSigningKey = "${config.home.homeDirectory}/.ssh/jfalava-gitSign-elliptic";
-
-    sessionVariables = { };
-  };
-
-  # Work profile configuration
-  workConfig = {
-    packages = with pkgs; [
-      bat
-      eza
-      fastfetch
-      fzf
-      ripgrep
-      starship
-      tree
-      btop
-      zoxide
-      zsh
-      zsh-autosuggestions
-      zsh-syntax-highlighting
-      deno
-      go
-      lazygit
-      nodejs_24
-      python3
-      zig
-      zellij
-      neovim
-      fd
-      jq
-      less
-      shellcheck
-      zip
-      p7zip
-      unrar
-      nil
-      pnpm
-      git
-      awscli2
-      azure-cli
-      terraform
-      terragrunt
-      opentofu
-      tflint
-      kubectl
-      kubectx
-      k9s
-      kubernetes-helm
-      eksctl
-      ansible
-      cloudlens
-      postgresql
-      redis
-      slack
-      zoom-us
-    ];
-
-    gitEmail = "jorgefernando.alava@seidor.com";
-    gitSigningKey = "${config.home.homeDirectory}/.ssh/jfalava-seidor-ed25519";
-
-    sessionVariables = {
-      AWS_PROFILE = "default";
-      AWS_REGION = "us-east-1";
-    };
-  };
-
-  # Select active configuration
-  selectedConfig = if activeProfile == "work" then workConfig else personalConfig;
 
 in
 {
@@ -122,7 +14,38 @@ in
   home.stateVersion = "25.11";
 
   # The home.packages option allows you to install Nix packages into your environment
-  home.packages = selectedConfig.packages;
+  home.packages = with pkgs; [
+    bat
+    eza
+    fastfetch
+    fzf
+    ripgrep
+    starship
+    tree
+    btop
+    zoxide
+    zsh
+    zsh-autosuggestions
+    zsh-syntax-highlighting
+    deno
+    go
+    lazygit
+    nodejs_24
+    python3
+    zig
+    zellij
+    neovim
+    fd
+    jq
+    less
+    shellcheck
+    zip
+    p7zip
+    nixd
+    nil
+    pnpm
+    git
+  ];
 
   # Home Manager can also manage your environment variables through
   # 'home.sessionVariables'. These will be explicitly sourced when using a
@@ -146,10 +69,7 @@ in
     PNPM_HOME = "${config.home.homeDirectory}/.local/share/pnpm";
     BUN_INSTALL = "${config.home.homeDirectory}/.bun";
     DENO_INSTALL = "${config.home.homeDirectory}/.deno";
-
-    # Profile-specific variables
-  }
-  // selectedConfig.sessionVariables;
+  };
 
   # Add directories to PATH
   home.sessionPath = [
@@ -176,14 +96,14 @@ in
     enable = true;
 
     signing = {
-      key = selectedConfig.gitSigningKey;
+      key = "${config.home.homeDirectory}/.ssh/jfalava-gitSign-elliptic";
       signByDefault = true;
     };
 
     settings = {
       user = {
         name = "Jorge Fernando Álava";
-        email = selectedConfig.gitEmail;
+        email = "git@jfa.dev";
       };
 
       color.ui = "auto";
