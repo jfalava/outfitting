@@ -96,33 +96,9 @@ curl -L wsl.jfa.dev | bash -s -- --personal-profile
 curl -L wsl.jfa.dev | bash -s -- --full-install --work-profile
 ```
 
-After installation, switch profiles with `hm-work` or `hm-personal` commands.
+#### Profile Commands
 
-### macOS
-
-#### Default Installation
-
-**Default mode** (personal profile):
-```bash
-curl -L mac.jfa.dev | bash
-```
-
-#### Profile Selection
-
-Choose between personal or work profiles at installation time:
-
-```bash
-# Personal profile (default) - Base packages + personal git config
-curl -L mac.jfa.dev | bash
-
-# Work profile - Includes AWS, Kubernetes, Terraform, Azure tools + work git config
-curl -L mac.jfa.dev | bash -s -- --work-profile
-
-# Explicit personal profile selection
-curl -L mac.jfa.dev | bash -s -- --personal-profile
-```
-
-### Profile Commands
+After installation, you can switch profiles using these commands:
 
 ```bash
 # Check current active profile
@@ -139,6 +115,12 @@ hm-sync
 
 # Update packages and apply configuration
 hm-update
+```
+
+### macOS
+
+```bash
+curl -L mac.jfa.dev | bash
 ```
 
 ## Repository Configuration
