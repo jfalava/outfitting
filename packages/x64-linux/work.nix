@@ -1,7 +1,7 @@
 # Work configuration extension for Home Manager
 # This extends the base (personal) configuration with work-specific settings
 
-{ config, pkgs, ... }:
+{ config, pkgs, lib, ... }:
 
 {
   # Work-specific packages (appended to base packages)
@@ -30,7 +30,7 @@
     };
 
     signing = {
-      key = "${config.home.homeDirectory}/.ssh/jfalava-seidor-ed25519";
+      key = lib.mkForce "${config.home.homeDirectory}/.ssh/jfalava-seidor-ed25519";
       signByDefault = true;
     };
   };
