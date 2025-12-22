@@ -138,6 +138,69 @@ configure_outfitting_repo
 echo ""
 
 if [[ "$MODE" != "update-only" ]]; then
+
+#####
+## Setup symlinks and backup existing dotfiles
+#####
+setup_symlinks() {
+    echo "❖ Setting up Home Manager configuration symlinks and backing up existing dotfiles..."
+
+    config_file="$HOME/.config/outfitting/repo-path"
+    if [ ! -f "$config_file" ]; then
+        echo "❖ Error: Repository not configured. Cannot create symlinks."
+        return 1
+    fi
+
+    repo_path=$(cat "$config_file")
+    hm_target="$repo_path/packages/x64-linux"
+
+    # Create ~/.config directory if it doesn't exist
+    mkdir -p "$HOME/.config"
+
+    # Backup existing managed files before creating symlinks
+    local timestamp
+    timestamp=$(date +%Y%m%d_%H%M%S)
+
+    # List of files/directories that Home Manager will manage
+    local managed_files=(".zshrc" ".zshrc-base")
+    local managed_dirs=(".config")
+
+    # Backup files
+    for file in "${managed_files[@]}"; do
+        if [ -f "$HOME/$file" ] && [ ! -L "$HOME/$file" ]; then
+            echo "❖ Backing up existing $file to ${file}.backup-${timestamp}"
+            mv "$HOME/$file" "$HOME/${file}.backup-${timestamp}"
+        fi
+    done
+
+    # Backup directories (but not if it's already a symlink)
+    for dir in "${managed_dirs[@]}"; do
+        if [ -d "$HOME/$dir" ] && [ ! -L "$HOME/$dir" ]; then
+            # Only backup .config if it doesn't contain the home-manager symlink
+            if [ -L "$HOME/$dir/home-manager" ]; then
+                echo "❖ Removing old home-manager symlink from $dir"
+                rm -f "$HOME/$dir/home-manager"
+            fi
+        fi
+    done
+
+    # Create symlink for home-manager
+    if [ ! -L "$HOME/.config/home-manager" ]; then
+        echo "❖ Creating symlink: ~/.config/home-manager → $hm_target"
+        ln -sfn "$hm_target" "$HOME/.config/home-manager"
+    else
+        echo "✓ Symlink already exists: ~/.config/home-manager"
+    fi
+
+    echo "✓ Symlinks created and backups completed!"
+    return 0
+}
+
+# Call the setup function
+setup_symlinks || {
+    echo "❖ Warning: Symlink setup failed, but continuing with Home Manager installation..."
+}
+
 #####
 ## nix
 #####
@@ -256,17 +319,23 @@ if command -v bun >/dev/null 2>&1; then
     BUN_PACKAGES_FILE="/tmp/bun-packages.txt"
 
     if curl -fsSL "$BUN_PACKAGES_URL" -o "$BUN_PACKAGES_FILE"; then
-        while IFS= read -r package; do
-            # Skip empty lines and comments
-            [[ -z "$package" || "$package" =~ ^[[:space:]]*# ]] && continue
-            # Remove leading/trailing whitespace
-            package=$(echo "$package" | xargs)
-            if [[ -n "$package" ]]; then
-                echo "Installing Bun package: $package"
-                bun install -g "$package" || echo "❖ Warning: Failed to install $package"
-            fi
-        done < "$BUN_PACKAGES_FILE"
-        rm -f "$BUN_PACKAGES_FILE"
+        # Validate that the file is not empty
+        if [ ! -s "$BUN_PACKAGES_FILE" ]; then
+            echo "❖ Warning: Bun package list is empty"
+            rm -f "$BUN_PACKAGES_FILE"
+        else
+            while IFS= read -r package; do
+                # Skip empty lines and comments
+                [[ -z "$package" || "$package" =~ ^[[:space:]]*# ]] && continue
+                # Remove leading/trailing whitespace
+                package=$(echo "$package" | xargs)
+                if [[ -n "$package" ]]; then
+                    echo "Installing Bun package: $package"
+                    bun install -g "$package" || echo "❖ Warning: Failed to install $package"
+                fi
+            done < "$BUN_PACKAGES_FILE"
+            rm -f "$BUN_PACKAGES_FILE"
+        fi
     else
         echo "❖ Warning: Failed to fetch Bun packages list, skipping global package installations"
     fi
