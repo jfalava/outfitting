@@ -42,9 +42,9 @@ alias show='open'  # macOS equivalent of explorer
 alias finder='open .'  # Open current directory in Finder
 
 # Nix-darwin rebuild aliases with proper quoting for flake syntax
-alias drb='darwin-rebuild build --flake ".#macos"'
-alias drs='darwin-rebuild switch --flake ".#macos"'
-alias dru='darwin-rebuild switch --flake ".#macos" --upgrade'
+alias drb='darwin-rebuild build --flake ".#macos" --impure'
+alias drs='darwin-rebuild switch --flake ".#macos" --impure'
+alias dru='darwin-rebuild switch --flake ".#macos" --upgrade --impure'
 alias drd='darwin-rebuild switch --flake ".#macos" --dry-run'
 alias drl='darwin-rebuild --list-generations'
 alias drr='darwin-rebuild rollback'
@@ -294,11 +294,11 @@ outfit-rebuild() {
     case "${1:-switch}" in
         build|b)
             echo "Building nix-darwin configuration..."
-            darwin-rebuild build --flake ".#macos"
+            darwin-rebuild build --flake ".#macos" --impure
             ;;
         switch|s)
             echo "Applying nix-darwin configuration..."
-            sudo darwin-rebuild switch --flake ".#macos"
+            sudo darwin-rebuild switch --flake ".#macos" --impure
             ;;
         test|t)
             echo "Testing nix-darwin configuration..."
@@ -306,7 +306,7 @@ outfit-rebuild() {
             ;;
         dry|d)
             echo "Dry-run check..."
-            darwin-rebuild switch --flake ".#macos" --dry-run
+            darwin-rebuild switch --flake ".#macos" --dry-run --impure
             ;;
         upgrade|u)
             echo "Upgrading packages and applying..."

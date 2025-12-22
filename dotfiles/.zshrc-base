@@ -541,6 +541,8 @@ if [ -n "$HOME" ]; then
     for plugin_path in \
         "$HOME/.nix-profile/share/zsh-autosuggestions/zsh-autosuggestions.zsh" \
         "$HOME/.nix-profile/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh" \
+        "$HOME/.local/state/home-manager/gcroots/current-home/home-path/share/zsh-autosuggestions/zsh-autosuggestions.zsh" \
+        "$HOME/.local/state/home-manager/gcroots/current-home/home-path/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh" \
         /nix/var/nix/profiles/per-user/"$USER"/profile/share/zsh-autosuggestions/zsh-autosuggestions.zsh \
         /run/current-system/sw/share/zsh-autosuggestions/zsh-autosuggestions.zsh; do
         if [ -f "$plugin_path" ]; then
@@ -555,6 +557,8 @@ if [ -n "$HOME" ]; then
     for plugin_path in \
         "$HOME/.nix-profile/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" \
         "$HOME/.nix-profile/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" \
+        "$HOME/.local/state/home-manager/gcroots/current-home/home-path/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" \
+        "$HOME/.local/state/home-manager/gcroots/current-home/home-path/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" \
         /nix/var/nix/profiles/per-user/"$USER"/profile/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh \
         /run/current-system/sw/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh; do
         if [ -f "$plugin_path" ]; then
