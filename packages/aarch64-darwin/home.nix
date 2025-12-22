@@ -2,9 +2,9 @@
 
 let
   # Repository path - customize if your outfitting repo is in a different location
-  # Default: ~/Workspace/outfitting
-  # If you change this, also update ~/.config/outfitting/repo-path (or run set_outfitting_repo)
-  outfittingRepo = "${config.home.homeDirectory}/Workspace/outfitting";
+  # Default location set by installation scripts: ~/.config/outfitting/repo
+  # To customize: change this path AND update ~/.config/outfitting/repo-path (or run set_outfitting_repo)
+  outfittingRepo = "${config.home.homeDirectory}/.config/outfitting/repo";
 
 in
 {
