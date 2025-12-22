@@ -96,14 +96,14 @@ hm-sync() {
         echo "Run 'set_outfitting_repo /path/to/outfitting' to configure."
         return 1
     }
-    
+
     # Ensure symlink exists and points to correct location
     local target="$repo_path/packages/x64-linux"
     if [ ! -L ~/.config/home-manager ] || [ "$(readlink -f ~/.config/home-manager)" != "$(readlink -f "$target")" ]; then
         echo "✓ Creating/updating symlink: ~/.config/home-manager → $target"
         ln -sfn "$target" ~/.config/home-manager
     fi
-    
+
     home-manager switch --flake "$repo_path/packages/x64-linux" --impure
     echo "✓ Synced from $repo_path"
 }
@@ -115,13 +115,13 @@ hm-personal() {
         echo "Run 'set_outfitting_repo /path/to/outfitting' to configure."
         return 1
     }
-    
+
     # Ensure symlink exists
     local target="$repo_path/packages/x64-linux"
     if [ ! -L ~/.config/home-manager ] || [ "$(readlink -f ~/.config/home-manager)" != "$(readlink -f "$target")" ]; then
         ln -sfn "$target" ~/.config/home-manager
     fi
-    
+
     home-manager switch --flake "$repo_path/packages/x64-linux#jfalava-personal" --impure
     echo "✓ Personal profile active"
 }
@@ -132,13 +132,13 @@ hm-work() {
         echo "Run 'set_outfitting_repo /path/to/outfitting' to configure."
         return 1
     }
-    
+
     # Ensure symlink exists
     local target="$repo_path/packages/x64-linux"
     if [ ! -L ~/.config/home-manager ] || [ "$(readlink -f ~/.config/home-manager)" != "$(readlink -f "$target")" ]; then
         ln -sfn "$target" ~/.config/home-manager
     fi
-    
+
     home-manager switch --flake "$repo_path/packages/x64-linux#jfalava-work" --impure
     echo "✓ Work profile active"
 }
@@ -169,13 +169,13 @@ hm-switch() {
         echo "Run 'set_outfitting_repo /path/to/outfitting' to configure."
         return 1
     }
-    
+
     # Ensure symlink exists
     local target="$repo_path/packages/x64-linux"
     if [ ! -L ~/.config/home-manager ] || [ "$(readlink -f ~/.config/home-manager)" != "$(readlink -f "$target")" ]; then
         ln -sfn "$target" ~/.config/home-manager
     fi
-    
+
     echo "Applying current Home Manager configuration..."
     home-manager switch --flake "$repo_path/packages/x64-linux" --impure
 }
@@ -187,7 +187,7 @@ hm-update() {
         echo "Run 'set_outfitting_repo /path/to/outfitting' to configure."
         return 1
     }
-    
+
     # Ensure symlink exists
     local target="$repo_path/packages/x64-linux"
     if [ ! -L ~/.config/home-manager ] || [ "$(readlink -f ~/.config/home-manager)" != "$(readlink -f "$target")" ]; then
@@ -195,7 +195,7 @@ hm-update() {
     fi
 
     # Update flake inputs (updates flake.lock)
-    nix flake update "$repo_path/packages/x64-linux"
+    nix flake update --flake "$repo_path/packages/x64-linux"
 
     # Apply updated configuration using current profile
     # Try to detect current profile and maintain it

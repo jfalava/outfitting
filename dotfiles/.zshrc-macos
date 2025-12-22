@@ -237,7 +237,7 @@ hm-update() {
     echo "Updating flake inputs and nix-darwin..."
 
     # Update flake lock file
-    nix flake update "$repo_path/packages/aarch64-darwin"
+    nix flake update --flake "$repo_path/packages/aarch64-darwin"
 
     # Apply updated configuration
     darwin-rebuild switch --flake "$repo_path/packages/aarch64-darwin"
