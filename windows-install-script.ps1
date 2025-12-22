@@ -236,15 +236,20 @@ if (Get-Command bun -ErrorAction SilentlyContinue) {
         Invoke-WebRequest -Uri $bunPackagesUrl -OutFile $bunPackagesFile -ErrorAction Stop
         Write-Host "❖ Bun packages list downloaded." -ForegroundColor Green
 
-        $bunPackages = Get-Content $bunPackagesFile | Where-Object { -Not ($_ -match '^\s*$') -and -Not ($_ -match '^#') }
+        # Validate that the file is not empty
+        if (-Not (Test-Path $bunPackagesFile) -or (Get-Item $bunPackagesFile).Length -eq 0) {
+            Write-Host "❖ Warning: Bun package list is empty" -ForegroundColor Yellow
+        } else {
+            $bunPackages = Get-Content $bunPackagesFile | Where-Object { -Not ($_ -match '^\s*$') -and -Not ($_ -match '^#') }
 
-        foreach ($package in $bunPackages) {
-            try {
-                bun install -g $package
-                Write-Host "❖ Installed Bun package: $package" -ForegroundColor Green
-            } catch {
-                Write-Host "❖ Failed to install Bun package: ${package}" -ForegroundColor Red
-                Write-Host "  - $_" -ForegroundColor Red
+            foreach ($package in $bunPackages) {
+                try {
+                    bun install -g $package
+                    Write-Host "❖ Installed Bun package: $package" -ForegroundColor Green
+                } catch {
+                    Write-Host "❖ Failed to install Bun package: ${package}" -ForegroundColor Red
+                    Write-Host "  - $_" -ForegroundColor Red
+                }
             }
         }
 
