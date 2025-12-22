@@ -15,7 +15,6 @@
     awscli2
     opentofu
     tofu-ls
-    tenv
     azure-cli
     tflint
     kubectl
