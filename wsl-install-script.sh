@@ -59,16 +59,27 @@ install_apt_packages() {
     fi
 
     # Install packages (skip comments and empty lines)
+    local installed=0 failed=0 failed_packages=""
     while IFS= read -r package || [[ -n "$package" ]]; do
         package=$(echo "$package" | tr -d '[:space:]')
         [[ -z "$package" || "$package" =~ ^# ]] && continue
         info "Installing: $package"
-        sudo apt install -y "$package" 2>/dev/null || warning "Failed: $package"
+        if sudo apt install -y "$package"; then
+            ((installed++))
+        else
+            ((failed++))
+            failed_packages="$failed_packages $package"
+        fi
     done < "$apt_file"
 
     sudo apt autoremove -y
     rm -f "$apt_file"
-    success "APT packages installed"
+
+    if [[ $failed -gt 0 ]]; then
+        warning "APT packages: $installed installed, $failed failed:$failed_packages"
+    else
+        success "APT packages: $installed installed"
+    fi
 }
 
 # ========================================
@@ -76,6 +87,15 @@ install_apt_packages() {
 # ========================================
 configure_repo() {
     info "Setting up outfitting repository..."
+
+    # Ensure git is available
+    if ! command -v git &>/dev/null; then
+        info "Installing git..."
+        sudo apt install -y git || {
+            error "Failed to install git"
+            return 1
+        }
+    fi
 
     local repo_path="$HOME/.config/outfitting/repo"
     local config_dir="$HOME/.config/outfitting"
@@ -127,7 +147,7 @@ install_nix() {
     sudo tee /etc/nix/nix.conf > /dev/null << 'EOF'
 substituters = https://cache.nixos.org/ https://nix-community.cachix.org
 trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs=
-trusted-users = root @wheel
+trusted-users = root @sudo
 auto-optimise-store = true
 max-jobs = auto
 experimental-features = nix-command flakes
@@ -267,8 +287,15 @@ main() {
     info "WSL Outfitting Setup"
     echo ""
 
-    # Ensure curl is available
-    sudo apt install -y curl 2>/dev/null || true
+    # Ensure curl is available (required for all modes)
+    if ! command -v curl &>/dev/null; then
+        info "Installing curl..."
+        sudo apt update -y
+        sudo apt install -y curl || {
+            error "Failed to install curl (required)"
+            exit 1
+        }
+    fi
 
     case "$MODE" in
         apt-only)
