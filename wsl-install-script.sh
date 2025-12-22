@@ -120,6 +120,86 @@ configure_repo() {
     mkdir -p "$config_dir"
     echo "$repo_path" > "$config_file"
     chmod 600 "$config_file"
+
+    echo "✓ Repository location configured successfully!"
+    return 0
+}
+
+# Call the configuration function
+configure_outfitting_repo
+
+echo ""
+
+if [[ "$MODE" != "update-only" ]]; then
+
+#####
+## Setup symlinks and backup existing dotfiles
+#####
+setup_symlinks() {
+    echo "❖ Setting up Home Manager configuration symlinks and backing up existing dotfiles..."
+
+    config_file="$HOME/.config/outfitting/repo-path"
+    if [ ! -f "$config_file" ]; then
+        echo "❖ Error: Repository not configured. Cannot create symlinks."
+        return 1
+    fi
+
+    repo_path=$(cat "$config_file")
+    hm_target="$repo_path/packages/x64-linux"
+
+    # Create ~/.config directory if it doesn't exist
+    mkdir -p "$HOME/.config"
+
+    # Backup existing managed files before creating symlinks
+    local timestamp
+    timestamp=$(date +%Y%m%d_%H%M%S)
+
+    # List of files/directories that Home Manager will manage
+    local managed_files=(".zshrc" ".zshrc-base")
+    local managed_dirs=(".config")
+
+    # Backup files
+    for file in "${managed_files[@]}"; do
+        if [ -f "$HOME/$file" ] && [ ! -L "$HOME/$file" ]; then
+            echo "❖ Backing up existing $file to ${file}.backup-${timestamp}"
+            mv "$HOME/$file" "$HOME/${file}.backup-${timestamp}"
+        fi
+    done
+
+    # Backup directories (but not if it's already a symlink)
+    for dir in "${managed_dirs[@]}"; do
+        if [ -d "$HOME/$dir" ] && [ ! -L "$HOME/$dir" ]; then
+            # Only backup .config if it doesn't contain the home-manager symlink
+            if [ -L "$HOME/$dir/home-manager" ]; then
+                echo "❖ Removing old home-manager symlink from $dir"
+                rm -f "$HOME/$dir/home-manager"
+            fi
+        fi
+    done
+
+    # Create symlink for home-manager
+    if [ ! -L "$HOME/.config/home-manager" ]; then
+        echo "❖ Creating symlink: ~/.config/home-manager → $hm_target"
+        ln -sfn "$hm_target" "$HOME/.config/home-manager"
+    else
+        echo "✓ Symlink already exists: ~/.config/home-manager"
+    fi
+
+    echo "✓ Symlinks created and backups completed!"
+    return 0
+}
+
+# Call the setup function
+setup_symlinks || {
+    echo "❖ Warning: Symlink setup failed, but continuing with Home Manager installation..."
+}
+
+#####
+## nix
+#####
+curl --proto '=https' --tlsv1.2 -sSf -L https://nixos.org/nix/install | sh -s -- --daemon || {
+    echo "❖ Failed to install Nix. Exiting..."
+    exit 1
 }
 
 # ========================================
@@ -225,51 +305,59 @@ install_runtimes() {
         info "Installing uv..."
         curl -LsSf https://astral.sh/uv/install.sh | sh
     fi
-    export PATH="$HOME/.local/bin:$PATH"
+else
+    echo "❖ Nix not found, skipping home-manager installation"
+fi
+fi
+fi
 
-    # Deno Jupyter (via Nix, may not be available yet)
-    deno jupyter --install 2>/dev/null || true
-}
+if [[ "$MODE" != "update-only" ]]; then
+#####
+## runtimes
+#####
 
-# ========================================
-# Bun Global Packages
-# ========================================
-install_bun_packages() {
-    if ! command -v bun &>/dev/null; then
-        warning "Bun not found, skipping global packages"
-        return 0
-    fi
+# Install Bun
+curl -fsSL https://bun.sh/install | bash
 
-    info "Installing Bun global packages..."
-    local url="https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/packages/bun.txt"
-    local file="/tmp/bun-packages.txt"
+# Source Bun in current session
+export BUN_INSTALL="$HOME/.bun"
+export PATH="$BUN_INSTALL/bin:$PATH"
 
-    if ! curl -fsSL "$url" -o "$file"; then
-        warning "Failed to fetch package list"
-        return 0
-    fi
+# Install Deno (via Nix, already in PATH from Home Manager)
+deno jupyter --install 2>/dev/null || echo "Note: Deno jupyter install skipped (deno may not be available yet)"
 
-    local installed=0 skipped=0 failed=0 failed_packages=""
-    while IFS= read -r package || [[ -n "$package" ]]; do
-        [[ -z "$package" || "$package" =~ ^[[:space:]]*# ]] && continue
-        package=$(echo "$package" | xargs)
-        [[ -z "$package" ]] && continue
+# Install uv
+curl -LsSf https://astral.sh/uv/install.sh | sh
 
-        if bun pm ls -g | grep -q "^$package@"; then
-            ((skipped++))
+# Source uv in current session
+export PATH="$HOME/.local/share/uv/bin:$PATH"
+
+#####
+## install bun global packages from bun.txt
+#####
+if command -v bun >/dev/null 2>&1; then
+    echo "❖ Installing Bun global packages..."
+    BUN_PACKAGES_URL="https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/packages/bun.txt"
+    BUN_PACKAGES_FILE="/tmp/bun-packages.txt"
+
+    if curl -fsSL "$BUN_PACKAGES_URL" -o "$BUN_PACKAGES_FILE"; then
+        # Validate that the file is not empty
+        if [ ! -s "$BUN_PACKAGES_FILE" ]; then
+            echo "❖ Warning: Bun package list is empty"
+            rm -f "$BUN_PACKAGES_FILE"
         else
-            if bun install -g "$package"; then
-                ((installed++))
-            else
-                ((failed++))
-                failed_packages="$failed_packages $package"
-            fi
+            while IFS= read -r package; do
+                # Skip empty lines and comments
+                [[ -z "$package" || "$package" =~ ^[[:space:]]*# ]] && continue
+                # Remove leading/trailing whitespace
+                package=$(echo "$package" | xargs)
+                if [[ -n "$package" ]]; then
+                    echo "Installing Bun package: $package"
+                    bun install -g "$package" || echo "❖ Warning: Failed to install $package"
+                fi
+            done < "$BUN_PACKAGES_FILE"
+            rm -f "$BUN_PACKAGES_FILE"
         fi
-    done < "$file"
-    rm -f "$file"
-
-    if [[ $failed -gt 0 ]]; then
-        warning "Bun packages: $installed installed, $skipped skipped, $failed failed:$failed_packages"
     else
         success "Bun packages: $installed installed, $skipped already present"
     fi

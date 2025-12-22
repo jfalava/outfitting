@@ -176,6 +176,13 @@ install_bun_packages() {
         return 0
     fi
 
+    # Validate that the file is not empty
+    if [ ! -s "$bunPackagesFile" ]; then
+        warning "Bun package list is empty"
+        rm -f "$bunPackagesFile"
+        return 0
+    fi
+
     local installed=0
     local failed=0
     while IFS= read -r package; do
