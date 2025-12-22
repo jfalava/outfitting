@@ -25,7 +25,7 @@
 
     settings = {
       user = {
-        email = "jorgefernando.alava@seidor.com";
+        email = lib.mkForce "jorgefernando.alava@seidor.com";
       };
     };
 
