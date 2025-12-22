@@ -66,7 +66,7 @@ configure_outfitting_repo() {
     echo ""
 
     # Always use default location for remote installation
-    repo_path="$HOME/Workspace/outfitting"
+    repo_path="$HOME/.config/outfitting/repo"
     echo "❖ Using default repository location: $repo_path"
 
     # Handle the repository setup
@@ -102,36 +102,36 @@ configure_outfitting_repo() {
     return 0
 }
 
-# Copy dotfiles before Nix installation
-copy_dotfiles() {
-    info "Copying dotfiles..."
+# Create symlinks for nix-darwin and Home Manager
+setup_symlinks() {
+    info "Setting up configuration symlinks..."
 
     config_file="$HOME/.config/outfitting/repo-path"
-    if [ -f "$config_file" ]; then
-        repo_path=$(cat "$config_file")
-        info "Using repository at: $repo_path"
-
-        # Backup existing zsh files if they exist
-        if [ -f "$HOME/.zshrc" ] && [ ! -L "$HOME/.zshrc" ]; then
-            info "Backing up existing .zshrc..."
-            mv "$HOME/.zshrc" "$HOME/.zshrc.backup.$(date +%Y%m%d-%H%M%S)"
-        fi
-        if [ -f "$HOME/.zshrc-base" ] && [ ! -L "$HOME/.zshrc-base" ]; then
-            info "Backing up existing .zshrc-base..."
-            mv "$HOME/.zshrc-base" "$HOME/.zshrc-base.backup.$(date +%Y%m%d-%H%M%S)"
-        fi
-
-        # Copy dotfiles
-        info "Copying .zshrc-macos to .zshrc..."
-        cp "$repo_path/dotfiles/.zshrc-macos" "$HOME/.zshrc"
-
-        info "Copying .zshrc-base..."
-        cp "$repo_path/dotfiles/.zshrc-base" "$HOME/.zshrc-base"
-
-        success "Dotfiles copied successfully!"
-    else
-        warning "Repository not configured. Skipping dotfile copy."
+    if [ ! -f "$config_file" ]; then
+        error "Repository not configured. Cannot create symlinks."
+        return 1
     fi
+
+    repo_path=$(cat "$config_file")
+    darwin_target="$repo_path/packages/aarch64-darwin/darwin.nix"
+    hm_target="$repo_path/packages/aarch64-darwin"
+
+    # Create ~/.nixpkgs directory
+    mkdir -p "$HOME/.nixpkgs"
+
+    # Symlink darwin-configuration.nix
+    if [ ! -L "$HOME/.nixpkgs/darwin-configuration.nix" ]; then
+        info "Creating symlink: ~/.nixpkgs/darwin-configuration.nix → $darwin_target"
+        ln -sfn "$darwin_target" "$HOME/.nixpkgs/darwin-configuration.nix"
+    fi
+
+    # Symlink home-manager directory
+    if [ ! -L "$HOME/.config/home-manager" ]; then
+        info "Creating symlink: ~/.config/home-manager → $hm_target"
+        ln -sfn "$hm_target" "$HOME/.config/home-manager"
+    fi
+
+    success "Symlinks created successfully!"
 }
 
 # Install Bun via official installer
@@ -312,8 +312,8 @@ main() {
     # Step 1: Configure repository
     configure_outfitting_repo
 
-    # Step 2: Copy dotfiles first (before Nix, so shell works)
-    copy_dotfiles
+    # Step 2: Create symlinks for nix-darwin and Home Manager
+    setup_symlinks
 
     # Step 3: Install Bun
     install_bun

@@ -127,17 +127,17 @@ curl -L mac.jfa.dev | bash
 
 ### Automatic Setup
 
-During installation, the repository is automatically cloned to `~/Workspace/outfitting` and **symlinked** to configuration directories:
+During installation, the repository is automatically cloned to `~/.config/outfitting/repo` and **symlinked** to configuration directories:
 
 **WSL/Linux:**
 ```bash
-~/.config/home-manager → ~/Workspace/outfitting/packages/x64-linux
+~/.config/home-manager → ~/.config/outfitting/repo/packages/x64-linux
 ```
 
 **macOS:**
 ```bash
-~/.config/home-manager → ~/Workspace/outfitting/packages/aarch64-darwin
-~/.nixpkgs/darwin-configuration.nix → ~/Workspace/outfitting/packages/aarch64-darwin/darwin.nix
+~/.config/home-manager → ~/.config/outfitting/repo/packages/aarch64-darwin
+~/.nixpkgs/darwin-configuration.nix → ~/.config/outfitting/repo/packages/aarch64-darwin/darwin.nix
 ```
 
 ## Updating After Installation
@@ -152,7 +152,7 @@ curl -L wsl.jfa.dev | bash
 
 #### Update Local Configuration
 
-After editing files in `~/Workspace/outfitting`:
+After editing files in `~/.config/outfitting/repo`:
 
 ```bash
 git pull                    # Pull latest changes from GitHub
@@ -177,7 +177,7 @@ curl -L wsl.jfa.dev | bash -s -- --full-install  # Full reinstall
 
 #### Update Local Configuration
 
-After editing files in `~/Workspace/outfitting`:
+After editing files in `~/.config/outfitting/repo`:
 
 ```bash
 git pull                    # Pull latest changes from GitHub

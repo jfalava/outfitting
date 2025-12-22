@@ -57,8 +57,8 @@ Installation script dynamically combines these based on profile selection (e.g.,
 ### Repository Symlinking Pattern
 
 Installation scripts create symlinks from standard config locations to this repository:
-- WSL: `~/.config/home-manager` → `~/Workspace/outfitting/packages/x64-linux`
-- macOS: `~/.config/home-manager` → `~/Workspace/outfitting/packages/aarch64-darwin`
+- WSL: `~/.config/home-manager` → `~/.config/outfitting/repo/packages/x64-linux`
+- macOS: `~/.config/home-manager` → `~/.config/outfitting/repo/packages/aarch64-darwin`
 
 This allows editing Nix configs in the repo directory and version controlling changes.
 
