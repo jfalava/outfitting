@@ -117,7 +117,7 @@ hm-personal() {
 hm-work() {
     local repo_path=$(get_outfitting_repo) || { setup_outfitting_repo; repo_path=$(get_outfitting_repo); }
     home-manager switch --flake "$repo_path/packages/x64-linux#jfalava-work" --impure
-    echo "✓ Work profile active (AWS, K8s, etc.)"
+    echo "✓ Work profile active"
 }
 
 # Quick profile check - detects current flake configuration
@@ -133,7 +133,7 @@ hm-profile() {
 
         # Try to detect current profile by checking for work-specific packages
         if command -v terraform &>/dev/null && command -v kubectl &>/dev/null; then
-            echo "Current: work (AWS, K8s tools detected)"
+            echo "Current: work"
         else
             echo "Current: personal"
         fi

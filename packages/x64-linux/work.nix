@@ -1,13 +1,21 @@
 # Work configuration extension for Home Manager
 # This extends the base (personal) configuration with work-specific settings
 
-{ config, pkgs, lib, ... }:
+{
+  config,
+  pkgs,
+  lib,
+  ...
+}:
 
 {
   # Work-specific packages (appended to base packages)
   home.packages = with pkgs; [
     # Cloud and infrastructure tools
     awscli2
+    opentofu
+    tofu-ls
+    tenv
     azure-cli
     tflint
     kubectl
