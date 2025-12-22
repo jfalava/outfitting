@@ -189,11 +189,6 @@ setup_symlinks() {
     return 0
 }
 
-# Call the setup function
-setup_symlinks || {
-    echo "❖ Warning: Symlink setup failed, but continuing with Home Manager installation..."
-}
-
 #####
 ## nix
 #####
@@ -332,34 +327,62 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 # Source uv in current session
 export PATH="$HOME/.local/share/uv/bin:$PATH"
 
-#####
-## install bun global packages from bun.txt
-#####
-if command -v bun >/dev/null 2>&1; then
-    echo "❖ Installing Bun global packages..."
-    BUN_PACKAGES_URL="https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/packages/bun.txt"
-    BUN_PACKAGES_FILE="/tmp/bun-packages.txt"
+# ========================================
+# Bun Global Packages
+# ========================================
+install_bun_packages() {
+    info "Installing Bun global packages..."
 
-    if curl -fsSL "$BUN_PACKAGES_URL" -o "$BUN_PACKAGES_FILE"; then
-        # Validate that the file is not empty
-        if [ ! -s "$BUN_PACKAGES_FILE" ]; then
-            echo "❖ Warning: Bun package list is empty"
-            rm -f "$BUN_PACKAGES_FILE"
-        else
-            while IFS= read -r package; do
-                # Skip empty lines and comments
-                [[ -z "$package" || "$package" =~ ^[[:space:]]*# ]] && continue
-                # Remove leading/trailing whitespace
-                package=$(echo "$package" | xargs)
-                if [[ -n "$package" ]]; then
-                    echo "Installing Bun package: $package"
-                    bun install -g "$package" || echo "❖ Warning: Failed to install $package"
+    if ! command -v bun >/dev/null 2>&1; then
+        echo "❖ Bun not found, skipping global package installations"
+        return 0
+    fi
+
+    local bunPackagesUrl="https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/packages/bun.txt"
+    local bunPackagesFile="/tmp/bun-packages.txt"
+
+    if ! curl -fsSL "$bunPackagesUrl" -o "$bunPackagesFile" 2>/dev/null; then
+        echo "❖ Warning: Failed to fetch Bun packages list, skipping"
+        return 0
+    fi
+
+    # Validate file is not empty and remove if empty
+    if [ ! -s "$bunPackagesFile" ]; then
+        rm -f "$bunPackagesFile"
+        echo "❖ Warning: Bun packages file is empty, skipping"
+        return 0
+    fi
+
+    local installed=0
+    local failed=0
+    while IFS= read -r package || [[ -n "$package" ]]; do
+        # Skip empty lines and comments
+        [[ -z "$package" || "$package" =~ ^[[:space:]]*# ]] && continue
+        # Remove leading/trailing whitespace
+        package=$(echo "$package" | xargs)
+        if [[ -n "$package" ]]; then
+            # Check existing global packages via bun pm ls -g
+            if bun pm ls -g 2>/dev/null | grep -q "^$package@"; then
+                info "Package already installed: $package"
+                ((installed++))
+            else
+                info "Installing Bun package: $package"
+                if bun install -g "$package" 2>/dev/null; then
+                    ((installed++))
+                else
+                    echo "❖ Warning: Failed to install: $package"
+                    ((failed++))
                 fi
-            done < "$BUN_PACKAGES_FILE"
-            rm -f "$BUN_PACKAGES_FILE"
+            fi
         fi
-    else
-        success "Bun packages: $installed installed, $skipped already present"
+    done < "$bunPackagesFile"
+    rm -f "$bunPackagesFile"
+
+    if [[ $installed -gt 0 ]]; then
+        success "Bun packages: $installed installed/verified"
+    fi
+    if [[ $failed -gt 0 ]]; then
+        echo "❖ Warning: Bun packages: $failed failed"
     fi
 }
 
@@ -402,6 +425,7 @@ main() {
             install_apt_packages
             configure_repo
             install_nix
+            setup_symlinks
             install_home_manager
             install_runtimes
             install_bun_packages
@@ -410,6 +434,7 @@ main() {
         nix|*)
             configure_repo
             install_nix
+            setup_symlinks
             install_home_manager
             install_runtimes
             install_bun_packages
