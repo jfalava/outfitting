@@ -244,26 +244,35 @@ install_bun_packages() {
     local url="https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/packages/bun.txt"
     local file="/tmp/bun-packages.txt"
 
-    if ! curl -fsSL "$url" -o "$file" 2>/dev/null; then
+    if ! curl -fsSL "$url" -o "$file"; then
         warning "Failed to fetch package list"
         return 0
     fi
 
-    local installed=0 skipped=0
+    local installed=0 skipped=0 failed=0 failed_packages=""
     while IFS= read -r package || [[ -n "$package" ]]; do
         [[ -z "$package" || "$package" =~ ^[[:space:]]*# ]] && continue
         package=$(echo "$package" | xargs)
         [[ -z "$package" ]] && continue
 
-        if bun pm ls -g 2>/dev/null | grep -q "^$package@"; then
+        if bun pm ls -g | grep -q "^$package@"; then
             ((skipped++))
         else
-            bun install -g "$package" 2>/dev/null && ((installed++)) || warning "Failed: $package"
+            if bun install -g "$package"; then
+                ((installed++))
+            else
+                ((failed++))
+                failed_packages="$failed_packages $package"
+            fi
         fi
     done < "$file"
     rm -f "$file"
 
-    success "Bun packages: $installed installed, $skipped already present"
+    if [[ $failed -gt 0 ]]; then
+        warning "Bun packages: $installed installed, $skipped skipped, $failed failed:$failed_packages"
+    else
+        success "Bun packages: $installed installed, $skipped already present"
+    fi
 }
 
 # ========================================
