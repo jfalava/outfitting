@@ -103,20 +103,20 @@ setup_outfitting_repo() {
 # Home Manager management functions - streamlined for personal use
 hm-sync() {
     local repo_path=$(get_outfitting_repo) || { setup_outfitting_repo; repo_path=$(get_outfitting_repo); }
-    home-manager switch --flake "$repo_path/packages/x64-linux"
+    home-manager switch --flake "$repo_path/packages/x64-linux" --impure
     echo "✓ Synced from $repo_path"
 }
 
 # Profile switching functions - using flake composition
 hm-personal() {
     local repo_path=$(get_outfitting_repo) || { setup_outfitting_repo; repo_path=$(get_outfitting_repo); }
-    home-manager switch --flake "$repo_path/packages/x64-linux#jfalava-personal"
+    home-manager switch --flake "$repo_path/packages/x64-linux#jfalava-personal" --impure
     echo "✓ Personal profile active"
 }
 
 hm-work() {
     local repo_path=$(get_outfitting_repo) || { setup_outfitting_repo; repo_path=$(get_outfitting_repo); }
-    home-manager switch --flake "$repo_path/packages/x64-linux#jfalava-work"
+    home-manager switch --flake "$repo_path/packages/x64-linux#jfalava-work" --impure
     echo "✓ Work profile active (AWS, K8s, etc.)"
 }
 
@@ -143,7 +143,7 @@ hm-profile() {
 hm-switch() {
     local repo_path=$(get_outfitting_repo) || { setup_outfitting_repo; repo_path=$(get_outfitting_repo); }
     echo "Applying current Home Manager configuration..."
-    home-manager switch --flake "$repo_path/packages/x64-linux"
+    home-manager switch --flake "$repo_path/packages/x64-linux" --impure
 }
 
 hm-update() {
@@ -157,10 +157,10 @@ hm-update() {
     # Try to detect current profile and maintain it
     if command -v aws >/dev/null 2>&1 && command -v k9s >/dev/null 2>&1; then
         echo "Detected work profile, maintaining work configuration..."
-        home-manager switch --flake "$repo_path/packages/x64-linux#jfalava-work"
+        home-manager switch --flake "$repo_path/packages/x64-linux#jfalava-work" --impure
     else
         echo "Using personal profile..."
-        home-manager switch --flake "$repo_path/packages/x64-linux#jfalava-personal"
+        home-manager switch --flake "$repo_path/packages/x64-linux#jfalava-personal" --impure
     fi
 
     echo ""
