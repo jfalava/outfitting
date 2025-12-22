@@ -99,7 +99,7 @@ configure_outfitting_repo() {
     echo ""
 
     # Always use default location for remote installation
-    repo_path="$HOME/Workspace/outfitting"
+    repo_path="$HOME/.config/outfitting/repo"
     echo "Using default repository location: $repo_path"
 
     # Handle the repository setup

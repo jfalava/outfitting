@@ -55,9 +55,9 @@ Declarative environment management using Nix channels with Home Manager/nix-darw
 
 **Configuration Approach (Symlinks):**
 - Install scripts **symlink** configuration directories (not copy)
-- WSL: `~/.config/home-manager` → `~/Workspace/outfitting/packages/x64-linux`
-- macOS: `~/.config/home-manager` → `~/Workspace/outfitting/packages/aarch64-darwin`
-- macOS: `~/.nixpkgs/darwin-configuration.nix` → `~/Workspace/outfitting/packages/aarch64-darwin/darwin.nix`
+- WSL: `~/.config/home-manager` → `~/.config/outfitting/repo/packages/x64-linux`
+- macOS: `~/.config/home-manager` → `~/.config/outfitting/repo/packages/aarch64-darwin`
+- macOS: `~/.nixpkgs/darwin-configuration.nix` → `~/.config/outfitting/repo/packages/aarch64-darwin/darwin.nix`
 - **Benefit**: Changes to repo files immediately apply via `home-manager switch` or `darwin-rebuild switch`
 - **Benefit**: Preserves relative paths to `../../dotfiles/` in home.nix
 
@@ -249,7 +249,7 @@ Both WSL and macOS installations include a configurable repository location syst
 ### Configuration Process
 
 During installation, the default repository location is set to:
-- **Default**: `~/Workspace/outfitting` (cloned automatically if doesn't exist)
+- **Default**: `~/.config/outfitting/repo` (cloned automatically if doesn't exist)
 
 ### Configuration Storage
 
@@ -259,26 +259,23 @@ Repository location is stored in: `~/.config/outfitting/repo-path`
 
 **WSL/Linux:**
 ```bash
-~/.config/home-manager → ~/Workspace/outfitting/packages/x64-linux
-~/.zshrc → ~/Workspace/outfitting/packages/x64-linux/../../dotfiles/.zshrc-wsl (via Home Manager)
-~/.zshrc-base → ~/Workspace/outfitting/dotfiles/.zshrc-base (via Home Manager)
+~/.config/home-manager → ~/.config/outfitting/repo/packages/x64-linux
+~/.zshrc → ~/.config/outfitting/repo/packages/x64-linux/../../dotfiles/.zshrc-wsl (via Home Manager)
+~/.zshrc-base → ~/.config/outfitting/repo/dotfiles/.zshrc-base (via Home Manager)
 ```
 
 **macOS:**
 ```bash
-~/.config/home-manager → ~/Workspace/outfitting/packages/aarch64-darwin
-~/.nixpkgs/darwin-configuration.nix → ~/Workspace/outfitting/packages/aarch64-darwin/darwin.nix
-~/.zshrc → ~/Workspace/outfitting/packages/aarch64-darwin/../../dotfiles/.zshrc-macos (via Home Manager)
-~/.zshrc-base → ~/Workspace/outfitting/dotfiles/.zshrc-base (via Home Manager)
+~/.config/home-manager → ~/.config/outfitting/repo/packages/aarch64-darwin
+~/.nixpkgs/darwin-configuration.nix → ~/.config/outfitting/repo/packages/aarch64-darwin/darwin.nix
+~/.zshrc → ~/.config/outfitting/repo/packages/aarch64-darwin/../../dotfiles/.zshrc-macos (via Home Manager)
+~/.zshrc-base → ~/.config/outfitting/repo/dotfiles/.zshrc-base (via Home Manager)
 ```
 
 ### Setup Commands
 
 ```bash
-# Interactive setup (run if skipped during installation)
-setup-outfitting-repo
-
-# Manual configuration
+# Change repository location to a custom path
 set_outfitting_repo ~/path/to/outfitting
 ```
 

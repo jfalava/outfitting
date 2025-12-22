@@ -140,26 +140,30 @@ set_outfitting_repo() {
     return 0
 }
 
-setup_outfitting_repo() {
-    repo_path="$HOME/Workspace/outfitting"
-    if [ ! -d "$repo_path" ]; then
-        mkdir -p "$(dirname "$repo_path")"
-        if ! git clone https://github.com/jfalava/outfitting.git "$repo_path"; then
-            echo "Error: Failed to clone repository"
-            return 1
-        fi
-    fi
-    set_outfitting_repo "$repo_path"
-    echo "✓ Repository ready: $repo_path"
-}
+
 
 # nix-darwin management functions
 hm-sync() {
-    local repo_path=$(get_outfitting_repo) || { setup_outfitting_repo; repo_path=$(get_outfitting_repo); }
+    local repo_path=$(get_outfitting_repo) || {
+        echo "Error: Repository location not configured."
+        echo "Run 'set_outfitting_repo /path/to/outfitting' to configure."
+        return 1
+    }
 
     # Ensure symlinks are set up correctly
-    ln -sfn "$repo_path/packages/aarch64-darwin/darwin.nix" ~/.nixpkgs/darwin-configuration.nix
-    ln -sfn "$repo_path/packages/aarch64-darwin" ~/.config/home-manager
+    local darwin_target="$repo_path/packages/aarch64-darwin/darwin.nix"
+    local hm_target="$repo_path/packages/aarch64-darwin"
+
+    if [ ! -L ~/.nixpkgs/darwin-configuration.nix ] || [ "$(readlink -f ~/.nixpkgs/darwin-configuration.nix)" != "$(readlink -f "$darwin_target")" ]; then
+        echo "✓ Creating/updating symlink: ~/.nixpkgs/darwin-configuration.nix → $darwin_target"
+        mkdir -p ~/.nixpkgs
+        ln -sfn "$darwin_target" ~/.nixpkgs/darwin-configuration.nix
+    fi
+
+    if [ ! -L ~/.config/home-manager ] || [ "$(readlink -f ~/.config/home-manager)" != "$(readlink -f "$hm_target")" ]; then
+        echo "✓ Creating/updating symlink: ~/.config/home-manager → $hm_target"
+        ln -sfn "$hm_target" ~/.config/home-manager
+    fi
 
     darwin-rebuild switch --flake "$repo_path/packages/aarch64-darwin"
     echo "✓ Synced from $repo_path"
@@ -173,17 +177,25 @@ hm-switch() {
 hm-switch-local() {
     local repo_path
     repo_path=$(get_outfitting_repo) || {
-        echo "Error: Outfitting repository location not configured."
-        echo ""
-        setup_outfitting_repo || return 1
-        repo_path=$(get_outfitting_repo)
+        echo "Error: Repository location not configured."
+        echo "Run 'set_outfitting_repo /path/to/outfitting' to configure."
+        return 1
     }
 
     echo "Applying nix-darwin configuration from local repo..."
 
     # Ensure symlinks are set up correctly
-    ln -sfn "$repo_path/packages/aarch64-darwin/darwin.nix" ~/.nixpkgs/darwin-configuration.nix
-    ln -sfn "$repo_path/packages/aarch64-darwin" ~/.config/home-manager
+    local darwin_target="$repo_path/packages/aarch64-darwin/darwin.nix"
+    local hm_target="$repo_path/packages/aarch64-darwin"
+
+    if [ ! -L ~/.nixpkgs/darwin-configuration.nix ] || [ "$(readlink -f ~/.nixpkgs/darwin-configuration.nix)" != "$(readlink -f "$darwin_target")" ]; then
+        mkdir -p ~/.nixpkgs
+        ln -sfn "$darwin_target" ~/.nixpkgs/darwin-configuration.nix
+    fi
+
+    if [ ! -L ~/.config/home-manager ] || [ "$(readlink -f ~/.config/home-manager)" != "$(readlink -f "$hm_target")" ]; then
+        ln -sfn "$hm_target" ~/.config/home-manager
+    fi
 
     # Apply configuration
     darwin-rebuild switch
@@ -203,16 +215,33 @@ hm-switch-local() {
 }
 
 hm-update() {
-    local repo_path=$(get_outfitting_repo) || { setup_outfitting_repo; repo_path=$(get_outfitting_repo); }
-    
+    local repo_path=$(get_outfitting_repo) || {
+        echo "Error: Repository location not configured."
+        echo "Run 'set_outfitting_repo /path/to/outfitting' to configure."
+        return 1
+    }
+
+    # Ensure symlinks are set up correctly
+    local darwin_target="$repo_path/packages/aarch64-darwin/darwin.nix"
+    local hm_target="$repo_path/packages/aarch64-darwin"
+
+    if [ ! -L ~/.nixpkgs/darwin-configuration.nix ] || [ "$(readlink -f ~/.nixpkgs/darwin-configuration.nix)" != "$(readlink -f "$darwin_target")" ]; then
+        mkdir -p ~/.nixpkgs
+        ln -sfn "$darwin_target" ~/.nixpkgs/darwin-configuration.nix
+    fi
+
+    if [ ! -L ~/.config/home-manager ] || [ "$(readlink -f ~/.config/home-manager)" != "$(readlink -f "$hm_target")" ]; then
+        ln -sfn "$hm_target" ~/.config/home-manager
+    fi
+
     echo "Updating flake inputs and nix-darwin..."
-    
+
     # Update flake lock file
     nix flake update "$repo_path/packages/aarch64-darwin"
-    
+
     # Apply updated configuration
     darwin-rebuild switch --flake "$repo_path/packages/aarch64-darwin"
-    
+
     echo ""
     echo "✓ Nix packages updated successfully!"
     echo ""
@@ -241,7 +270,25 @@ update-all() {
 
 # Quick nix-darwin rebuild from anywhere in the system
 outfit-rebuild() {
-    local repo_path=$(get_outfitting_repo) || { setup_outfitting_repo; repo_path=$(get_outfitting_repo); }
+    local repo_path=$(get_outfitting_repo) || {
+        echo "Error: Repository location not configured."
+        echo "Run 'set_outfitting_repo /path/to/outfitting' to configure."
+        return 1
+    }
+
+    # Ensure symlinks exist
+    local darwin_target="$repo_path/packages/aarch64-darwin/darwin.nix"
+    local hm_target="$repo_path/packages/aarch64-darwin"
+
+    if [ ! -L ~/.nixpkgs/darwin-configuration.nix ]; then
+        mkdir -p ~/.nixpkgs
+        ln -sfn "$darwin_target" ~/.nixpkgs/darwin-configuration.nix
+    fi
+
+    if [ ! -L ~/.config/home-manager ]; then
+        ln -sfn "$hm_target" ~/.config/home-manager
+    fi
+
     cd "$repo_path/packages/aarch64-darwin" || return 1
 
     case "${1:-switch}" in

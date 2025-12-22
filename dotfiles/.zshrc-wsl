@@ -87,35 +87,58 @@ set_outfitting_repo() {
     return 0
 }
 
-setup_outfitting_repo() {
-    repo_path="$HOME/Workspace/outfitting"
-    if [ ! -d "$repo_path" ]; then
-        mkdir -p "$(dirname "$repo_path")"
-        if ! git clone https://github.com/jfalava/outfitting.git "$repo_path"; then
-            echo "Error: Failed to clone repository"
-            return 1
-        fi
-    fi
-    set_outfitting_repo "$repo_path"
-    echo "✓ Repository ready: $repo_path"
-}
+
 
 # Home Manager management functions - streamlined for personal use
 hm-sync() {
-    local repo_path=$(get_outfitting_repo) || { setup_outfitting_repo; repo_path=$(get_outfitting_repo); }
+    local repo_path=$(get_outfitting_repo) || {
+        echo "Error: Repository location not configured."
+        echo "Run 'set_outfitting_repo /path/to/outfitting' to configure."
+        return 1
+    }
+    
+    # Ensure symlink exists and points to correct location
+    local target="$repo_path/packages/x64-linux"
+    if [ ! -L ~/.config/home-manager ] || [ "$(readlink -f ~/.config/home-manager)" != "$(readlink -f "$target")" ]; then
+        echo "✓ Creating/updating symlink: ~/.config/home-manager → $target"
+        ln -sfn "$target" ~/.config/home-manager
+    fi
+    
     home-manager switch --flake "$repo_path/packages/x64-linux" --impure
     echo "✓ Synced from $repo_path"
 }
 
 # Profile switching functions - using flake composition
 hm-personal() {
-    local repo_path=$(get_outfitting_repo) || { setup_outfitting_repo; repo_path=$(get_outfitting_repo); }
+    local repo_path=$(get_outfitting_repo) || {
+        echo "Error: Repository location not configured."
+        echo "Run 'set_outfitting_repo /path/to/outfitting' to configure."
+        return 1
+    }
+    
+    # Ensure symlink exists
+    local target="$repo_path/packages/x64-linux"
+    if [ ! -L ~/.config/home-manager ] || [ "$(readlink -f ~/.config/home-manager)" != "$(readlink -f "$target")" ]; then
+        ln -sfn "$target" ~/.config/home-manager
+    fi
+    
     home-manager switch --flake "$repo_path/packages/x64-linux#jfalava-personal" --impure
     echo "✓ Personal profile active"
 }
 
 hm-work() {
-    local repo_path=$(get_outfitting_repo) || { setup_outfitting_repo; repo_path=$(get_outfitting_repo); }
+    local repo_path=$(get_outfitting_repo) || {
+        echo "Error: Repository location not configured."
+        echo "Run 'set_outfitting_repo /path/to/outfitting' to configure."
+        return 1
+    }
+    
+    # Ensure symlink exists
+    local target="$repo_path/packages/x64-linux"
+    if [ ! -L ~/.config/home-manager ] || [ "$(readlink -f ~/.config/home-manager)" != "$(readlink -f "$target")" ]; then
+        ln -sfn "$target" ~/.config/home-manager
+    fi
+    
     home-manager switch --flake "$repo_path/packages/x64-linux#jfalava-work" --impure
     echo "✓ Work profile active"
 }
@@ -141,14 +164,35 @@ hm-profile() {
 }
 
 hm-switch() {
-    local repo_path=$(get_outfitting_repo) || { setup_outfitting_repo; repo_path=$(get_outfitting_repo); }
+    local repo_path=$(get_outfitting_repo) || {
+        echo "Error: Repository location not configured."
+        echo "Run 'set_outfitting_repo /path/to/outfitting' to configure."
+        return 1
+    }
+    
+    # Ensure symlink exists
+    local target="$repo_path/packages/x64-linux"
+    if [ ! -L ~/.config/home-manager ] || [ "$(readlink -f ~/.config/home-manager)" != "$(readlink -f "$target")" ]; then
+        ln -sfn "$target" ~/.config/home-manager
+    fi
+    
     echo "Applying current Home Manager configuration..."
     home-manager switch --flake "$repo_path/packages/x64-linux" --impure
 }
 
 hm-update() {
     echo "Updating flake inputs and Home Manager..."
-    local repo_path=$(get_outfitting_repo) || { setup_outfitting_repo; repo_path=$(get_outfitting_repo); }
+    local repo_path=$(get_outfitting_repo) || {
+        echo "Error: Repository location not configured."
+        echo "Run 'set_outfitting_repo /path/to/outfitting' to configure."
+        return 1
+    }
+    
+    # Ensure symlink exists
+    local target="$repo_path/packages/x64-linux"
+    if [ ! -L ~/.config/home-manager ] || [ "$(readlink -f ~/.config/home-manager)" != "$(readlink -f "$target")" ]; then
+        ln -sfn "$target" ~/.config/home-manager
+    fi
 
     # Update flake inputs (updates flake.lock)
     nix flake update "$repo_path/packages/x64-linux"
