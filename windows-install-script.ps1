@@ -83,6 +83,77 @@ $psModules = @("PSReadLine")
 Install-PSModules -modules $psModules
 
 #####
+## install and configure OpenSSH Server for Tailscale SSH
+#####
+Write-Host "`n❖ Installing OpenSSH Server from GitHub..." -ForegroundColor Cyan
+try {
+    # Check if sshd service already exists
+    $sshdService = Get-Service -Name sshd -ErrorAction SilentlyContinue
+
+    if ($null -eq $sshdService) {
+        Write-Host "❖ Downloading latest OpenSSH Server from GitHub..." -ForegroundColor Cyan
+
+        # Get latest release info from GitHub API
+        $apiUrl = "https://api.github.com/repos/PowerShell/Win32-OpenSSH/releases/latest"
+        $releaseInfo = Invoke-RestMethod -Uri $apiUrl -Headers @{ "User-Agent" = "PowerShellScript" }
+
+        # Find the Win64 package
+        $asset = $releaseInfo.assets | Where-Object { $_.name -like "*Win64.zip" } | Select-Object -First 1
+
+        if ($null -eq $asset) {
+            throw "Could not find Win64 package in latest release"
+        }
+
+        $downloadUrl = $asset.browser_download_url
+        $zipPath = "$env:TEMP\OpenSSH-Win64.zip"
+        $extractPath = "$env:TEMP\OpenSSH-Win64"
+
+        # Download the package
+        Invoke-WebRequest -Uri $downloadUrl -OutFile $zipPath -ErrorAction Stop
+        Write-Host "❖ Downloaded OpenSSH Server v$($releaseInfo.tag_name)" -ForegroundColor Green
+
+        # Extract the package
+        Expand-Archive -Path $zipPath -DestinationPath $env:TEMP -Force
+
+        # Install OpenSSH Server
+        $installScript = Join-Path $extractPath "OpenSSH-Win64\install-sshd.ps1"
+        if (Test-Path $installScript) {
+            & powershell.exe -ExecutionPolicy Bypass -File $installScript
+            Write-Host "❖ OpenSSH Server installed successfully." -ForegroundColor Green
+        } else {
+            throw "Install script not found at: $installScript"
+        }
+
+        # Cleanup
+        Remove-Item $zipPath -ErrorAction SilentlyContinue
+        Remove-Item $extractPath -Recurse -ErrorAction SilentlyContinue
+    } else {
+        Write-Host "❖ OpenSSH Server is already installed." -ForegroundColor Yellow
+    }
+
+    # Start the sshd service
+    Start-Service sshd -ErrorAction SilentlyContinue
+    Write-Host "❖ OpenSSH Server service started." -ForegroundColor Green
+
+    # Set sshd service to start automatically
+    Set-Service -Name sshd -StartupType 'Automatic'
+    Write-Host "❖ OpenSSH Server service set to start automatically." -ForegroundColor Green
+
+    # Confirm the firewall rule is configured
+    $firewallRule = Get-NetFirewallRule -Name "OpenSSH-Server-In-TCP" -ErrorAction SilentlyContinue
+    if ($null -eq $firewallRule) {
+        New-NetFirewallRule -Name 'OpenSSH-Server-In-TCP' -DisplayName 'OpenSSH Server (sshd)' -Enabled True -Direction Inbound -Protocol TCP -Action Allow -LocalPort 22
+        Write-Host "❖ Firewall rule for SSH created." -ForegroundColor Green
+    } else {
+        Write-Host "❖ Firewall rule for SSH already exists." -ForegroundColor Yellow
+    }
+} catch {
+    Write-Host "❖ Failed to install/configure OpenSSH Server:" -ForegroundColor Red
+    Write-Host "  - $_" -ForegroundColor Red
+    Write-Host "❖ You may need to install it manually or run the script as Administrator." -ForegroundColor Yellow
+}
+
+#####
 ## install registry tweaks interactively (dynamic discovery via GitHub API)
 #####
 $baseRegUrl = "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main"
