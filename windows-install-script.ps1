@@ -85,28 +85,61 @@ Install-PSModules -modules $psModules
 #####
 ## install and configure OpenSSH Server for Tailscale SSH
 #####
-Write-Host "`n❖ Installing OpenSSH Server..." -ForegroundColor Cyan
+Write-Host "`n❖ Installing OpenSSH Server from GitHub..." -ForegroundColor Cyan
 try {
-    # Check if OpenSSH Server is already installed
-    $sshServerInstalled = Get-WindowsCapability -Online | Where-Object Name -like 'OpenSSH.Server*'
+    # Check if sshd service already exists
+    $sshdService = Get-Service -Name sshd -ErrorAction SilentlyContinue
 
-    if ($sshServerInstalled.State -ne "Installed") {
+    if ($null -eq $sshdService) {
+        Write-Host "❖ Downloading latest OpenSSH Server from GitHub..." -ForegroundColor Cyan
+
+        # Get latest release info from GitHub API
+        $apiUrl = "https://api.github.com/repos/PowerShell/Win32-OpenSSH/releases/latest"
+        $releaseInfo = Invoke-RestMethod -Uri $apiUrl -Headers @{ "User-Agent" = "PowerShellScript" }
+
+        # Find the Win64 package
+        $asset = $releaseInfo.assets | Where-Object { $_.name -like "*Win64.zip" } | Select-Object -First 1
+
+        if ($null -eq $asset) {
+            throw "Could not find Win64 package in latest release"
+        }
+
+        $downloadUrl = $asset.browser_download_url
+        $zipPath = "$env:TEMP\OpenSSH-Win64.zip"
+        $extractPath = "$env:TEMP\OpenSSH-Win64"
+
+        # Download the package
+        Invoke-WebRequest -Uri $downloadUrl -OutFile $zipPath -ErrorAction Stop
+        Write-Host "❖ Downloaded OpenSSH Server v$($releaseInfo.tag_name)" -ForegroundColor Green
+
+        # Extract the package
+        Expand-Archive -Path $zipPath -DestinationPath $env:TEMP -Force
+
         # Install OpenSSH Server
-        Add-WindowsCapability -Online -Name OpenSSH.Server~~~~0.0.1.0
-        Write-Host "❖ OpenSSH Server installed successfully." -ForegroundColor Green
+        $installScript = Join-Path $extractPath "OpenSSH-Win64\install-sshd.ps1"
+        if (Test-Path $installScript) {
+            & powershell.exe -ExecutionPolicy Bypass -File $installScript
+            Write-Host "❖ OpenSSH Server installed successfully." -ForegroundColor Green
+        } else {
+            throw "Install script not found at: $installScript"
+        }
+
+        # Cleanup
+        Remove-Item $zipPath -ErrorAction SilentlyContinue
+        Remove-Item $extractPath -Recurse -ErrorAction SilentlyContinue
     } else {
         Write-Host "❖ OpenSSH Server is already installed." -ForegroundColor Yellow
     }
 
     # Start the sshd service
-    Start-Service sshd
+    Start-Service sshd -ErrorAction SilentlyContinue
     Write-Host "❖ OpenSSH Server service started." -ForegroundColor Green
 
     # Set sshd service to start automatically
     Set-Service -Name sshd -StartupType 'Automatic'
     Write-Host "❖ OpenSSH Server service set to start automatically." -ForegroundColor Green
 
-    # Confirm the firewall rule is configured (it should be created automatically)
+    # Confirm the firewall rule is configured
     $firewallRule = Get-NetFirewallRule -Name "OpenSSH-Server-In-TCP" -ErrorAction SilentlyContinue
     if ($null -eq $firewallRule) {
         New-NetFirewallRule -Name 'OpenSSH-Server-In-TCP' -DisplayName 'OpenSSH Server (sshd)' -Enabled True -Direction Inbound -Protocol TCP -Action Allow -LocalPort 22
