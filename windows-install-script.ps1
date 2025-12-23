@@ -83,6 +83,44 @@ $psModules = @("PSReadLine")
 Install-PSModules -modules $psModules
 
 #####
+## install and configure OpenSSH Server for Tailscale SSH
+#####
+Write-Host "`n❖ Installing OpenSSH Server..." -ForegroundColor Cyan
+try {
+    # Check if OpenSSH Server is already installed
+    $sshServerInstalled = Get-WindowsCapability -Online | Where-Object Name -like 'OpenSSH.Server*'
+
+    if ($sshServerInstalled.State -ne "Installed") {
+        # Install OpenSSH Server
+        Add-WindowsCapability -Online -Name OpenSSH.Server~~~~0.0.1.0
+        Write-Host "❖ OpenSSH Server installed successfully." -ForegroundColor Green
+    } else {
+        Write-Host "❖ OpenSSH Server is already installed." -ForegroundColor Yellow
+    }
+
+    # Start the sshd service
+    Start-Service sshd
+    Write-Host "❖ OpenSSH Server service started." -ForegroundColor Green
+
+    # Set sshd service to start automatically
+    Set-Service -Name sshd -StartupType 'Automatic'
+    Write-Host "❖ OpenSSH Server service set to start automatically." -ForegroundColor Green
+
+    # Confirm the firewall rule is configured (it should be created automatically)
+    $firewallRule = Get-NetFirewallRule -Name "OpenSSH-Server-In-TCP" -ErrorAction SilentlyContinue
+    if ($null -eq $firewallRule) {
+        New-NetFirewallRule -Name 'OpenSSH-Server-In-TCP' -DisplayName 'OpenSSH Server (sshd)' -Enabled True -Direction Inbound -Protocol TCP -Action Allow -LocalPort 22
+        Write-Host "❖ Firewall rule for SSH created." -ForegroundColor Green
+    } else {
+        Write-Host "❖ Firewall rule for SSH already exists." -ForegroundColor Yellow
+    }
+} catch {
+    Write-Host "❖ Failed to install/configure OpenSSH Server:" -ForegroundColor Red
+    Write-Host "  - $_" -ForegroundColor Red
+    Write-Host "❖ You may need to install it manually or run the script as Administrator." -ForegroundColor Yellow
+}
+
+#####
 ## install registry tweaks interactively (dynamic discovery via GitHub API)
 #####
 $baseRegUrl = "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main"
