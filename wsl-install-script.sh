@@ -83,6 +83,69 @@ install_apt_packages() {
 }
 
 # ========================================
+# HashiCorp Repository Setup
+# ========================================
+setup_hashicorp_repo() {
+    info "Setting up HashiCorp repository..."
+
+    if grep -q hashicorp /etc/apt/sources.list.d/hashicorp.list 2>/dev/null; then
+        success "HashiCorp repository already configured"
+        return 0
+    fi
+
+    if ! wget -qO- https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg; then
+        error "Failed to download HashiCorp GPG key"
+        return 1
+    fi
+
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list > /dev/null
+    sudo apt update -y
+    success "HashiCorp repository configured"
+}
+
+# ========================================
+# Docker Repository Setup and Installation
+# ========================================
+setup_docker() {
+    info "Setting up Docker repository and installing Docker..."
+
+    # Remove conflicting packages
+    for pkg in docker.io docker-doc docker-compose docker-compose-v2 podman-docker containerd runc; do
+        sudo apt remove -y "$pkg" 2>/dev/null || true
+    done
+
+    # Install required packages
+    sudo apt install -y ca-certificates || {
+        error "Failed to install ca-certificates"
+        return 1
+    }
+
+    # Setup Docker repository
+    sudo install -m 0755 -d /etc/apt/keyrings || {
+        error "Failed to create keyrings directory"
+        return 1
+    }
+
+    if ! sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc; then
+        error "Failed to download Docker GPG key"
+        return 1
+    fi
+
+    sudo chmod a+r /etc/apt/keyrings/docker.asc
+
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}") stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+    sudo apt update -y
+
+    if ! sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin; then
+        error "Failed to install Docker packages"
+        return 1
+    fi
+
+    success "Docker installed successfully"
+}
+
+# ========================================
 # Repository Configuration
 # ========================================
 configure_repo() {
@@ -126,7 +189,7 @@ configure_repo() {
 }
 
 # Call the configuration function
-configure_outfitting_repo
+configure_repo
 
 echo ""
 
@@ -420,9 +483,13 @@ main() {
     case "$MODE" in
         apt-only)
             install_apt_packages
+            setup_hashicorp_repo
+            setup_docker
             ;;
         full)
             install_apt_packages
+            setup_hashicorp_repo
+            setup_docker
             configure_repo
             install_nix
             setup_symlinks
