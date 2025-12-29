@@ -46,6 +46,7 @@ in
     pnpm
     git
     ffmpeg_7-headless
+    cloudflared
   ];
 
   # Home Manager can also manage your environment variables through
@@ -84,11 +85,11 @@ in
     "${config.home.homeDirectory}/.cargo/bin"
   ];
 
-   # Dotfiles management - symlink your dotfiles to home directory
-   home.file = {
-     ".zshrc".source = "${outfittingRepo}/dotfiles/.zshrc-macos";
-     ".zshrc-base".source = "${outfittingRepo}/dotfiles/.zshrc-base";
-   };
+  # Dotfiles management - symlink your dotfiles to home directory
+  home.file = {
+    ".zshrc".source = "${outfittingRepo}/dotfiles/.zshrc-macos";
+    ".zshrc-base".source = "${outfittingRepo}/dotfiles/.zshrc-base";
+  };
 
   # Program-specific configurations using Home Manager modules
   programs.home-manager.enable = true;

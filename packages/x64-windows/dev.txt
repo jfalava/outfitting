@@ -9,3 +9,4 @@ OpenJS.NodeJS
 DenoLand.Deno
 pnpm.pnpm
 BtbN.FFmpeg.GPL
+Cloudflare.cloudflared
