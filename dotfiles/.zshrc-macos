@@ -37,6 +37,14 @@ path_prepend "$HOME/.opencode/bin"
 # Cargo (Rust)
 path_append "$HOME/.cargo/bin"
 
+# ---- Smart App Bundle PATH Detection ----
+# Auto-add VS Code-like app bundles that have bin directories to PATH
+for app_dir in /Applications/*.app; do
+    if [[ -d "$app_dir/Contents/Resources/app/bin" ]]; then
+        path_prepend "$app_dir/Contents/Resources/app/bin"
+    fi
+done
+
 # ---- macOS-Specific Aliases ----
 alias show='open'  # macOS equivalent of explorer
 alias finder='open .'  # Open current directory in Finder

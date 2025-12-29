@@ -208,6 +208,10 @@ or dry                      # Dry-run to preview changes
 # List and rollback generations
 drl                         # List available generations
 drr                         # Rollback to previous generation
+
+# Traditional nix-darwin commands (from repo directory)
+darwin-rebuild switch --flake ".#macos"  # Apply configuration
+darwin-rebuild build --flake ".#macos"   # Test build only
 ```
 
 #### Nix package testing
@@ -237,31 +241,4 @@ curl -fsSL wsl.jfa.dev/packages/bun | xargs -I {} bun install -g {}
 **macOS:**
 ```bash
 curl -fsSL mac.jfa.dev/packages/bun | xargs -I {} bun install -g {}
-```
-
-### macOS Specific
-
-#### Nix-darwin Management
-
-Quick commands for managing your nix-darwin configuration:
-
-```bash
-# Build and apply changes
-or switch                   # Apply current configuration
-or build                    # Test build without applying
-or test                     # Test build and show results
-
-# Update with new packages
-or upgrade                  # Update packages and apply
-
-# Check what would change
-or dry                      # Dry-run to preview changes
-
-# List and rollback generations
-drl                         # List available generations
-drr                         # Rollback to previous generation
-
-# Traditional nix-darwin commands (from repo directory)
-darwin-rebuild switch --flake ".#macos"  # Apply configuration
-darwin-rebuild build --flake ".#macos"   # Test build only
 ```
