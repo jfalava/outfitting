@@ -228,11 +228,14 @@ hm-clean() {
 
 # Quick system update
 update-all() {
-    sudo apt update && sudo apt upgrade -y && sudo apt autoremove -y
-    hm-update && hm-clean
-    command -v bun >/dev/null && bun update -g
-    echo "✓ System updated"
-}
+     # Request elevation at the start
+     sudo -v || return 1
+     
+     sudo apt update && sudo apt upgrade -y && sudo apt autoremove -y
+     hm-update && hm-clean
+     command -v bun >/dev/null && bun update -g
+     echo "✓ System updated"
+ }
 
 remote-update() {
     curl -L https://wsl.jfa.dev | bash -s -- --update-only

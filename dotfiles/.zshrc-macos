@@ -51,11 +51,11 @@ alias finder='open .'  # Open current directory in Finder
 
 # Nix-darwin rebuild aliases with proper quoting for flake syntax
 alias drb='darwin-rebuild build --flake ".#macos" --impure'
-alias drs='darwin-rebuild switch --flake ".#macos" --impure'
-alias dru='darwin-rebuild switch --flake ".#macos" --upgrade --impure'
-alias drd='darwin-rebuild switch --flake ".#macos" --dry-run'
+alias drs='sudo darwin-rebuild switch --flake ".#macos" --impure'
+alias dru='sudo darwin-rebuild switch --flake ".#macos" --upgrade --impure'
+alias drd='darwin-rebuild switch --flake ".#macos" --dry-run --impure'
 alias drl='darwin-rebuild --list-generations'
-alias drr='darwin-rebuild rollback'
+alias drr='sudo darwin-rebuild rollback'
 
 # Quick nix commands
 alias nix-clean='sudo nix-collect-garbage -d'
@@ -173,14 +173,14 @@ hm-sync() {
         ln -sfn "$hm_target" ~/.config/home-manager
     fi
 
-    darwin-rebuild switch --flake "$repo_path/packages/aarch64-darwin"
-    echo "✓ Synced from $repo_path"
-}
+     sudo darwin-rebuild switch --flake "$repo_path/packages/aarch64-darwin"
+     echo "✓ Synced from $repo_path"
+ }
 
 hm-switch() {
-    echo "Applying nix-darwin configuration..."
-    darwin-rebuild switch
-}
+     echo "Applying nix-darwin configuration..."
+     sudo darwin-rebuild switch
+ }
 
 hm-switch-local() {
     local repo_path
@@ -205,8 +205,8 @@ hm-switch-local() {
         ln -sfn "$hm_target" ~/.config/home-manager
     fi
 
-    # Apply configuration
-    darwin-rebuild switch
+     # Apply configuration
+     sudo darwin-rebuild switch
 
     if git -C "$repo_path" diff --quiet && git -C "$repo_path" diff --cached --quiet; then
         echo ""
@@ -223,38 +223,38 @@ hm-switch-local() {
 }
 
 hm-update() {
-    local repo_path=$(get_outfitting_repo) || {
-        echo "Error: Repository location not configured."
-        echo "Run 'set_outfitting_repo /path/to/outfitting' to configure."
-        return 1
-    }
-
-    # Ensure symlinks are set up correctly
-    local darwin_target="$repo_path/packages/aarch64-darwin/darwin.nix"
-    local hm_target="$repo_path/packages/aarch64-darwin"
-
-    if [ ! -L ~/.nixpkgs/darwin-configuration.nix ] || [ "$(readlink -f ~/.nixpkgs/darwin-configuration.nix)" != "$(readlink -f "$darwin_target")" ]; then
-        mkdir -p ~/.nixpkgs
-        ln -sfn "$darwin_target" ~/.nixpkgs/darwin-configuration.nix
-    fi
-
-    if [ ! -L ~/.config/home-manager ] || [ "$(readlink -f ~/.config/home-manager)" != "$(readlink -f "$hm_target")" ]; then
-        ln -sfn "$hm_target" ~/.config/home-manager
-    fi
-
-    echo "Updating flake inputs and nix-darwin..."
-
-    # Update flake lock file
-    nix flake update --flake "$repo_path/packages/aarch64-darwin"
-
-    # Apply updated configuration
-    darwin-rebuild switch --flake "$repo_path/packages/aarch64-darwin"
-
-    echo ""
-    echo "✓ Nix packages updated successfully!"
-    echo ""
-    echo "Flake lock file updated with latest nixpkgs"
-}
+     local repo_path=$(get_outfitting_repo) || {
+         echo "Error: Repository location not configured."
+         echo "Run 'set_outfitting_repo /path/to/outfitting' to configure."
+         return 1
+     }
+ 
+     # Ensure symlinks are set up correctly
+     local darwin_target="$repo_path/packages/aarch64-darwin/darwin.nix"
+     local hm_target="$repo_path/packages/aarch64-darwin"
+ 
+     if [ ! -L ~/.nixpkgs/darwin-configuration.nix ] || [ "$(readlink -f ~/.nixpkgs/darwin-configuration.nix)" != "$(readlink -f "$darwin_target")" ]; then
+         mkdir -p ~/.nixpkgs
+         ln -sfn "$darwin_target" ~/.nixpkgs/darwin-configuration.nix
+     fi
+ 
+     if [ ! -L ~/.config/home-manager ] || [ "$(readlink -f ~/.config/home-manager)" != "$(readlink -f "$hm_target")" ]; then
+         ln -sfn "$hm_target" ~/.config/home-manager
+     fi
+ 
+     echo "Updating flake inputs and nix-darwin..."
+ 
+     # Update flake lock file (requires sudo to write to flake.lock)
+     sudo nix flake update --flake "$repo_path/packages/aarch64-darwin"
+ 
+     # Apply updated configuration
+     sudo darwin-rebuild switch --flake "$repo_path/packages/aarch64-darwin"
+ 
+     echo ""
+     echo "✓ Nix packages updated successfully!"
+     echo ""
+     echo "Flake lock file updated with latest nixpkgs"
+ }
 
 hm-rollback() {
     echo "Available generations:"
@@ -272,9 +272,12 @@ hm-clean() {
 
 # Quick system update
 update-all() {
-    hm-update && hm-clean
-    command -v bun >/dev/null && bun update -g
-}
+     # Request elevation at the start
+     sudo -v || return 1
+     
+     hm-update && hm-clean
+     command -v bun >/dev/null && bun update -g
+ }
 
 # Quick nix-darwin rebuild from anywhere in the system
 outfit-rebuild() {
