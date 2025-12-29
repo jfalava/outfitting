@@ -84,15 +84,11 @@ in
     "${config.home.homeDirectory}/.cargo/bin"
   ];
 
-  # Dotfiles management - symlink your dotfiles to home directory
-  home.file = {
-    ".zshrc".source = "${outfittingRepo}/dotfiles/.zshrc-macos";
-    ".zshrc-base".source = "${outfittingRepo}/dotfiles/.zshrc-base";
-
-    # Custom Spanish ISO keyboard layout with tilde fix for Windows keyboards
-    "Library/Keyboard Layouts/Spanish-ISO-Fixed.keylayout".source =
-      "${outfittingRepo}/dotfiles/keyboard-layouts/Spanish-ISO-Fixed.keylayout";
-  };
+   # Dotfiles management - symlink your dotfiles to home directory
+   home.file = {
+     ".zshrc".source = "${outfittingRepo}/dotfiles/.zshrc-macos";
+     ".zshrc-base".source = "${outfittingRepo}/dotfiles/.zshrc-base";
+   };
 
   # Program-specific configurations using Home Manager modules
   programs.home-manager.enable = true;
