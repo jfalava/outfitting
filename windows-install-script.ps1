@@ -164,7 +164,7 @@ $validRegFiles = @()
 try {
     $apiResponse = Invoke-RestMethod -Uri $githubApiUrl -Method Get -Headers @{ "User-Agent" = "PowerShellScript" }
     $treeItems = $apiResponse.tree
-    $regFilePaths = $treeItems | Where-Object { $_.path -like "settings-files/windows/registry/*.reg" -and $_.type -eq "blob" } | ForEach-Object { $_.path }
+    $regFilePaths = $treeItems | Where-Object { $_.path -like "system/windows/registry/*.reg" -and $_.type -eq "blob" } | ForEach-Object { $_.path }
 
     if ($regFilePaths.Count -gt 0) {
         Write-Host "`n❖ Discovered $($regFilePaths.Count) registry tweak(s) from GitHub repo:" -ForegroundColor Cyan
