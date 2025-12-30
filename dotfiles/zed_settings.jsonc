@@ -70,15 +70,27 @@
     "dark": "Bearded Theme Arc",
   },
   "lsp": {
-    "oxc": {
+    "oxfmt": {
       "initialization_options": {
-        "options": {
-          "run": "onSave",
+        "settings": {
           "configPath": null,
-          "tsConfigPath": null,
-          "unusedDisableDirectives": "warn",
-          "typeAware": false,
           "flags": {},
+          "fmt.configPath": null,
+          "fmt.experimental": true,
+          "run": "onSave",
+          "typeAware": false,
+          "unusedDisableDirectives": "warn",
+        },
+      },
+    },
+    "oxlint": {
+      "initialization_options": {
+        "settings": {
+          "disableNestedConfig": false,
+          "fixKind": "safe_fix",
+          "run": "onType",
+          "typeAware": true,
+          "unusedDisableDirectives": "deny",
         },
       },
     },
