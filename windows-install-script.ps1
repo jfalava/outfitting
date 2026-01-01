@@ -1,4 +1,16 @@
 ## init
+# Set error action preference to stop so all errors become terminating and trigger trap
+$ErrorActionPreference = "Stop"
+$script:hasErrors = $false
+
+# Trap to catch all errors and prevent window closure
+trap {
+    Write-Host "`n❖ An unexpected error occurred:" -ForegroundColor Red
+    Write-Host "  - $_" -ForegroundColor Red
+    $script:hasErrors = $true
+    Continue
+}
+
 Write-Host "❖ Checking Winget terms of use..." -ForegroundColor Cyan
 winget --info
 
@@ -19,8 +31,11 @@ try {
     Invoke-WebRequest -Uri $wingetPackagesUrl -OutFile $wingetPackagesFile
     Write-Host "❖ Package list downloaded." -ForegroundColor Green
 } catch {
+    $script:hasErrors = $true
     Write-Host "❖ Failed to download package list:" -ForegroundColor Red
     Write-Host "  - $_" -ForegroundColor Red
+    Write-Host "`nPress any key to exit..."
+    $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
     exit 1 # don't continue
 }
 
@@ -33,9 +48,12 @@ function Install-WingetPackages {
     )
 
     if (-Not (Test-Path $filePath)) {
+        $script:hasErrors = $true
         Write-Host "❖ Installation failed: the package list was not found:" -ForegroundColor Red
         Write-Host "  - $filePath" -ForegroundColor Red
         Write-Host "❖ And the script cannot continue." -ForegroundColor Red
+        Write-Host "`nPress any key to exit..."
+        $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
         exit 1
     }
 
@@ -46,6 +64,7 @@ function Install-WingetPackages {
             winget install --id $package --accept-source-agreements --accept-package-agreements -e
             Write-Host "❖ Installed package: $package" -ForegroundColor Green
         } catch {
+            $script:hasErrors = $true
             Write-Host "❖ Failed to install package:" -ForegroundColor Red
             Write-Host "  - ${package}: $_" -ForegroundColor Red
             # Continue to next package
@@ -64,6 +83,7 @@ function Install-PSModules {
                 Write-Host "❖ Installed PowerShell module: $module" -ForegroundColor Green
             }
             catch {
+                $script:hasErrors = $true
                 Write-Host "❖ Failed to install PowerShell module(s):" -ForegroundColor Red
                 Write-Host "  - ${module}: $_" -ForegroundColor Red
             }
@@ -148,6 +168,7 @@ try {
         Write-Host "❖ Firewall rule for SSH already exists." -ForegroundColor Yellow
     }
 } catch {
+    $script:hasErrors = $true
     Write-Host "❖ Failed to install/configure OpenSSH Server:" -ForegroundColor Red
     Write-Host "  - $_" -ForegroundColor Red
     Write-Host "❖ You may need to install it manually or run the script as Administrator." -ForegroundColor Yellow
@@ -183,6 +204,7 @@ try {
                     $validRegFiles += [PSCustomObject]@{ Name = $fileName; Content = $response.Content; Url = $url; Path = $path }
                 }
             } catch {
+                $script:hasErrors = $true
                 Write-Host "❖ Failed to fetch registry file ${path}: $_" -ForegroundColor Red
             }
         }
@@ -204,6 +226,7 @@ try {
                         if ($LASTEXITCODE -eq 0) {
                             Write-Host "❖ Imported registry tweak: $($file.Name)" -ForegroundColor Green
                         } else {
+                            $script:hasErrors = $true
                             Write-Host "❖ Failed to import registry tweak: $($file.Name)" -ForegroundColor Red
                         }
                         Remove-Item $tempRegPath -ErrorAction SilentlyContinue
@@ -225,6 +248,7 @@ try {
                             if ($LASTEXITCODE -eq 0) {
                                 Write-Host "❖ Imported registry tweak: $($file.Name)" -ForegroundColor Green
                             } else {
+                                $script:hasErrors = $true
                                 Write-Host "❖ Failed to import registry tweak: $($file.Name)" -ForegroundColor Red
                             }
                             Remove-Item $tempRegPath -ErrorAction SilentlyContinue
@@ -242,6 +266,7 @@ try {
                         if ($LASTEXITCODE -eq 0) {
                             Write-Host "❖ Imported registry tweak: $($file.Name)" -ForegroundColor Green
                         } else {
+                            $script:hasErrors = $true
                             Write-Host "❖ Failed to import registry tweak: $($file.Name)" -ForegroundColor Red
                         }
                         Remove-Item $tempRegPath -ErrorAction SilentlyContinue
@@ -255,6 +280,7 @@ try {
         Write-Host "❖ No .reg files discovered in windows-registry/ directory." -ForegroundColor Yellow
     }
 } catch {
+    $script:hasErrors = $true
     Write-Host "❖ Failed to discover registry files via GitHub API: $_" -ForegroundColor Red
     Write-Host "❖ Skipping registry tweaks." -ForegroundColor Yellow
 }
@@ -289,8 +315,11 @@ try {
         Write-Host "❖ Copied profile to: $slavePath" -ForegroundColor Green
     }
 } catch {
+    $script:hasErrors = $true
     Write-Host "❖ Failed to set up PowerShell profiles:" -ForegroundColor Red
     Write-Host "  - $_" -ForegroundColor Red
+    Write-Host "`nPress any key to exit..."
+    $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
     exit 1
 }
 
@@ -318,6 +347,7 @@ if (Get-Command bun -ErrorAction SilentlyContinue) {
                     bun install -g $package
                     Write-Host "❖ Installed Bun package: $package" -ForegroundColor Green
                 } catch {
+                    $script:hasErrors = $true
                     Write-Host "❖ Failed to install Bun package: ${package}" -ForegroundColor Red
                     Write-Host "  - $_" -ForegroundColor Red
                 }
@@ -326,6 +356,7 @@ if (Get-Command bun -ErrorAction SilentlyContinue) {
 
         Remove-Item $bunPackagesFile -ErrorAction SilentlyContinue
     } catch {
+        $script:hasErrors = $true
         Write-Host "❖ Failed to fetch Bun packages list: $_" -ForegroundColor Red
         Write-Host "❖ Skipping Bun package installations." -ForegroundColor Yellow
     }
@@ -336,5 +367,12 @@ if (Get-Command bun -ErrorAction SilentlyContinue) {
 
 ## end messages
 Write-Host "`n"
-Write-Host "❖ Installation complete" -ForegroundColor Green
+if ($script:hasErrors) {
+    Write-Host "❖ Installation completed with some errors" -ForegroundColor Yellow
+    Write-Host "  - Please review the error messages above" -ForegroundColor Yellow
+} else {
+    Write-Host "❖ Installation complete" -ForegroundColor Green
+}
 Write-Host "`n"
+Write-Host "Press any key to close this window..."
+$null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
