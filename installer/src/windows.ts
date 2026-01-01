@@ -122,6 +122,80 @@ windowsApp.get("/packages/:profile", async (c) => {
   return c.body(combinedPackages);
 });
 
+// Route: GET /bun - Install Bun global packages
+windowsApp.get("/bun", async (c) => {
+  const bunScript = `# Bun Global Package Installer
+# Set error action preference to stop so all errors become terminating
+$ErrorActionPreference = "Stop"
+$script:hasErrors = $false
+
+# Trap to catch all errors
+trap {
+    Write-Host "\`n❖ An unexpected error occurred:" -ForegroundColor Red
+    Write-Host "  - $_" -ForegroundColor Red
+    $script:hasErrors = $true
+    Continue
+}
+
+Write-Host "❖ Installing Bun global packages..." -ForegroundColor Cyan
+
+# Check if bun is available
+if (-Not (Get-Command bun -ErrorAction SilentlyContinue)) {
+    Write-Host "❖ Error: Bun is not installed" -ForegroundColor Red
+    Write-Host "  - Install Bun first using the 'dev' profile" -ForegroundColor Yellow
+    Write-Host "  - Command: irm win.jfa.dev/dev | iex" -ForegroundColor Cyan
+    Write-Host "\`nPress any key to exit..."
+    $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+    exit 1
+}
+
+$bunPackagesUrl = "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/packages/bun.txt"
+$bunPackagesFile = "$env:TEMP\bun-packages.txt"
+
+try {
+    Invoke-WebRequest -Uri $bunPackagesUrl -OutFile $bunPackagesFile -ErrorAction Stop
+    Write-Host "❖ Bun packages list downloaded." -ForegroundColor Green
+
+    # Validate that the file is not empty
+    if (-Not (Test-Path $bunPackagesFile) -or (Get-Item $bunPackagesFile).Length -eq 0) {
+        Write-Host "❖ Warning: Bun package list is empty" -ForegroundColor Yellow
+    } else {
+        $bunPackages = Get-Content $bunPackagesFile | Where-Object { -Not ($_ -match '^\`s*$') -and -Not ($_ -match '^#') }
+
+        foreach ($package in $bunPackages) {
+            try {
+                bun install -g $package
+                Write-Host "❖ Installed Bun package: $package" -ForegroundColor Green
+            } catch {
+                $script:hasErrors = $true
+                Write-Host "❖ Failed to install Bun package: $package" -ForegroundColor Red
+                Write-Host "  - $_" -ForegroundColor Red
+            }
+        }
+    }
+
+    Remove-Item $bunPackagesFile -ErrorAction SilentlyContinue
+} catch {
+    $script:hasErrors = $true
+    Write-Host "❖ Failed to fetch Bun packages list: $_" -ForegroundColor Red
+}
+
+Write-Host "\`n"
+if ($script:hasErrors) {
+    Write-Host "❖ Installation completed with some errors" -ForegroundColor Yellow
+    Write-Host "  - Please review the error messages above" -ForegroundColor Yellow
+} else {
+    Write-Host "❖ Bun global packages installed successfully" -ForegroundColor Green
+}
+Write-Host "\`n"
+Write-Host "Press any key to close this window..."
+$null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+`;
+
+  setScriptHeaders(c, CONTENT_TYPES.powershell);
+  return c.body(bunScript);
+});
+
 // Route: GET / - Display available packages (help message)
 windowsApp.get("/", async (c) => {
   const host = c.req.header("Host") || "win.jfa.dev";
@@ -138,11 +212,15 @@ windowsApp.get("/", async (c) => {
 #   qol      - Quality of life improvements
 #   network  - Network tools and utilities
 #
+# Additional installations:
+#   bun      - Install Bun global packages (requires Bun to be installed)
+#
 # Examples:
 #   irm ${host}/base | iex              # Install base packages
 #   irm ${host}/dev | iex               # Install dev packages
 #   irm ${host}/dev+gaming | iex        # Install dev + gaming packages
 #   irm ${host}/base+dev+qol | iex      # Install base + dev + qol packages
+#   irm ${host}/bun | iex               # Install Bun global packages
 #
 # Note: Packages must be explicitly specified. There is no default installation.
 
@@ -159,11 +237,15 @@ Write-Host "  • work     - Work-related applications" -ForegroundColor White
 Write-Host "  • qol      - Quality of life improvements" -ForegroundColor White
 Write-Host "  • network  - Network tools and utilities" -ForegroundColor White
 Write-Host ""
+Write-Host "Additional installations:" -ForegroundColor Yellow
+Write-Host "  • bun      - Install Bun global packages (requires Bun installed)" -ForegroundColor White
+Write-Host ""
 Write-Host "Usage examples:" -ForegroundColor Yellow
 Write-Host "  irm ${host}/base | iex" -ForegroundColor Green
 Write-Host "  irm ${host}/dev | iex" -ForegroundColor Green
 Write-Host "  irm ${host}/dev+gaming | iex" -ForegroundColor Green
 Write-Host "  irm ${host}/base+dev+qol | iex" -ForegroundColor Green
+Write-Host "  irm ${host}/bun | iex" -ForegroundColor Green
 Write-Host ""
 Write-Host "Tip: Combine multiple profiles with '+' to customize your installation" -ForegroundColor Cyan
 Write-Host ""
