@@ -1,5 +1,11 @@
 import { Hono } from "hono";
-import { CONFIG_FILES, CONTENT_TYPES, SCRIPT_URLS } from "./constants";
+import {
+  CONFIG_FILES,
+  CONTENT_TYPES,
+  SCRIPT_URLS,
+  WINDOWS_PACKAGES_BASE,
+  WINDOWS_PACKAGE_PROFILES,
+} from "./constants";
 import { fetchConfigFile, fetchScript, setScriptHeaders } from "./utils";
 
 const windowsApp = new Hono();
@@ -61,6 +67,59 @@ windowsApp.get("/config/:file", async (c) => {
 
   setScriptHeaders(c, result.contentType);
   return c.body(result.content);
+});
+
+// Route: GET /packages/:profile - Fetch Windows package lists (supports composition like "base+dev+gaming")
+windowsApp.get("/packages/:profile", async (c) => {
+  const profileParam = c.req.param("profile");
+
+  // Split by '+' to support compound profiles (e.g., "base+dev+gaming")
+  const requestedProfiles = profileParam.split("+").map((p) => p.trim().toLowerCase());
+
+  // Validate all requested profiles
+  const invalidProfiles = requestedProfiles.filter(
+    (p) => !WINDOWS_PACKAGE_PROFILES.includes(p as any),
+  );
+
+  if (invalidProfiles.length > 0) {
+    return c.json(
+      {
+        error: "Invalid profile(s)",
+        invalid: invalidProfiles,
+        available: WINDOWS_PACKAGE_PROFILES,
+      },
+      400,
+    );
+  }
+
+  console.log(`Fetching Windows packages for profiles: ${requestedProfiles.join(", ")}`);
+
+  // Fetch all requested package files
+  const packageContents: string[] = [];
+
+  for (const profile of requestedProfiles) {
+    const url = `${WINDOWS_PACKAGES_BASE}/${profile}.txt`;
+
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        console.error(`Failed to fetch ${profile}.txt: ${response.status}`);
+        return c.text(`Failed to fetch package list for profile: ${profile}`, 500);
+      }
+
+      const content = await response.text();
+      packageContents.push(`# Packages from ${profile} profile\n${content}`);
+    } catch (error) {
+      console.error(`Error fetching ${profile}.txt:`, error);
+      return c.text(`Error fetching package list for profile: ${profile}`, 500);
+    }
+  }
+
+  // Combine all package contents
+  const combinedPackages = packageContents.join("\n\n");
+
+  setScriptHeaders(c, CONTENT_TYPES.plaintext);
+  return c.body(combinedPackages);
 });
 
 // Route: GET / - Windows main installation script

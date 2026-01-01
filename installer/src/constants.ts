@@ -20,6 +20,23 @@ export const SCRIPT_URLS = {
 } as const;
 
 /**
+ * Windows package file base URL
+ */
+export const WINDOWS_PACKAGES_BASE = `${GITHUB_RAW_BASE}/packages/x64-windows`;
+
+/**
+ * Valid Windows package profiles
+ */
+export const WINDOWS_PACKAGE_PROFILES = [
+  "base",
+  "dev",
+  "gaming",
+  "work",
+  "qol",
+  "network",
+] as const;
+
+/**
  * Content types for different script types
  */
 export const CONTENT_TYPES = {
