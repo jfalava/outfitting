@@ -1,4 +1,16 @@
 ## init
+# Set error action preference to continue and trap errors
+$ErrorActionPreference = "Continue"
+$script:hasErrors = $false
+
+# Trap to catch all errors and prevent window closure
+trap {
+    Write-Host "`n❖ An unexpected error occurred:" -ForegroundColor Red
+    Write-Host "  - $_" -ForegroundColor Red
+    $script:hasErrors = $true
+    Continue
+}
+
 Write-Host "❖ Checking Winget terms of use..." -ForegroundColor Cyan
 winget --info
 
@@ -21,6 +33,8 @@ try {
 } catch {
     Write-Host "❖ Failed to download package list:" -ForegroundColor Red
     Write-Host "  - $_" -ForegroundColor Red
+    Write-Host "`nPress any key to exit..."
+    $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
     exit 1 # don't continue
 }
 
@@ -36,6 +50,8 @@ function Install-WingetPackages {
         Write-Host "❖ Installation failed: the package list was not found:" -ForegroundColor Red
         Write-Host "  - $filePath" -ForegroundColor Red
         Write-Host "❖ And the script cannot continue." -ForegroundColor Red
+        Write-Host "`nPress any key to exit..."
+        $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
         exit 1
     }
 
@@ -291,6 +307,8 @@ try {
 } catch {
     Write-Host "❖ Failed to set up PowerShell profiles:" -ForegroundColor Red
     Write-Host "  - $_" -ForegroundColor Red
+    Write-Host "`nPress any key to exit..."
+    $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
     exit 1
 }
 
@@ -336,5 +354,12 @@ if (Get-Command bun -ErrorAction SilentlyContinue) {
 
 ## end messages
 Write-Host "`n"
-Write-Host "❖ Installation complete" -ForegroundColor Green
+if ($script:hasErrors) {
+    Write-Host "❖ Installation completed with some errors" -ForegroundColor Yellow
+    Write-Host "  - Please review the error messages above" -ForegroundColor Yellow
+} else {
+    Write-Host "❖ Installation complete" -ForegroundColor Green
+}
 Write-Host "`n"
+Write-Host "Press any key to close this window..."
+$null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
