@@ -122,33 +122,111 @@ windowsApp.get("/packages/:profile", async (c) => {
   return c.body(combinedPackages);
 });
 
-// Route: GET / - Windows main installation script
+// Route: GET / - Display available packages (help message)
 windowsApp.get("/", async (c) => {
-  console.log("Windows Script URL:", SCRIPT_URLS.windows);
+  const host = c.req.header("Host") || "win.jfa.dev";
 
-  const scriptContent = await fetchScript(SCRIPT_URLS.windows);
-  if (!scriptContent) {
-    return c.text("Failed to fetch the script", 500);
-  }
+  const helpScript = `# Outfitting - Windows Package Installer
+#
+# Usage: irm ${host}/<profile> | iex
+#
+# Available profiles:
+#   base     - Core packages, runtimes, and utilities
+#   dev      - Development tools and environments
+#   gaming   - Gaming platforms and tools
+#   work     - Work-related applications
+#   qol      - Quality of life improvements
+#   network  - Network tools and utilities
+#
+# Examples:
+#   irm ${host}/base | iex              # Install base packages
+#   irm ${host}/dev | iex               # Install dev packages
+#   irm ${host}/dev+gaming | iex        # Install dev + gaming packages
+#   irm ${host}/base+dev+qol | iex      # Install base + dev + qol packages
+#
+# Note: Packages must be explicitly specified. There is no default installation.
+
+Write-Host ""
+Write-Host "==================================" -ForegroundColor Cyan
+Write-Host "  Outfitting - Windows Installer" -ForegroundColor Cyan
+Write-Host "==================================" -ForegroundColor Cyan
+Write-Host ""
+Write-Host "Available package profiles:" -ForegroundColor Yellow
+Write-Host "  • base     - Core packages, runtimes, and utilities" -ForegroundColor White
+Write-Host "  • dev      - Development tools and environments" -ForegroundColor White
+Write-Host "  • gaming   - Gaming platforms and tools" -ForegroundColor White
+Write-Host "  • work     - Work-related applications" -ForegroundColor White
+Write-Host "  • qol      - Quality of life improvements" -ForegroundColor White
+Write-Host "  • network  - Network tools and utilities" -ForegroundColor White
+Write-Host ""
+Write-Host "Usage examples:" -ForegroundColor Yellow
+Write-Host "  irm ${host}/base | iex" -ForegroundColor Green
+Write-Host "  irm ${host}/dev | iex" -ForegroundColor Green
+Write-Host "  irm ${host}/dev+gaming | iex" -ForegroundColor Green
+Write-Host "  irm ${host}/base+dev+qol | iex" -ForegroundColor Green
+Write-Host ""
+Write-Host "Tip: Combine multiple profiles with '+' to customize your installation" -ForegroundColor Cyan
+Write-Host ""
+`;
 
   setScriptHeaders(c, CONTENT_TYPES.powershell);
-  return c.body(scriptContent);
+  return c.body(helpScript);
 });
 
-// Route: GET /:profile - Install script with specific profile (simplified - no package lists)
+// Route: GET /:profile - Install script with specific profile (supports composition like "base+dev+gaming")
 windowsApp.get("/:profile", async (c) => {
-  const profile = c.req.param("profile");
+  const profileParam = c.req.param("profile");
+  const host = c.req.header("Host") || "win.jfa.dev";
 
-  console.log(`Serving installation script for profile: ${profile}`);
+  // Split by '+' to support compound profiles (e.g., "base+dev+gaming")
+  const requestedProfiles = profileParam.split("+").map((p) => p.trim().toLowerCase());
 
-  // Fetch the base installation script (same as main route)
+  // Validate all requested profiles
+  const invalidProfiles = requestedProfiles.filter(
+    (p) => !WINDOWS_PACKAGE_PROFILES.includes(p as any),
+  );
+
+  if (invalidProfiles.length > 0) {
+    const errorScript = `# Error: Invalid profile(s) specified
+#
+# Invalid profiles: ${invalidProfiles.join(", ")}
+# Available profiles: ${WINDOWS_PACKAGE_PROFILES.join(", ")}
+#
+# Usage examples:
+#   irm ${host}/base | iex
+#   irm ${host}/dev+gaming | iex
+
+Write-Host ""
+Write-Host "Error: Invalid profile(s) specified" -ForegroundColor Red
+Write-Host "  Invalid: ${invalidProfiles.join(", ")}" -ForegroundColor Yellow
+Write-Host ""
+Write-Host "Available profiles:" -ForegroundColor Cyan
+Write-Host "  ${WINDOWS_PACKAGE_PROFILES.join(", ")}" -ForegroundColor White
+Write-Host ""
+Write-Host "Press any key to exit..."
+$null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+exit 1
+`;
+    setScriptHeaders(c, CONTENT_TYPES.powershell);
+    return c.body(errorScript);
+  }
+
+  console.log(`Serving installation script for profiles: ${requestedProfiles.join(", ")}`);
+
+  // Fetch the base installation script
   const baseScript = await fetchScript(SCRIPT_URLS.windows);
   if (!baseScript) {
     return c.text("Failed to fetch the base script", 500);
   }
 
+  // Replace the hardcoded package URL with the requested profile(s)
+  const modifiedScript = baseScript.replace(
+    '$wingetPackagesUrl = "https://win.jfa.dev/packages/base"',
+    `$wingetPackagesUrl = "https://${host}/packages/${profileParam}"`,
+  );
+
   setScriptHeaders(c, CONTENT_TYPES.powershell);
-  return c.body(baseScript);
+  return c.body(modifiedScript);
 });
 
 export default windowsApp;

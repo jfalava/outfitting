@@ -17,10 +17,11 @@ winget --info
 #####
 ## variable setting
 #####
-# Using base profile by default - includes core packages, runtimes, and utilities
-# For other profiles, use: irm win.jfa.dev/dev | iex OR irm win.jfa.dev/gaming | iex
-# Available profiles: base, dev, gaming, work, full
+# Package profile is injected by the Cloudflare Worker based on the URL path
+# This script should be run via: irm win.jfa.dev/<profile> | iex
+# Available profiles: base, dev, gaming, work, qol, network
 # Custom combinations: irm win.jfa.dev/base+dev+gaming | iex
+# Note: This URL will be replaced by the Cloudflare Worker with the requested profile(s)
 $wingetPackagesUrl = "https://win.jfa.dev/packages/base"
 $wingetPackagesFile = "$env:TEMP\winget.txt"
 
