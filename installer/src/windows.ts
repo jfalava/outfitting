@@ -287,7 +287,7 @@ $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
 exit 1
 `;
     setScriptHeaders(c, CONTENT_TYPES.powershell);
-    return c.body(errorScript);
+    return c.body(errorScript, 400);
   }
 
   console.log(
@@ -493,7 +493,7 @@ $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
 exit 1
 `;
     setScriptHeaders(c, CONTENT_TYPES.powershell);
-    return c.body(errorScript);
+    return c.body(errorScript, 400);
   }
 
   console.log(`Serving installation script for profiles: ${requestedProfiles.join(", ")}`);
@@ -505,10 +505,21 @@ exit 1
   }
 
   // Replace the hardcoded package URL with the requested profile(s)
-  const modifiedScript = baseScript.replace(
-    '$wingetPackagesUrl = "https://win.jfa.dev/packages/base"',
-    `$wingetPackagesUrl = "https://${host}/packages/${profileParam}"`,
-  );
+  const originalMarker = '$wingetPackagesUrl = "https://win.jfa.dev/packages/base"';
+  const replacementURL = `$wingetPackagesUrl = "https://${host}/packages/${profileParam}"`;
+  const modifiedScript = baseScript.replace(originalMarker, replacementURL);
+
+  // Verify that the replacement actually worked
+  if (!modifiedScript.includes(replacementURL)) {
+    console.error("URL replacement failed!");
+    console.error(`Original marker: ${originalMarker}`);
+    console.error(`Replacement URL: ${replacementURL}`);
+    console.error(`Script snippet around expected location:\n${baseScript.substring(baseScript.indexOf("wingetPackagesUrl") - 50, baseScript.indexOf("wingetPackagesUrl") + 150)}`);
+    return c.text(
+      `Internal error: Failed to inject profile URL. The base script format may have changed. Please contact support.`,
+      500,
+    );
+  }
 
   setScriptHeaders(c, CONTENT_TYPES.powershell);
   return c.body(modifiedScript);
