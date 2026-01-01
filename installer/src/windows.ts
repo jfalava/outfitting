@@ -216,7 +216,7 @@ try {
     if (-Not (Test-Path $bunPackagesFile) -or (Get-Item $bunPackagesFile).Length -eq 0) {
         Write-Host "❖ Warning: Bun package list is empty" -ForegroundColor Yellow
     } else {
-        $bunPackages = Get-Content $bunPackagesFile | Where-Object { -Not ($_ -match '^\`s*$') -and -Not ($_ -match '^#') }
+        $bunPackages = Get-Content $bunPackagesFile | Where-Object { -Not ($_ -match '^\\s*$') -and -Not ($_ -match '^#') }
 
         foreach ($package in $bunPackages) {
             try {
@@ -344,7 +344,7 @@ function Install-MicrosoftStorePackages {
         exit 1
     }
 
-    $packages = Get-Content $filePath | Where-Object { -Not ($_ -match '^\`s*$') -and -Not ($_ -match '^#') }
+    $packages = Get-Content $filePath | Where-Object { -Not ($_ -match '^\\s*$') -and -Not ($_ -match '^#') }
 
     foreach ($package in $packages) {
         try {
