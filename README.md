@@ -14,44 +14,71 @@ Automated setup scripts, dotfiles, and Cloudflare Workers for provisioning perso
 > - You may need to install or update [WinGet](https://learn.microsoft.com/en-us/windows/package-manager/winget/#install-winget).
 > - A regular Windows machine will have it installed, but it might be outdated. Open this [link to the Microsoft Store](https://apps.microsoft.com/detail/9NBLGGH4NNS1) and update it if needed.
 > - You may also need to execute `Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process` if you encounter elevation issues.
+> - **All package installations must be explicitly specified - there is no default installation.**
 
-#### Installation Profiles
-
-Choose a profile based on your machine's purpose (all commands require elevated PowerShell):
-
-##### Base profile (default)
+#### View Available Packages
 
 ```powershell
-irm win.jfa.dev | iex
+irm win.jfa.dev | iex  # Display help message with all available profiles
 ```
 
-##### Full profile (includes everything)
+#### WinGet Package Installation
+
+All commands require elevated PowerShell:
 
 ```powershell
-irm win.jfa.dev/full | iex
+# Single profile
+irm win.jfa.dev/base | iex
+irm win.jfa.dev/dev | iex
+
+# Multiple profiles combined
+irm win.jfa.dev/base+dev+gaming | iex
+irm win.jfa.dev/dev+gaming+qol | iex
 ```
 
-#### Profiles with Optional Components
+**Available WinGet profiles:**
+- `base` - Core packages, runtimes, and utilities
+- `dev` - Development tools and environments
+- `gaming` - Gaming platforms and tools
+- `work` - Work-related applications
+- `qol` - Quality of life improvements
+- `network` - Network tools and utilities
+
+#### Microsoft Store Package Installation
+
+> [!NOTE]
+> Microsoft Store packages require the `/msstore/` prefix in the URL.
+
+Install apps from the Microsoft Store:
 
 ```powershell
-irm win.jfa.dev/<profile>+<profile>+<component> | iex # any arbitrary combination
+# Single profile
+irm win.jfa.dev/msstore/msstore-base | iex
+
+# Multiple profiles combined (note the /msstore/ prefix)
+irm win.jfa.dev/msstore/msstore-base+msstore-gaming | iex
+irm win.jfa.dev/msstore/msstore-base+msstore-gaming+msstore-qol | iex
 ```
 
-**Available base profiles:**
-- `base` - System runtimes, core utilities, browsers
-- `dev` - Development tools
-- `gaming` - Game launchers and game-specific tools
-- `work` - Enterprise tools
-- `full` - All categories combined
+**Available Microsoft Store profiles:**
+- `msstore-base` - Core Microsoft Store apps
+- `msstore-dev` - Development-related Store apps
+- `msstore-gaming` - Gaming-related Store apps
+- `msstore-work` - Work-related Store apps
+- `msstore-qol` - Quality of life Store apps
 
-**Optional components** (add to any profile with `+`):
-- `qol` - Quality of life tools
-- `network` - VPN clients and network security tools
+**Correct format:**
+```powershell
+irm win.jfa.dev/msstore/<profile>+<profile> | iex
+```
 
-**Individual categories** (for custom combinations):
-- `base`, `dev`, `gaming`, `work`, `qol`, `network`
-- `msstore-base`, `msstore-dev`, `msstore-gaming`, `msstore-work`, `msstore-qol`
-- `pwsh-modules`
+#### Bun Global Packages Installation
+
+Install Bun global packages (requires Bun to be installed first via `dev` profile):
+
+```powershell
+irm win.jfa.dev/bun | iex
+```
 
 ### WSL/Linux
 
@@ -228,10 +255,16 @@ nix-try ripgrep             # Search for ripgrep and suggest testing
 #### Update PowerShell Profile
 
 ```powershell
-irm win.jfa.dev/config/pwsh-profile | iex  # Update PowerShell profile
+irm win.jfa.dev/config/pwsh-profile | iex
 ```
 
-### Install/Update Bun Global Packages
+#### Install/Update Bun Global Packages
+
+```powershell
+irm win.jfa.dev/bun | iex
+```
+
+### Install/Update Bun Global Packages (WSL/macOS)
 
 **WSL/Linux:**
 ```bash
