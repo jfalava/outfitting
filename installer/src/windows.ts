@@ -353,7 +353,7 @@ function Install-MicrosoftStorePackages {
         } catch {
             $script:hasErrors = $true
             Write-Host "❖ Failed to install Microsoft Store package:" -ForegroundColor Red
-            Write-Host "  - $package: $_" -ForegroundColor Red
+            Write-Host "  - \${package}: $_" -ForegroundColor Red
             # Continue to next package
         }
     }
