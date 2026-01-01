@@ -37,6 +37,17 @@ export const WINDOWS_PACKAGE_PROFILES = [
 ] as const;
 
 /**
+ * Valid Microsoft Store package profiles
+ */
+export const MSSTORE_PACKAGE_PROFILES = [
+  "msstore-base",
+  "msstore-dev",
+  "msstore-gaming",
+  "msstore-work",
+  "msstore-qol",
+] as const;
+
+/**
  * Content types for different script types
  */
 export const CONTENT_TYPES = {

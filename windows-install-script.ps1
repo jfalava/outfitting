@@ -17,10 +17,11 @@ winget --info
 #####
 ## variable setting
 #####
-# Using base profile by default - includes core packages, runtimes, and utilities
-# For other profiles, use: irm win.jfa.dev/dev | iex OR irm win.jfa.dev/gaming | iex
-# Available profiles: base, dev, gaming, work, full
+# Package profile is injected by the Cloudflare Worker based on the URL path
+# This script should be run via: irm win.jfa.dev/<profile> | iex
+# Available profiles: base, dev, gaming, work, qol, network
 # Custom combinations: irm win.jfa.dev/base+dev+gaming | iex
+# Note: This URL will be replaced by the Cloudflare Worker with the requested profile(s)
 $wingetPackagesUrl = "https://win.jfa.dev/packages/base"
 $wingetPackagesFile = "$env:TEMP\winget.txt"
 
@@ -321,48 +322,6 @@ try {
     Write-Host "`nPress any key to exit..."
     $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
     exit 1
-}
-
-#####
-## install bun global packages from bun.txt
-#####
-if (Get-Command bun -ErrorAction SilentlyContinue) {
-    Write-Host "`n❖ Installing Bun global packages..." -ForegroundColor Cyan
-
-    $bunPackagesUrl = "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/packages/bun.txt"
-    $bunPackagesFile = "$env:TEMP\bun-packages.txt"
-
-    try {
-        Invoke-WebRequest -Uri $bunPackagesUrl -OutFile $bunPackagesFile -ErrorAction Stop
-        Write-Host "❖ Bun packages list downloaded." -ForegroundColor Green
-
-        # Validate that the file is not empty
-        if (-Not (Test-Path $bunPackagesFile) -or (Get-Item $bunPackagesFile).Length -eq 0) {
-            Write-Host "❖ Warning: Bun package list is empty" -ForegroundColor Yellow
-        } else {
-            $bunPackages = Get-Content $bunPackagesFile | Where-Object { -Not ($_ -match '^\s*$') -and -Not ($_ -match '^#') }
-
-            foreach ($package in $bunPackages) {
-                try {
-                    bun install -g $package
-                    Write-Host "❖ Installed Bun package: $package" -ForegroundColor Green
-                } catch {
-                    $script:hasErrors = $true
-                    Write-Host "❖ Failed to install Bun package: ${package}" -ForegroundColor Red
-                    Write-Host "  - $_" -ForegroundColor Red
-                }
-            }
-        }
-
-        Remove-Item $bunPackagesFile -ErrorAction SilentlyContinue
-    } catch {
-        $script:hasErrors = $true
-        Write-Host "❖ Failed to fetch Bun packages list: $_" -ForegroundColor Red
-        Write-Host "❖ Skipping Bun package installations." -ForegroundColor Yellow
-    }
-} else {
-    Write-Host "`n❖ Bun not found, skipping global package installations." -ForegroundColor Yellow
-    Write-Host "  - To install Bun, use: irm win.jfa.dev/dev | iex" -ForegroundColor Cyan
 }
 
 ## end messages

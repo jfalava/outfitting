@@ -8,9 +8,9 @@
         "hono": "^4.11.3",
       },
       "devDependencies": {
-        "@typescript/native-preview": "^7.0.0-dev.20251227.1",
+        "@typescript/native-preview": "^7.0.0-dev.20251229.1",
         "oxfmt": "^0.20.0",
-        "oxlint": "^1.35.0",
+        "oxlint": "^1.36.0",
         "oxlint-tsgolint": "^0.9.2",
         "typescript": "^5.9.3",
         "wrangler": "^4.54.0",
