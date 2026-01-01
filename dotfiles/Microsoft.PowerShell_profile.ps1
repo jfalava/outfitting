@@ -23,12 +23,6 @@ $env:BUN_INSTALL = "$env:USERPROFILE\.bun"
 $env:PNPM_HOME = "$env:LOCALAPPDATA\Microsoft\WinGet\Links\"
 
 # -------------------------------
-# Modules
-# -------------------------------
-Import-Module PSReadLine
-Import-Module posh-git
-
-# -------------------------------
 # History Configuration
 # -------------------------------
 $MaximumHistoryCount = 10000
