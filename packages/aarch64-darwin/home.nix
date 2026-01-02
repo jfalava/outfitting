@@ -48,6 +48,7 @@ in
     ffmpeg_7-headless
     cloudflared
     github-cli
+    ani-cli
   ];
 
   # Home Manager can also manage your environment variables through
