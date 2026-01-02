@@ -51,6 +51,7 @@ in
     nixd
     nil
     pnpm
+    github-cli
   ];
 
   # Session variables

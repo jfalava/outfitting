@@ -228,28 +228,28 @@ hm-update() {
          echo "Run 'set_outfitting_repo /path/to/outfitting' to configure."
          return 1
      }
- 
+
      # Ensure symlinks are set up correctly
      local darwin_target="$repo_path/packages/aarch64-darwin/darwin.nix"
      local hm_target="$repo_path/packages/aarch64-darwin"
- 
+
      if [ ! -L ~/.nixpkgs/darwin-configuration.nix ] || [ "$(readlink -f ~/.nixpkgs/darwin-configuration.nix)" != "$(readlink -f "$darwin_target")" ]; then
          mkdir -p ~/.nixpkgs
          ln -sfn "$darwin_target" ~/.nixpkgs/darwin-configuration.nix
      fi
- 
+
      if [ ! -L ~/.config/home-manager ] || [ "$(readlink -f ~/.config/home-manager)" != "$(readlink -f "$hm_target")" ]; then
          ln -sfn "$hm_target" ~/.config/home-manager
      fi
- 
+
      echo "Updating flake inputs and nix-darwin..."
- 
+
      # Update flake lock file (requires sudo to write to flake.lock)
-     sudo nix flake update --flake "$repo_path/packages/aarch64-darwin"
- 
+     sudo nix flake update --flake "$repo_path/packages/aarch64-darwin" --impure
+
      # Apply updated configuration
-     sudo darwin-rebuild switch --flake "$repo_path/packages/aarch64-darwin"
- 
+     sudo darwin-rebuild switch --flake "$repo_path/packages/aarch64-darwin" --impure
+
      echo ""
      echo "✓ Nix packages updated successfully!"
      echo ""
@@ -274,7 +274,7 @@ hm-clean() {
 update-all() {
      # Request elevation at the start
      sudo -v || return 1
-     
+
      hm-update && hm-clean
      command -v bun >/dev/null && bun update -g
  }

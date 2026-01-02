@@ -47,6 +47,7 @@ in
     git
     ffmpeg_7-headless
     cloudflared
+    github-cli
   ];
 
   # Home Manager can also manage your environment variables through
