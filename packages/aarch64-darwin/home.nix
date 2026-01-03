@@ -56,7 +56,7 @@ in
   # shell provided by Home Manager.
   home.sessionVariables = {
     EDITOR = "vim";
-    VISUAL = "zed --wait";
+    VISUAL = "zed";
     PAGER = "less";
 
     # Better colors for less/man pages

@@ -6,7 +6,7 @@
 source ~/.zshrc-base
 
 # ---- WSL VISUAL ----
-export VISUAL='zed --wait'
+export VISUAL='zed'
 
 # ---- WSL PATH Additions ----
 path_prepend "$HOME/.local/bin"
@@ -230,7 +230,7 @@ hm-clean() {
 update-all() {
      # Request elevation at the start
      sudo -v || return 1
-     
+
      sudo apt update && sudo apt upgrade -y && sudo apt autoremove -y
      hm-update && hm-clean
      command -v bun >/dev/null && bun update -g
