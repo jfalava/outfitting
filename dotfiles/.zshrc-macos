@@ -6,7 +6,7 @@
 source ~/.zshrc-base
 
 # ---- macOS-Specific VISUAL ----
-export VISUAL='zed'
+export VISUAL='zed --wait'
 
 # ---- macOS-Specific PATH Additions ----
 # Add paths in order of precedence
