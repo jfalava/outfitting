@@ -49,6 +49,7 @@ in
     cloudflared
     github-cli
     ani-cli
+    sherlock
   ];
 
   # Home Manager can also manage your environment variables through
