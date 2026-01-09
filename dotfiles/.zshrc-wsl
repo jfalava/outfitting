@@ -12,7 +12,6 @@ export VISUAL='zed'
 path_prepend "$HOME/.local/bin"
 
 # pnpm
-export PNPM_HOME="$HOME/.local/share/pnpm"
 path_prepend "$PNPM_HOME"
 
 # Bun
@@ -31,6 +30,9 @@ path_prepend "$HOME/.opencode/bin"
 
 # Cargo (Rust)
 path_append "$HOME/.cargo/bin"
+
+# AmpCode
+path_append "$HOME/.amp/bin"
 
 # Go bin directory - add at the end to ensure it takes precedence over Windows paths
 export PATH="$HOME/go/bin:$PATH"

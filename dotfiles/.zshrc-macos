@@ -28,7 +28,6 @@ path_prepend "$BUN_INSTALL/bin"
 export DENO_INSTALL="$HOME/.deno"
 path_prepend "$DENO_INSTALL/bin"
 
-# uv (Python)
 path_append "$HOME/.local/share/uv/bin"
 
 # OpenCode
@@ -36,6 +35,9 @@ path_prepend "$HOME/.opencode/bin"
 
 # Cargo (Rust)
 path_append "$HOME/.cargo/bin"
+
+# AmpCode
+path_append "$HOME/.amp/bin"
 
 # ---- Smart App Bundle PATH Detection ----
 # Auto-add VS Code-like app bundles that have bin directories to PATH
