@@ -195,4 +195,9 @@ in
       "--glob=!.terragrunt-cache/"
     ];
   };
+
+  # macOS keyboard settings: F1-F12 work as function keys by default
+  home.activation.configureMacOSFunctionKeys = config.lib.dag.entryAfter [ "writeBoundary" ] ''
+    $DRY_RUN_CMD /usr/bin/defaults write NSGlobalDomain com.apple.keyboard.fnState -bool true
+  '';
 }
