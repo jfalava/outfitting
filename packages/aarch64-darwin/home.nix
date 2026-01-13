@@ -49,7 +49,8 @@ in
     cloudflared
     github-cli
     ani-cli
-    sherlock
+    tailspin
+    iina
   ];
 
   # Home Manager can also manage your environment variables through
