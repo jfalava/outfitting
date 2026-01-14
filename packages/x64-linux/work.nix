@@ -24,6 +24,7 @@
     eksctl
     ansible
     cloudlens
+    rosa
   ];
 
   # Override git settings for work
