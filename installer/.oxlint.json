@@ -1,16 +1,6 @@
 {
   "$schema": "https://raw.githubusercontent.com/oxc-project/oxc/main/npm/oxlint/configuration_schema.json",
-  "plugins": [
-    "eslint",
-    "nextjs",
-    "react",
-    "typescript",
-    "jsx-a11y",
-    "unicorn",
-    "oxc",
-    "import",
-    "promise"
-  ],
+  "plugins": ["eslint", "typescript", "unicorn", "oxc", "import", "promise"],
   "env": {
     "browser": true,
     "es2022": true
@@ -22,7 +12,7 @@
     "tsgo/no-unsafe-call": "error",
     "tsgo/no-unsafe-member-access": "error",
     "tsgo/no-unsafe-return": "error",
-
+    "ignorePatterns": ["worker-configuration.d.ts", "**/*.d.ts"],
     "no-unused-vars": [
       "error",
       {
