@@ -146,9 +146,7 @@ windowsApp.get("/packages/msstore/:profile", async (c) => {
     );
   }
 
-  console.log(
-    `Fetching Microsoft Store packages for profiles: ${requestedProfiles.join(", ")}`,
-  );
+  console.log(`Fetching Microsoft Store packages for profiles: ${requestedProfiles.join(", ")}`);
 
   // Fetch all requested package files
   const packageContents: string[] = [];
@@ -514,7 +512,9 @@ exit 1
     console.error("URL replacement failed!");
     console.error(`Original marker: ${originalMarker}`);
     console.error(`Replacement URL: ${replacementURL}`);
-    console.error(`Script snippet around expected location:\n${baseScript.substring(baseScript.indexOf("wingetPackagesUrl") - 50, baseScript.indexOf("wingetPackagesUrl") + 150)}`);
+    console.error(
+      `Script snippet around expected location:\n${baseScript.substring(baseScript.indexOf("wingetPackagesUrl") - 50, baseScript.indexOf("wingetPackagesUrl") + 150)}`,
+    );
     return c.text(
       `Internal error: Failed to inject profile URL. The base script format may have changed. Please contact support.`,
       500,

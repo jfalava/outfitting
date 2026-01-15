@@ -63,6 +63,9 @@
     "font_family": "VictorMono Nerd Font Propo",
     "font_size": 17.0,
     "font_weight": 800,
+    "env": {
+      "GIT_EDITOR": "zed --wait",
+    },
   },
   "theme": {
     "mode": "system",
