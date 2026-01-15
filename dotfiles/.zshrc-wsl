@@ -228,15 +228,68 @@ hm-clean() {
     echo "Cleaning complete!"
 }
 
+# Update all global Bun packages
+bun-update-global() {
+    if ! command -v bun >/dev/null; then
+        echo "Bun not installed, skipping..."
+        return 0
+    fi
+
+    echo ""
+    echo "Updating global Bun packages..."
+    
+    local packages
+    packages=$(bun pm ls -g 2>/dev/null | awk '/^[└├]── / {sub(/^[└├]── /, ""); match($0, /@[0-9]+\.[0-9]+\.[0-9]+$/); print substr($0, 1, RSTART-1)}')
+    
+    if [ -z "$packages" ]; then
+        echo "No global Bun packages found"
+        return 0
+    fi
+
+    echo "Found global packages:"
+    echo "$packages"
+    echo ""
+    
+    local updated=0
+    while IFS= read -r pkg; do
+        pkg=$(echo "$pkg" | tr -d ' ')
+        if [ -n "$pkg" ]; then
+            echo -n "Updating $pkg... "
+            if bun update -g "$pkg" >/dev/null 2>&1; then
+                echo "✓"
+                ((updated++))
+            else
+                echo "no update"
+            fi
+        fi
+    done <<< "$packages"
+
+    echo "Updated $updated global Bun package(s)"
+}
+
 # Quick system update
 update-all() {
      # Request elevation at the start
      sudo -v || return 1
 
-     sudo apt update && sudo apt upgrade -y && sudo apt autoremove -y
+     echo ""
+     echo "=== Updating System (APT) ==="
+     local apt_output
+     apt_output=$(sudo apt update 2>&1 && sudo apt upgrade -y 2>&1 && sudo apt autoremove -y 2>&1)
+     
+     echo "$apt_output" | grep -E '^(Reading|Get|Preparing|Unpacking|Setting|Processing)' || echo "No APT updates"
+     echo "✓ APT packages updated"
+     
+     echo ""
+     echo "=== Updating Nix/Home Manager ==="
      hm-update && hm-clean
-     command -v bun >/dev/null && bun update -g
-     echo "✓ System updated"
+     
+     echo ""
+     echo "=== Updating Global Bun Packages ==="
+     bun-update-global
+     
+     echo ""
+     echo "✓ System updated successfully"
  }
 
 remote-update() {
