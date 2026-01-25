@@ -34,6 +34,9 @@ path_append "$HOME/.cargo/bin"
 # AmpCode
 path_append "$HOME/.amp/bin"
 
+# Git AI
+path_append "$HOME/.git-ai/bin"
+
 # Go bin directory - add at the end to ensure it takes precedence over Windows paths
 export PATH="$HOME/go/bin:$PATH"
 
@@ -237,10 +240,10 @@ bun-update-global() {
 
     echo ""
     echo "Updating global Bun packages..."
-    
+
     local packages
     packages=$(bun pm ls -g 2>/dev/null | awk '/^[└├]── / {sub(/^[└├]── /, ""); match($0, /@[0-9]+\.[0-9]+\.[0-9]+$/); print substr($0, 1, RSTART-1)}')
-    
+
     if [ -z "$packages" ]; then
         echo "No global Bun packages found"
         return 0
@@ -249,7 +252,7 @@ bun-update-global() {
     echo "Found global packages:"
     echo "$packages"
     echo ""
-    
+
     local updated=0
     while IFS= read -r pkg; do
         pkg=$(echo "$pkg" | tr -d ' ')
@@ -276,18 +279,18 @@ update-all() {
      echo "=== Updating System (APT) ==="
      local apt_output
      apt_output=$(sudo apt update 2>&1 && sudo apt upgrade -y 2>&1 && sudo apt autoremove -y 2>&1)
-     
+
      echo "$apt_output" | grep -E '^(Reading|Get|Preparing|Unpacking|Setting|Processing)' || echo "No APT updates"
      echo "✓ APT packages updated"
-     
+
      echo ""
      echo "=== Updating Nix/Home Manager ==="
      hm-update && hm-clean
-     
+
      echo ""
      echo "=== Updating Global Bun Packages ==="
      bun-update-global
-     
+
      echo ""
      echo "✓ System updated successfully"
  }

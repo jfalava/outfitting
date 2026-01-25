@@ -39,6 +39,9 @@ path_append "$HOME/.cargo/bin"
 # AmpCode
 path_append "$HOME/.amp/bin"
 
+# Git AI
+path_append "$HOME/.git-ai/bin"
+
 # ---- Smart App Bundle PATH Detection ----
 # Auto-add VS Code-like app bundles that have bin directories to PATH
 for app_dir in /Applications/*.app; do
@@ -281,10 +284,10 @@ bun-update-global() {
 
     echo ""
     echo "Updating global Bun packages..."
-    
+
     local packages
     packages=$(bun pm ls -g 2>/dev/null | awk '/^[└├]── / {sub(/^[└├]── /, ""); match($0, /@[0-9]+\.[0-9]+\.[0-9]+$/); print substr($0, 1, RSTART-1)}')
-    
+
     if [ -z "$packages" ]; then
         echo "No global Bun packages found"
         return 0
@@ -293,7 +296,7 @@ bun-update-global() {
     echo "Found global packages:"
     echo "$packages"
     echo ""
-    
+
     local updated=0
     while IFS= read -r pkg; do
         pkg=$(echo "$pkg" | tr -d ' ')
@@ -319,11 +322,11 @@ update-all() {
      echo ""
      echo "=== Updating Nix/Darwin ==="
      hm-update && hm-clean
-     
+
      echo ""
      echo "=== Updating Global Bun Packages ==="
      bun-update-global
-     
+
      echo ""
      echo "✓ System updated successfully"
  }
