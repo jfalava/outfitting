@@ -1,4 +1,29 @@
 {
+  "auto_install_extensions": {
+    "html": true,
+    "toml": true,
+    "git-firefly": true,
+    "dockerfile": true,
+    "sql": true,
+    "xml": true,
+    "lua": true,
+    "terraform": true,
+    "githum-theme": true,
+    "astro": true,
+    "nix": true,
+    "opencode": true,
+    "basher": true,
+    "powershell": true,
+    "deno": true,
+    "discord-presence": true,
+    "bearded-icon-theme": true,
+    "helm": true,
+    "oxc": true,
+    "json5": true,
+    "bearded-themes": true,
+    "tsgo": true,
+    "mdx": true,
+  },
   "show_edit_predictions": false,
   "restore_on_startup": "last_workspace",
   "when_closing_with_no_tabs": "keep_window_open",
@@ -13,11 +38,11 @@
     "show": "never",
   },
   "linked_edits": true,
-  "file_types": {
-    "toml": ["*.toml"],
-  },
   "icon_theme": "Bearded Icon Theme",
   "edit_predictions": {
+    "codestral": {
+      "api_url": "https://codestral.mistral.ai/v1/fim/completions",
+    },
     "mode": "subtle",
     "copilot": {
       "proxy": null,
@@ -34,7 +59,19 @@
     "dock": "left",
     "default_width": 240,
   },
-
+  "scrollbar": {
+    "show": "auto",
+    "cursors": true,
+    "git_diff": true,
+    "search_results": true,
+    "selected_text": true,
+    "selected_symbol": true,
+    "diagnostics": "all",
+    "axes": {
+      "horizontal": false,
+      "vertical": true,
+    },
+  },
   "soft_wrap": "editor_width",
   "preferred_line_length": 80,
   "show_wrap_guides": true,
@@ -42,12 +79,17 @@
     "dock": "right",
   },
   "agent": {
+    "default_model": { "provider": "copilot_chat", "model": "oswe-vscode-prime" },
     "play_sound_when_agent_done": true,
     "enable_feedback": true,
     "always_allow_tool_actions": true,
     "default_profile": "write",
     "single_file_review": false,
     "dock": "left",
+    "commit_message_model": {
+      "model": "gpt-5-mini",
+      "provider": "copilot_chat",
+    },
   },
   "project_panel": {
     "dock": "right",
@@ -246,6 +288,7 @@
       ],
     },
     "TypeScript": {
+      "language_servers": ["tsgo", "vtsls"],
       "format_on_save": "on",
       "prettier": {
         "allowed": false,
