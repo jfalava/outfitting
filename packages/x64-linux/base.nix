@@ -52,6 +52,8 @@ in
     nil
     pnpm
     github-cli
+    powershell
+    tailspin
   ];
 
   # Session variables

@@ -51,6 +51,7 @@ in
     ani-cli
     tailspin
     iina
+    powershell
   ];
 
   # Home Manager can also manage your environment variables through
