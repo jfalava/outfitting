@@ -3,7 +3,7 @@
   "version": "0.9",
   "private": true,
   "scripts": {
-    "deploy": "bun run cf-typegen && bun run typecheck && bun run lint && bun run format && wrangler deploy",
+    "deploy": "wrangler types && tsgo --noEmit && oxlint --type-aware && oxfmt && wrangler deploy",
     "cf-typegen": "wrangler types",
     "typecheck": "tsgo --noEmit",
     "lint": "oxlint --fix --type-aware .",
