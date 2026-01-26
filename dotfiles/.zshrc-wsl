@@ -96,7 +96,8 @@ set_outfitting_repo() {
 
 # Home Manager management functions - streamlined for personal use
 hm-sync() {
-    local repo_path=$(get_outfitting_repo) || {
+    local repo_path
+    repo_path=$(get_outfitting_repo) || {
         echo "Error: Repository location not configured."
         echo "Run 'set_outfitting_repo /path/to/outfitting' to configure."
         return 1
@@ -115,7 +116,8 @@ hm-sync() {
 
 # Profile switching functions - using flake composition
 hm-personal() {
-    local repo_path=$(get_outfitting_repo) || {
+    local repo_path
+    repo_path=$(get_outfitting_repo) || {
         echo "Error: Repository location not configured."
         echo "Run 'set_outfitting_repo /path/to/outfitting' to configure."
         return 1
@@ -132,7 +134,8 @@ hm-personal() {
 }
 
 hm-work() {
-    local repo_path=$(get_outfitting_repo) || {
+    local repo_path
+    repo_path=$(get_outfitting_repo) || {
         echo "Error: Repository location not configured."
         echo "Run 'set_outfitting_repo /path/to/outfitting' to configure."
         return 1
@@ -157,7 +160,8 @@ hm-profile() {
         esac
     else
         # Check which flake configuration is currently active
-        local repo_path=$(get_outfitting_repo 2>/dev/null) || { echo "Repository not configured"; return 1; }
+        local repo_path
+        repo_path=$(get_outfitting_repo 2>/dev/null) || { echo "Repository not configured"; return 1; }
 
         # Try to detect current profile by checking for work-specific packages
         if command -v terraform &>/dev/null && command -v kubectl &>/dev/null; then
@@ -169,7 +173,8 @@ hm-profile() {
 }
 
 hm-switch() {
-    local repo_path=$(get_outfitting_repo) || {
+    local repo_path
+    repo_path=$(get_outfitting_repo) || {
         echo "Error: Repository location not configured."
         echo "Run 'set_outfitting_repo /path/to/outfitting' to configure."
         return 1
@@ -187,7 +192,8 @@ hm-switch() {
 
 hm-update() {
     echo "Updating flake inputs and Home Manager..."
-    local repo_path=$(get_outfitting_repo) || {
+    local repo_path
+    repo_path=$(get_outfitting_repo) || {
         echo "Error: Repository location not configured."
         echo "Run 'set_outfitting_repo /path/to/outfitting' to configure."
         return 1

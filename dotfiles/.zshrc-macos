@@ -158,7 +158,8 @@ set_outfitting_repo() {
 
 # nix-darwin management functions
 hm-sync() {
-    local repo_path=$(get_outfitting_repo) || {
+    local repo_path
+    repo_path=$(get_outfitting_repo) || {
         echo "Error: Repository location not configured."
         echo "Run 'set_outfitting_repo /path/to/outfitting' to configure."
         return 1
@@ -229,7 +230,8 @@ hm-switch-local() {
 }
 
 hm-update() {
-     local repo_path=$(get_outfitting_repo) || {
+     local repo_path
+     repo_path=$(get_outfitting_repo) || {
          echo "Error: Repository location not configured."
          echo "Run 'set_outfitting_repo /path/to/outfitting' to configure."
          return 1
@@ -360,7 +362,8 @@ update-all-no-nix() {
 
 # Quick nix-darwin rebuild from anywhere in the system
 outfit-rebuild() {
-    local repo_path=$(get_outfitting_repo) || {
+    local repo_path
+    repo_path=$(get_outfitting_repo) || {
         echo "Error: Repository location not configured."
         echo "Run 'set_outfitting_repo /path/to/outfitting' to configure."
         return 1
