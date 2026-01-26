@@ -248,7 +248,16 @@ bun-update-global() {
     echo "Updating global Bun packages..."
 
     local packages
-    packages=$(bun pm ls -g 2>/dev/null | awk '/^[└├]── / {sub(/^[└├]── /, ""); match($0, /@[0-9]+\.[0-9]+\.[0-9]+$/); print substr($0, 1, RSTART-1)}')
+    local pm_ls_output pm_ls_status
+    pm_ls_output=$(bun pm ls -g 2>&1)
+    pm_ls_status=$?
+    if [ $pm_ls_status -ne 0 ]; then
+        echo "Error: bun pm ls -g failed"
+        echo "$pm_ls_output"
+        return $pm_ls_status
+    fi
+
+    packages=$(echo "$pm_ls_output" | awk '/^[└├]── / {sub(/^[└├]── /, ""); print $0}')
 
     if [ -z "$packages" ]; then
         echo "No global Bun packages found"
@@ -260,20 +269,56 @@ bun-update-global() {
     echo ""
 
     local updated=0
+    local failed=0
     while IFS= read -r pkg; do
         pkg=$(echo "$pkg" | tr -d ' ')
-        if [ -n "$pkg" ]; then
-            echo -n "Updating $pkg... "
-            if bun update -g "$pkg" >/dev/null 2>&1; then
-                echo "✓"
-                ((updated++))
-            else
-                echo "no update"
-            fi
+        if [ -z "$pkg" ]; then
+            continue
+        fi
+
+        local installed_version name latest_version
+        installed_version="${pkg##*@}"
+        name="${pkg%@$installed_version}"
+        if [ -z "$name" ] || [ -z "$installed_version" ] || [ "$name@$installed_version" != "$pkg" ]; then
+            echo "Skipping unrecognized entry: $pkg"
+            continue
+        fi
+
+        echo -n "Checking $name (installed $installed_version)... "
+        latest_version=$(python3 - "$name" <<'PY'
+import json, sys, urllib.request, urllib.parse
+pkg = sys.argv[1]
+url = "https://registry.npmjs.org/" + urllib.parse.quote(pkg, safe="@/")
+with urllib.request.urlopen(url) as r:
+    data = json.load(r)
+print(data.get("dist-tags", {}).get("latest", ""))
+PY
+        )
+        if [ -z "$latest_version" ]; then
+            echo "failed to fetch latest"
+            ((failed++))
+            continue
+        fi
+
+        if [ "$latest_version" = "$installed_version" ]; then
+            echo "up to date"
+            continue
+        fi
+
+        echo "updating to $latest_version"
+        if bun add -g "$name@$latest_version"; then
+            echo "✓"
+            ((updated++))
+        else
+            echo "failed"
+            ((failed++))
         fi
     done <<< "$packages"
 
     echo "Updated $updated global Bun package(s)"
+    if [ $failed -ne 0 ]; then
+        echo "Failed $failed package(s)"
+    fi
 }
 
 # Quick system update
