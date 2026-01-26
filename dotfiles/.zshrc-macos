@@ -28,15 +28,16 @@ path_prepend "$BUN_INSTALL/bin"
 export DENO_INSTALL="$HOME/.deno"
 path_prepend "$DENO_INSTALL/bin"
 
+# UV
 path_append "$HOME/.local/share/uv/bin"
 
 # OpenCode
 path_prepend "$HOME/.opencode/bin"
 
-# Cargo (Rust)
+# Cargo
 path_append "$HOME/.cargo/bin"
 
-# AmpCode
+# Amp Code
 path_append "$HOME/.amp/bin"
 
 # Git AI
