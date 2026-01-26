@@ -1,3 +1,4 @@
+# shellcheck shell=zsh
 # ========================================
 # ZSH Configuration - Base (Universal)
 # ========================================
@@ -7,7 +8,10 @@
 
 # ---- Performance: Lazy Completion Init ----
 autoload -Uz compinit
-if [[ -n "${ZDOTDIR}/.zcompdump(#qN.mh+24)" ]]; then
+# zsh-only: check for zcompdump matching the original qualifiers (mh+24, etc.)
+# Expand into an array and check its length (N in the qualifier ensures nullglob behavior).
+zcompdump=( ${ZDOTDIR:-$HOME}/.zcompdump(Nmh+24) )
+if (( ${#zcompdump} )); then
     compinit
 else
     compinit -C
