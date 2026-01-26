@@ -59,6 +59,11 @@
     "dock": "left",
     "default_width": 240,
   },
+  "outline_panel": {
+    "button": false,
+    "dock": "left",
+    "default_width": 240,
+  },
   "scrollbar": {
     "show": "auto",
     "cursors": true,
@@ -111,7 +116,7 @@
   },
   "theme": {
     "mode": "system",
-    "light": "Github Light",
+    "light": "One Light",
     "dark": "Bearded Theme Arc",
   },
   "lsp": {
