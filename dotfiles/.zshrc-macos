@@ -249,8 +249,8 @@ hm-update() {
 
      echo "Updating flake inputs and nix-darwin..."
 
-     # Update flake lock file (requires sudo to write to flake.lock)
-     sudo nix flake update --flake "$repo_path/packages/aarch64-darwin" --impure
+     # Update flake lock file as user to avoid root-owned lockfile
+     nix flake update --flake "$repo_path/packages/aarch64-darwin" --impure
 
      # Apply updated configuration
      sudo darwin-rebuild switch --flake "$repo_path/packages/aarch64-darwin" --impure
@@ -330,6 +330,32 @@ update-all() {
      echo ""
      echo "✓ System updated successfully"
  }
+
+# Update everything except Nix packages (useful for profile-only changes)
+update-all-no-nix() {
+    local repo_path
+    repo_path=$(get_outfitting_repo) || {
+        echo "Error: Repository location not configured."
+        echo "Run 'set_outfitting_repo /path/to/outfitting' to configure."
+        return 1
+    }
+
+    echo ""
+    echo "=== Updating dotfiles ==="
+    if git -C "$repo_path" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+        git -C "$repo_path" pull --ff-only
+    else
+        echo "Warning: $repo_path is not a git repository, skipping pull."
+    fi
+
+    if [ -n "$ZSH_VERSION" ] && [ -f "$repo_path/dotfiles/.zshrc-macos" ]; then
+        source "$repo_path/dotfiles/.zshrc-macos"
+        echo "✓ Zsh profile reloaded"
+    fi
+
+    echo ""
+    echo "✓ System updated (no Nix packages)"
+}
 
 # Quick nix-darwin rebuild from anywhere in the system
 outfit-rebuild() {
