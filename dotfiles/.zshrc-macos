@@ -309,6 +309,11 @@ bun-update-global() {
     echo "$packages"
     echo ""
 
+    if ! command -v uv >/dev/null; then
+        echo "uv not installed, cannot query registry"
+        return 1
+    fi
+
     local updated=0
     local failed=0
     while IFS= read -r pkg; do
@@ -326,7 +331,7 @@ bun-update-global() {
         fi
 
         echo -n "Checking $name (installed $installed_version)... "
-        latest_version=$(python3 - "$name" <<'PY'
+        latest_version=$(uv -q run --no-project python - "$name" <<'PY'
 import json, sys, urllib.request, urllib.parse
 pkg = sys.argv[1]
 url = "https://registry.npmjs.org/" + urllib.parse.quote(pkg, safe="@/")
