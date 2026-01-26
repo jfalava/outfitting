@@ -286,7 +286,8 @@ update-all() {
      local apt_output
      apt_output=$(sudo apt update 2>&1 && sudo apt upgrade -y 2>&1 && sudo apt autoremove -y 2>&1)
 
-     echo "$apt_output" | grep -E '^(Reading|Get|Preparing|Unpacking|Setting|Processing)' || echo "No APT updates"
+     # Use command grep in case grep is aliased to rg (ripgrep).
+     echo "$apt_output" | command grep -E '^(Reading|Get|Preparing|Unpacking|Setting|Processing)' || echo "No APT updates"
      echo "✓ APT packages updated"
 
      echo ""
