@@ -1,6 +1,7 @@
 {
   "auto_install_extensions": {
     "html": true,
+    "csv":true,
     "toml": true,
     "git-firefly": true,
     "dockerfile": true,
