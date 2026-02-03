@@ -12,14 +12,14 @@
     "check": "tsgo --noEmit && oxlint --fix --type-aware ."
   },
   "dependencies": {
-    "hono": "4.11.5"
+    "hono": "4.11.7"
   },
   "devDependencies": {
-    "@typescript/native-preview": "^7.0.0-dev.20260126.1",
-    "oxfmt": "^0.24.0",
-    "oxlint": "^1.41.0",
-    "oxlint-tsgolint": "^0.11.2",
+    "@typescript/native-preview": "^7.0.0-dev.20260203.1",
+    "oxfmt": "^0.28.0",
+    "oxlint": "^1.43.0",
+    "oxlint-tsgolint": "^0.11.4",
     "typescript": "5.9.3",
-    "wrangler": "^4.60.0"
+    "wrangler": "^4.61.1"
   }
 }
