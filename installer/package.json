@@ -6,10 +6,10 @@
     "deploy": "wrangler types && tsgo --noEmit && oxlint --type-aware && oxfmt && wrangler deploy",
     "cf-typegen": "wrangler types",
     "typecheck": "tsgo --noEmit",
-    "lint": "oxlint --fix --type-aware .",
+    "lint": "oxlint --type-aware",
     "format": "oxfmt",
     "dev": "bun run cf-typegen && wrangler dev",
-    "check": "tsgo --noEmit && oxlint --fix --type-aware ."
+    "check": "tsgo --noEmit && oxlint --fix --type-aware"
   },
   "dependencies": {
     "hono": "4.11.7"

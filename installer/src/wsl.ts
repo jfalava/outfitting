@@ -6,7 +6,7 @@ const wslApp = new Hono();
 
 // Route: GET / - WSL main installation script
 wslApp.get("/", async (c) => {
-  console.log("WSL Script URL:", SCRIPT_URLS.wsl);
+  console.warn("WSL Script URL:", SCRIPT_URLS.wsl);
 
   const scriptContent = await fetchScript(SCRIPT_URLS.wsl);
   if (!scriptContent) {
@@ -19,7 +19,7 @@ wslApp.get("/", async (c) => {
 
 // Route: GET /packages/bun - Bun global packages list
 wslApp.get("/packages/bun", async (c) => {
-  console.log("Bun Packages URL:", SCRIPT_URLS.bunPackages);
+  console.warn("Bun Packages URL:", SCRIPT_URLS.bunPackages);
 
   const packagesContent = await fetchScript(SCRIPT_URLS.bunPackages);
   if (!packagesContent) {

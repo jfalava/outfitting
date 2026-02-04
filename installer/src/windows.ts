@@ -59,7 +59,7 @@ windowsApp.get("/config/:file", async (c) => {
     );
   }
 
-  console.log(`Fetching config file: ${fileKey}`);
+  console.warn(`Fetching config file: ${fileKey}`);
 
   const result = await fetchConfigFile(CONFIG_FILES[fileKey]);
   if (!result) {
@@ -79,7 +79,7 @@ windowsApp.get("/packages/:profile", async (c) => {
 
   // Validate all requested profiles
   const invalidProfiles = requestedProfiles.filter(
-    (p) => !WINDOWS_PACKAGE_PROFILES.includes(p as any),
+    (p) => !WINDOWS_PACKAGE_PROFILES.some((profile) => profile === p),
   );
 
   if (invalidProfiles.length > 0) {
@@ -93,7 +93,7 @@ windowsApp.get("/packages/:profile", async (c) => {
     );
   }
 
-  console.log(`Fetching Windows packages for profiles: ${requestedProfiles.join(", ")}`);
+  console.warn(`Fetching Windows packages for profiles: ${requestedProfiles.join(", ")}`);
 
   // Fetch all requested package files
   const packageContents: string[] = [];
@@ -132,7 +132,7 @@ windowsApp.get("/packages/msstore/:profile", async (c) => {
 
   // Validate all requested profiles
   const invalidProfiles = requestedProfiles.filter(
-    (p) => !MSSTORE_PACKAGE_PROFILES.includes(p as any),
+    (p) => !MSSTORE_PACKAGE_PROFILES.some((profile) => profile === p),
   );
 
   if (invalidProfiles.length > 0) {
@@ -146,7 +146,7 @@ windowsApp.get("/packages/msstore/:profile", async (c) => {
     );
   }
 
-  console.log(`Fetching Microsoft Store packages for profiles: ${requestedProfiles.join(", ")}`);
+  console.warn(`Fetching Microsoft Store packages for profiles: ${requestedProfiles.join(", ")}`);
 
   // Fetch all requested package files
   const packageContents: string[] = [];
@@ -260,7 +260,7 @@ windowsApp.get("/msstore/:profile", async (c) => {
 
   // Validate all requested profiles
   const invalidProfiles = requestedProfiles.filter(
-    (p) => !MSSTORE_PACKAGE_PROFILES.includes(p as any),
+    (p) => !MSSTORE_PACKAGE_PROFILES.some((profile) => profile === p),
   );
 
   if (invalidProfiles.length > 0) {
@@ -288,7 +288,7 @@ exit 1
     return c.body(errorScript, 400);
   }
 
-  console.log(
+  console.warn(
     `Serving Microsoft Store installation script for profiles: ${requestedProfiles.join(", ")}`,
   );
 
@@ -466,7 +466,7 @@ windowsApp.get("/:profile", async (c) => {
 
   // Validate all requested profiles
   const invalidProfiles = requestedProfiles.filter(
-    (p) => !WINDOWS_PACKAGE_PROFILES.includes(p as any),
+    (p) => !WINDOWS_PACKAGE_PROFILES.some((profile) => profile === p),
   );
 
   if (invalidProfiles.length > 0) {
@@ -494,7 +494,7 @@ exit 1
     return c.body(errorScript, 400);
   }
 
-  console.log(`Serving installation script for profiles: ${requestedProfiles.join(", ")}`);
+  console.warn(`Serving installation script for profiles: ${requestedProfiles.join(", ")}`);
 
   // Fetch the base installation script
   const baseScript = await fetchScript(SCRIPT_URLS.windows);

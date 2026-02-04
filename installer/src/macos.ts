@@ -6,7 +6,7 @@ const macosApp = new Hono();
 
 // Route: GET / - macOS main installation script
 macosApp.get("/", async (c) => {
-  console.log("macOS Script URL:", SCRIPT_URLS.macos);
+  console.warn("macOS Script URL:", SCRIPT_URLS.macos);
 
   const scriptContent = await fetchScript(SCRIPT_URLS.macos);
   if (!scriptContent) {
@@ -19,7 +19,7 @@ macosApp.get("/", async (c) => {
 
 // Route: GET /packages/bun - Bun global packages list
 macosApp.get("/packages/bun", async (c) => {
-  console.log("Bun Packages URL:", SCRIPT_URLS.bunPackages);
+  console.warn("Bun Packages URL:", SCRIPT_URLS.bunPackages);
 
   const packagesContent = await fetchScript(SCRIPT_URLS.bunPackages);
   if (!packagesContent) {

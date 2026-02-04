@@ -1,18 +1,18 @@
 {
   "$schema": "https://raw.githubusercontent.com/oxc-project/oxc/main/npm/oxlint/configuration_schema.json",
-  "plugins": ["eslint", "typescript", "unicorn", "oxc", "import", "promise"],
+  "plugins": ["eslint", "react", "typescript", "jsx-a11y", "unicorn", "oxc", "import", "promise"],
   "env": {
     "browser": true,
     "es2022": true
   },
+  "ignorePatterns": ["worker-configuration.d.ts", "**/*.d.ts", ".source/**"],
   "rules": {
-    "oxlint/recommended": "error",
-    "tsgo/no-explicit-any": "error",
-    "tsgo/no-unsafe-assignment": "error",
-    "tsgo/no-unsafe-call": "error",
-    "tsgo/no-unsafe-member-access": "error",
-    "tsgo/no-unsafe-return": "error",
-    "ignorePatterns": ["worker-configuration.d.ts", "**/*.d.ts"],
+    "typescript/no-explicit-any": "error",
+    "typescript/no-unsafe-assignment": "error",
+    "typescript/no-unsafe-call": "error",
+    "typescript/no-unsafe-member-access": "error",
+    "typescript/no-unsafe-return": "error",
+
     "no-unused-vars": [
       "error",
       {
@@ -91,11 +91,6 @@
     "max-statements": ["error", 40],
     "import/no-duplicates": "error",
     "import/no-unresolved": "error",
-    "import/no-mutable-exports": "error",
-    "react/jsx-key": "error",
-    "react/jsx-no-undef": "error",
-    "react/no-direct-mutation-state": "error",
-    "react/no-find-dom-node": "error",
-    "react/no-danger": "error"
+    "import/no-mutable-exports": "error"
   }
 }
