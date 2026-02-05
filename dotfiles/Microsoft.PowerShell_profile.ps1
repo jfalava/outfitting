@@ -67,9 +67,26 @@ Set-Alias wslk killwsl
 # -------------------------------
 # Expressions
 # -------------------------------
-Invoke-Expression (&starship init powershell)
-Invoke-Expression (&tirith init powershell)
-Invoke-Expression (& { (zoxide init powershell | Out-String) })
+if (Get-Command starship -ErrorAction SilentlyContinue) {
+    $starshipInit = & starship init powershell
+    if ($starshipInit) {
+        Invoke-Expression $starshipInit
+    }
+}
+
+if (Get-Command tirith -ErrorAction SilentlyContinue) {
+    $tirithInit = tirith init | Out-String
+    if ($tirithInit) {
+        Invoke-Expression $tirithInit
+    }
+}
+
+if (Get-Command zoxide -ErrorAction SilentlyContinue) {
+    $zoxideInit = zoxide init powershell | Out-String
+    if ($zoxideInit) {
+        Invoke-Expression $zoxideInit
+    }
+}
 
 # -------------------------------
 # Profile Sync
