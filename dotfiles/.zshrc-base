@@ -618,6 +618,11 @@ if command -v starship &> /dev/null; then
     eval "$(starship init zsh)"
 fi
 
+# Tirith (https://github.com/sheeki03/tirith)
+if command -v tirith &> /dev/null; then
+    eval "$(tirith init)"
+fi
+
 # Bun completions
 if command -v bun &> /dev/null; then
     [ -s "$HOME/.bun/_bun" ] && source "$HOME/.bun/_bun"
