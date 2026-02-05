@@ -68,6 +68,7 @@ Set-Alias wslk killwsl
 # Expressions
 # -------------------------------
 Invoke-Expression (&starship init powershell)
+Invoke-Expression (&tirith init powershell)
 Invoke-Expression (& { (zoxide init powershell | Out-String) })
 
 # -------------------------------
