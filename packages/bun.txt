@@ -2,3 +2,4 @@
 @qwen-code/qwen-code@latest
 @openai/codex
 opencode-ai
+tirith
