@@ -2,6 +2,7 @@
 # Paths
 # -------------------------------
 $pathList = @(
+    "C:\bin"
     "C:\Program Files\Go\bin",
     "$env:USERPROFILE\scoop",
     "$env:LOCALAPPDATA\pnpm\",
@@ -50,6 +51,11 @@ function ezals {
   eza --color=always --long --git --bytes --icons=always
 }
 Set-Alias l ezals
+
+function reloadprofile {
+  . $PROFILE
+}
+Set-Alias reload reloadprofile
 
 function whichwin {
     param (
