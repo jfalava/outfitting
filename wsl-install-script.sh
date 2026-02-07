@@ -430,7 +430,7 @@ install_bun_packages() {
                 ((installed++))
             else
                 info "Installing Bun package: $package"
-                if bun install -g "$package" 2>/dev/null; then
+                if bun install -g --trust "$package" 2>/dev/null; then
                     ((installed++))
                 else
                     echo "❖ Warning: Failed to install: $package"
