@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+
 import { CONTENT_TYPES, SCRIPT_URLS } from "./constants";
 import { fetchScript, setScriptHeaders } from "./utils";
 

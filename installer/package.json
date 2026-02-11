@@ -3,13 +3,13 @@
   "version": "0.9",
   "private": true,
   "scripts": {
-    "deploy": "wrangler types && tsgo --noEmit && oxlint --type-aware && oxfmt && wrangler deploy",
     "cf-typegen": "wrangler types",
-    "typecheck": "tsgo --noEmit",
-    "lint": "oxlint --type-aware",
-    "format": "oxfmt",
+    "check": "tsgo --noEmit && oxlint --fix --type-aware",
+    "deploy": "wrangler types && tsgo --noEmit && oxlint --type-aware && oxfmt && wrangler deploy",
     "dev": "bun run cf-typegen && wrangler dev",
-    "check": "tsgo --noEmit && oxlint --fix --type-aware"
+    "format": "oxfmt",
+    "lint": "oxlint --type-aware",
+    "typecheck": "tsgo --noEmit"
   },
   "dependencies": {
     "hono": "4.11.8"
