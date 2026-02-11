@@ -1,6 +1,6 @@
 {
-  "name": "outfitting-redirects",
-  "version": "0.9",
+  "name": "@outfitting/installer",
+  "version": "0.10.0",
   "private": true,
   "scripts": {
     "cf-typegen": "wrangler types",
@@ -15,11 +15,11 @@
     "hono": "4.11.8"
   },
   "devDependencies": {
-    "@typescript/native-preview": "^7.0.0-dev.20260207.1",
-    "oxfmt": "^0.28.0",
-    "oxlint": "^1.43.0",
-    "oxlint-tsgolint": "^0.11.4",
-    "typescript": "5.9.3",
-    "wrangler": "^4.63.0"
+    "@typescript/native-preview": "catalog:build",
+    "oxfmt": "catalog:build",
+    "oxlint": "catalog:build",
+    "oxlint-tsgolint": "catalog:build",
+    "typescript": "catalog:build",
+    "wrangler": "catalog:build"
   }
 }

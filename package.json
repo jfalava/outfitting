@@ -1,0 +1,35 @@
+{
+  "name": "@outfitting/monorepo",
+  "version": "0.1.0",
+  "workspaces": {
+    "packages": [
+      "installer",
+      "documentation"
+    ],
+    "catalogs": {
+      "types": {
+        "@types/node": "25.2.3"
+      },
+      "build": {
+        "@typescript/native-preview": "^7.0.0-dev.20260211.1",
+        "oxlint": "1.46.0",
+        "oxfmt": "0.31.0",
+        "oxlint-tsgolint": "^0.12.0",
+        "typescript": "5.9.3",
+        "wrangler": "4.64.0"
+      }
+    }
+  },
+  "type": "module",
+  "scripts": {
+    "check:catalog": "bun scripts/check-catalog-usage.ts",
+    "check:outdated": "bun scripts/check-outdated-catalog.ts",
+    "format:global": "bun run --filter @outfitting/documentation --filter @outfitting/installer format"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.3.9",
+    "@types/node": "^25.2.3",
+    "oxfmt": "^0.28.0",
+    "wrangler": "^4.62.0"
+  }
+}

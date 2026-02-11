@@ -1,5 +1,6 @@
 {
-  "name": "documentation",
+  "name": "@outfitting/documentation",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -32,17 +33,17 @@
     "vite-tsconfig-paths": "^6.1.0"
   },
   "devDependencies": {
-    "@types/node": "^25.2.3",
+    "@types/node": "catalog:types",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
-    "@typescript/native-preview": "^7.0.0-dev.20260207.1",
+    "@typescript/native-preview": "catalog:build",
     "@vitejs/plugin-react": "^5.0.4",
     "jsdom": "^28.0.0",
-    "oxfmt": "0.28.0",
-    "oxlint": "1.43.0",
-    "oxlint-tsgolint": "0.11.5",
-    "typescript": "^5.7.2",
+    "oxfmt": "catalog:build",
+    "oxlint": "catalog:build",
+    "oxlint-tsgolint": "catalog:build",
+    "typescript": "catalog:build",
     "vite": "^8.0.0-beta.13",
-    "wrangler": "^4.64.0"
+    "wrangler": "catalog:build"
   }
 }

@@ -16,3 +16,6 @@ Thumbs.db
 result
 result-*
 .direnv/
+
+# Monorepo
+node_modules/
