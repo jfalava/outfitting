@@ -9,12 +9,7 @@
     "browser": true,
     "es2022": true
   },
-  "ignorePatterns": [
-    "worker-configuration.d.ts",
-    "**/*.d.ts",
-    ".source/**",
-    "src/routeTree.gen.ts"
-  ],
+  "ignorePatterns": ["worker-configuration.d.ts", "**/*.d.ts"],
   "rules": {
     "typescript/no-explicit-any": "error",
     "typescript/no-unsafe-assignment": "error",
