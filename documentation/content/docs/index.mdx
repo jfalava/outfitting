@@ -1,0 +1,33 @@
+---
+title: Outfitting
+description: Automated setup scripts, dotfiles, and Cloudflare Workers for provisioning development environments.
+---
+
+Outfitting provides automated setup scripts, dotfiles, and Cloudflare Workers for provisioning personal development environments across Windows, WSL/Linux, and macOS.
+
+If you are new to the project, start by choosing your platform guide, run the installer command for that platform, and then apply updates with the helper commands documented here. The docs are organized so you can either do a fast first install or understand the full profile/mode model before you run anything.
+
+> **Warning**
+> If you are installing an LTSC version of Windows, it is missing the Microsoft Store app. Install it along with WinGet using [LTSC-Add-MicrosoftStore](https://github.com/kkkgo/LTSC-Add-MicrosoftStore).
+
+## Quick Start
+
+1. Go to [Installer Guide](/docs/installer-guide) to choose the right install path.
+2. Run your platform installer command from [Windows](/docs/windows), [WSL/Linux](/docs/wsl-linux), or [macOS](/docs/macos).
+3. Use [Updates](/docs/updates) for ongoing maintenance after setup.
+
+## What You Are Installing
+
+Outfitting installs package profiles (tools/apps), shell and Home Manager configuration, and platform-specific system wiring (like symlinks and nix-darwin linkage on macOS). Profiles are explicit and composable, so you control exactly what is installed.
+
+## Installation Guides
+
+- [Windows](/docs/windows)
+- [WSL/Linux](/docs/wsl-linux)
+- [macOS](/docs/macos)
+- [Installer Guide](/docs/installer-guide)
+
+## Repository and Updates
+
+- [Repository Configuration](/docs/repository-configuration)
+- [Updates](/docs/updates)

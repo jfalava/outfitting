@@ -1,0 +1,12 @@
+{
+  "title": "Outfitting",
+  "pages": [
+    "index",
+    "installer-guide",
+    "windows",
+    "wsl-linux",
+    "macos",
+    "repository-configuration",
+    "updates"
+  ]
+}

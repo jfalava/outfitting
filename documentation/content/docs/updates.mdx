@@ -1,0 +1,77 @@
+---
+title: Updates
+description: Update workflows after installation for WSL/Linux, macOS, and Windows.
+---
+
+## WSL/Linux
+
+Quick update:
+
+```bash
+curl -L wsl.jfa.dev | bash
+```
+
+Update local configuration after editing files in `~/.config/outfitting/repo`:
+
+```bash
+git pull
+hm-sync
+```
+
+Update packages:
+
+```bash
+hm-update
+update-all
+```
+
+Other update modes:
+
+```bash
+curl -L wsl.jfa.dev | bash -s -- --update-only
+curl -L wsl.jfa.dev | bash -s -- --full-install
+```
+
+## macOS
+
+Update local configuration after editing files in `~/.config/outfitting/repo`:
+
+```bash
+git pull
+hm-sync
+```
+
+Update packages:
+
+```bash
+hm-update
+update-all
+```
+
+## Windows
+
+Update PowerShell profile:
+
+```powershell
+irm win.jfa.dev/config/pwsh-profile | iex
+```
+
+Install or update Bun global packages:
+
+```powershell
+irm win.jfa.dev/bun | iex
+```
+
+## Install or Update Bun Global Packages (WSL/macOS)
+
+WSL/Linux:
+
+```bash
+curl -fsSL wsl.jfa.dev/packages/bun | xargs -I {} bun install -g {}
+```
+
+macOS:
+
+```bash
+curl -fsSL mac.jfa.dev/packages/bun | xargs -I {} bun install -g {}
+```

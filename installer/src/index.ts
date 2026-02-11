@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+
 import { ALLOWED_HOSTS } from "./constants";
 import macosApp from "./macos";
 import windowsApp from "./windows";

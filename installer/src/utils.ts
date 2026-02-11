@@ -1,4 +1,5 @@
 import type { Context } from "hono";
+
 import { USER_AGENT } from "./constants";
 
 /**

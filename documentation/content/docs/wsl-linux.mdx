@@ -1,0 +1,64 @@
+---
+title: WSL/Linux
+description: Install Outfitting for Ubuntu-based WSL distributions with personal or work profiles.
+---
+
+For Ubuntu-based WSL distributions:
+
+## Installation Modes
+
+Default mode (personal profile):
+
+```bash
+curl -L wsl.jfa.dev | bash
+```
+
+- Updates Nix channels and packages
+- Applies Home Manager configuration (personal profile)
+- Skips APT package installation
+
+Full installation:
+
+```bash
+curl -L wsl.jfa.dev | bash -s -- --full-install
+```
+
+Other modes:
+
+```bash
+curl -L wsl.jfa.dev | bash -s -- --update-only
+curl -L wsl.jfa.dev | bash -s -- --nix-only
+```
+
+## Profile Selection
+
+```bash
+# Personal profile (default)
+curl -L wsl.jfa.dev | bash
+
+# Work profile
+curl -L wsl.jfa.dev | bash -s -- --work-profile
+
+# Explicit personal profile selection
+curl -L wsl.jfa.dev | bash -s -- --personal-profile
+
+# Combine with installation modes
+curl -L wsl.jfa.dev | bash -s -- --full-install --work-profile
+```
+
+## Profile Commands
+
+```bash
+# Check current active profile
+hm-profile
+
+# Switch profiles
+hm-personal
+hm-work
+
+# Apply config changes
+hm-sync
+
+# Update packages and apply config
+hm-update
+```

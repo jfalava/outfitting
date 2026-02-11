@@ -1,6 +1,6 @@
 {
   "$schema": "https://raw.githubusercontent.com/oxc-project/oxc/main/npm/oxlint/configuration_schema.json",
-  "plugins": ["eslint", "react", "typescript", "unicorn", "oxc", "import", "promise"],
+  "plugins": ["eslint", "react", "typescript", "jsx-a11y", "unicorn", "oxc", "import", "promise"],
   "categories": {
     "correctness": "error",
     "suspicious": "warn"
@@ -9,7 +9,12 @@
     "browser": true,
     "es2022": true
   },
-  "ignorePatterns": ["worker-configuration.d.ts", "**/*.d.ts"],
+  "ignorePatterns": [
+    "worker-configuration.d.ts",
+    "**/*.d.ts",
+    ".source/**",
+    "src/routeTree.gen.ts"
+  ],
   "rules": {
     "typescript/no-explicit-any": "error",
     "typescript/no-unsafe-assignment": "error",
@@ -88,6 +93,12 @@
     "import/no-mutable-exports": "error",
     "import/no-cycle": "error",
     "import/no-self-import": "error",
+    "react/jsx-key": "error",
+    "react/jsx-no-undef": "error",
+    "react/react-in-jsx-scope": "off",
+    "react/no-direct-mutation-state": "error",
+    "react/no-find-dom-node": "error",
+    "react/no-danger": "error",
     "typescript/no-implied-eval": "error",
     "typescript/no-unsafe-type-assertion": "off",
     "typescript/no-unnecessary-type-assertion": "off"
