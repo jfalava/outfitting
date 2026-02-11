@@ -27,6 +27,7 @@ irm win.jfa.dev/base | iex
 irm win.jfa.dev/base+dev+qol | iex
 irm win.jfa.dev/msstore/msstore-base+msstore-dev | iex
 irm win.jfa.dev/bun | iex
+irm win.jfa.dev/registry | iex
 ```
 
 ### WSL/Linux (Ubuntu-based)
@@ -114,6 +115,7 @@ or upgrade
 ```powershell
 irm win.jfa.dev/config/pwsh-profile | iex
 irm win.jfa.dev/bun | iex
+irm win.jfa.dev/registry | iex
 ```
 
 ## Repository Structure

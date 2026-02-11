@@ -40,7 +40,7 @@
     "jsdom": "28.0.0",
     "oxfmt": "catalog:build",
     "oxlint": "catalog:build",
-    "oxlint-tsgolint": "^0.12.0",
+    "oxlint-tsgolint": "catalog:build",
     "typescript": "catalog:build",
     "vite": "^8.0.0-beta.13",
     "wrangler": "catalog:build"
