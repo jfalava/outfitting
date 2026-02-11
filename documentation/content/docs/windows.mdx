@@ -1,0 +1,81 @@
+---
+title: Windows
+description: Run Outfitting installation profiles on Windows with WinGet and Microsoft Store packages.
+---
+
+## Prerequisites
+
+- You may need to install or update [WinGet](https://learn.microsoft.com/en-us/windows/package-manager/winget/#install-winget).
+- Most regular Windows machines already have it, but it can be outdated.
+- Update WinGet from the [Microsoft Store listing](https://apps.microsoft.com/detail/9NBLGGH4NNS1) if needed.
+- If elevation issues occur, run:
+
+```powershell
+Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process
+```
+
+- All package installations must be explicitly specified. There is no default installation.
+
+## View Available Profiles
+
+```powershell
+irm win.jfa.dev | iex
+```
+
+## WinGet Package Installation
+
+All commands require elevated PowerShell.
+
+```powershell
+# Single profile
+irm win.jfa.dev/base | iex
+irm win.jfa.dev/dev | iex
+
+# Multiple profiles combined
+irm win.jfa.dev/base+dev+gaming | iex
+irm win.jfa.dev/dev+gaming+qol | iex
+```
+
+Available WinGet profiles:
+
+- `base`: Core packages, runtimes, and utilities
+- `dev`: Development tools and environments
+- `gaming`: Gaming platforms and tools
+- `work`: Work-related applications
+- `qol`: Quality of life improvements
+- `network`: Network tools and utilities
+
+## Microsoft Store Package Installation
+
+Microsoft Store packages require the `/msstore/` prefix in the URL.
+
+```powershell
+# Single profile
+irm win.jfa.dev/msstore/msstore-base | iex
+
+# Multiple profiles combined
+irm win.jfa.dev/msstore/msstore-base+msstore-gaming | iex
+irm win.jfa.dev/msstore/msstore-base+msstore-gaming+msstore-qol | iex
+```
+
+Available Microsoft Store profiles:
+
+- `msstore-base`: Core Microsoft Store apps
+- `msstore-dev`: Development-related Store apps
+- `msstore-gaming`: Gaming-related Store apps
+- `msstore-work`: Work-related Store apps
+- `msstore-qol`: Quality of life Store apps
+
+Correct format:
+
+```powershell
+irm win.jfa.dev/msstore/<profile>+<profile> | iex
+```
+
+## Bun Global Packages
+
+Requires Bun installed first (typically through the `dev` profile).
+
+```powershell
+irm win.jfa.dev/bun | iex
+```

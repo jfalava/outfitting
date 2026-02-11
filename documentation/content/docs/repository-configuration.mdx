@@ -1,0 +1,25 @@
+---
+title: Repository Configuration
+description: How this repo is cloned and symlinked during automatic setup.
+---
+
+During installation, this repository is cloned to:
+
+```text
+~/.config/outfitting/repo
+```
+
+The installation then creates symlinks into platform-specific configuration locations.
+
+## WSL/Linux
+
+```text
+~/.config/home-manager -> ~/.config/outfitting/repo/packages/x64-linux
+```
+
+## macOS
+
+```text
+~/.config/home-manager -> ~/.config/outfitting/repo/packages/aarch64-darwin
+~/.nixpkgs/darwin-configuration.nix -> ~/.config/outfitting/repo/packages/aarch64-darwin/darwin.nix
+```

@@ -1,0 +1,43 @@
+---
+title: macOS
+description: Install Outfitting on macOS and manage nix-darwin configuration.
+---
+
+## Installation
+
+```bash
+curl -L mac.jfa.dev | bash
+```
+
+## Nix-darwin Profile Management
+
+```bash
+# Build and apply changes
+or switch
+or build
+or test
+
+# Update with new packages
+or upgrade
+
+# Dry-run changes
+or dry
+
+# List and rollback generations
+drl
+drr
+```
+
+Traditional `nix-darwin` commands from the repository directory:
+
+```bash
+darwin-rebuild switch --flake ".#macos"
+darwin-rebuild build --flake ".#macos"
+```
+
+## Nix Package Testing
+
+```bash
+nix-test bat
+nix-try ripgrep
+```

@@ -1,0 +1,97 @@
+---
+title: Installer Guide
+description: How to choose installer commands and understand what each profile or mode installs.
+---
+
+This guide explains how to pick the right installer command and what Outfitting changes on your machine. Use this page when you want to understand the model, not just copy a single command.
+
+## How to Use the Installer
+
+1. Pick your platform: Windows, WSL/Linux, or macOS.
+2. Pick scope: minimal/bootstrap, default personal setup, or full setup.
+3. Pick profile set:
+   - Windows uses explicit profiles like `base`, `dev`, `work`, `gaming`, `qol`, `network`.
+   - WSL supports personal or work profile flags.
+   - macOS uses the repo's nix-darwin and Home Manager config.
+4. Run install command as documented in the platform page.
+5. Verify by running profile/update helper commands (`hm-profile`, `hm-sync`, `hm-update`, etc.).
+
+## What Gets Installed
+
+Outfitting installs and configures four layers:
+
+### 1) Package Layer
+
+- **Windows**:
+  - WinGet profiles (`base`, `dev`, etc.).
+  - Optional Microsoft Store profiles (`msstore-*`).
+  - Optional Bun global packages via `win.jfa.dev/bun`.
+- **WSL/Linux**:
+  - Nix/Home Manager packages from `packages/x64-linux`.
+  - Optional APT packages in update/full modes.
+- **macOS**:
+  - Nix and Home Manager packages from `packages/aarch64-darwin`.
+  - nix-darwin configuration from `darwin.nix`.
+
+### 2) Configuration Layer
+
+- Dotfiles and shell profiles from this repository.
+- Home Manager configuration through symlinks.
+- PowerShell profile updates on Windows via `win.jfa.dev/config/pwsh-profile`.
+
+### 3) Environment Wiring
+
+- Repository is cloned into `~/.config/outfitting/repo`.
+- Symlinks connect your platform config paths to repo-managed files.
+- On macOS, nix-darwin linkage is created for system rebuild commands.
+
+### 4) Maintenance Tooling
+
+- Helper commands to apply and update configs:
+  - `hm-sync`, `hm-update`, `hm-personal`, `hm-work` (WSL/Linux)
+  - `or switch`, `or upgrade`, `drr` (macOS)
+- Update scripts to refresh package sources and reinstall as needed.
+
+## Command Selection Examples
+
+### Windows
+
+- First-time development machine:
+
+```powershell
+irm win.jfa.dev/base+dev+qol | iex
+```
+
+- Add Microsoft Store apps:
+
+```powershell
+irm win.jfa.dev/msstore/msstore-base+msstore-dev | iex
+```
+
+### WSL/Linux
+
+- Default personal setup:
+
+```bash
+curl -L wsl.jfa.dev | bash
+```
+
+- Full setup with work profile:
+
+```bash
+curl -L wsl.jfa.dev | bash -s -- --full-install --work-profile
+```
+
+### macOS
+
+- Standard install:
+
+```bash
+curl -L mac.jfa.dev | bash
+```
+
+## Safety and Repeatability
+
+- Installations are profile-driven and intended to be repeatable.
+- Re-running installer/update commands should converge your machine toward the repository state.
+- Prefer adding/removing packages in this repo, then run sync/update commands rather than making one-off manual changes.

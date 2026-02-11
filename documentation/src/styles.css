@@ -1,15 +1,118 @@
+@import url("https://fonts.googleapis.com/css2?family=Google+Sans+Code&display=swap");
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css");
 @import "tailwindcss";
+@import "fumadocs-ui/css/ocean.css";
+@import "fumadocs-ui/css/preset.css";
+
+:root {
+  --docs-grid-color: color-mix(in oklab, var(--color-fd-border) 55%, transparent);
+  --docs-surface-glow: color-mix(in oklab, var(--color-fd-primary) 18%, transparent);
+}
 
 body {
   @apply m-0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
-    "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
+  font-family:
+    "Pretendard Variable",
+    Pretendard,
+    -apple-system,
+    BlinkMacSystemFont,
+    system-ui,
+    Roboto,
+    "Helvetica Neue",
+    "Segoe UI",
+    "Apple SD Gothic Neo",
+    "Noto Sans KR",
+    "Malgun Gothic",
+    "Apple Color Emoji",
+    "Segoe UI Emoji",
+    "Segoe UI Symbol",
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background:
+    radial-gradient(1200px 600px at 15% -10%, var(--docs-surface-glow), transparent 62%),
+    radial-gradient(
+      900px 500px at 100% 0%,
+      color-mix(in oklab, var(--color-fd-primary) 10%, transparent),
+      transparent 68%
+    ),
+    var(--color-fd-background);
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+  background-image:
+    linear-gradient(to right, var(--docs-grid-color) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--docs-grid-color) 1px, transparent 1px);
+  background-size: 32px 32px;
+  mask-image: radial-gradient(circle at 20% 20%, black 0%, transparent 72%);
 }
 
 code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New",
-    monospace;
+  font-family:
+    "Google Sans Code", source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace;
+}
+
+html {
+  scrollbar-gutter: stable;
+}
+
+/* Preserve the default docs layout while making surfaces feel more deliberate. */
+#nd-sidebar,
+#nd-sidebar-mobile {
+  backdrop-filter: blur(10px);
+}
+
+#nd-sidebar > div {
+  background: color-mix(in oklab, var(--color-fd-card) 92%, transparent);
+  border-right: 1px solid color-mix(in oklab, var(--color-fd-border) 78%, transparent);
+}
+
+.prose a {
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.22em;
+}
+
+.prose h1,
+.prose h2,
+.prose h3 {
+  letter-spacing: -0.01em;
+}
+
+.prose h2 {
+  border-bottom: 1px solid color-mix(in oklab, var(--color-fd-border) 70%, transparent);
+  padding-bottom: 0.45rem;
+}
+
+.prose blockquote {
+  border-left-width: 3px;
+  border-left-color: color-mix(in oklab, var(--color-fd-primary) 58%, white 8%);
+  background: color-mix(in oklab, var(--color-fd-secondary) 64%, transparent);
+  border-radius: 0.75rem;
+  padding: 0.65rem 0.95rem;
+}
+
+.prose table {
+  border-radius: 0.8rem;
+  overflow: hidden;
+  border: 1px solid color-mix(in oklab, var(--color-fd-border) 82%, transparent);
+}
+
+.prose thead {
+  background: color-mix(in oklab, var(--color-fd-secondary) 74%, transparent);
+}
+
+.shiki {
+  border-color: color-mix(in oklab, var(--color-fd-border) 80%, transparent) !important;
+  box-shadow:
+    0 1px 0 color-mix(in oklab, black 18%, transparent),
+    0 10px 25px color-mix(in oklab, var(--color-fd-primary) 12%, transparent);
+}
+
+.fd-step > h3 {
+  margin-top: 0.2rem;
 }
