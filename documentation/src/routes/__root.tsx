@@ -45,7 +45,17 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <HeadContent />
       </head>
       <body className="flex min-h-screen flex-col">
-        <RootProvider>{children}</RootProvider>
+        <RootProvider
+          search={{
+            enabled: true,
+            options: {
+              type: "fetch",
+              api: "/api/search",
+            },
+          }}
+        >
+          {children}
+        </RootProvider>
         <TanStackDevtools
           config={{
             position: "bottom-right",

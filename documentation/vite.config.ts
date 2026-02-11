@@ -1,3 +1,5 @@
+import { fileURLToPath } from "node:url";
+
 import { cloudflare } from "@cloudflare/vite-plugin";
 import tailwindcss from "@tailwindcss/vite";
 import { devtools } from "@tanstack/devtools-vite";
@@ -23,9 +25,15 @@ const config = defineConfig({
   ],
   resolve: {
     alias: {
-      "fumadocs-mdx:collections/server": "./.source/server.ts",
-      "fumadocs-mdx:collections/browser": "./.source/browser.ts",
-      "fumadocs-mdx:collections/dynamic": "./.source/dynamic.ts",
+      "fumadocs-mdx:collections/server": fileURLToPath(
+        new URL("./.source/server.ts", import.meta.url),
+      ),
+      "fumadocs-mdx:collections/browser": fileURLToPath(
+        new URL("./.source/browser.ts", import.meta.url),
+      ),
+      "fumadocs-mdx:collections/dynamic": fileURLToPath(
+        new URL("./.source/dynamic.ts", import.meta.url),
+      ),
     },
   },
 });
