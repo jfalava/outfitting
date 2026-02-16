@@ -5,6 +5,7 @@ This is a cross-platform bootstrap system using Cloudflare Workers, Bun, and Typ
 ## Build/Test/Lint Commands
 
 **Root level:**
+
 ```bash
 # Check workspace catalog compliance
 bun run check:catalog
@@ -17,6 +18,7 @@ bun run format:global
 ```
 
 **Documentation app (`documentation/`):**
+
 ```bash
 bun run dev          # Start dev server on port 3000
 bun run build        # Build for production
@@ -29,6 +31,7 @@ bun run cf-typegen   # Generate Cloudflare types
 ```
 
 **Installer Worker (`installer/`):**
+
 ```bash
 bun run dev          # Start wrangler dev server
 bun run deploy       # Full deploy pipeline
@@ -42,12 +45,14 @@ bun run cf-typegen   # Generate Cloudflare types
 ## Code Style Guidelines
 
 **Language & Runtime:**
+
 - TypeScript 5.9+ with strict mode enabled
 - ES2024 target, ESNext modules
 - Bun as package manager and runtime (`bun.lock` present)
 - React 19 for UI components
 
 **Formatting (oxfmt):**
+
 - Print width: 100
 - Tab width: 2 spaces (no tabs)
 - LF line endings
@@ -57,6 +62,7 @@ bun run cf-typegen   # Generate Cloudflare types
 - Final newline required
 
 **Linting (oxlint):**
+
 - Type-aware linting enabled (`--type-aware`)
 - Plugins: eslint, react, typescript, jsx-a11y, unicorn, oxc, import, promise
 - No `console.log` (only `console.warn` and `console.error` allowed)
@@ -67,6 +73,7 @@ bun run cf-typegen   # Generate Cloudflare types
 - Max complexity: 12, max depth: 4, max params: 5, max statements: 40
 
 **Import Organization (oxfmt experimental):**
+
 ```
 1. side-effect imports
 2. builtin modules
@@ -78,6 +85,7 @@ bun run cf-typegen   # Generate Cloudflare types
 ```
 
 **Naming Conventions:**
+
 - Functions: camelCase (`fetchScript`, `setScriptHeaders`)
 - Components: PascalCase (`IndexPage`, `RootDocument`)
 - Constants: UPPER_SNAKE_CASE for primitives, camelCase for objects/arrays
@@ -86,6 +94,7 @@ bun run cf-typegen   # Generate Cloudflare types
 - Prefix unused variables with `_`
 
 **TypeScript Patterns:**
+
 - Use `type` for type aliases (not `interface`)
 - Explicit return types on exported functions
 - Use `as const` for literal object types
@@ -94,6 +103,7 @@ bun run cf-typegen   # Generate Cloudflare types
 - No fallthrough cases in switch statements
 
 **React Patterns:**
+
 - Functional components only
 - File-based routing with TanStack Router
 - Route files in `src/routes/`
@@ -102,18 +112,21 @@ bun run cf-typegen   # Generate Cloudflare types
 - `jsx-a11y` rules enforced
 
 **Error Handling:**
+
 - Explicit error handling, no silent failures
 - Return `null` for missing data in utilities
 - Use HTTP 418 "I'm a teapot" for unauthorized access
 - Validate inputs at function boundaries
 
 **Worker/Server Patterns:**
+
 - Hono for Worker routing
 - Middleware for cross-cutting concerns (auth, logging)
 - Domain-based routing for multi-tenant workers
 - Environment validation at startup
 
 **Shell Scripts:**
+
 - Bash scripts: `set -euo pipefail`
 - PowerShell scripts: Strict mode with error handling
 - Use color-coded output functions
@@ -122,6 +135,7 @@ bun run cf-typegen   # Generate Cloudflare types
 ## Workspace Catalog Rules
 
 Dependencies declared in root `workspaces.catalog` MUST use `"catalog:"` version in workspace packages:
+
 ```json
 "dependencies": {
   "typescript": "catalog:build",

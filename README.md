@@ -62,18 +62,22 @@ curl -L mac.jfa.dev | bash
 Outfitting applies four layers:
 
 1. Package layer
+
 - Windows: WinGet and optional Microsoft Store profile bundles
 - WSL/macOS: Nix and Home Manager package sets
 
 2. Configuration layer
+
 - dotfiles and shell profile config
 - Home Manager or nix-darwin configuration
 
 3. Wiring layer
+
 - repo clone to `~/.config/outfitting/repo`
 - symlinks into platform config locations
 
 4. Maintenance layer
+
 - helper commands to sync, switch, update, rollback
 
 ## Core Profile Model

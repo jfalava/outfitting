@@ -95,7 +95,10 @@
     "dock": "right",
   },
   "agent": {
-    "default_model": { "provider": "copilot_chat", "model": "oswe-vscode-prime" },
+    "default_model": {
+      "provider": "copilot_chat",
+      "model": "oswe-vscode-prime",
+    },
     "play_sound_when_agent_done": true,
     "enable_feedback": true,
     "always_allow_tool_actions": true,
@@ -291,6 +294,19 @@
       ],
     },
     "MDX": {
+      "format_on_save": "on",
+      "prettier": {
+        "allowed": false,
+      },
+      "formatter": [
+        {
+          "language_server": {
+            "name": "oxfmt",
+          },
+        },
+      ],
+    },
+    "TOML": {
       "format_on_save": "on",
       "prettier": {
         "allowed": false,
