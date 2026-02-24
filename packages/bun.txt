@@ -1,5 +1,7 @@
 @google/gemini-cli
-@qwen-code/qwen-code@latest
+@qwen-code/qwen-code
 @openai/codex
 opencode-ai
 tirith
+agent-browser
+chrome-devtools-mcp
