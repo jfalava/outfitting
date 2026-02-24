@@ -28,6 +28,6 @@
     "format:global": "bun run --filter @outfitting/documentation --filter @outfitting/installer format"
   },
   "devDependencies": {
-    "oxfmt": "^0.28.0"
+    "oxfmt": "^0.35.0"
   }
 }

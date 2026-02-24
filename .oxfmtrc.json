@@ -11,5 +11,5 @@
   "experimentalSortPackageJson": {
     "sortScripts": true
   },
-  "ignorePatterns": ["installer/**", "documentation/**", "node_modules/"]
+  "ignorePatterns": ["installer/**", "documentation/**", "node_modules/**"]
 }
