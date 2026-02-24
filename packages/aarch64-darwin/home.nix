@@ -52,6 +52,7 @@ in
     tailspin
     iina
     powershell
+    twitch-tui
   ];
 
   # Home Manager can also manage your environment variables through
