@@ -24,6 +24,10 @@ path_prepend "$PNPM_HOME"
 export BUN_INSTALL="$HOME/.bun"
 path_prepend "$BUN_INSTALL/bin"
 
+# Yarn
+path_append "$HOME/.yarn/switch/bin"
+path_append "$HOME/.yarn/switch"
+
 # Deno
 export DENO_INSTALL="$HOME/.deno"
 path_prepend "$DENO_INSTALL/bin"
