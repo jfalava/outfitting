@@ -72,7 +72,8 @@
   "outline_panel": {
     "button": false,
     "dock": "left",
-    "default_width": 240,
+    "default_width": 300,
+    "git_status": true,
   },
   "scrollbar": {
     "show": "auto",
@@ -114,10 +115,19 @@
   },
   "project_panel": {
     "dock": "right",
+    "hide_root": true,
+    "default_width": 400,
+    "auto_fold_dirs": false,
+  },
+  "autosave": {
+    "after_delay": { "milliseconds": 1000 },
   },
   "ui_font_size": 19,
+  "extend_comment_on_newline": false,
   "ui_font_family": "Pretendard Variable",
   "tab_size": 2,
+  "auto_indent": false,
+  "auto_indent_on_paste": false,
   "buffer_font_size": 19.0,
   "buffer_font_family": "Google Sans Code",
   "buffer_font_weight": 500.0,
@@ -130,6 +140,12 @@
       "GIT_EDITOR": "zed --wait",
     },
   },
+  "horizontal_scroll_margin": 1,
+  "vertical_scroll_margin": 1,
+  "close_on_file_delete": false,
+  "session": { "restore_unsaved_buffers": true },
+  "restore_on_file_reopen": true,
+  "gutter": { "min_line_number_digits": 0 },
   "theme": {
     "mode": "system",
     "light": "One Light",
@@ -324,6 +340,7 @@
           },
         },
       ],
+      "show_completions_on_input": false,
     },
     "MDX": {
       "format_on_save": "on",
