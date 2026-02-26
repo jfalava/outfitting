@@ -95,13 +95,15 @@
     "dock": "right",
   },
   "agent": {
+    "tool_permissions": {
+      "default": "allow",
+    },
     "default_model": {
       "provider": "copilot_chat",
       "model": "oswe-vscode-prime",
     },
     "play_sound_when_agent_done": true,
     "enable_feedback": true,
-    "always_allow_tool_actions": true,
     "default_profile": "write",
     "single_file_review": false,
     "dock": "left",
@@ -133,11 +135,41 @@
     "light": "One Light",
     "dark": "Bearded Theme Arc",
   },
+  "theme_overrides": {
+    "One Light": {
+      "syntax": {
+        "comment": { "font_style": "italic" },
+        "comment_doc": { "font_style": "italic" },
+      },
+    },
+    "Bearded Theme Arc": {
+      "syntax": {
+        "comment": { "font_style": "italic" },
+        "comment_doc": { "font_style": "italic" },
+      },
+    },
+  },
   "lsp": {
+    "vtsls": {
+      "settings": {
+        "typescript": {
+          "updateImportsOnFileMove": {
+            "enabled": "always",
+          },
+        },
+        "javascript": {
+          "updateImportsOnFileMove": {
+            "enabled": "always",
+          },
+        },
+      },
+      "enable_lsp_tasks": true,
+    },
     "oxfmt": {
       "initialization_options": {
         "settings": {
           "configPath": null,
+          "printWidth": 80,
           "flags": {},
           "fmt.configPath": null,
           "fmt.experimental": true,
