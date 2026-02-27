@@ -5,9 +5,6 @@
 # Source universal configuration
 source ~/.zshrc-base
 
-# ---- WSL VISUAL ----
-export VISUAL='zed'
-
 # ---- WSL PATH Additions ----
 path_prepend "$HOME/.local/bin"
 
