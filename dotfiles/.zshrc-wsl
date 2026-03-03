@@ -39,6 +39,8 @@ export PATH="$HOME/go/bin:$PATH"
 
 # ---- WSL-Specific Aliases ----
 alias explorer='/mnt/c/WINDOWS/explorer.exe'
+alias lazyotp='/mnt/c/bin/lazyotp.exe'
+alias cloudops-tools='/mnt/c/Users/jalava/.bun/bin/cloudops-tools.exe'
 
 # ---- WSL-Specific Functions ----
 
