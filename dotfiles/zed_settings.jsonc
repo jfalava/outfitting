@@ -119,9 +119,6 @@
     "default_width": 400,
     "auto_fold_dirs": false,
   },
-  "autosave": {
-    "after_delay": { "milliseconds": 1000 },
-  },
   "ui_font_size": 19,
   "extend_comment_on_newline": false,
   "ui_font_family": "Pretendard Variable",
@@ -135,10 +132,7 @@
     "dock": "left",
     "font_family": "VictorMono Nerd Font Propo",
     "font_size": 17.0,
-    "font_weight": 800,
-    "env": {
-      "GIT_EDITOR": "zed --wait",
-    },
+    "font_weight": 500,
   },
   "horizontal_scroll_margin": 1,
   "vertical_scroll_margin": 1,
