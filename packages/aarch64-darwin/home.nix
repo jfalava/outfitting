@@ -53,6 +53,7 @@ in
     iina
     powershell
     twitch-tui
+    ranger
   ];
 
   # Home Manager can also manage your environment variables through

@@ -53,7 +53,8 @@ in
     pnpm
     github-cli
     powershell
-    tailspin
+    tailspin # log viewer
+    ranger
   ];
 
   # Session variables
