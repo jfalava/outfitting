@@ -58,11 +58,11 @@ alias finder='open .'  # Open current directory in Finder
 
 # Nix-darwin rebuild aliases with proper quoting for flake syntax
 alias drb='darwin-rebuild build --flake ".#macos" --impure'
-alias drs='sudo -H darwin-rebuild switch --flake ".#macos" --impure'
-alias dru='sudo -H darwin-rebuild switch --flake ".#macos" --upgrade --impure'
+alias drs='sudo -H HOME=/var/root env -u SUDO_USER -u SUDO_HOME darwin-rebuild switch --flake ".#macos" --impure'
+alias dru='sudo -H HOME=/var/root env -u SUDO_USER -u SUDO_HOME darwin-rebuild switch --flake ".#macos" --upgrade --impure'
 alias drd='darwin-rebuild switch --flake ".#macos" --dry-run --impure'
 alias drl='darwin-rebuild --list-generations'
-alias drr='sudo -H darwin-rebuild rollback'
+alias drr='sudo -H HOME=/var/root env -u SUDO_USER -u SUDO_HOME darwin-rebuild rollback'
 
 # Quick nix commands
 alias nix-clean='sudo nix-collect-garbage -d'
@@ -181,13 +181,13 @@ hm-sync() {
         ln -sfn "$hm_target" ~/.config/home-manager
     fi
 
-     sudo -H darwin-rebuild switch --flake "$repo_path/packages/aarch64-darwin"
+     sudo -H HOME=/var/root env -u SUDO_USER -u SUDO_HOME darwin-rebuild switch --flake "$repo_path/packages/aarch64-darwin"
      echo "✓ Synced from $repo_path"
  }
 
 hm-switch() {
      echo "Applying nix-darwin configuration..."
-     sudo -H darwin-rebuild switch
+     sudo -H HOME=/var/root env -u SUDO_USER -u SUDO_HOME darwin-rebuild switch
  }
 
 hm-switch-local() {
@@ -214,7 +214,7 @@ hm-switch-local() {
     fi
 
      # Apply configuration
-     sudo -H darwin-rebuild switch
+     sudo -H HOME=/var/root env -u SUDO_USER -u SUDO_HOME darwin-rebuild switch
 
     if git -C "$repo_path" diff --quiet && git -C "$repo_path" diff --cached --quiet; then
         echo ""
@@ -257,7 +257,7 @@ hm-update() {
      nix flake update --flake "$repo_path/packages/aarch64-darwin" --impure
 
      # Apply updated configuration
-     sudo -H darwin-rebuild switch --flake "$repo_path/packages/aarch64-darwin" --impure
+     sudo -H HOME=/var/root env -u SUDO_USER -u SUDO_HOME darwin-rebuild switch --flake "$repo_path/packages/aarch64-darwin" --impure
 
      echo ""
      echo "✓ Nix packages updated successfully!"
@@ -442,7 +442,7 @@ outfit-rebuild() {
             ;;
         switch|s)
             echo "Applying nix-darwin configuration..."
-            sudo -H darwin-rebuild switch --flake ".#macos" --impure
+            sudo -H HOME=/var/root env -u SUDO_USER -u SUDO_HOME darwin-rebuild switch --flake ".#macos" --impure
             ;;
         test|t)
             echo "Testing nix-darwin configuration..."
@@ -454,7 +454,7 @@ outfit-rebuild() {
             ;;
         upgrade|u)
             echo "Upgrading packages and applying..."
-            sudo -H darwin-rebuild switch --flake ".#macos" --upgrade
+            sudo -H HOME=/var/root env -u SUDO_USER -u SUDO_HOME darwin-rebuild switch --flake ".#macos" --upgrade
             ;;
         *)
             echo "Usage: outfit-rebuild [build|switch|test|dry|upgrade]"
