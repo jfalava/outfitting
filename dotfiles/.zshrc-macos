@@ -44,6 +44,9 @@ path_append "$HOME/.amp/bin"
 # Git AI
 path_append "$HOME/.git-ai/bin"
 
+# Vite+
+path_append "$HOME/.vite-plus/bin"
+
 # ---- Smart App Bundle PATH Detection ----
 # Auto-add VS Code-like app bundles that have bin directories to PATH
 for app_dir in /Applications/*.app; do

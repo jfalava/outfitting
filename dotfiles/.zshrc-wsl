@@ -34,6 +34,9 @@ path_append "$HOME/.amp/bin"
 # Git AI
 path_append "$HOME/.git-ai/bin"
 
+# Vite+
+path_append "$HOME/.vite-plus/bin"
+
 # Go bin directory - add at the end to ensure it takes precedence over Windows paths
 export PATH="$HOME/go/bin:$PATH"
 
