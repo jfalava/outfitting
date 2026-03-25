@@ -49,11 +49,11 @@ in
     cloudflared
     github-cli
     ani-cli
-    tailspin
     iina
     powershell
     twitch-tui
     ranger
+    kitty
   ];
 
   # Home Manager can also manage your environment variables through
