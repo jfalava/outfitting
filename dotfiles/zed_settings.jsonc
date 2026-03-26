@@ -1,5 +1,20 @@
 {
   "agent_servers": {
+    "gemini": {
+      "type": "registry",
+    },
+    "github-copilot-cli": {
+      "type": "registry",
+    },
+    "codex-acp": {
+      "type": "registry",
+    },
+    "claude-acp": {
+      "type": "registry",
+    },
+    "amp-acp": {
+      "type": "registry",
+    },
     "github-copilot": {
       "type": "registry",
     },
@@ -33,6 +48,8 @@
     "oxc": true,
     "json5": true,
     "bearded-themes": true,
+    "github-theme": true,
+    "LOG": true,
     "tsgo": true,
     "mdx": true,
   },
@@ -123,7 +140,7 @@
   "extend_comment_on_newline": false,
   "ui_font_family": "Pretendard Variable",
   "tab_size": 2,
-  "auto_indent": false,
+  "auto_indent": "none",
   "auto_indent_on_paste": false,
   "buffer_font_size": 19.0,
   "buffer_font_family": "Google Sans Code",
