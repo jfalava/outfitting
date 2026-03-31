@@ -8,15 +8,15 @@
     ],
     "catalogs": {
       "types": {
-        "@types/node": "25.3.3"
+        "@types/node": "25.5.0"
       },
       "build": {
-        "@typescript/native-preview": "7.0.0-dev.20260305.1",
-        "oxlint": "1.51.0",
-        "oxfmt": "0.36.0",
-        "oxlint-tsgolint": "0.16.0",
-        "typescript": "5.9.3",
-        "wrangler": "4.70.0"
+        "@typescript/native-preview": "7.0.0-dev.20260327.2",
+        "oxlint": "1.57.0",
+        "oxfmt": "0.42.0",
+        "oxlint-tsgolint": "0.18.0",
+        "typescript": "6.0.2",
+        "wrangler": "4.78.0"
       }
     }
   },
@@ -28,6 +28,6 @@
     "format:global": "bun run --filter @outfitting/documentation --filter @outfitting/installer format"
   },
   "devDependencies": {
-    "oxfmt": "^0.35.0"
+    "oxfmt": "^0.42.0"
   }
 }
