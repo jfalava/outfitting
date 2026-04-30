@@ -120,7 +120,7 @@
       "provider": "copilot_chat",
       "model": "oswe-vscode-prime",
     },
-    "play_sound_when_agent_done": true,
+    "play_sound_when_agent_done": "always",
     "enable_feedback": true,
     "default_profile": "write",
     "single_file_review": false,
