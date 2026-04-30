@@ -100,6 +100,12 @@
     "react/no-find-dom-node": "error",
     "react/no-danger": "error",
     "typescript/no-implied-eval": "error",
+    "no-underscore-dangle": [
+      "error",
+      {
+        "allow": ["_splat"]
+      }
+    ],
     "typescript/no-unsafe-type-assertion": "off",
     "typescript/no-unnecessary-type-assertion": "off"
   }

@@ -16,7 +16,7 @@ app.use("*", async (c, next) => {
     return c.text("I'm a teapot", 418);
   }
 
-  await next();
+  return await next();
 });
 
 // Domain-based routing middleware
