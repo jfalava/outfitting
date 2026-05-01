@@ -11,12 +11,12 @@
         "@types/node": "25.6.0"
       },
       "build": {
-        "@typescript/native-preview": "7.0.0-dev.20260429.1",
+        "@typescript/native-preview": "7.0.0-dev.20260501.1",
         "oxlint": "1.62.0",
         "oxfmt": "0.47.0",
         "oxlint-tsgolint": "0.22.1",
         "typescript": "6.0.3",
-        "wrangler": "4.86.0"
+        "wrangler": "4.87.0"
       }
     }
   },
@@ -28,6 +28,6 @@
     "format:global": "bun run --filter @outfitting/documentation --filter @outfitting/installer format"
   },
   "devDependencies": {
-    "oxfmt": "^0.43.0"
+    "oxfmt": "^0.47.0"
   }
 }

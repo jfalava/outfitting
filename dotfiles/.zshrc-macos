@@ -302,7 +302,7 @@ bun-update-global() {
         return $pm_ls_status
     fi
 
-    packages=$(echo "$pm_ls_output" | awk '/^[└├]── / {sub(/^[└├]── /, ""); print $0}')
+    packages=$(echo "$pm_ls_output" | sed -n '2,$s/^[^a-zA-Z@]*//p')
 
     if [ -z "$packages" ]; then
         echo "No global Bun packages found"
