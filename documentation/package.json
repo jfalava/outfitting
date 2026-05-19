@@ -22,9 +22,9 @@
     "@tanstack/react-router-ssr-query": "1.166.12",
     "@tanstack/react-start": "1.167.65",
     "@tanstack/router-plugin": "1.167.35",
-    "fumadocs-core": "16.8.8",
-    "fumadocs-mdx": "15.0.0",
-    "fumadocs-ui": "16.8.8",
+    "fumadocs-core": "16.8.10",
+    "fumadocs-mdx": "15.0.3",
+    "fumadocs-ui": "16.8.10",
     "lucide-react": "1.14.0",
     "react": "19.2.6",
     "react-dom": "19.2.6",
@@ -42,7 +42,7 @@
     "oxlint": "catalog:build",
     "oxlint-tsgolint": "catalog:build",
     "typescript": "catalog:build",
-    "vite": "^8.0.11",
+    "vite": "^8.0.12",
     "wrangler": "catalog:build"
   }
 }
