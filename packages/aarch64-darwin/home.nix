@@ -54,6 +54,7 @@ in
     twitch-tui
     ranger
     kitty
+    discord
   ];
 
   # Home Manager can also manage your environment variables through
