@@ -33,6 +33,7 @@
               home-manager.backupFileExtension = "backup";
             }
           ];
+          nixpkgs.config.allowUnfree = true;
         };
     in
     {
