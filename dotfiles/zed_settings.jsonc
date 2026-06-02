@@ -1,25 +1,16 @@
 {
+  "cli_default_open_behavior": "existing_window",
+  "git": {
+    "inline_blame": {
+      "show_commit_summary": true,
+    },
+  },
   "diff_view_style": "unified",
   "agent_servers": {
     "gemini": {
       "type": "registry",
     },
-    "github-copilot-cli": {
-      "type": "registry",
-    },
     "codex-acp": {
-      "type": "registry",
-    },
-    "claude-acp": {
-      "type": "registry",
-    },
-    "amp-acp": {
-      "type": "registry",
-    },
-    "github-copilot": {
-      "type": "registry",
-    },
-    "qwen-code": {
       "type": "registry",
     },
     "opencode": {
@@ -50,7 +41,6 @@
     "json5": true,
     "bearded-themes": true,
     "github-theme": true,
-    "LOG": true,
     "tsgo": true,
     "mdx": true,
   },
