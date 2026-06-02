@@ -1,5 +1,4 @@
 @google/gemini-cli
-@qwen-code/qwen-code
 @openai/codex
 opencode-ai
 tirith
