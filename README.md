@@ -64,7 +64,8 @@ Outfitting applies four layers:
 1. Package layer
 
 - Windows: WinGet and optional Microsoft Store profile bundles
-- WSL/macOS: Nix and Home Manager package sets
+- WSL: Nix and Home Manager package sets
+- macOS: Homebrew casks and zerobrew formulae
 
 2. Configuration layer
 
@@ -107,6 +108,7 @@ update-all
 
 ```bash
 git pull
+or sync
 hm-sync
 hm-update
 update-all
@@ -121,14 +123,6 @@ irm win.jfa.dev/config/pwsh-profile | iex
 irm win.jfa.dev/bun | iex
 irm win.jfa.dev/registry | iex
 ```
-
-## Repository Structure
-
-- `installer/`: Cloudflare Worker that serves installer/config endpoints
-- `documentation/`: Fumadocs + TanStack docs app
-- `packages/`: package profiles per platform
-- `dotfiles/`: shared shell/editor/profile configs
-- `system/`: platform-level system tweaks
 
 ## Additional Docs
 

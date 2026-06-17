@@ -102,36 +102,127 @@ configure_outfitting_repo() {
     return 0
 }
 
-# Create symlinks for nix-darwin and Home Manager
-setup_symlinks() {
-    info "Setting up configuration symlinks..."
-
-    config_file="$HOME/.config/outfitting/repo-path"
+# Read the configured local outfitting clone path
+get_outfitting_repo() {
+    local config_file="$HOME/.config/outfitting/repo-path"
     if [ ! -f "$config_file" ]; then
-        error "Repository not configured. Cannot create symlinks."
+        error "Repository location is not configured."
         return 1
     fi
 
-    repo_path=$(cat "$config_file")
-    darwin_target="$repo_path/packages/aarch64-darwin/darwin.nix"
-    hm_target="$repo_path/packages/aarch64-darwin"
+    cat "$config_file"
+}
 
-    # Create ~/.nixpkgs directory
-    mkdir -p "$HOME/.nixpkgs"
-
-    # Symlink darwin-configuration.nix
-    if [ ! -L "$HOME/.nixpkgs/darwin-configuration.nix" ]; then
-        info "Creating symlink: ~/.nixpkgs/darwin-configuration.nix → $darwin_target"
-        ln -sfn "$darwin_target" "$HOME/.nixpkgs/darwin-configuration.nix"
+# Make newly installed package managers available in the current shell
+configure_package_manager_paths() {
+    if [ -x "/opt/homebrew/bin/brew" ]; then
+        eval "$(/opt/homebrew/bin/brew shellenv)"
+    elif [ -x "/usr/local/bin/brew" ]; then
+        eval "$(/usr/local/bin/brew shellenv)"
     fi
 
-    # Symlink home-manager directory
-    if [ ! -L "$HOME/.config/home-manager" ]; then
-        info "Creating symlink: ~/.config/home-manager → $hm_target"
-        ln -sfn "$hm_target" "$HOME/.config/home-manager"
+    local zerobrew_bin="${ZEROBREW_BIN:-$HOME/.local/bin}"
+    if [ -d "$zerobrew_bin" ] && [[ ":$PATH:" != *":$zerobrew_bin:"* ]]; then
+        export PATH="$zerobrew_bin:$PATH"
+    fi
+}
+
+# Install Homebrew via official installer
+install_homebrew() {
+    info "Installing Homebrew..."
+
+    if command -v brew >/dev/null 2>&1 || [ -x "/opt/homebrew/bin/brew" ] || [ -x "/usr/local/bin/brew" ]; then
+        configure_package_manager_paths
+        success "Homebrew is already installed ($(brew --version | head -1))"
+        return 0
     fi
 
-    success "Symlinks created successfully!"
+    if NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"; then
+        configure_package_manager_paths
+        if command -v brew >/dev/null 2>&1; then
+            success "Homebrew installed successfully ($(brew --version | head -1))"
+        else
+            warning "Homebrew installer completed, but brew is not in PATH yet"
+        fi
+    else
+        error "Failed to install Homebrew"
+        return 1
+    fi
+}
+
+# Install Homebrew casks from the repo Brewfile
+install_homebrew_casks() {
+    info "Installing Homebrew casks..."
+
+    if ! command -v brew >/dev/null 2>&1; then
+        error "Homebrew is not available in PATH"
+        return 1
+    fi
+
+    local repo_path
+    repo_path=$(get_outfitting_repo) || return 1
+
+    local brewfile="$repo_path/packages/aarch64-darwin/Brewfile"
+    if [ ! -f "$brewfile" ]; then
+        error "Homebrew cask manifest not found: $brewfile"
+        return 1
+    fi
+
+    if brew bundle --file="$brewfile"; then
+        success "Homebrew casks installed from $brewfile"
+    else
+        error "Failed to install Homebrew casks from $brewfile"
+        return 1
+    fi
+}
+
+# Install zerobrew packages from the repo ZeroBrewfile
+install_zerobrew_packages() {
+    info "Installing ZeroBrew packages..."
+
+    if ! command -v zb >/dev/null 2>&1; then
+        error "ZeroBrew is not available in PATH"
+        return 1
+    fi
+
+    local repo_path
+    repo_path=$(get_outfitting_repo) || return 1
+
+    local zerobrewfile="$repo_path/packages/aarch64-darwin/ZeroBrewfile"
+    if [ ! -f "$zerobrewfile" ]; then
+        error "ZeroBrew package manifest not found: $zerobrewfile"
+        return 1
+    fi
+
+    if zb bundle install -f "$zerobrewfile"; then
+        success "zerobrew packages installed from $zerobrewfile"
+    else
+        error "Failed to install zerobrew packages from $zerobrewfile"
+        return 1
+    fi
+}
+
+# Install zerobrew via official installer
+install_zerobrew() {
+    info "Installing zerobrew..."
+
+    if [ -x "${ZEROBREW_BIN:-$HOME/.local/bin}/zb" ] || command -v zb >/dev/null 2>&1; then
+        configure_package_manager_paths
+        success "zerobrew is already installed ($(zb --version 2>/dev/null | head -1))"
+        return 0
+    fi
+
+    if curl -fsSL https://zerobrew.rs/install | bash; then
+        configure_package_manager_paths
+        if command -v zb >/dev/null 2>&1; then
+            success "ZeroBrew installed successfully ($(zb --version 2>/dev/null | head -1))"
+        else
+            warning "zerobrew installer completed, but zb is not in PATH yet"
+        fi
+    else
+        error "Failed to install zerobrew"
+        return 1
+    fi
 }
 
 # Install Bun via official installer
@@ -216,124 +307,42 @@ install_bun_packages() {
     fi
 }
 
-# Install Claude Code
-install_claude_code() {
-    info "Installing Claude Code..."
-
-    # Check if already installed
-    if command -v claude &> /dev/null; then
-        success "Claude Code is already installed"
-        return 0
-    fi
-
-    if curl -fsSL https://claude.ai/install.sh 2>/dev/null | bash; then
-        success "Claude Code installed"
-    else
-        warning "Failed to install Claude Code (network error or already installed)"
-    fi
-}
-
-install_amp_code() {
-    info "Installing Amp Code..."
-
-    # Check if already installed
-    if command -v amp &> /dev/null; then
-        success "Amp Code is already installed"
-        return 0
-    fi
-
-    if curl -fsSL https://ampcode.com/install.sh 2>/dev/null | bash; then
-        success "Amp Code installed"
-    else
-        warning "Failed to install Amp Code (network error or already installed)"
-    fi
-}
-
 install_astral_uv() {
     info "Installing UV..."
 
     # Check if already installed
-    if command -v amp &> /dev/null; then
-        success "UV is already installed"
+    if command -v uv &> /dev/null; then
+        success "UV is already installed ($(uv --version 2>/dev/null))"
         return 0
     fi
 
     if curl -fsSL https://astral.sh/uv/install.sh 2>/dev/null | bash; then
+        if [ -d "$HOME/.local/bin" ] && [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
+            export PATH="$HOME/.local/bin:$PATH"
+        fi
         success "UV installed"
     else
         warning "Failed to install UV (network error or already installed)"
     fi
 }
 
-# Install Nix with flakes support
-install_nix() {
-    if command -v nix &> /dev/null; then
-        success "Nix is already installed ($(nix --version | head -1))"
-        return 0
-    fi
-
-    info "Installing Nix (Determinate Systems installer with flakes)..."
-    if curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix 2>/dev/null | sh -s -- install; then
-        # Source Nix profile
-        if [ -e '/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh' ]; then
-            . '/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh'
-        fi
-        success "Nix installed successfully with flakes enabled"
-    else
-        error "Failed to install Nix (network error)"
-        return 1
-    fi
-}
-
-# Install nix-darwin using flakes
-install_nix_darwin() {
-    # Check if already installed
-    if command -v darwin-rebuild &> /dev/null; then
-        success "nix-darwin is already installed"
-        info "To update: darwin-rebuild switch --flake ~/.config/home-manager"
-        return 0
-    fi
-
-    info "Installing nix-darwin with flakes..."
-
-    config_file="$HOME/.config/outfitting/repo-path"
-    if [ ! -f "$config_file" ]; then
-        error "Repository not configured. Cannot install nix-darwin."
-        return 1
-    fi
-
-    repo_path=$(cat "$config_file")
-    info "Using flake from: $repo_path"
-
-    # The flake will be at repo_path/packages/aarch64-darwin
-    flake_path="$repo_path/packages/aarch64-darwin"
-
-    # Backup /etc/zshenv if it exists
-    if [ -f /etc/zshenv ]; then
-        info "Backing up /etc/zshenv..."
-        sudo mv /etc/zshenv /etc/zshenv.before-nix-darwin
-    fi
-
-    info "Building nix-darwin from flake..."
-    if nix run nix-darwin -- switch --flake "$flake_path" 2>&1; then
-        success "nix-darwin installed successfully!"
-        info "Configuration is now managed via flake at: $flake_path/flake.nix"
-        info "To update in the future, run: darwin-rebuild switch --flake ~/.config/home-manager"
-    else
-        error "Failed to install nix-darwin"
-        warning "You can retry manually with: nix run nix-darwin -- switch --flake $flake_path"
-        return 1
-    fi
-}
-
 # Post-installation instructions
 post_install_info() {
+    local repo_path
+    repo_path=$(get_outfitting_repo 2>/dev/null || true)
+
     echo ""
     echo "======================================"
     echo "Installation Complete!"
     echo "======================================"
     echo ""
-    echo "To update nix-darwin: darwin-rebuild switch --flake ~/.config/home-manager"
+    echo "Homebrew: $(command -v brew 2>/dev/null || echo 'not found in PATH')"
+    echo "zerobrew: $(command -v zb 2>/dev/null || echo 'not found in PATH')"
+    if [ -n "$repo_path" ]; then
+        echo "Homebrew casks: $repo_path/packages/aarch64-darwin/Brewfile"
+        echo "zerobrew manifest: $repo_path/packages/aarch64-darwin/ZeroBrewfile"
+    fi
+    echo "Restart your shell if newly installed commands are not available yet."
     echo ""
 }
 
@@ -341,7 +350,7 @@ post_install_info() {
 main() {
     echo ""
     echo "======================================"
-    echo "macOS Installation (Flake-based)"
+    echo "macOS Installation"
     echo "======================================"
     echo ""
 
@@ -351,29 +360,26 @@ main() {
     # Step 1: Configure repository
     configure_outfitting_repo
 
-    # Step 2: Create symlinks for nix-darwin and Home Manager
-    setup_symlinks
+    # Step 2: Install Homebrew
+    install_homebrew
 
-    # Step 3: Install Bun
+    # Step 3: Install Homebrew casks
+    install_homebrew_casks
+
+    # Step 4: Install zerobrew
+    install_zerobrew
+
+    # Step 5: Install zerobrew packages
+    install_zerobrew_packages
+
+    # Step 6: Install Bun
     install_bun
 
-    # Step 4: Install UV
+    # Step 7: Install UV
     install_astral_uv
 
-    # Step 5: Install Bun packages
+    # Step 8: Install Bun packages
     install_bun_packages
-
-    # Step 6: Install Claude Code
-    install_claude_code
-
-    # Step 7: Install Amp Code
-    install_amp_code
-
-    # Step 6: Install Nix (last, with flakes)
-    info "Now installing Nix and nix-darwin..."
-    echo ""
-    install_nix
-    install_nix_darwin
 
     post_install_info
 }

@@ -13,47 +13,11 @@ in
   home.homeDirectory = "/Users/jfalava";
   home.stateVersion = "25.11";
 
-  # The home.packages option allows you to install Nix packages into your environment
+  # Keep only packages that remain Nix-managed here.
   home.packages = with pkgs; [
-    bat
-    eza
-    fastfetch
-    fzf
-    ripgrep
-    starship
-    tree
-    btop
-    zoxide
-    zsh
-    zsh-autosuggestions
-    zsh-syntax-highlighting
-    deno
-    go
-    lazygit
-    nodejs_24
-    python3
-    zig
-    zellij
-    neovim
-    fd
-    jq
-    less
-    shellcheck
-    zip
-    p7zip
     nixd
     nil
-    pnpm
     git
-    ffmpeg_7-headless
-    cloudflared
-    github-cli
-    ani-cli
-    iina
-    powershell
-    twitch-tui
-    ranger
-    kitty
   ];
 
   # Home Manager can also manage your environment variables through
@@ -74,23 +38,7 @@ in
     LESS_TERMCAP_us = "\\e[1;32m"; # begin underline
     LESS_TERMCAP_ue = "\\e[0m"; # reset underline
 
-    # Runtime paths
-    PNPM_HOME = "${config.home.homeDirectory}/.local/share/pnpm";
-    BUN_INSTALL = "${config.home.homeDirectory}/.bun";
-    DENO_INSTALL = "${config.home.homeDirectory}/.deno";
   };
-
-  # Add directories to PATH
-  home.sessionPath = [
-    "${config.home.homeDirectory}/.local/bin"
-    "${config.home.homeDirectory}/go/bin"
-    "${config.home.homeDirectory}/.local/share/pnpm"
-    "${config.home.homeDirectory}/.bun/bin"
-    "${config.home.homeDirectory}/.deno/bin"
-    "${config.home.homeDirectory}/.local/share/uv/bin"
-    "${config.home.homeDirectory}/.opencode/bin"
-    "${config.home.homeDirectory}/.cargo/bin"
-  ];
 
   # Dotfiles management - symlink your dotfiles to home directory
   home.file = {

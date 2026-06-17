@@ -1,12 +1,28 @@
 ---
 title: macOS
-description: Install Outfitting on macOS and manage nix-darwin configuration.
+description: Install Outfitting on macOS with Homebrew casks, zerobrew formulae, and nix-darwin configuration.
 ---
 
 ## Installation
 
 ```bash
 curl -L mac.jfa.dev | bash
+```
+
+This installs:
+
+- Homebrew-managed casks from `packages/aarch64-darwin/Brewfile`
+- zerobrew-managed formulae from `packages/aarch64-darwin/ZeroBrewfile`
+- nix-darwin/Home Manager configuration from `packages/aarch64-darwin`
+
+## Package Management
+
+```bash
+# Apply Homebrew casks and zerobrew formulae from the repo
+or sync
+
+# Sync manifests, then upgrade installed casks and zerobrew packages
+or upgrade
 ```
 
 ## Nix-darwin Profile Management
@@ -16,9 +32,6 @@ curl -L mac.jfa.dev | bash
 or switch
 or build
 or test
-
-# Update with new packages
-or upgrade
 
 # Dry-run changes
 or dry

@@ -7,6 +7,9 @@
   },
   "diff_view_style": "unified",
   "agent_servers": {
+    "github-copilot-cli": {
+      "type": "registry",
+    },
     "gemini": {
       "type": "registry",
     },
@@ -68,9 +71,8 @@
     "copilot": {
       "proxy": null,
       "proxy_no_verify": null,
-      "enterprise_uri": null,
+      "enterprise_uri": "https://<redacted lmao>.ghe.com",
     },
-    "enabled_in_text_threads": false,
   },
   "collaboration_panel": {
     "button": false,
@@ -108,8 +110,10 @@
       "default": "allow",
     },
     "default_model": {
+      "effort": "medium",
+      "enable_thinking": true,
       "provider": "copilot_chat",
-      "model": "oswe-vscode-prime",
+      "model": "gpt-5-mini",
     },
     "play_sound_when_agent_done": "always",
     "enable_feedback": true,
@@ -135,7 +139,7 @@
   "auto_indent_on_paste": false,
   "buffer_font_size": 19.0,
   "buffer_font_family": "Google Sans Code",
-  "buffer_font_weight": 500.0,
+  "buffer_font_weight": 400.0,
   "terminal": {
     "dock": "left",
     "font_family": "VictorMono Nerd Font Propo",
@@ -318,6 +322,7 @@
       ],
     },
     "JSONC": {
+      "show_edit_predictions": false,
       "format_on_save": "on",
       "prettier": {
         "allowed": false,
