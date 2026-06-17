@@ -14,7 +14,7 @@ in
   # Basic home manager settings
   home.username = "jfalava";
   home.homeDirectory = "/home/jfalava";
-  home.stateVersion = "25.11";
+  home.stateVersion = "26.05";
 
   # Nixpkgs configuration
   nixpkgs.config.allowUnfree = true;
