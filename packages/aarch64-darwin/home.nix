@@ -18,6 +18,7 @@ in
   home.packages = with pkgs; [
     nixd
     nil
+    git
   ];
 
   # Home Manager can also manage your environment variables through

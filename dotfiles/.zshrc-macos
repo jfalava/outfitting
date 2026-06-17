@@ -11,8 +11,12 @@ path_prepend "$HOME/.local/bin"
 path_append "$HOME/go/bin"
 
 # ZeroBrew
-export ZEROBREW_BIN="$HOME/.local/bin"
+export ZEROBREW_ROOT="${ZEROBREW_ROOT:-/opt/zerobrew}"
+export ZEROBREW_PREFIX="${ZEROBREW_PREFIX:-$ZEROBREW_ROOT}"
+export ZEROBREW_BIN="${ZEROBREW_BIN:-$HOME/.local/bin}"
 path_prepend "$ZEROBREW_BIN"
+path_prepend "$ZEROBREW_PREFIX/bin"
+path_prepend "$ZEROBREW_PREFIX/sbin"
 
 # Add Applications folder to PATH
 path_prepend "/Applications/"
@@ -83,6 +87,11 @@ alias osr='outfit-rebuild switch'
 alias otr='outfit-rebuild test'
 alias odr='outfit-rebuild dry'
 alias our='outfit-rebuild upgrade'
+
+# Outfit package-management aliases
+alias op='outfit-packages'
+alias ops='outfit-packages sync'
+alias opu='outfit-packages upgrade'
 
 # Zed editor aliases
 alias zed='/Applications/Zed.app/Contents/MacOS/cli -n'
@@ -373,6 +382,47 @@ PY
     if [ $failed -ne 0 ]; then
         echo "Failed $failed package(s)"
     fi
+}
+
+# Apply or upgrade the macOS ZeroBrew package set
+outfit-packages() {
+    local repo_path
+    repo_path=$(get_outfitting_repo) || {
+        echo "Error: Repository location not configured."
+        echo "Run 'set_outfitting_repo /path/to/outfitting' to configure."
+        return 1
+    }
+
+    if ! command -v zb >/dev/null 2>&1; then
+        echo "Error: zerobrew is not installed or not in PATH."
+        return 1
+    fi
+
+    local zerobrewfile="$repo_path/packages/aarch64-darwin/ZeroBrewfile"
+    if [ ! -f "$zerobrewfile" ]; then
+        echo "Error: ZeroBrew manifest not found: $zerobrewfile"
+        return 1
+    fi
+
+    case "${1:-sync}" in
+        sync|s|install|i)
+            echo "Applying ZeroBrew package manifest..."
+            zb bundle install -f "$zerobrewfile"
+            ;;
+        upgrade|u)
+            echo "Syncing ZeroBrew package manifest..."
+            zb bundle install -f "$zerobrewfile" || return 1
+            echo ""
+            echo "Upgrading installed ZeroBrew packages..."
+            zb upgrade
+            ;;
+        *)
+            echo "Usage: outfit-packages [sync|upgrade]"
+            echo "  sync/s     - Apply the committed ZeroBrew package manifest (default)"
+            echo "  upgrade/u  - Apply the manifest, then upgrade installed ZeroBrew packages"
+            return 1
+            ;;
+    esac
 }
 
 # Quick system update

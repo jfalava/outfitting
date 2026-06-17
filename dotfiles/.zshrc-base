@@ -539,10 +539,12 @@ if command -v rg &> /dev/null; then
 fi
 
 # ---- Plugin Loading ----
-# Source zsh plugins from Nix profile (works with flakes and doesn't break on updates)
+# Source zsh plugins from ZeroBrew first, then fall back to Nix/Home Manager paths.
 if [ -n "$HOME" ]; then
     # Try to find autosuggestions plugin
     for plugin_path in \
+        "${ZEROBREW_PREFIX:-/opt/zerobrew}/share/zsh-autosuggestions/zsh-autosuggestions.zsh" \
+        "${ZEROBREW_ROOT:-/opt/zerobrew}/share/zsh-autosuggestions/zsh-autosuggestions.zsh" \
         "$HOME/.nix-profile/share/zsh-autosuggestions/zsh-autosuggestions.zsh" \
         "$HOME/.nix-profile/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh" \
         "$HOME/.local/state/home-manager/gcroots/current-home/home-path/share/zsh-autosuggestions/zsh-autosuggestions.zsh" \
@@ -559,6 +561,8 @@ if [ -n "$HOME" ]; then
 
     # Try to find syntax-highlighting plugin
     for plugin_path in \
+        "${ZEROBREW_PREFIX:-/opt/zerobrew}/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" \
+        "${ZEROBREW_ROOT:-/opt/zerobrew}/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" \
         "$HOME/.nix-profile/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" \
         "$HOME/.nix-profile/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" \
         "$HOME/.local/state/home-manager/gcroots/current-home/home-path/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" \
