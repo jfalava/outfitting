@@ -217,12 +217,12 @@ Local repository location is configured during installation and stored in `~/.co
 
 ### macOS Functions
 
-macOS uses Homebrew for casks, ZeroBrew for formulae, and nix-darwin/Home Manager for config. Use these commands:
+macOS uses Homebrew for casks, zerobrew for formulae, and nix-darwin/Home Manager for config. Use these commands:
 
 ```bash
 setup-outfitting-repo # Configure local repository location (run once)
-or sync               # Apply the Homebrew cask manifest and ZeroBrew package manifest
-or upgrade            # Sync manifests, then upgrade Homebrew casks and ZeroBrew packages
+or sync               # Apply the Homebrew cask manifest and zerobrew package manifest
+or upgrade            # Sync manifests, then upgrade Homebrew casks and zerobrew packages
 hm-sync               # Sync nix-darwin config from local clone (prompts to commit/push)
 hm-switch             # Apply nix-darwin config from local clone
 hm-switch-local       # Apply from local clone with git status check

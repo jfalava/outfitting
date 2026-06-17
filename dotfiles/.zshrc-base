@@ -539,7 +539,7 @@ if command -v rg &> /dev/null; then
 fi
 
 # ---- Plugin Loading ----
-# Source zsh plugins from ZeroBrew first, then fall back to Nix/Home Manager paths.
+# Source zsh plugins from zerobrew first, then fall back to Nix/Home Manager paths.
 if [ -n "$HOME" ]; then
     # Try to find autosuggestions plugin
     for plugin_path in \

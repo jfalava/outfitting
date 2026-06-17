@@ -176,7 +176,7 @@ install_homebrew_casks() {
     fi
 }
 
-# Install ZeroBrew packages from the repo ZeroBrewfile
+# Install zerobrew packages from the repo ZeroBrewfile
 install_zerobrew_packages() {
     info "Installing ZeroBrew packages..."
 
@@ -195,14 +195,14 @@ install_zerobrew_packages() {
     fi
 
     if zb bundle install -f "$zerobrewfile"; then
-        success "ZeroBrew packages installed from $zerobrewfile"
+        success "zerobrew packages installed from $zerobrewfile"
     else
-        error "Failed to install ZeroBrew packages from $zerobrewfile"
+        error "Failed to install zerobrew packages from $zerobrewfile"
         return 1
     fi
 }
 
-# Install ZeroBrew via official installer
+# Install zerobrew via official installer
 install_zerobrew() {
     info "Installing zerobrew..."
 
@@ -337,10 +337,10 @@ post_install_info() {
     echo "======================================"
     echo ""
     echo "Homebrew: $(command -v brew 2>/dev/null || echo 'not found in PATH')"
-    echo "ZeroBrew: $(command -v zb 2>/dev/null || echo 'not found in PATH')"
+    echo "zerobrew: $(command -v zb 2>/dev/null || echo 'not found in PATH')"
     if [ -n "$repo_path" ]; then
         echo "Homebrew casks: $repo_path/packages/aarch64-darwin/Brewfile"
-        echo "ZeroBrew manifest: $repo_path/packages/aarch64-darwin/ZeroBrewfile"
+        echo "zerobrew manifest: $repo_path/packages/aarch64-darwin/ZeroBrewfile"
     fi
     echo "Restart your shell if newly installed commands are not available yet."
     echo ""
@@ -366,10 +366,10 @@ main() {
     # Step 3: Install Homebrew casks
     install_homebrew_casks
 
-    # Step 4: Install ZeroBrew
+    # Step 4: Install zerobrew
     install_zerobrew
 
-    # Step 5: Install ZeroBrew packages
+    # Step 5: Install zerobrew packages
     install_zerobrew_packages
 
     # Step 6: Install Bun

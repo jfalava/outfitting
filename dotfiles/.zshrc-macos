@@ -17,7 +17,7 @@ elif [[ -x /usr/local/bin/brew ]]; then
     eval "$(/usr/local/bin/brew shellenv)"
 fi
 
-# ZeroBrew
+# zerobrew
 export ZEROBREW_ROOT="${ZEROBREW_ROOT:-/opt/zerobrew}"
 export ZEROBREW_PREFIX="${ZEROBREW_PREFIX:-$ZEROBREW_ROOT}"
 export ZEROBREW_BIN="${ZEROBREW_BIN:-$HOME/.local/bin}"
@@ -387,7 +387,7 @@ PY
     fi
 }
 
-# Apply or upgrade the macOS ZeroBrew package set
+# Apply or upgrade the macOS zerobrew package set
 outfit-packages() {
     local repo_path
     repo_path=$(get_outfitting_repo) || {
@@ -403,26 +403,26 @@ outfit-packages() {
 
     local zerobrewfile="$repo_path/packages/aarch64-darwin/ZeroBrewfile"
     if [ ! -f "$zerobrewfile" ]; then
-        echo "Error: ZeroBrew manifest not found: $zerobrewfile"
+        echo "Error: zerobrew manifest not found: $zerobrewfile"
         return 1
     fi
 
     case "${1:-sync}" in
         sync|s|install|i)
-            echo "Applying ZeroBrew package manifest..."
+            echo "Applying zerobrew package manifest..."
             zb bundle install -f "$zerobrewfile"
             ;;
         upgrade|u)
-            echo "Syncing ZeroBrew package manifest..."
+            echo "Syncing zerobrew package manifest..."
             zb bundle install -f "$zerobrewfile" || return 1
             echo ""
-            echo "Upgrading installed ZeroBrew packages..."
+            echo "Upgrading installed zerobrew packages..."
             zb upgrade
             ;;
         *)
             echo "Usage: outfit-packages [sync|upgrade]"
-            echo "  sync/s     - Apply the committed ZeroBrew package manifest (default)"
-            echo "  upgrade/u  - Apply the manifest, then upgrade installed ZeroBrew packages"
+            echo "  sync/s     - Apply the committed zerobrew package manifest (default)"
+            echo "  upgrade/u  - Apply the manifest, then upgrade installed zerobrew packages"
             return 1
             ;;
     esac
@@ -491,8 +491,8 @@ outfit() {
             echo "  switch     - Build and apply nix-darwin configuration (default)"
             echo "  test/t     - Test nix-darwin build only"
             echo "  dry/d      - Dry-run nix-darwin changes"
-            echo "  sync/s     - Apply the Homebrew cask manifest and ZeroBrew package manifest"
-            echo "  upgrade/u  - Sync casks/packages, then upgrade Homebrew casks and ZeroBrew packages"
+            echo "  sync/s     - Apply the Homebrew cask manifest and zerobrew package manifest"
+            echo "  upgrade/u  - Sync casks/packages, then upgrade Homebrew casks and zerobrew packages"
             return 1
             ;;
     esac
@@ -512,7 +512,7 @@ update-all() {
      outfit-casks upgrade || return 1
 
      echo ""
-     echo "=== Updating ZeroBrew Packages ==="
+     echo "=== Updating zerobrew Packages ==="
      outfit-packages upgrade || return 1
 
      echo ""
