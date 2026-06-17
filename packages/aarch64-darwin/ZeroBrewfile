@@ -1,9 +1,3 @@
-# ZeroBrew-managed macOS packages.
-# ZeroBrew consumes Homebrew formulas and casks, so this file uses Brewfile syntax.
-
-tap "homebrew/core"
-tap "homebrew/cask"
-
 brew "bat"
 brew "btop"
 brew "cloudflared"
@@ -35,5 +29,3 @@ brew "zoxide"
 brew "zsh"
 brew "zsh-autosuggestions"
 brew "zsh-syntax-highlighting"
-
-cask "iina"

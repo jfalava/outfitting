@@ -127,6 +127,55 @@ configure_package_manager_paths() {
     fi
 }
 
+# Install Homebrew via official installer
+install_homebrew() {
+    info "Installing Homebrew..."
+
+    if command -v brew >/dev/null 2>&1 || [ -x "/opt/homebrew/bin/brew" ] || [ -x "/usr/local/bin/brew" ]; then
+        configure_package_manager_paths
+        success "Homebrew is already installed ($(brew --version | head -1))"
+        return 0
+    fi
+
+    if NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"; then
+        configure_package_manager_paths
+        if command -v brew >/dev/null 2>&1; then
+            success "Homebrew installed successfully ($(brew --version | head -1))"
+        else
+            warning "Homebrew installer completed, but brew is not in PATH yet"
+        fi
+    else
+        error "Failed to install Homebrew"
+        return 1
+    fi
+}
+
+# Install Homebrew casks from the repo Brewfile
+install_homebrew_casks() {
+    info "Installing Homebrew casks..."
+
+    if ! command -v brew >/dev/null 2>&1; then
+        error "Homebrew is not available in PATH"
+        return 1
+    fi
+
+    local repo_path
+    repo_path=$(get_outfitting_repo) || return 1
+
+    local brewfile="$repo_path/packages/aarch64-darwin/Brewfile"
+    if [ ! -f "$brewfile" ]; then
+        error "Homebrew cask manifest not found: $brewfile"
+        return 1
+    fi
+
+    if brew bundle --file="$brewfile"; then
+        success "Homebrew casks installed from $brewfile"
+    else
+        error "Failed to install Homebrew casks from $brewfile"
+        return 1
+    fi
+}
+
 # Install ZeroBrew packages from the repo ZeroBrewfile
 install_zerobrew_packages() {
     info "Installing ZeroBrew packages..."
@@ -287,8 +336,10 @@ post_install_info() {
     echo "Installation Complete!"
     echo "======================================"
     echo ""
+    echo "Homebrew: $(command -v brew 2>/dev/null || echo 'not found in PATH')"
     echo "ZeroBrew: $(command -v zb 2>/dev/null || echo 'not found in PATH')"
     if [ -n "$repo_path" ]; then
+        echo "Homebrew casks: $repo_path/packages/aarch64-darwin/Brewfile"
         echo "ZeroBrew manifest: $repo_path/packages/aarch64-darwin/ZeroBrewfile"
     fi
     echo "Restart your shell if newly installed commands are not available yet."
@@ -309,19 +360,25 @@ main() {
     # Step 1: Configure repository
     configure_outfitting_repo
 
-    # Step 2: Install ZeroBrew
+    # Step 2: Install Homebrew
+    install_homebrew
+
+    # Step 3: Install Homebrew casks
+    install_homebrew_casks
+
+    # Step 4: Install ZeroBrew
     install_zerobrew
 
-    # Step 3: Install ZeroBrew packages
+    # Step 5: Install ZeroBrew packages
     install_zerobrew_packages
 
-    # Step 4: Install Bun
+    # Step 6: Install Bun
     install_bun
 
-    # Step 5: Install UV
+    # Step 7: Install UV
     install_astral_uv
 
-    # Step 6: Install Bun packages
+    # Step 8: Install Bun packages
     install_bun_packages
 
     post_install_info
