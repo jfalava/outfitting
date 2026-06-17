@@ -13,11 +13,13 @@ in
   home.homeDirectory = "/Users/jfalava";
   home.stateVersion = "25.11";
 
-  # Keep only packages that remain Nix-managed here.
+  # Nix-managed and exclusive packages
   home.packages = with pkgs; [
     nixd
     nil
     git
+    ani-cli
+    twitch-tui
   ];
 
   # Home Manager can also manage your environment variables through
