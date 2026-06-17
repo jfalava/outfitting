@@ -80,18 +80,14 @@ alias nix-clean='sudo nix-collect-garbage -d'
 alias nix-search='nix search nixpkgs'
 alias nix-shell='nix shell nixpkgs#'
 
-# Outfit rebuild short aliases
-alias or='outfit-rebuild'
-alias obr='outfit-rebuild build'
-alias osr='outfit-rebuild switch'
-alias otr='outfit-rebuild test'
-alias odr='outfit-rebuild dry'
-alias our='outfit-rebuild upgrade'
-
-# Outfit package-management aliases
-alias op='outfit-packages'
-alias ops='outfit-packages sync'
-alias opu='outfit-packages upgrade'
+# Outfit command aliases
+alias or='outfit'
+alias obr='outfit build'
+alias osr='outfit switch'
+alias otr='outfit test'
+alias odr='outfit dry'
+alias our='outfit upgrade'
+alias ors='outfit sync'
 
 # Zed editor aliases
 alias zed='/Applications/Zed.app/Contents/MacOS/cli -n'
@@ -425,6 +421,33 @@ outfit-packages() {
     esac
 }
 
+# Standard outfit command entrypoint
+outfit() {
+    case "${1:-switch}" in
+        sync|s)
+            shift
+            outfit-packages sync "$@"
+            ;;
+        upgrade|u)
+            shift
+            outfit-packages upgrade "$@"
+            ;;
+        build|b|switch|test|t|dry|d)
+            outfit-rebuild "$@"
+            ;;
+        *)
+            echo "Usage: outfit [build|switch|test|dry|sync|upgrade]"
+            echo "  build/b    - Build nix-darwin configuration only"
+            echo "  switch     - Build and apply nix-darwin configuration (default)"
+            echo "  test/t     - Test nix-darwin build only"
+            echo "  dry/d      - Dry-run nix-darwin changes"
+            echo "  sync/s     - Apply the committed ZeroBrew package manifest"
+            echo "  upgrade/u  - Apply the manifest, then upgrade installed ZeroBrew packages"
+            return 1
+            ;;
+    esac
+}
+
 # Quick system update
 update-all() {
      # Request elevation at the start
@@ -433,6 +456,10 @@ update-all() {
      echo ""
      echo "=== Updating Nix/Darwin ==="
      hm-update && hm-clean
+
+     echo ""
+     echo "=== Updating ZeroBrew Packages ==="
+     outfit-packages upgrade
 
      echo ""
      echo "=== Updating Global Bun Packages ==="

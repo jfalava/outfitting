@@ -13,8 +13,7 @@ in
   home.homeDirectory = "/Users/jfalava";
   home.stateVersion = "25.11";
 
-  # Package ownership is moving to ZeroBrew.
-  # Keep only packages that are not yet covered by the committed ZeroBrewfile.
+  # Keep only packages that remain Nix-managed here.
   home.packages = with pkgs; [
     nixd
     nil
@@ -39,23 +38,7 @@ in
     LESS_TERMCAP_us = "\\e[1;32m"; # begin underline
     LESS_TERMCAP_ue = "\\e[0m"; # reset underline
 
-    # Runtime paths
-    PNPM_HOME = "${config.home.homeDirectory}/.local/share/pnpm";
-    BUN_INSTALL = "${config.home.homeDirectory}/.bun";
-    DENO_INSTALL = "${config.home.homeDirectory}/.deno";
   };
-
-  # Add directories to PATH
-  home.sessionPath = [
-    "${config.home.homeDirectory}/.local/bin"
-    "${config.home.homeDirectory}/go/bin"
-    "${config.home.homeDirectory}/.local/share/pnpm"
-    "${config.home.homeDirectory}/.bun/bin"
-    "${config.home.homeDirectory}/.deno/bin"
-    "${config.home.homeDirectory}/.local/share/uv/bin"
-    "${config.home.homeDirectory}/.opencode/bin"
-    "${config.home.homeDirectory}/.cargo/bin"
-  ];
 
   # Dotfiles management - symlink your dotfiles to home directory
   home.file = {
