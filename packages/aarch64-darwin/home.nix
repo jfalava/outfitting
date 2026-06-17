@@ -11,7 +11,7 @@ in
   # Home Manager needs a bit of information about you and the paths it should manage
   home.username = "jfalava";
   home.homeDirectory = "/Users/jfalava";
-  home.stateVersion = "25.11";
+  home.stateVersion = "26.05";
 
   # Nix-managed and exclusive packages
   home.packages = with pkgs; [
