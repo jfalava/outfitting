@@ -216,39 +216,6 @@ install_bun_packages() {
     fi
 }
 
-# Install Claude Code
-install_claude_code() {
-    info "Installing Claude Code..."
-
-    # Check if already installed
-    if command -v claude &> /dev/null; then
-        success "Claude Code is already installed"
-        return 0
-    fi
-
-    if curl -fsSL https://claude.ai/install.sh 2>/dev/null | bash; then
-        success "Claude Code installed"
-    else
-        warning "Failed to install Claude Code (network error or already installed)"
-    fi
-}
-
-install_amp_code() {
-    info "Installing Amp Code..."
-
-    # Check if already installed
-    if command -v amp &> /dev/null; then
-        success "Amp Code is already installed"
-        return 0
-    fi
-
-    if curl -fsSL https://ampcode.com/install.sh 2>/dev/null | bash; then
-        success "Amp Code installed"
-    else
-        warning "Failed to install Amp Code (network error or already installed)"
-    fi
-}
-
 install_astral_uv() {
     info "Installing UV..."
 
@@ -362,12 +329,6 @@ main() {
 
     # Step 5: Install Bun packages
     install_bun_packages
-
-    # Step 6: Install Claude Code
-    install_claude_code
-
-    # Step 7: Install Amp Code
-    install_amp_code
 
     # Step 6: Install Nix (last, with flakes)
     info "Now installing Nix and nix-darwin..."
