@@ -102,6 +102,17 @@ configure_outfitting_repo() {
     return 0
 }
 
+# Read the configured local outfitting clone path
+get_outfitting_repo() {
+    local config_file="$HOME/.config/outfitting/repo-path"
+    if [ ! -f "$config_file" ]; then
+        error "Repository location is not configured."
+        return 1
+    fi
+
+    cat "$config_file"
+}
+
 # Make newly installed package managers available in the current shell
 configure_package_manager_paths() {
     if [ -x "/opt/homebrew/bin/brew" ]; then
@@ -116,25 +127,28 @@ configure_package_manager_paths() {
     fi
 }
 
-# Install Homebrew via official installer
-install_homebrew() {
-    info "Installing Homebrew..."
+# Install ZeroBrew packages from the repo ZeroBrewfile
+install_zerobrew_packages() {
+    info "Installing ZeroBrew packages..."
 
-    if command -v brew >/dev/null 2>&1 || [ -x "/opt/homebrew/bin/brew" ] || [ -x "/usr/local/bin/brew" ]; then
-        configure_package_manager_paths
-        success "Homebrew is already installed ($(brew --version | head -1))"
-        return 0
+    if ! command -v zb >/dev/null 2>&1; then
+        error "ZeroBrew is not available in PATH"
+        return 1
     fi
 
-    if NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"; then
-        configure_package_manager_paths
-        if command -v brew >/dev/null 2>&1; then
-            success "Homebrew installed successfully ($(brew --version | head -1))"
-        else
-            warning "Homebrew installer completed, but brew is not in PATH yet"
-        fi
+    local repo_path
+    repo_path=$(get_outfitting_repo) || return 1
+
+    local zerobrewfile="$repo_path/packages/aarch64-darwin/ZeroBrewfile"
+    if [ ! -f "$zerobrewfile" ]; then
+        error "ZeroBrew package manifest not found: $zerobrewfile"
+        return 1
+    fi
+
+    if zb bundle install -f "$zerobrewfile"; then
+        success "ZeroBrew packages installed from $zerobrewfile"
     else
-        error "Failed to install Homebrew"
+        error "Failed to install ZeroBrew packages from $zerobrewfile"
         return 1
     fi
 }
@@ -265,13 +279,18 @@ install_astral_uv() {
 
 # Post-installation instructions
 post_install_info() {
+    local repo_path
+    repo_path=$(get_outfitting_repo 2>/dev/null || true)
+
     echo ""
     echo "======================================"
     echo "Installation Complete!"
     echo "======================================"
     echo ""
-    echo "Homebrew: $(command -v brew 2>/dev/null || echo 'not found in PATH')"
     echo "ZeroBrew: $(command -v zb 2>/dev/null || echo 'not found in PATH')"
+    if [ -n "$repo_path" ]; then
+        echo "ZeroBrew manifest: $repo_path/packages/aarch64-darwin/ZeroBrewfile"
+    fi
     echo "Restart your shell if newly installed commands are not available yet."
     echo ""
 }
@@ -290,11 +309,11 @@ main() {
     # Step 1: Configure repository
     configure_outfitting_repo
 
-    # Step 2: Install Homebrew
-    install_homebrew
-
-    # Step 3: Install ZeroBrew
+    # Step 2: Install ZeroBrew
     install_zerobrew
+
+    # Step 3: Install ZeroBrew packages
+    install_zerobrew_packages
 
     # Step 4: Install Bun
     install_bun
