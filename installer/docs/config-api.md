@@ -105,11 +105,7 @@ curl -L wsl.jfa.dev | bash
 **macOS:**
 
 ```bash
-# Install Nix
 curl -L mac.jfa.dev | bash
-
-# Install nix-darwin for system management
-nix run nix-darwin -- switch --flake github:jfalava/outfitting?dir=packages/aarch64-darwin
 ```
 
 **Repository Configuration:**
@@ -221,10 +217,12 @@ Local repository location is configured during installation and stored in `~/.co
 
 ### macOS Functions
 
-macOS uses nix-darwin for system configuration. Use these commands:
+macOS uses Homebrew for casks, ZeroBrew for formulae, and nix-darwin/Home Manager for config. Use these commands:
 
 ```bash
 setup-outfitting-repo # Configure local repository location (run once)
+or sync               # Apply the Homebrew cask manifest and ZeroBrew package manifest
+or upgrade            # Sync manifests, then upgrade Homebrew casks and ZeroBrew packages
 hm-sync               # Sync nix-darwin config from local clone (prompts to commit/push)
 hm-switch             # Apply nix-darwin config from local clone
 hm-switch-local       # Apply from local clone with git status check
@@ -236,19 +234,11 @@ hm-rollback           # List generations and rollback instructions
 **Repository Configuration:**
 Local repository location is configured during installation and stored in `~/.config/outfitting/repo-path`. All local commands use this configuration automatically.
 
-**Note**: After initial Nix installation, run:
-
-```bash
-nix run nix-darwin -- switch --flake github:jfalava/outfitting?dir=packages/aarch64-darwin
-```
-
 **Example:**
 
 ```bash
+$ or sync
 $ hm-sync
-Switching to home-manager configuration...
-✓ Home Manager configuration applied
-Reload your shell with: source ~/.zshrc
 ```
 
 ## Development

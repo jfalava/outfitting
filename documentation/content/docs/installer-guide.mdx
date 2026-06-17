@@ -12,7 +12,7 @@ This guide explains how to pick the right installer command and what Outfitting 
 3. Pick profile set:
    - Windows uses explicit profiles like `base`, `dev`, `work`, `gaming`, `qol`, `network`.
    - WSL supports personal or work profile flags.
-   - macOS uses the repo's nix-darwin and Home Manager config.
+   - macOS uses Homebrew casks, ZeroBrew formulae, and the repo's nix-darwin/Home Manager config.
 4. Run install command as documented in the platform page.
 5. Verify by running profile/update helper commands (`hm-profile`, `hm-sync`, `hm-update`, etc.).
 
@@ -30,8 +30,9 @@ Outfitting installs and configures four layers:
   - Nix/Home Manager packages from `packages/x64-linux`.
   - Optional APT packages in update/full modes.
 - **macOS**:
-  - Nix and Home Manager packages from `packages/aarch64-darwin`.
-  - nix-darwin configuration from `darwin.nix`.
+  - Homebrew casks from `packages/aarch64-darwin/Brewfile`.
+  - ZeroBrew formulae from `packages/aarch64-darwin/ZeroBrewfile`.
+  - nix-darwin/Home Manager configuration from `packages/aarch64-darwin`.
 
 ### 2) Configuration Layer
 
@@ -43,13 +44,13 @@ Outfitting installs and configures four layers:
 
 - Repository is cloned into `~/.config/outfitting/repo`.
 - Symlinks connect your platform config paths to repo-managed files.
-- On macOS, nix-darwin linkage is created for system rebuild commands.
+- On macOS, nix-darwin/Home Manager symlinks are created for rebuild commands, while package manifests stay in the repo for Homebrew and ZeroBrew.
 
 ### 4) Maintenance Tooling
 
 - Helper commands to apply and update configs:
   - `hm-sync`, `hm-update`, `hm-personal`, `hm-work` (WSL/Linux)
-  - `or switch`, `or upgrade`, `drr` (macOS)
+  - `or sync`, `or upgrade`, `or switch`, `drr` (macOS)
 - Update scripts to refresh package sources and reinstall as needed.
 
 ## Command Selection Examples
