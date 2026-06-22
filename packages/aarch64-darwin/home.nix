@@ -18,6 +18,7 @@ in
     nixd
     nil
     git
+    nodejs_26
     ani-cli
     twitch-tui
   ];
