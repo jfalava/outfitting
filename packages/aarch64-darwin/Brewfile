@@ -1,3 +1,4 @@
+tap "hashicorp/tap"
 cask "altserver"
 cask "balenaetcher"
 cask "bartender"
