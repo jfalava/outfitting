@@ -58,8 +58,8 @@
       NSAutomaticSpellingCorrectionEnabled = false;
       NSAutomaticCapitalizationEnabled = false;
       NSAutomaticPeriodSubstitutionEnabled = false;
-      # Enable PC-style keyboard behavior for Windows keyboards
-      "com.apple.keyboard.fnState" = false;
+      # Keep keyboard defaults declarative in one place to avoid conflicting writes.
+      "com.apple.keyboard.fnState" = true;
     };
 
     # Trackpad settings
