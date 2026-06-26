@@ -1,5 +1,10 @@
 {
   "file_types": {
-    "Shell Script": ["*.zshrc-wsl", "*.zshrc-macos", "*.zshrc-base"]
+    "Shell Script": [
+      "*.zshrc-wsl",
+      "*.zshrc-macos",
+      "*.zshrc-base",
+      "*.zshrc-ubuntu-arm"
+    ]
   }
 }
