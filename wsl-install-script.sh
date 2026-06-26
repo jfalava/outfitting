@@ -188,12 +188,9 @@ configure_repo() {
     return 0
 }
 
-# Call the configuration function
-configure_repo
 
 echo ""
 
-if [[ "$MODE" != "update-only" ]]; then
 
 #####
 ## Setup symlinks and backup existing dotfiles
@@ -250,14 +247,6 @@ setup_symlinks() {
 
     echo "✓ Symlinks created and backups completed!"
     return 0
-}
-
-#####
-## nix
-#####
-curl --proto '=https' --tlsv1.2 -sSf -L https://nixos.org/nix/install | sh -s -- --daemon || {
-    echo "❖ Failed to install Nix. Exiting..."
-    exit 1
 }
 
 # ========================================
@@ -363,32 +352,11 @@ install_runtimes() {
         info "Installing uv..."
         curl -LsSf https://astral.sh/uv/install.sh | sh
     fi
-else
-    echo "❖ Nix not found, skipping home-manager installation"
-fi
-fi
-fi
+    export PATH="$HOME/.local/share/uv/bin:$PATH"
 
-if [[ "$MODE" != "update-only" ]]; then
-#####
-## runtimes
-#####
-
-# Install Bun
-curl -fsSL https://bun.sh/install | bash
-
-# Source Bun in current session
-export BUN_INSTALL="$HOME/.bun"
-export PATH="$BUN_INSTALL/bin:$PATH"
-
-# Install Deno (via Nix, already in PATH from Home Manager)
-deno jupyter --install 2>/dev/null || echo "Note: Deno jupyter install skipped (deno may not be available yet)"
-
-# Install uv
-curl -LsSf https://astral.sh/uv/install.sh | sh
-
-# Source uv in current session
-export PATH="$HOME/.local/share/uv/bin:$PATH"
+    # Install Deno (via Nix, already in PATH from Home Manager)
+    deno jupyter --install 2>/dev/null || echo "Note: Deno jupyter install skipped (deno may not be available yet)"
+}
 
 # ========================================
 # Bun Global Packages
