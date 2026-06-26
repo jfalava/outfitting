@@ -188,9 +188,7 @@ configure_repo() {
     return 0
 }
 
-
 echo ""
-
 
 #####
 ## Setup symlinks and backup existing dotfiles
@@ -359,6 +357,23 @@ install_runtimes() {
 }
 
 # ========================================
+# Set ZSH as the default profile
+# ========================================
+
+set_default_shell_zsh() {
+    if ! command -v zsh >/dev/null 2>&1; then
+        warning "zsh not found, skipping default shell change"
+        return 0
+    fi
+
+    local zsh_path
+    zsh_path="$(command -v zsh)"
+    info "Setting default shell to zsh ($zsh_path)..."
+    sudo chsh -s "$zsh_path" "$USER" 2>/dev/null || \
+        warning "Could not set zsh as default shell (run: chsh -s $zsh_path)"
+}
+
+# ========================================
 # Bun Global Packages
 # ========================================
 install_bun_packages() {
@@ -451,6 +466,7 @@ main() {
             install_home_manager
             install_runtimes
             install_bun_packages
+            set_default_shell_zsh
             ;;
         nix|*)
             configure_repo
