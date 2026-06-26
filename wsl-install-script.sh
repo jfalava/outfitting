@@ -450,19 +450,6 @@ install_bun_packages() {
 }
 
 # ========================================
-# Claude Code
-# ========================================
-install_claude_code() {
-    if command -v claude &>/dev/null; then
-        success "Claude Code already installed"
-        return 0
-    fi
-
-    info "Installing Claude Code..."
-    curl -fsSL https://claude.ai/install.sh | bash
-}
-
-# ========================================
 # Main
 # ========================================
 main() {
@@ -496,7 +483,6 @@ main() {
             install_home_manager
             install_runtimes
             install_bun_packages
-            install_claude_code
             ;;
         nix|*)
             configure_repo
@@ -505,7 +491,6 @@ main() {
             install_home_manager
             install_runtimes
             install_bun_packages
-            install_claude_code
             ;;
     esac
 
