@@ -72,9 +72,9 @@ install_apt_packages() {
         [[ -z "$package" || "$package" =~ ^# ]] && continue
         info "Installing: $package"
         if sudo apt install -y "$package"; then
-            ((installed++))
+            ((++installed))
         else
-            ((failed++))
+            ((++failed))
             failed_packages="$failed_packages $package"
         fi
     done < "$apt_file"
@@ -138,7 +138,7 @@ install_home_manager() {
     local flake_path="$REPO_PATH/packages/aarch64-linux"
 
     info "Applying Home Manager profile..."
-    nix run home-manager/master -- switch --flake "$flake_path#jfalava" --impure
+    nix run home-manager/master -- switch --flake "$flake_path#jalava" --impure
     success "Home Manager applied"
 }
 
@@ -152,6 +152,19 @@ install_runtimes() {
         info "Installing uv..."
         curl -LsSf https://astral.sh/uv/install.sh | sh
     fi
+}
+
+set_default_shell_zsh() {
+    if ! command -v zsh >/dev/null 2>&1; then
+        warning "zsh not found, skipping default shell change"
+        return 0
+    fi
+
+    local zsh_path
+    zsh_path="$(command -v zsh)"
+    info "Setting default shell to zsh ($zsh_path)..."
+    sudo chsh -s "$zsh_path" "$USER" 2>/dev/null || \
+        warning "Could not set zsh as default shell (run: chsh -s $zsh_path)"
 }
 
 install_bun_packages() {
@@ -184,6 +197,7 @@ main() {
     setup_symlinks
     install_home_manager
     install_runtimes
+    set_default_shell_zsh
     install_bun_packages
     success "Installation complete"
 }

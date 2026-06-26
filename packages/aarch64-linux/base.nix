@@ -65,7 +65,7 @@ in
     eksctl
     ansible
     cloudlens
-    rosa
+    # rosa # fails to build
   ];
 
   # Session variables

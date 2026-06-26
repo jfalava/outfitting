@@ -5,6 +5,19 @@
 # Source universal configuration
 source ~/.zshrc-base
 
+# Ghostty advertises xterm-ghostty; older hosts may not ship that terminfo.
+if [[ -n "${TERM:-}" ]] && ! infocmp "$TERM" >/dev/null 2>&1; then
+    export TERM="xterm-256color"
+fi
+
+# Nix (fallback bootstrap)
+if [ -e /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh ]; then
+    . /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
+fi
+
+# Stronger clear for terminal redraw issues (overrides base cls alias).
+alias cls='clear && printf "\033[3J"'
+
 # ---- Linux-Specific Functions ----
 
 # Find process using a port (with ss fallback)
@@ -50,7 +63,7 @@ hm-sync() {
     flake_path="$repo_path/packages/aarch64-linux"
 
     hm-ensure-outfitting || return 1
-    home-manager switch --flake "$flake_path#jfalava" --impure
+    home-manager switch --flake "$flake_path#jalava" --impure
     echo "✓ Synced from $repo_path"
 }
 
@@ -59,7 +72,7 @@ hm-switch() {
 }
 
 hm-profile() {
-    echo "Current: jfalava (single profile)"
+    echo "Current: jalava (single profile)"
 }
 
 hm-work() {
@@ -74,7 +87,7 @@ hm-update() {
 
     hm-ensure-outfitting || return 1
     nix flake update --flake "$flake_path"
-    home-manager switch --flake "$flake_path#jfalava" --impure
+    home-manager switch --flake "$flake_path#jalava" --impure
 
     echo ""
     echo "✓ Nix packages updated successfully!"
@@ -141,7 +154,7 @@ bun-update-global() {
 
         local installed_version name latest_version
         installed_version="${pkg##*@}"
-        name="${pkg%@$installed_version}"
+        name="${pkg%"@$installed_version"}"
         if [ -z "$name" ] || [ -z "$installed_version" ] || [ "$name@$installed_version" != "$pkg" ]; then
             echo "Skipping unrecognized entry: $pkg"
             continue
