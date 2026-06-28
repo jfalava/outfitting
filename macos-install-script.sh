@@ -120,11 +120,6 @@ configure_package_manager_paths() {
     elif [ -x "/usr/local/bin/brew" ]; then
         eval "$(/usr/local/bin/brew shellenv)"
     fi
-
-    local zerobrew_bin="${ZEROBREW_BIN:-$HOME/.local/bin}"
-    if [ -d "$zerobrew_bin" ] && [[ ":$PATH:" != *":$zerobrew_bin:"* ]]; then
-        export PATH="$zerobrew_bin:$PATH"
-    fi
 }
 
 # Install Homebrew via official installer
@@ -150,9 +145,9 @@ install_homebrew() {
     fi
 }
 
-# Install Homebrew casks from the repo Brewfile
-install_homebrew_casks() {
-    info "Installing Homebrew casks..."
+# Install Homebrew packages and casks from the repo Brewfile
+install_homebrew_packages() {
+    info "Installing Homebrew packages..."
 
     if ! command -v brew >/dev/null 2>&1; then
         error "Homebrew is not available in PATH"
@@ -164,63 +159,14 @@ install_homebrew_casks() {
 
     local brewfile="$repo_path/packages/aarch64-darwin/Brewfile"
     if [ ! -f "$brewfile" ]; then
-        error "Homebrew cask manifest not found: $brewfile"
+        error "Homebrew manifest not found: $brewfile"
         return 1
     fi
 
     if brew bundle --file="$brewfile"; then
-        success "Homebrew casks installed from $brewfile"
+        success "Homebrew packages installed from $brewfile"
     else
-        error "Failed to install Homebrew casks from $brewfile"
-        return 1
-    fi
-}
-
-# Install zerobrew packages from the repo ZeroBrewfile
-install_zerobrew_packages() {
-    info "Installing ZeroBrew packages..."
-
-    if ! command -v zb >/dev/null 2>&1; then
-        error "ZeroBrew is not available in PATH"
-        return 1
-    fi
-
-    local repo_path
-    repo_path=$(get_outfitting_repo) || return 1
-
-    local zerobrewfile="$repo_path/packages/aarch64-darwin/ZeroBrewfile"
-    if [ ! -f "$zerobrewfile" ]; then
-        error "ZeroBrew package manifest not found: $zerobrewfile"
-        return 1
-    fi
-
-    if zb bundle install -f "$zerobrewfile"; then
-        success "zerobrew packages installed from $zerobrewfile"
-    else
-        error "Failed to install zerobrew packages from $zerobrewfile"
-        return 1
-    fi
-}
-
-# Install zerobrew via official installer
-install_zerobrew() {
-    info "Installing zerobrew..."
-
-    if [ -x "${ZEROBREW_BIN:-$HOME/.local/bin}/zb" ] || command -v zb >/dev/null 2>&1; then
-        configure_package_manager_paths
-        success "zerobrew is already installed ($(zb --version 2>/dev/null | head -1))"
-        return 0
-    fi
-
-    if curl -fsSL https://zerobrew.rs/install | bash; then
-        configure_package_manager_paths
-        if command -v zb >/dev/null 2>&1; then
-            success "ZeroBrew installed successfully ($(zb --version 2>/dev/null | head -1))"
-        else
-            warning "zerobrew installer completed, but zb is not in PATH yet"
-        fi
-    else
-        error "Failed to install zerobrew"
+        error "Failed to install Homebrew packages from $brewfile"
         return 1
     fi
 }
@@ -337,10 +283,8 @@ post_install_info() {
     echo "======================================"
     echo ""
     echo "Homebrew: $(command -v brew 2>/dev/null || echo 'not found in PATH')"
-    echo "zerobrew: $(command -v zb 2>/dev/null || echo 'not found in PATH')"
     if [ -n "$repo_path" ]; then
-        echo "Homebrew casks: $repo_path/packages/aarch64-darwin/Brewfile"
-        echo "zerobrew manifest: $repo_path/packages/aarch64-darwin/ZeroBrewfile"
+        echo "Homebrew manifest: $repo_path/packages/aarch64-darwin/Brewfile"
     fi
     echo "Restart your shell if newly installed commands are not available yet."
     echo ""
@@ -363,22 +307,16 @@ main() {
     # Step 2: Install Homebrew
     install_homebrew
 
-    # Step 3: Install Homebrew casks
-    install_homebrew_casks
+    # Step 3: Install Homebrew packages and casks
+    install_homebrew_packages
 
-    # Step 4: Install zerobrew
-    install_zerobrew
-
-    # Step 5: Install zerobrew packages
-    install_zerobrew_packages
-
-    # Step 6: Install Bun
+    # Step 4: Install Bun
     install_bun
 
-    # Step 7: Install UV
+    # Step 5: Install UV
     install_astral_uv
 
-    # Step 8: Install Bun packages
+    # Step 6: Install Bun packages
     install_bun_packages
 
     post_install_info

@@ -18,6 +18,23 @@ in
     nixd
     nil
     git
+    go
+    fd
+    bat
+    btop
+    fzf
+    jq
+    fastfetch
+    eza
+    powershell
+    python3
+    ripgrep
+    starship
+    zig
+    zoxide
+    zsh
+    zsh-autosuggestions
+    zsh-syntax-highlighting
     nodejs_26
     ani-cli
     twitch-tui
