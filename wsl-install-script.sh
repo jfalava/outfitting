@@ -351,6 +351,7 @@ install_runtimes() {
         curl -LsSf https://astral.sh/uv/install.sh | sh
     fi
     export PATH="$HOME/.local/share/uv/bin:$PATH"
+    export PATH="$HOME/.local/bin:$PATH"
 
     # Install Deno (via Nix, already in PATH from Home Manager)
     deno jupyter --install 2>/dev/null || echo "Note: Deno jupyter install skipped (deno may not be available yet)"
