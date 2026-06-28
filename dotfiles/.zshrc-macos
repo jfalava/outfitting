@@ -17,14 +17,6 @@ elif [[ -x /usr/local/bin/brew ]]; then
     eval "$(/usr/local/bin/brew shellenv)"
 fi
 
-# zerobrew
-export ZEROBREW_ROOT="${ZEROBREW_ROOT:-/opt/zerobrew}"
-export ZEROBREW_PREFIX="${ZEROBREW_PREFIX:-$ZEROBREW_ROOT}"
-export ZEROBREW_BIN="${ZEROBREW_BIN:-$HOME/.local/bin}"
-path_prepend "$ZEROBREW_BIN"
-path_prepend "$ZEROBREW_PREFIX/bin"
-path_prepend "$ZEROBREW_PREFIX/sbin"
-
 # Add Applications folder to PATH
 path_prepend "/Applications/"
 
@@ -95,6 +87,9 @@ alias otr='outfit test'
 alias odr='outfit dry'
 alias our='outfit upgrade'
 alias ors='outfit sync'
+alias op='outfit-homebrew'
+alias ops='outfit-homebrew sync'
+alias opu='outfit-homebrew upgrade'
 
 # Zed editor aliases
 alias zed='/Applications/Zed.app/Contents/MacOS/cli -n'
@@ -387,49 +382,8 @@ PY
     fi
 }
 
-# Apply or upgrade the macOS zerobrew package set
-outfit-packages() {
-    local repo_path
-    repo_path=$(get_outfitting_repo) || {
-        echo "Error: Repository location not configured."
-        echo "Run 'set_outfitting_repo /path/to/outfitting' to configure."
-        return 1
-    }
-
-    if ! command -v zb >/dev/null 2>&1; then
-        echo "Error: zerobrew is not installed or not in PATH."
-        return 1
-    fi
-
-    local zerobrewfile="$repo_path/packages/aarch64-darwin/ZeroBrewfile"
-    if [ ! -f "$zerobrewfile" ]; then
-        echo "Error: zerobrew manifest not found: $zerobrewfile"
-        return 1
-    fi
-
-    case "${1:-sync}" in
-        sync|s|install|i)
-            echo "Applying zerobrew package manifest..."
-            zb bundle install -f "$zerobrewfile"
-            ;;
-        upgrade|u)
-            echo "Syncing zerobrew package manifest..."
-            zb bundle install -f "$zerobrewfile" || return 1
-            echo ""
-            echo "Upgrading installed zerobrew packages..."
-            zb upgrade
-            ;;
-        *)
-            echo "Usage: outfit-packages [sync|upgrade]"
-            echo "  sync/s     - Apply the committed zerobrew package manifest (default)"
-            echo "  upgrade/u  - Apply the manifest, then upgrade installed zerobrew packages"
-            return 1
-            ;;
-    esac
-}
-
-# Apply Homebrew-managed macOS casks
-outfit-casks() {
+# Apply Homebrew-managed macOS packages and casks
+outfit-homebrew() {
     local repo_path
     repo_path=$(get_outfitting_repo) || {
         echo "Error: Repository location not configured."
@@ -450,20 +404,21 @@ outfit-casks() {
 
     case "${1:-sync}" in
         sync|s|install|i)
-            echo "Applying Homebrew cask manifest..."
+            echo "Applying Homebrew manifest..."
             brew bundle --file="$brewfile"
             ;;
         upgrade|u)
-            echo "Syncing Homebrew cask manifest..."
+            echo "Syncing Homebrew manifest..."
             brew bundle --file="$brewfile" || return 1
             echo ""
-            echo "Upgrading installed Homebrew casks..."
+            echo "Upgrading installed Homebrew packages..."
+            brew upgrade
             brew upgrade --cask
             ;;
         *)
-            echo "Usage: outfit-casks [sync|upgrade]"
-            echo "  sync/s     - Apply the committed Homebrew cask manifest (default)"
-            echo "  upgrade/u  - Apply the manifest, then upgrade installed Homebrew casks"
+            echo "Usage: outfit-homebrew [sync|upgrade]"
+            echo "  sync/s     - Apply the committed Homebrew manifest (default)"
+            echo "  upgrade/u  - Apply the manifest, then upgrade installed Homebrew packages and casks"
             return 1
             ;;
     esac
@@ -474,13 +429,11 @@ outfit() {
     case "${1:-switch}" in
         sync|s)
             shift
-            outfit-casks sync || return 1
-            outfit-packages sync "$@"
+            outfit-homebrew sync "$@"
             ;;
         upgrade|u)
             shift
-            outfit-casks upgrade || return 1
-            outfit-packages upgrade "$@"
+            outfit-homebrew upgrade "$@"
             ;;
         build|b|switch|test|t|dry|d)
             outfit-rebuild "$@"
@@ -491,8 +444,8 @@ outfit() {
             echo "  switch     - Build and apply nix-darwin configuration (default)"
             echo "  test/t     - Test nix-darwin build only"
             echo "  dry/d      - Dry-run nix-darwin changes"
-            echo "  sync/s     - Apply the Homebrew cask manifest and zerobrew package manifest"
-            echo "  upgrade/u  - Sync casks/packages, then upgrade Homebrew casks and zerobrew packages"
+            echo "  sync/s     - Apply the Homebrew manifest"
+            echo "  upgrade/u  - Sync packages/casks, then upgrade Homebrew packages and casks"
             return 1
             ;;
     esac
@@ -508,12 +461,8 @@ update-all() {
      hm-update && hm-clean
 
      echo ""
-     echo "=== Updating Homebrew Casks ==="
-     outfit-casks upgrade || return 1
-
-     echo ""
-     echo "=== Updating zerobrew Packages ==="
-     outfit-packages upgrade || return 1
+     echo "=== Updating Homebrew Packages ==="
+     outfit-homebrew upgrade || return 1
 
      echo ""
      echo "=== Updating Global Bun Packages ==="
