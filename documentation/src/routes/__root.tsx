@@ -47,7 +47,6 @@ function RootDocument({ children }: { children: React.ReactNode }) {
           search={{
             enabled: true,
             options: {
-              type: "fetch",
               api: "/api/search",
             },
           }}
