@@ -19,6 +19,7 @@ in
     nil
     git
     go
+    gh
     fd
     bat
     btop
