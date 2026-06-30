@@ -8,15 +8,27 @@
   "diff_view_style": "unified",
   "agent_servers": {
     "github-copilot-cli": {
-      "type": "registry",
-    },
-    "gemini": {
+      "favorite_config_option_values": {
+        "model": ["gpt-5.3-codex", "gpt-5.4"],
+      },
+      "default_config_options": {
+        "allow_all": "on",
+        "model": "gpt-5.3-codex",
+      },
       "type": "registry",
     },
     "codex-acp": {
+      "default_config_options": {
+        "reasoning_effort": "medium",
+        "model": "gpt-5.5",
+      },
       "type": "registry",
     },
     "opencode": {
+      "default_config_options": {
+        "effort": "medium",
+        "model": "opencode/nemotron-3-ultra-free",
+      },
       "type": "registry",
     },
   },
@@ -40,6 +52,7 @@
     "discord-presence": true,
     "bearded-icon-theme": true,
     "helm": true,
+    "log": true,
     "oxc": true,
     "json5": true,
     "bearded-themes": true,
