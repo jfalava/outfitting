@@ -405,20 +405,26 @@ outfit-homebrew() {
     case "${1:-sync}" in
         sync|s|install|i)
             echo "Applying Homebrew manifest..."
-            brew bundle --file="$brewfile"
+            brew bundle --file="$brewfile" || return 1
+            echo ""
+            echo "Removing Homebrew casks not in manifest..."
+            brew bundle cleanup --file="$brewfile" --cask --force
             ;;
         upgrade|u)
             echo "Syncing Homebrew manifest..."
             brew bundle --file="$brewfile" || return 1
             echo ""
             echo "Upgrading installed Homebrew packages..."
-            brew upgrade
-            brew upgrade --cask
+            brew upgrade || return 1
+            brew upgrade --cask || return 1
+            echo ""
+            echo "Removing Homebrew casks not in manifest..."
+            brew bundle cleanup --file="$brewfile" --cask --force
             ;;
         *)
             echo "Usage: outfit-homebrew [sync|upgrade]"
-            echo "  sync/s     - Apply the committed Homebrew manifest (default)"
-            echo "  upgrade/u  - Apply the manifest, then upgrade installed Homebrew packages and casks"
+            echo "  sync/s     - Apply the committed Homebrew manifest and remove unlisted casks (default)"
+            echo "  upgrade/u  - Apply the manifest, upgrade Homebrew packages/casks, and remove unlisted casks"
             return 1
             ;;
     esac
@@ -444,8 +450,8 @@ outfit() {
             echo "  switch     - Build and apply nix-darwin configuration (default)"
             echo "  test/t     - Test nix-darwin build only"
             echo "  dry/d      - Dry-run nix-darwin changes"
-            echo "  sync/s     - Apply the Homebrew manifest"
-            echo "  upgrade/u  - Sync packages/casks, then upgrade Homebrew packages and casks"
+            echo "  sync/s     - Apply the Homebrew manifest and remove unlisted casks"
+            echo "  upgrade/u  - Sync packages/casks, upgrade them, then remove unlisted casks"
             return 1
             ;;
     esac
