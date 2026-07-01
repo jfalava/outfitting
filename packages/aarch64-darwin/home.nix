@@ -15,6 +15,7 @@ in
 
   # Nix-managed and exclusive packages
   home.packages = with pkgs; [
+    # never trust homebrew
     nixd
     nil
     git
@@ -37,6 +38,7 @@ in
     zsh-autosuggestions
     zsh-syntax-highlighting
     nodejs_26
+    # unavailable on homebrew
     ani-cli
     twitch-tui
   ];

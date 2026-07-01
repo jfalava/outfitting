@@ -1,4 +1,6 @@
 tap "hashicorp/tap"
+tap "cloudflare/cloudflare"
+
 cask "altserver"
 cask "balenaetcher"
 cask "bartender"
@@ -30,6 +32,7 @@ cask "supacode"
 cask "helium-browser"
 cask "zed"
 cask "zen"
+cask "discord"
 
 brew "cloudflared"
 brew "deno"

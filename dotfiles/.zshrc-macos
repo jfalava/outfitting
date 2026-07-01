@@ -402,6 +402,17 @@ outfit-homebrew() {
         return 1
     fi
 
+    # Automatically trust taps listed in the Brewfile
+    local tap trust_output
+    while IFS= read -r tap; do
+        if [[ -n "$tap" ]]; then
+            trust_output=$(brew trust --tap "$tap" 2>&1)
+            if [[ "$trust_output" != *"Already trusted"* ]]; then
+                echo "$trust_output"
+            fi
+        fi
+    done < <(sed -n -E "s/^[[:space:]]*tap[[:space:]]+['\"]([^'\"]+)['\"].*/\1/p" "$brewfile")
+
     case "${1:-sync}" in
         sync|s|install|i)
             echo "Applying Homebrew manifest..."
