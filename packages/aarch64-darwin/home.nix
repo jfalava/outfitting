@@ -28,7 +28,6 @@ in
     fastfetch
     eza
     powershell
-    neovim
     python3
     ripgrep
     starship
