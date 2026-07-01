@@ -66,35 +66,13 @@ done
 alias show='open'  # macOS equivalent of explorer
 alias finder='open .'  # Open current directory in Finder
 
-# Nix-darwin rebuild aliases with proper quoting for flake syntax
-alias drb='darwin-rebuild build --flake ".#macos" --impure'
-alias drs='sudo -H HOME=/var/root env -u SUDO_USER -u SUDO_HOME darwin-rebuild switch --flake ".#macos" --impure'
-alias dru='sudo -H HOME=/var/root env -u SUDO_USER -u SUDO_HOME darwin-rebuild switch --flake ".#macos" --upgrade --impure'
-alias drd='darwin-rebuild switch --flake ".#macos" --dry-run --impure'
-alias drl='darwin-rebuild --list-generations'
-alias drr='sudo -H HOME=/var/root env -u SUDO_USER -u SUDO_HOME darwin-rebuild rollback'
-
 # Quick nix commands
 alias nix-clean='sudo nix-collect-garbage -d'
 alias nix-search='nix search nixpkgs'
 alias nix-shell='nix shell nixpkgs#'
 
-# Outfit command aliases
-alias or='outfit'
-alias obr='outfit build'
-alias osr='outfit switch'
-alias otr='outfit test'
-alias odr='outfit dry'
-alias our='outfit upgrade'
-alias ors='outfit sync'
-alias op='outfit-homebrew'
-alias ops='outfit-homebrew sync'
-alias opu='outfit-homebrew upgrade'
-
 # Zed editor aliases
 alias zed='/Applications/Zed.app/Contents/MacOS/cli -n'
-alias z.='/Applications/Zed.app/Contents/MacOS/cli -n .'
-alias zed-wait='/Applications/Zed.app/Contents/MacOS/cli -n --wait'
 
 # ---- macOS-Specific Functions ----
 
@@ -165,11 +143,9 @@ set_outfitting_repo() {
     echo "$repo_path" > "$config_file"
     chmod 600 "$config_file"
 
-    echo "✓ Repository path set to: $repo_path"
+    echo "Repository path set to: $repo_path"
     return 0
 }
-
-
 
 # nix-darwin management functions
 hm-sync() {
@@ -185,18 +161,18 @@ hm-sync() {
     local hm_target="$repo_path/packages/aarch64-darwin"
 
     if [ ! -L ~/.nixpkgs/darwin-configuration.nix ] || [ "$(readlink -f ~/.nixpkgs/darwin-configuration.nix)" != "$(readlink -f "$darwin_target")" ]; then
-        echo "✓ Creating/updating symlink: ~/.nixpkgs/darwin-configuration.nix → $darwin_target"
+        echo "Creating/updating symlink: ~/.nixpkgs/darwin-configuration.nix → $darwin_target"
         mkdir -p ~/.nixpkgs
         ln -sfn "$darwin_target" ~/.nixpkgs/darwin-configuration.nix
     fi
 
     if [ ! -L ~/.config/home-manager ] || [ "$(readlink -f ~/.config/home-manager)" != "$(readlink -f "$hm_target")" ]; then
-        echo "✓ Creating/updating symlink: ~/.config/home-manager → $hm_target"
+        echo "Creating/updating symlink: ~/.config/home-manager → $hm_target"
         ln -sfn "$hm_target" ~/.config/home-manager
     fi
 
      sudo -H HOME=/var/root env -u SUDO_USER -u SUDO_HOME darwin-rebuild switch --flake "$repo_path/packages/aarch64-darwin"
-     echo "✓ Synced from $repo_path"
+     echo "Synced from $repo_path"
  }
 
 hm-switch() {
@@ -232,7 +208,7 @@ hm-switch-local() {
 
     if git -C "$repo_path" diff --quiet && git -C "$repo_path" diff --cached --quiet; then
         echo ""
-        echo "✓ No uncommitted changes - you're all set!"
+        echo "No uncommitted changes - you're all set!"
     else
         echo ""
         echo "⚠ You have uncommitted changes in $repo_path"
@@ -274,7 +250,7 @@ hm-update() {
      sudo -H HOME=/var/root env -u SUDO_USER -u SUDO_HOME darwin-rebuild switch --flake "$repo_path/packages/aarch64-darwin" --impure
 
      echo ""
-     echo "✓ Nix packages updated successfully!"
+     echo "Nix packages updated successfully!"
      echo ""
      echo "Flake lock file updated with latest nixpkgs"
  }
@@ -486,7 +462,7 @@ update-all() {
      bun-update-global
 
      echo ""
-     echo "✓ System updated successfully"
+     echo "System updated successfully"
  }
 
 # Update everything except Nix packages (useful for profile-only changes)
@@ -508,11 +484,11 @@ update-all-no-nix() {
 
     if [ -n "$ZSH_VERSION" ] && [ -f "$repo_path/dotfiles/.zshrc-macos" ]; then
         source "$repo_path/dotfiles/.zshrc-macos"
-        echo "✓ Zsh profile reloaded"
+        echo "Zsh profile reloaded"
     fi
 
     echo ""
-    echo "✓ System updated (no Nix packages)"
+    echo "System updated (no Nix packages)"
 }
 
 # Quick nix-darwin rebuild from anywhere in the system
