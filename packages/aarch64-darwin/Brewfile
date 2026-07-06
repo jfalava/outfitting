@@ -33,6 +33,7 @@ cask "helium-browser"
 cask "zed"
 cask "zen"
 cask "discord"
+cask "krita"
 
 brew "cloudflared"
 brew "deno"
