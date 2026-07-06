@@ -426,6 +426,10 @@ outfit() {
             ;;
         upgrade|u)
             shift
+            echo "=== Upgrading nix-darwin configuration ==="
+            outfit-rebuild upgrade "$@" || return 1
+            echo ""
+            echo "=== Upgrading Homebrew packages/casks ==="
             outfit-homebrew upgrade "$@"
             ;;
         build|b|switch|test|t|dry|d)
@@ -438,11 +442,14 @@ outfit() {
             echo "  test/t     - Test nix-darwin build only"
             echo "  dry/d      - Dry-run nix-darwin changes"
             echo "  sync/s     - Apply the Homebrew manifest and remove unlisted casks"
-            echo "  upgrade/u  - Sync packages/casks, upgrade them, then remove unlisted casks"
+            echo "  upgrade/u  - Upgrade nix-darwin config, then upgrade Homebrew packages/casks"
             return 1
             ;;
     esac
 }
+
+# Short alias for the unified outfit command (build/switch/test/dry/sync/upgrade)
+alias o='outfit'
 
 # Quick system update
 update-all() {
