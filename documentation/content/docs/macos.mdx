@@ -16,28 +16,29 @@ This installs:
 
 ## Package Management
 
-```bash
-# Apply Homebrew casks and zerobrew formulae from the repo
-or sync
+The `outfit` command (aliased to `o`) unifies Homebrew and nix-darwin operations:
 
-# Sync manifests, then upgrade installed casks and zerobrew packages
-or upgrade
+```bash
+# Apply Homebrew casks and formulae from the repo
+o sync   # or: outfit sync
+
+# Upgrade nix-darwin configuration, then upgrade Homebrew packages/casks
+o upgrade   # or: outfit upgrade
 ```
 
 ## Nix-darwin Profile Management
 
 ```bash
 # Build and apply changes
-or switch
-or build
-or test
+o switch   # (default when no argument is given)
+o build
+o test
 
 # Dry-run changes
-or dry
+o dry
 
-# List and rollback generations
-drl
-drr
+# List and roll back generations
+hm-rollback
 ```
 
 Traditional `nix-darwin` commands from the repository directory:
