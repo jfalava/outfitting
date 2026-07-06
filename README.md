@@ -65,7 +65,7 @@ Outfitting applies four layers:
 
 - Windows: WinGet and optional Microsoft Store profile bundles
 - WSL: Nix and Home Manager package sets
-- macOS: Homebrew casks and zerobrew formulae
+- macOS: Homebrew casks and formulae
 
 2. Configuration layer
 
