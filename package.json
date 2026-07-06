@@ -8,15 +8,15 @@
     ],
     "catalogs": {
       "types": {
-        "@types/node": "26.0.0"
+        "@types/node": "26.0.1"
       },
       "build": {
-        "@typescript/native-preview": "7.0.0-dev.20260624.1",
+        "@typescript/native-preview": "7.0.0-dev.20260629.1",
         "oxlint": "1.71.0",
         "oxfmt": "0.56.0",
         "oxlint-tsgolint": "0.23.0",
         "typescript": "6.0.3",
-        "wrangler": "4.104.0"
+        "wrangler": "4.105.0"
       }
     }
   },
