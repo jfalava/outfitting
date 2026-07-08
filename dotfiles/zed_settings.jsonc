@@ -9,11 +9,16 @@
   "agent_servers": {
     "github-copilot-cli": {
       "favorite_config_option_values": {
-        "model": ["gpt-5.3-codex", "gpt-5.4"],
+        "model": [
+          "gpt-5.3-codex",
+          "gpt-5.4",
+          "claude-sonnet-5",
+          "mai-code-1-flash-picker",
+        ],
       },
       "default_config_options": {
         "allow_all": "on",
-        "model": "gpt-5.3-codex",
+        "model": "claude-sonnet-5",
       },
       "type": "registry",
     },
@@ -59,6 +64,7 @@
     "github-theme": true,
     "tsgo": true,
     "mdx": true,
+    "ini": true,
   },
   "show_edit_predictions": false,
   "restore_on_startup": "last_workspace",
