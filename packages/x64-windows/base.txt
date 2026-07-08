@@ -32,16 +32,13 @@ M2Team.NanaZip
 WinDirStat.WinDirStat
 xanderfrangos.twinkletray
 ModernFlyouts.ModernFlyouts
-Mozilla.Firefox
 ImputNet.Helium
-Zen-Team.Zen-Browser
 REALiX.HWiNFO
 CrystalDewWorld.CrystalDiskInfo
 aristocratos.btop4win
 SumatraPDF.SumatraPDF
 VideoLAN.VLC
 Telegram.TelegramDesktop
-Logitech.OptionsPlus
 Microsoft.Edit
 Oven-sh.Bun
 astral-sh.uv
@@ -49,3 +46,4 @@ GoLang.Go
 EclipseAdoptium.Temurin.11.JDK
 Tailscale.Tailscale
 restic.restic
+ZedIndustries.Zed

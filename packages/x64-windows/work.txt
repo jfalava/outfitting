@@ -9,5 +9,4 @@ OpenTofu.Tofu
 Derailed.k9s
 eksctl.eksctl
 Lenovo.SystemUpdate
-Logitech.Options
 Fortinet.FortiClientVPN

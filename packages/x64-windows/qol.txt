@@ -1,10 +1,6 @@
 OBSProject.OBSStudio
-ChatterinoTeam.Chatterino
-Nota.Gyazo
 KDE.Krita
 CiderCollective.Cider
-Mp3tag.Mp3tag
-AppWork.JDownloader
 Mega.MEGASync
 Proton.ProtonDrive
 Proton.ProtonPass
