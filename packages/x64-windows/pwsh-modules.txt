@@ -1,1 +1,4 @@
 PSReadLine
+Microsoft.PowerShell.SecretManagement
+Microsoft.PowerShell.SecretStore
+CredentialManager

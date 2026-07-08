@@ -48,3 +48,4 @@ astral-sh.uv
 GoLang.Go
 EclipseAdoptium.Temurin.11.JDK
 Tailscale.Tailscale
+restic.restic
