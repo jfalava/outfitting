@@ -22,13 +22,9 @@
   },
   "type": "module",
   "scripts": {
-    "check:catalog": "bun scripts/check-catalog-usage.ts",
-    "check:outdated": "bun scripts/check-outdated-catalog.ts",
-    "format": "oxfmt",
-    "format:global": "bun run --filter @outfitting/documentation --filter @outfitting/installer format",
-    "update:all": "bun update --filter @outfitting/documentation --filter @outfitting/installer"
+    "format": "oxfmt"
   },
   "devDependencies": {
-    "oxfmt": "^0.53.0"
+    "oxfmt": "^0.57.0"
   }
 }
