@@ -1,8 +1,5 @@
-Anthropic.Claude
-Anthropic.ClaudeCode
 OpenAI.Codex
 Microsoft.VisualStudioCode
-ZedIndustries.Zed
 SST.opencode
 JesseDuffield.lazygit
 OpenJS.NodeJS
