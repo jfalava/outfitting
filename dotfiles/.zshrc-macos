@@ -392,6 +392,7 @@ outfit-homebrew() {
     case "${1:-sync}" in
         sync|s|install|i)
             echo "Applying Homebrew manifest..."
+            sudo -v || return 1
             brew bundle --file="$brewfile" || return 1
             echo ""
             echo "Removing Homebrew casks not in manifest..."
@@ -399,6 +400,7 @@ outfit-homebrew() {
             ;;
         upgrade|u)
             echo "Syncing Homebrew manifest..."
+            sudo -v || return 1
             brew bundle --file="$brewfile" || return 1
             echo ""
             echo "Upgrading installed Homebrew packages..."
@@ -555,24 +557,4 @@ outfit-rebuild() {
 
     # Return to original directory
     cd - > /dev/null || return 0
-}
-
-# Zed editor configuration functions
-# Quick open functions that ACTUALLY open new windows
-zcd() {
-    if [ -z "$1" ]; then
-        /Applications/Zed.app/Contents/MacOS/cli -n .
-    else
-        /Applications/Zed.app/Contents/MacOS/cli -n "$1"
-    fi
-}
-
-# Open NEW Zed window
-znew() {
-    /Applications/Zed.app/Contents/MacOS/cli -n
-}
-
-# Open recent projects (opens in new window)
-zrecent() {
-    /Applications/Zed.app/Contents/MacOS/cli -n
 }
