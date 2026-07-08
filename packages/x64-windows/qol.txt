@@ -5,3 +5,4 @@ Mega.MEGASync
 Proton.ProtonDrive
 Proton.ProtonPass
 Proton.ProtonAuthenticator
+qBittorrent.qBittorrent

@@ -4,6 +4,4 @@ GOG.Galaxy
 NexusMods.Vortex
 goatcorp.XIVLauncher
 WowUp.Wowup
-WeakAuras.WeakAurasCompanion
 bozbez.WinCaptureAudio.beta
-qBittorrent.qBittorrent
