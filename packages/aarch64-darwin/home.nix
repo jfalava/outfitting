@@ -31,6 +31,7 @@ in
     powershell
     python3
     ripgrep
+    restic
     starship
     zig
     zoxide
