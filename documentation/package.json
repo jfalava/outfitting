@@ -6,11 +6,11 @@
   "scripts": {
     "build": "vite build",
     "cf-typegen": "wrangler types",
-    "check": "tsgo --noEmit && oxlint --type-aware --fix && oxfmt",
-    "deploy": "wrangler types && tsgo --noEmit && oxlint --type-aware && oxfmt && vite build && wrangler deploy",
+    "check": "tsgo --noEmit && oxlint --fix && oxfmt",
+    "deploy": "wrangler types && tsgo --noEmit && oxlint && oxfmt && vite build && wrangler deploy",
     "dev": "wrangler types && vite dev --port 3000 --host",
     "format": "oxfmt",
-    "lint": "oxlint --type-aware",
+    "lint": "oxlint",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit"
   },

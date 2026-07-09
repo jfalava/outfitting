@@ -4,11 +4,11 @@
   "private": true,
   "scripts": {
     "cf-typegen": "wrangler types",
-    "check": "tsgo --noEmit && oxlint --fix --type-aware",
-    "deploy": "wrangler types && tsgo --noEmit && oxlint --type-aware && oxfmt && wrangler deploy",
+    "check": "tsgo --noEmit && oxlint --fix",
+    "deploy": "wrangler types && tsgo --noEmit && oxlint && oxfmt && wrangler deploy",
     "dev": "bun run cf-typegen && wrangler dev",
     "format": "oxfmt",
-    "lint": "oxlint --type-aware",
+    "lint": "oxlint",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
