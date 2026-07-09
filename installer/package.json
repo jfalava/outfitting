@@ -9,13 +9,12 @@
     "dev": "bun run cf-typegen && wrangler dev",
     "format": "oxfmt",
     "lint": "oxlint --type-aware",
-    "typecheck": "tsgo --noEmit"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "hono": "4.12.27"
+    "hono": "4.12.28"
   },
   "devDependencies": {
-    "@typescript/native-preview": "catalog:build",
     "oxfmt": "catalog:build",
     "oxlint": "catalog:build",
     "oxlint-tsgolint": "catalog:build",
