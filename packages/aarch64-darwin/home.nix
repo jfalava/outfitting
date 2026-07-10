@@ -108,7 +108,7 @@ in
   programs.bat = {
     enable = true;
     config = {
-      theme = "Dracula";
+      theme = "Catppuccin Latte";
       style = "auto";
     };
   };
