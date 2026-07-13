@@ -1,5 +1,2 @@
-@openai/codex
-opencode-ai
 tirith
 agent-browser
-chrome-devtools-mcp

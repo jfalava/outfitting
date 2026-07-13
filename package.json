@@ -24,6 +24,6 @@
     "format": "oxfmt"
   },
   "devDependencies": {
-    "oxfmt": "^0.57.0"
+    "oxfmt": "^0.58.0"
   }
 }
