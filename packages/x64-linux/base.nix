@@ -55,6 +55,7 @@ in
     powershell
     tailspin # log viewer
     ranger
+    tirith
   ];
 
   # Session variables

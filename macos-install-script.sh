@@ -1,19 +1,15 @@
 #!/bin/bash
 
-# ========================================
 # macOS Outfitting Installation Script
-# ========================================
 
 set -euo pipefail
 
-# Colors for output
+########################## Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
-
-# Logging functions
 info() {
     echo -e "${BLUE}❖${NC} $1"
 }
@@ -26,8 +22,9 @@ warning() {
 error() {
     echo -e "${RED}❖${NC} $1"
 }
+##########################################
 
-# Check if running on macOS
+########################### Initial checks
 check_macos() {
     if [[ "$(uname)" != "Darwin" ]]; then
         error "This script is for macOS only."
@@ -35,8 +32,6 @@ check_macos() {
     fi
     success "Running on macOS"
 }
-
-# Check if running on Apple Silicon
 check_architecture() {
     local arch
     arch=$(uname -m)
@@ -53,8 +48,9 @@ check_architecture() {
         exit 1
     fi
 }
+##########################################
 
-# Configure outfitting repository location
+################# Configure the local repo
 configure_outfitting_repo() {
     echo ""
     echo "Repository Configuration"
@@ -93,8 +89,6 @@ configure_outfitting_repo() {
 
     return 0
 }
-
-# Read the configured local outfitting clone path
 get_outfitting_repo() {
     local config_file="$HOME/.config/outfitting/repo-path"
     if [ ! -f "$config_file" ]; then
@@ -104,8 +98,9 @@ get_outfitting_repo() {
 
     cat "$config_file"
 }
+##########################################
 
-# Make newly installed package managers available in the current shell
+# Set up the package managers and runtimes
 configure_package_manager_paths() {
     if [ -x "/opt/homebrew/bin/brew" ]; then
         eval "$(/opt/homebrew/bin/brew shellenv)"
@@ -113,7 +108,6 @@ configure_package_manager_paths() {
         eval "$(/usr/local/bin/brew shellenv)"
     fi
 }
-
 install_homebrew() {
     info "Installing Homebrew..."
 
@@ -134,7 +128,48 @@ install_homebrew() {
         return 1
     fi
 }
+install_bun() {
+    info "Installing Bun..."
 
+    if command -v bun &> /dev/null; then
+        success "Bun is already installed ($(bun --version))"
+        # Still export for current session
+        export BUN_INSTALL="$HOME/.bun"
+        export PATH="$BUN_INSTALL/bin:$PATH"
+        return 0
+    fi
+
+    if curl -fsSL https://bun.sh/install | bash; then
+        # Source Bun in current session
+        export BUN_INSTALL="$HOME/.bun"
+        export PATH="$BUN_INSTALL/bin:$PATH"
+    else
+        warning "Failed to install Bun (network error or already installed)"
+        # Try to source it anyway in case it's already there
+        export BUN_INSTALL="$HOME/.bun"
+        export PATH="$BUN_INSTALL/bin:$PATH"
+    fi
+}
+install_astral_uv() {
+    info "Installing UV..."
+
+    # Check if already installed
+    if command -v uv &> /dev/null; then
+        success "UV is already installed ($(uv --version 2>/dev/null))"
+        return 0
+    fi
+
+    if curl -fsSL https://astral.sh/uv/install.sh 2>/dev/null | bash; then
+        if [ -d "$HOME/.local/bin" ] && [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
+            export PATH="$HOME/.local/bin:$PATH"
+        fi
+    else
+        warning "Failed to install UV (network error or already installed)"
+    fi
+}
+##########################################
+
+######################## Install packages
 install_homebrew_packages() {
     info "Installing Homebrew packages..."
 
@@ -159,57 +194,15 @@ install_homebrew_packages() {
         return 1
     fi
 }
-
-install_bun() {
-    info "Installing Bun..."
-
-    if command -v bun &> /dev/null; then
-        success "Bun is already installed ($(bun --version))"
-        # Still export for current session
-        export BUN_INSTALL="$HOME/.bun"
-        export PATH="$BUN_INSTALL/bin:$PATH"
-        return 0
-    fi
-
-    if curl -fsSL https://bun.sh/install | bash; then
-        # Source Bun in current session
-        export BUN_INSTALL="$HOME/.bun"
-        export PATH="$BUN_INSTALL/bin:$PATH"
-    else
-        warning "Failed to install Bun (network error or already installed)"
-        # Try to source it anyway in case it's already there
-        export BUN_INSTALL="$HOME/.bun"
-        export PATH="$BUN_INSTALL/bin:$PATH"
-    fi
-}
-
-install_astral_uv() {
-    info "Installing UV..."
-
-    # Check if already installed
-    if command -v uv &> /dev/null; then
-        success "UV is already installed ($(uv --version 2>/dev/null))"
-        return 0
-    fi
-
-    if curl -fsSL https://astral.sh/uv/install.sh 2>/dev/null | bash; then
-        if [ -d "$HOME/.local/bin" ] && [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
-            export PATH="$HOME/.local/bin:$PATH"
-        fi
-    else
-        warning "Failed to install UV (network error or already installed)"
-    fi
-}
-
 install_fontget() {
    if ! command -v tailscale >/dev/null 2>&1; then
 	   info "Installing Tailscale"
 	   curl -fsSL https://raw.githubusercontent.com/Graphixa/FontGet/main/scripts/install.sh | sh
    fi
 }
+##########################################
 
-
-# Post-installation instructions
+########### Post-installation instructions
 post_install_info() {
     local repo_path
     repo_path=$(get_outfitting_repo 2>/dev/null || true)
@@ -218,8 +211,9 @@ post_install_info() {
     success "Installation Complete"
     echo ""
 }
+##########################################
 
-# Main installation flow
+################### Main installation flow
 main() {
     echo ""
     echo "macOS Installation"
@@ -240,5 +234,5 @@ main() {
 
     post_install_info
 }
-
 main # Run main function
+##########################################
