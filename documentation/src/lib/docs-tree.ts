@@ -20,7 +20,7 @@ export const docsTree: Root = {
     },
     {
       type: "page",
-      name: "WSL/Linux",
+      name: "WSL",
       url: "/docs/wsl",
     },
     {

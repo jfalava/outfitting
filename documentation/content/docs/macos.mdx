@@ -20,22 +20,22 @@ The `outfit` command (aliased to `o`) unifies Homebrew and nix-darwin operations
 
 ```bash
 # Apply Homebrew casks and formulae from the repo
-o sync   # or: outfit sync
+outfit sync   # or: outfit sync
 
 # Upgrade nix-darwin configuration, then upgrade Homebrew packages/casks
-o upgrade   # or: outfit upgrade
+outfit upgrade   # or: outfit upgrade
 ```
 
 ## Nix-darwin Profile Management
 
 ```bash
 # Build and apply changes
-o switch   # (default when no argument is given)
-o build
-o test
+outfit switch   # (default when no argument is given)
+outfit build
+outfit test
 
 # Dry-run changes
-o dry
+outfit dry
 
 # List and roll back generations
 hm-rollback

@@ -1,5 +1,5 @@
 {
-  description = "Home Manager configuration with flake composition for WSL/Linux";
+  description = "Home Manager configuration with flake composition for WSL";
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
