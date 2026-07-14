@@ -14,9 +14,11 @@ export const USER_AGENT = "JFA Outfitting Installer";
  */
 export const SCRIPT_URLS = {
   windows: `${GITHUB_RAW_BASE}/windows-install-script.ps1`,
+  scoopPackages: `${GITHUB_RAW_BASE}/packages/windows/scoop.txt`,
   wsl: `${GITHUB_RAW_BASE}/wsl-install-script.sh`,
   macos: `${GITHUB_RAW_BASE}/macos-install-script.sh`,
   bunPackages: `${GITHUB_RAW_BASE}/packages/bun.txt`,
+  fontgetList: `${GITHUB_RAW_BASE}/fonts/fontget.txt`,
 } as const;
 
 /**
@@ -57,7 +59,7 @@ export const CONTENT_TYPES = {
 } as const;
 
 /**
- * Config file mappings (Windows only - WSL configs are managed by Home Manager)
+ * Config file mappings (Windows only)
  */
 export const CONFIG_FILES: Record<string, { path: string; contentType: string }> = {
   powershell: {

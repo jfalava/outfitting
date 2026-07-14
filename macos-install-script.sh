@@ -17,15 +17,12 @@ NC='\033[0m' # No Color
 info() {
     echo -e "${BLUE}❖${NC} $1"
 }
-
 success() {
     echo -e "${GREEN}❖${NC} $1"
 }
-
 warning() {
     echo -e "${YELLOW}❖${NC} $1"
 }
-
 error() {
     echo -e "${RED}❖${NC} $1"
 }
@@ -60,31 +57,29 @@ check_architecture() {
 # Configure outfitting repository location
 configure_outfitting_repo() {
     echo ""
-    echo "======================================"
     echo "Repository Configuration"
-    echo "======================================"
     echo ""
 
     # Always use default location for remote installation
     repo_path="$HOME/.config/outfitting/repo"
-    echo "❖ Using default repository location: $repo_path"
+    info "Using default repository location: $repo_path"
 
     # Handle the repository setup
     if [ ! -d "$repo_path" ]; then
-        echo "❖ Directory doesn't exist. Creating: $repo_path"
+        info "Directory doesn't exist. Creating: $repo_path"
         mkdir -p "$(dirname "$repo_path")"
 
-        echo "❖ Cloning outfitting repository..."
+        info "Cloning outfitting repository..."
         if git clone https://github.com/jfalava/outfitting.git "$repo_path"; then
-            echo "✓ Repository cloned successfully"
+            success "Repository cloned successfully"
         else
-            echo "✗ Failed to clone repository, but continuing..."
+            error "Failed to clone repository, but continuing..."
         fi
     elif [ ! -d "$repo_path/.git" ]; then
         error "Directory exists but is not a git repository: $repo_path"
         return 1
     else
-        echo "✓ Using existing repository at: $repo_path"
+        echo "Using existing repository at: $repo_path"
     fi
 
     # Store the configuration
@@ -92,12 +87,9 @@ configure_outfitting_repo() {
     config_file="$config_dir/repo-path"
 
     mkdir -p "$config_dir"
-    echo "$repo_path" > "$config_file"
     chmod 600 "$config_file"
 
-    echo "✓ Repository location configured successfully!"
-    echo "  Repository path: $repo_path"
-    echo "  Configuration stored in: $config_file"
+    success "Repository location configured successfully!"
 
     return 0
 }
@@ -122,7 +114,6 @@ configure_package_manager_paths() {
     fi
 }
 
-# Install Homebrew via official installer
 install_homebrew() {
     info "Installing Homebrew..."
 
@@ -135,7 +126,6 @@ install_homebrew() {
     if NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"; then
         configure_package_manager_paths
         if command -v brew >/dev/null 2>&1; then
-            success "Homebrew installed successfully ($(brew --version | head -1))"
         else
             warning "Homebrew installer completed, but brew is not in PATH yet"
         fi
@@ -145,7 +135,6 @@ install_homebrew() {
     fi
 }
 
-# Install Homebrew packages and casks from the repo Brewfile
 install_homebrew_packages() {
     info "Installing Homebrew packages..."
 
@@ -171,7 +160,6 @@ install_homebrew_packages() {
     fi
 }
 
-# Install Bun via official installer
 install_bun() {
     info "Installing Bun..."
 
@@ -187,69 +175,11 @@ install_bun() {
         # Source Bun in current session
         export BUN_INSTALL="$HOME/.bun"
         export PATH="$BUN_INSTALL/bin:$PATH"
-        success "Bun installed successfully"
     else
         warning "Failed to install Bun (network error or already installed)"
         # Try to source it anyway in case it's already there
         export BUN_INSTALL="$HOME/.bun"
         export PATH="$BUN_INSTALL/bin:$PATH"
-    fi
-}
-
-# Install Bun global packages from bun.txt
-install_bun_packages() {
-    info "Installing Bun global packages..."
-
-    if ! command -v bun >/dev/null 2>&1; then
-        warning "Bun not found in PATH, skipping global package installations"
-        return 0
-    fi
-
-    local bunPackagesUrl="https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/packages/bun.txt"
-    local bunPackagesFile="/tmp/bun-packages.txt"
-
-    if ! curl -fsSL "$bunPackagesUrl" -o "$bunPackagesFile" 2>/dev/null; then
-        warning "Failed to fetch Bun packages list (network error), skipping"
-        return 0
-    fi
-
-    # Validate that the file is not empty
-    if [ ! -s "$bunPackagesFile" ]; then
-        warning "Bun package list is empty"
-        rm -f "$bunPackagesFile"
-        return 0
-    fi
-
-    local installed=0
-    local failed=0
-    while IFS= read -r package; do
-        # Skip empty lines and comments
-        [[ -z "$package" || "$package" =~ ^[[:space:]]*# ]] && continue
-        # Remove leading/trailing whitespace
-        package=$(echo "$package" | xargs)
-        if [[ -n "$package" ]]; then
-            # Check if already installed (idempotent)
-            if bun pm ls -g 2>/dev/null | grep -q "^$package@"; then
-                info "Package already installed: $package"
-                ((installed++))
-            else
-                info "Installing Bun package: $package"
-                if bun install -g --trust "$package" 2>/dev/null; then
-                    ((installed++))
-                else
-                    warning "Failed to install: $package"
-                    ((failed++))
-                fi
-            fi
-        fi
-    done < "$bunPackagesFile"
-    rm -f "$bunPackagesFile"
-
-    if [[ $installed -gt 0 ]]; then
-        success "Bun packages: $installed installed/verified"
-    fi
-    if [[ $failed -gt 0 ]]; then
-        warning "Bun packages: $failed failed"
     fi
 }
 
@@ -266,11 +196,18 @@ install_astral_uv() {
         if [ -d "$HOME/.local/bin" ] && [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
             export PATH="$HOME/.local/bin:$PATH"
         fi
-        success "UV installed"
     else
         warning "Failed to install UV (network error or already installed)"
     fi
 }
+
+install_fontget() {
+   if ! command -v tailscale >/dev/null 2>&1; then
+	   info "Installing Tailscale"
+	   curl -fsSL https://raw.githubusercontent.com/Graphixa/FontGet/main/scripts/install.sh | sh
+   fi
+}
+
 
 # Post-installation instructions
 post_install_info() {
@@ -278,49 +215,30 @@ post_install_info() {
     repo_path=$(get_outfitting_repo 2>/dev/null || true)
 
     echo ""
-    echo "======================================"
-    echo "Installation Complete!"
-    echo "======================================"
-    echo ""
-    echo "Homebrew: $(command -v brew 2>/dev/null || echo 'not found in PATH')"
-    if [ -n "$repo_path" ]; then
-        echo "Homebrew manifest: $repo_path/packages/aarch64-darwin/Brewfile"
-    fi
-    echo "Restart your shell if newly installed commands are not available yet."
+    success "Installation Complete"
     echo ""
 }
 
 # Main installation flow
 main() {
     echo ""
-    echo "======================================"
     echo "macOS Installation"
-    echo "======================================"
     echo ""
 
     check_macos
     check_architecture
 
-    # Step 1: Configure repository
     configure_outfitting_repo
 
-    # Step 2: Install Homebrew
     install_homebrew
-
-    # Step 3: Install Homebrew packages and casks
     install_homebrew_packages
 
-    # Step 4: Install Bun
     install_bun
-
-    # Step 5: Install UV
     install_astral_uv
 
-    # Step 6: Install Bun packages
-    install_bun_packages
+    install_fontget
 
     post_install_info
 }
 
-# Run main function
-main
+main # Run main function

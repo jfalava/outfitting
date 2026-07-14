@@ -42,10 +42,4 @@
       signByDefault = true;
     };
   };
-
-  # Work-specific session variables
-  home.sessionVariables = {
-    AWS_PROFILE = "default";
-    AWS_REGION = "eu-west-1";
-  };
 }

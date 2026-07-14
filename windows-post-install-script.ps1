@@ -1,63 +1,34 @@
-#####
-## functions
-#####
-function Install-BunPackages {
-    param (
-        [string]$filePath
-    )
+# Post install script for Windows
+## This requires a shell reload
 
-    if (-Not (Test-Path $filePath)) {
-        Write-Host "❖ Package list file not found:" -ForegroundColor Red
-        Write-Host "  - $filePath" -ForegroundColor Red
-        exit 1
-    }
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 
-    $packages = Get-Content $filePath | Where-Object { -Not ($_ -match '^\s*$') -and -Not ($_ -match '^#') }
+# Scoop
+Invoke-RestMethod -Uri https://get.scoop.sh | Invoke-Expression
 
-    foreach ($package in $packages) {
-        try {
-            bun install -g $package
-            Write-Host "❖ Installed Bun package: $package" -ForegroundColor Green
-        } catch {
-            Write-Host "❖ Failed to install Bun package:" -ForegroundColor Red
-            Write-Host "  - ${package}: $_" -ForegroundColor Red
-            # Continue to next package, but don't exit here
-        }
-    }
+# Reload shell
+
+. $PROFILE
+
+# Fonts
+
+if (-not (Get-Command cloudflared -ErrorAction SilentlyContinue)) {
+    winget install --id Cloudflare.cloudflared -e
 }
 
-#####
-## verify bun is available
-#####
-if (!(Get-Command bun -ErrorAction SilentlyContinue)) {
-    Write-Host "❖ Installation incomplete: Bun is not installed or not on PATH." -ForegroundColor Red
-    Write-Host "  - Run in a new PowerShell session and verify profile at: $PROFILE" -ForegroundColor Yellow
-    exit 1
+$fontTemp = Join-Path $env:TEMP "fonts.tar.gz"
+
+Write-Host "❖ Authenticating to fetch licensed fonts... " -ForegroundColor Cyan
+cloudflared access login https://win.jfa.dev/fonts
+cloudflared access curl https://win.jfa.dev/fonts -o $fontTemp
+
+$fontDest = Join-Path $env:TEMP "fonts-extracted"
+New-Item -ItemType Directory -Force -Path $fontDest | Out-Null
+tar -xzf $fontTemp -C $fontDest
+
+Get-ChildItem $fontDest -Filter *.ttf,*.otf -Recurse | ForEach-Object {
+    $shell = New-Object -ComObject Shell.Application
+    $fontsFolder = $shell.Namespace(0x14)
+    $fontsFolder.CopyHere($_.FullName)
 }
-
-#####
-## download bun packages list
-#####
-$bunPackagesUrl = "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/packages/bun.txt"
-$bunPackagesFile = "$env:TEMP\bun.txt"
-
-try {
-    Invoke-WebRequest -Uri $bunPackagesUrl -OutFile $bunPackagesFile
-} catch {
-    Write-Host "❖ Failed to download Bun packages list:" -ForegroundColor Red
-    Write-Host "  - $_" -ForegroundColor Red
-    exit 1
-}
-
-#####
-## run bun package install functions
-#####
-Install-BunPackages -filePath $bunPackagesFile
-
-#####
-## bun temp files cleanup
-#####
-Remove-Item $bunPackagesFile -ErrorAction SilentlyContinue
-
-## end message
 Write-Host "`n❖ Installation complete." -ForegroundColor Green

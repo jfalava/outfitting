@@ -664,7 +664,7 @@ exit 1
       `Script snippet around expected location:\n${baseScript.substring(baseScript.indexOf("wingetPackagesUrl") - 50, baseScript.indexOf("wingetPackagesUrl") + 150)}`,
     );
     return c.text(
-      `Internal error: Failed to inject profile URL. The base script format may have changed. Please contact support.`,
+      `Internal error: Failed to inject profile URL. The base script format may have changed. Please file an issue in https://github.com/jfalava/outfitting/issues`,
       500,
     );
   }

@@ -1,9 +1,11 @@
-## init
-# Set error action preference to stop so all errors become terminating and trigger trap
+# Windows install script
+
+## Set error action preference to stop so all errors become terminating and trigger trap
+
 $ErrorActionPreference = "Stop"
 $script:hasErrors = $false
 
-# Trap to catch all errors and prevent window closure
+## Trap to catch all errors and prevent window closure
 trap {
     Write-Host "`n❖ An unexpected error occurred:" -ForegroundColor Red
     Write-Host "  - $_" -ForegroundColor Red
@@ -14,20 +16,13 @@ trap {
 Write-Host "❖ Checking Winget terms of use..." -ForegroundColor Cyan
 winget --info
 
-#####
-## variable setting
-#####
-# Package profile is injected by the Cloudflare Worker based on the URL path
-# This script should be run via: irm win.jfa.dev/<profile> | iex
-# Available profiles: base, dev, gaming, work, qol, network
-# Custom combinations: irm win.jfa.dev/base+dev+gaming | iex
-# Note: This URL will be replaced by the Cloudflare Worker with the requested profile(s)
+## Variable setting
+
 $wingetPackagesUrl = "https://win.jfa.dev/packages/base"
 $wingetPackagesFile = "$env:TEMP\winget.txt"
 
-#####
-# download the package list
-######
+## Download the package list
+
 try {
     Invoke-WebRequest -Uri $wingetPackagesUrl -OutFile $wingetPackagesFile
     Write-Host "❖ Package list downloaded." -ForegroundColor Green
@@ -40,9 +35,8 @@ try {
     exit 1 # don't continue
 }
 
-#####
-## installation functions
-#####
+## Installation functions
+
 function Install-WingetPackages {
     param (
         [string]$filePath
@@ -94,18 +88,17 @@ function Install-PSModules {
     }
 }
 
-#####
-## install packages
-#####
+## Install packages
+
 Install-WingetPackages -filePath $wingetPackagesFile
 
 # Install PowerShell modules
+
 $psModules = @("PSReadLine")
 Install-PSModules -modules $psModules
 
-#####
-## install and configure OpenSSH Server for Tailscale SSH
-#####
+## Install and configure OpenSSH Server
+
 Write-Host "`n❖ Installing OpenSSH Server from GitHub..." -ForegroundColor Cyan
 try {
     # Check if sshd service already exists
@@ -175,9 +168,8 @@ try {
     Write-Host "❖ You may need to install it manually or run the script as Administrator." -ForegroundColor Yellow
 }
 
-#####
-## install registry tweaks interactively (dynamic discovery via GitHub API)
-#####
+## Install registry tweaks interactively (dynamic discovery via GitHub API)
+
 $baseRegUrl = "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main"
 $githubApiUrl = "https://api.github.com/repos/jfalava/outfitting/git/trees/main?recursive=1"
 $regFilePaths = @()
@@ -286,14 +278,12 @@ try {
     Write-Host "❖ Skipping registry tweaks." -ForegroundColor Yellow
 }
 
-#####
-## cleanup temporary files
-#####
+## Cleanup temporary files
+
 Remove-Item $wingetPackagesFile -ErrorAction SilentlyContinue
 
-#####
-## copy pwsh profile to documents
-#####
+## Copy PowerShell profile to documents
+
 $masterProfilePath = "$env:USERPROFILE\Documents\PowerShell\Microsoft.PowerShell_profile.ps1"
 $slaveProfiles = @(
     "$env:USERPROFILE\Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1",
@@ -324,7 +314,8 @@ try {
     exit 1
 }
 
-## end messages
+## End messages
+
 Write-Host "`n"
 if ($script:hasErrors) {
     Write-Host "❖ Installation completed with some errors" -ForegroundColor Yellow
