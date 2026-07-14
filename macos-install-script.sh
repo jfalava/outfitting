@@ -56,6 +56,13 @@ configure_outfitting_repo() {
     echo "Repository Configuration"
     echo ""
 
+    # Guard: skip setup if git is not available (e.g. fresh macOS before nix-darwin runs).
+    # Nix will install git; the caller should retry after nix-darwin completes.
+    if ! command -v git &>/dev/null; then
+        warning "git not found — skipping repository setup. Will retry after Nix installation."
+        return 0
+    fi
+
     # Always use default location for remote installation
     repo_path="$HOME/.config/outfitting/repo"
     info "Using default repository location: $repo_path"
@@ -83,6 +90,8 @@ configure_outfitting_repo() {
     config_file="$config_dir/repo-path"
 
     mkdir -p "$config_dir"
+    # Write the repo path before locking permissions
+    echo "$repo_path" > "$config_file"
     chmod 600 "$config_file"
 
     success "Repository location configured successfully!"
@@ -292,7 +301,7 @@ install_fontget() {
 }
 #############################################
 
-###########333 Post-installation instructions
+############## Post-installation instructions
 post_install_info() {
     local repo_path
     repo_path=$(get_outfitting_repo 2>/dev/null || true)
@@ -320,6 +329,11 @@ main() {
     install_nix
     setup_symlinks
     install_nix_darwin
+
+    if [ ! -f "$HOME/.config/outfitting/repo-path" ]; then
+        info "Retrying repository setup now that Nix is installed..."
+        configure_outfitting_repo
+    fi
 
     install_bun
     install_astral_uv
