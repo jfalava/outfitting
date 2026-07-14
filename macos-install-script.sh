@@ -22,9 +22,9 @@ warning() {
 error() {
     echo -e "${RED}❖${NC} $1"
 }
-##########################################
+#############################################
 
-########################### Initial checks
+############################## Initial checks
 check_macos() {
     if [[ "$(uname)" != "Darwin" ]]; then
         error "This script is for macOS only."
@@ -48,9 +48,9 @@ check_architecture() {
         exit 1
     fi
 }
-##########################################
+#############################################
 
-################# Configure the local repo
+#################### Configure the local repo
 configure_outfitting_repo() {
     echo ""
     echo "Repository Configuration"
@@ -98,9 +98,9 @@ get_outfitting_repo() {
 
     cat "$config_file"
 }
-##########################################
+#############################################
 
-# Set up the package managers and runtimes
+################# Set up the package managers
 configure_package_manager_paths() {
     if [ -x "/opt/homebrew/bin/brew" ]; then
         eval "$(/opt/homebrew/bin/brew shellenv)"
@@ -167,9 +167,98 @@ install_astral_uv() {
         warning "Failed to install UV (network error or already installed)"
     fi
 }
-##########################################
+#############################################
 
-######################## Install packages
+############################ Nix Installation
+install_nix() {
+    if command -v nix &>/dev/null; then
+        success "Nix already installed ($(nix --version 2>/dev/null | head -1))"
+        return 0
+    fi
+
+    info "Installing Nix (Determinate Systems)..."
+    if curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install --no-confirm; then
+        # Source nix for current session
+        # shellcheck source=/dev/null
+        source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh 2>/dev/null || true
+        success "Nix installed"
+    else
+        error "Failed to install Nix"
+        return 1
+    fi
+}
+#############################################
+
+############################## Setup symlinks
+setup_symlinks() {
+    info "Setting up Home Manager configuration symlinks..."
+
+    local config_file="$HOME/.config/outfitting/repo-path"
+    if [ ! -f "$config_file" ]; then
+        error "Repository not configured. Cannot create symlinks."
+        return 1
+    fi
+
+    local repo_path hm_target
+    repo_path=$(cat "$config_file")
+    hm_target="$repo_path/packages/aarch64-darwin"
+
+    mkdir -p "$HOME/.config"
+
+    # Backup existing managed dotfiles
+    local timestamp
+    timestamp=$(date +%Y%m%d_%H%M%S)
+    local managed_files=(".zshrc" ".zshrc-base")
+
+    for file in "${managed_files[@]}"; do
+        if [ -f "$HOME/$file" ] && [ ! -L "$HOME/$file" ]; then
+            info "Backing up existing $file to ${file}.backup-${timestamp}"
+            mv "$HOME/$file" "$HOME/${file}.backup-${timestamp}"
+        fi
+    done
+
+    # Create symlink for home-manager config
+    if [ ! -L "$HOME/.config/home-manager" ]; then
+        info "Creating symlink: ~/.config/home-manager → $hm_target"
+        ln -sfn "$hm_target" "$HOME/.config/home-manager"
+    else
+        success "Symlink already exists: ~/.config/home-manager"
+    fi
+
+    success "Symlinks configured!"
+    return 0
+}
+#############################################
+
+##################### nix-darwin Installation
+install_nix_darwin() {
+    if ! command -v nix &>/dev/null; then
+        error "Nix not found, cannot install nix-darwin"
+        return 1
+    fi
+
+    local config_file="$HOME/.config/outfitting/repo-path"
+    if [ ! -f "$config_file" ]; then
+        error "Repository not configured"
+        return 1
+    fi
+
+    local repo_path flake_path
+    repo_path=$(cat "$config_file")
+    flake_path="$repo_path/packages/aarch64-darwin"
+
+    info "Running nix-darwin switch (darwinConfigurations.macos)..."
+    # sudo -H is required on macOS to avoid /Users/<user> ownership warnings
+    if sudo -H nix run nix-darwin -- switch --flake "$flake_path#macos" --impure; then
+        success "nix-darwin activated"
+    else
+        error "Failed to activate nix-darwin"
+        return 1
+    fi
+}
+#############################################
+
+############################ Install packages
 install_homebrew_packages() {
     info "Installing Homebrew packages..."
 
@@ -200,9 +289,9 @@ install_fontget() {
 	   curl -fsSL https://raw.githubusercontent.com/Graphixa/FontGet/main/scripts/install.sh | sh
    fi
 }
-##########################################
+#############################################
 
-########### Post-installation instructions
+###########333 Post-installation instructions
 post_install_info() {
     local repo_path
     repo_path=$(get_outfitting_repo 2>/dev/null || true)
@@ -211,9 +300,9 @@ post_install_info() {
     success "Installation Complete"
     echo ""
 }
-##########################################
+#############################################
 
-################### Main installation flow
+###################### Main installation flow
 main() {
     echo ""
     echo "macOS Installation"
@@ -227,6 +316,10 @@ main() {
     install_homebrew
     install_homebrew_packages
 
+    install_nix
+    setup_symlinks
+    install_nix_darwin
+
     install_bun
     install_astral_uv
 
@@ -235,4 +328,4 @@ main() {
     post_install_info
 }
 main # Run main function
-##########################################
+#############################################
