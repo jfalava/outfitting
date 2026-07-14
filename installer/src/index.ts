@@ -2,7 +2,7 @@ import { Hono } from "hono";
 
 import { ALLOWED_HOSTS } from "./constants";
 import macosApp from "./macos";
-import windowsApp from "./windows";
+import windowsApp from "./windows/index";
 import wslApp from "./wsl";
 
 const app = new Hono();
@@ -33,8 +33,7 @@ app.use("*", async (c) => {
     return macosApp.fetch(c.req.raw);
   }
 
-  // This should never be reached due to the validation middleware,
-  // but keep as a safety fallback
+  // This should never be reached
   return c.text("I'm a teapot", 418);
 });
 
