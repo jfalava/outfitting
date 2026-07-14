@@ -7,6 +7,21 @@ set -euo pipefail
 ################## Install fonts via FontGet
 export FONTGET_ACCEPT_DEFAULTS=1
 export FONTGET_ACCEPT_AGREEMENTS=1
+
+REPO_PATH="$HOME/.config/outfitting/repo"
+FONTGET_LIST="$REPO_PATH/fonts/fontget.txt"
+
+if [ ! -f "$FONTGET_LIST" ]; then
+  echo "FontGet list not found: $FONTGET_LIST"
+  exit 1
+fi
+
+while IFS= read -r font || [ -n "$font" ]; do
+  # Skip blank lines and comments
+  [[ -z "$font" || "$font" == \#* ]] && continue
+  echo "Installing font: $font"
+  fontget install "$font"
+done < "$FONTGET_LIST"
 ############################################
 
 ###################### Install private fonts

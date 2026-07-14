@@ -120,6 +120,7 @@ install_homebrew() {
     if NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"; then
         configure_package_manager_paths
         if command -v brew >/dev/null 2>&1; then
+            true
         else
             warning "Homebrew installer completed, but brew is not in PATH yet"
         fi
