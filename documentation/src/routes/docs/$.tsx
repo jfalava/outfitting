@@ -12,7 +12,7 @@ const docModules: Record<string, () => Promise<typeof import("*.mdx")>> = {
   index: () => import("../../../content/docs/index.mdx"),
   "installer-guide": () => import("../../../content/docs/installer-guide.mdx"),
   windows: () => import("../../../content/docs/windows.mdx"),
-  "wsl-linux": () => import("../../../content/docs/wsl-linux.mdx"),
+  wsl: () => import("../../../content/docs/wsl.mdx"),
   macos: () => import("../../../content/docs/macos.mdx"),
   "repository-configuration": () => import("../../../content/docs/repository-configuration.mdx"),
   updates: () => import("../../../content/docs/updates.mdx"),
