@@ -65,6 +65,10 @@ in
 
   };
 
+  # This is a per-user preference. Home Manager applies it as the logged-in
+  # user, so F1–F12 are function keys instead of media shortcuts by default.
+  targets.darwin.defaults.NSGlobalDomain."com.apple.keyboard.fnState" = true;
+
   # Dotfiles management - symlink your dotfiles to home directory
   home.file = {
     ".zshrc".source = "${outfittingRepo}/dotfiles/.zshrc-macos";

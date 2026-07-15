@@ -58,8 +58,6 @@
       NSAutomaticSpellingCorrectionEnabled = false;
       NSAutomaticCapitalizationEnabled = false;
       NSAutomaticPeriodSubstitutionEnabled = false;
-      # Keep keyboard defaults declarative in one place to avoid conflicting writes.
-      "com.apple.keyboard.fnState" = true;
     };
 
     # Trackpad settings
