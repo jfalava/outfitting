@@ -6,22 +6,19 @@ import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import viteReact from "@vitejs/plugin-react";
 import fumadocsMdx from "fumadocs-mdx/vite";
 import { defineConfig } from "vite";
-import viteTsConfigPaths from "vite-tsconfig-paths";
 
 import * as sourceConfig from "./source.config";
 
 const config = defineConfig({
   plugins: [
     cloudflare({ viteEnvironment: { name: "ssr" } }),
-    viteTsConfigPaths({
-      projects: ["./tsconfig.json"],
-    }),
     fumadocsMdx(sourceConfig),
     tailwindcss(),
     tanstackStart(),
     viteReact(),
   ],
   resolve: {
+    tsconfigPaths: true,
     alias: {
       "fumadocs-mdx:collections/server": fileURLToPath(
         new URL("./.source/server.ts", import.meta.url),

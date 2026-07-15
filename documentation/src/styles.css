@@ -89,11 +89,19 @@ html {
 }
 
 .prose blockquote {
-  border-left-width: 3px;
-  border-left-color: color-mix(in oklab, var(--color-fd-primary) 58%, white 8%);
-  background: color-mix(in oklab, var(--color-fd-secondary) 64%, transparent);
-  border-radius: 0.75rem;
-  padding: 0.65rem 0.95rem;
+  color: color-mix(in oklab, var(--color-fd-foreground) 68%, transparent);
+  border-left: 0.25em solid color-mix(in oklab, var(--color-fd-border) 88%, transparent);
+  background: transparent;
+  border-radius: 0;
+  padding: 0 1em;
+}
+
+.prose blockquote > :first-child {
+  margin-top: 0;
+}
+
+.prose blockquote > :last-child {
+  margin-bottom: 0;
 }
 
 .prose table {
