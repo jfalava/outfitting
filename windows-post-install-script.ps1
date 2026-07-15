@@ -7,8 +7,13 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 
 ###################################### Scoop
 $scoopPackagesUrl = "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/packages/x64-windows/scoop.txt"
-Invoke-RestMethod -Uri https://get.scoop.sh | Invoke-Expression
-. $PROFILE
+try {
+    Invoke-RestMethod -Uri https://get.scoop.sh -ErrorAction Stop | Invoke-Expression
+    . $PROFILE
+} catch {
+    Write-Host "❖ Failed to install or load Scoop: $($_.Exception.Message)" -ForegroundColor Red
+    exit 1
+}
 
 function Get-ScoopBucketName([string] $BucketUrl) {
     $normalizedUrl = $BucketUrl.Trim().TrimEnd("/")
@@ -107,10 +112,40 @@ function Test-SafeFontArchive([string] $ArchivePath) {
     $entries = & tar -tzf $ArchivePath
     if ($LASTEXITCODE -ne 0) { Stop-FontInstall "unable to list archive contents" }
 
-    $verboseEntries = & tar -tvzf $ArchivePath
-    if ($LASTEXITCODE -ne 0) { Stop-FontInstall "unable to inspect archive contents" }
-    if ($verboseEntries | Where-Object { $_ -match '^\s*[lh]' }) {
-        Stop-FontInstall "archive contains a symbolic or hard link"
+    $stream = [IO.File]::OpenRead($ArchivePath)
+    $gzip = [IO.Compression.GzipStream]::new($stream, [IO.Compression.CompressionMode]::Decompress)
+    try {
+        $header = [byte[]]::new(512)
+        while ($true) {
+            $read = 0
+            while ($read -lt $header.Length) {
+                $count = $gzip.Read($header, $read, $header.Length - $read)
+                if ($count -eq 0) { Stop-FontInstall "unable to inspect archive contents" }
+                $read += $count
+            }
+            if (($header | Where-Object { $_ -ne 0 }).Count -eq 0) { break }
+
+            $type = [char]$header[156]
+            if ($type -eq '1' -or $type -eq '2') {
+                Stop-FontInstall "archive contains a symbolic or hard link"
+            }
+
+            $sizeText = [Text.Encoding]::ASCII.GetString($header, 124, 12).Trim([char]0, ' ')
+            $size = if ([string]::IsNullOrEmpty($sizeText)) { 0 } else { [Convert]::ToInt64($sizeText, 8) }
+            $padding = (512 - ($size % 512)) % 512
+            $remaining = $size + $padding
+            $discard = [byte[]]::new(8192)
+            while ($remaining -gt 0) {
+                $count = $gzip.Read($discard, 0, [int][Math]::Min($remaining, $discard.Length))
+                if ($count -eq 0) {
+                    Stop-FontInstall "unable to inspect archive contents"
+                }
+                $remaining -= $count
+            }
+        }
+    } finally {
+        $gzip.Dispose()
+        $stream.Dispose()
     }
 
     foreach ($entry in $entries) {
@@ -131,7 +166,8 @@ function Test-SafeFontArchive([string] $ArchivePath) {
     }
 }
 if (-not (Test-Administrator)) {
-    throw "Run PowerShell as Administrator to install fonts for all users."
+    Write-Host "❖ Scoop installation complete; skipping private fonts because this shell is not elevated." -ForegroundColor Yellow
+    exit 0
 }
 ############################################
 
@@ -212,7 +248,7 @@ try {
     Write-Host "`n❖ Private fonts: $installed installed, $skipped unchanged, $failed failed." -ForegroundColor Cyan
     if ($failed -gt 0) { exit 1 }
 } catch {
-    Write-Error $_
+    Write-Host "❖ Private font installation failed: $($_.Exception.Message)" -ForegroundColor Red
     exit 1
 } finally {
     Remove-Item -LiteralPath $tempDirectory -Recurse -Force -ErrorAction SilentlyContinue

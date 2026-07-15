@@ -323,17 +323,17 @@ main() {
 
     configure_outfitting_repo
 
+    if [ ! -f "$HOME/.config/outfitting/repo-path" ]; then
+        info "Retrying repository setup now that Nix is installed..."
+        configure_outfitting_repo
+    fi
+
     install_homebrew
     install_homebrew_packages
 
     install_nix
     setup_symlinks
     install_nix_darwin
-
-    if [ ! -f "$HOME/.config/outfitting/repo-path" ]; then
-        info "Retrying repository setup now that Nix is installed..."
-        configure_outfitting_repo
-    fi
 
     install_bun
     install_astral_uv
