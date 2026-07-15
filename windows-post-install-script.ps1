@@ -6,8 +6,90 @@ $ErrorActionPreference = "Stop"
 Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 
 ###################################### Scoop
+$scoopPackagesUrl = "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/packages/x64-windows/scoop.txt"
 Invoke-RestMethod -Uri https://get.scoop.sh | Invoke-Expression
 . $PROFILE
+
+function Get-ScoopBucketName([string] $BucketUrl) {
+    $normalizedUrl = $BucketUrl.Trim().TrimEnd("/")
+    $normalizedUrl = $normalizedUrl -replace '(?i)\.git$', ''
+    $normalizedUrl = $normalizedUrl.TrimEnd("/")
+    $segments = $normalizedUrl -split '/' | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+
+    if ($segments.Count -eq 0) { return $null }
+
+    $bucketName = $segments[-1] -replace '^(?i:scoop-)', ''
+    if ([string]::IsNullOrWhiteSpace($bucketName)) { return $null }
+
+    return $bucketName
+}
+
+try {
+    $scoopPackagesContent = Invoke-RestMethod -Uri $scoopPackagesUrl -ErrorAction Stop
+} catch {
+    Write-Host "❖ Failed to download Scoop package list:" -ForegroundColor Red
+    Write-Host "  - $_" -ForegroundColor Red
+    exit 1
+}
+
+$scoopBuckets = [System.Collections.Generic.List[string]]::new()
+$scoopPackages = [System.Collections.Generic.List[string]]::new()
+$invalidScoopEntries = 0
+$lineNumber = 0
+
+foreach ($line in [regex]::Split([string] $scoopPackagesContent, "\r?\n")) {
+    $lineNumber++
+    $entry = $line.Trim()
+    if ([string]::IsNullOrWhiteSpace($entry) -or $entry.StartsWith("#")) { continue }
+
+    $bucketMatch = [regex]::Match($entry, '^(?i:bucket)\s+"(?<value>[^"\r\n]*\S[^"\r\n]*)"\s*$')
+    $packageMatch = [regex]::Match($entry, '^(?i:package)\s+"(?<value>[^"\r\n]*\S[^"\r\n]*)"\s*$')
+
+    if ($bucketMatch.Success) {
+        $scoopBuckets.Add($bucketMatch.Groups["value"].Value.Trim())
+    } elseif ($packageMatch.Success) {
+        $scoopPackages.Add($packageMatch.Groups["value"].Value.Trim())
+    } else {
+        $invalidScoopEntries++
+        Write-Host "❖ Ignoring invalid Scoop list entry on line ${lineNumber}: $entry" -ForegroundColor Yellow
+    }
+}
+
+$successfulBuckets = 0
+$successfulPackages = 0
+$failedScoopCommands = 0
+
+foreach ($bucketUrl in $scoopBuckets) {
+    $bucketName = Get-ScoopBucketName $bucketUrl
+    if ($null -eq $bucketName) {
+        $failedScoopCommands++
+        Write-Host "❖ Failed to derive Scoop bucket name from: $bucketUrl" -ForegroundColor Red
+        continue
+    }
+
+    & scoop bucket add $bucketName $bucketUrl
+    if ($LASTEXITCODE -eq 0) {
+        $successfulBuckets++
+        Write-Host "❖ Added Scoop bucket: $bucketName" -ForegroundColor Green
+    } else {
+        $failedScoopCommands++
+        Write-Host "❖ Failed to add Scoop bucket: $bucketName" -ForegroundColor Red
+    }
+}
+
+foreach ($package in $scoopPackages) {
+    & scoop install $package
+    if ($LASTEXITCODE -eq 0) {
+        $successfulPackages++
+        Write-Host "❖ Installed Scoop package: $package" -ForegroundColor Green
+    } else {
+        $failedScoopCommands++
+        Write-Host "❖ Failed to install Scoop package: $package" -ForegroundColor Red
+    }
+}
+
+Write-Host "❖ Scoop: $successfulBuckets bucket(s) added, $successfulPackages package(s) installed, $invalidScoopEntries invalid list entry/entries, $failedScoopCommands failure(s)." -ForegroundColor Cyan
+if ($failedScoopCommands -gt 0) { exit 1 }
 ############################################
 
 ################### Universal Font Installer
