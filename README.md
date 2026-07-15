@@ -18,13 +18,13 @@ irm win.jfa.dev | iex # Running this shows all the options
 ### [WSL (Ubuntu-based)](https://outfitting.jfa.dev/docs/wsl)
 
 ```bash
-curl -L wsl.jfa.dev | bash
+curl -L wsl.jfa.dev | bash # Installs the personal profile
 ```
 
 ### [macOS](https://outfitting.jfa.dev/docs/macos)
 
 ```bash
-curl -L mac.jfa.dev | bash
+curl -L mac.jfa.dev | bash # Main installation
 ```
 
 ### Post-install scripts
