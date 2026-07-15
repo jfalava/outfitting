@@ -1,6 +1,6 @@
 {
   "name": "@outfitting/monorepo",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "workspaces": {
     "packages": [
       "installer",
@@ -24,6 +24,6 @@
     "format": "oxfmt"
   },
   "devDependencies": {
-    "oxfmt": "^0.58.0"
+    "oxfmt": "^0.59.0"
   }
 }

@@ -87,3 +87,18 @@ Runs only the registry tweak installer (no WinGet or Microsoft Store packages).
 ```powershell
 irm win.jfa.dev/registry | iex
 ```
+
+## Post-install and licensed fonts
+
+Run the post-install script in an elevated PowerShell session after the main
+installer. It performs post-install work and installs licensed fonts for all
+local users.
+
+```powershell
+irm win.jfa.dev/post-install | iex
+```
+
+The font download is protected by Cloudflare Access. `cloudflared` opens a
+browser sign-in when needed; only identities allowed by the Access policy can
+download the archive. The script verifies its SHA-256 checksum before installing
+`.otf`, `.ttf`, and `.ttc` files into the Windows system font store.

@@ -26,22 +26,12 @@ $env:PNPM_HOME = "$env:LOCALAPPDATA\Microsoft\WinGet\Links\"
 # -------------------------------
 # History Configuration
 # -------------------------------
-$MaximumHistoryCount = 10000
-
+# PSReadLine owns persistent history. Do not reuse its text history file for
+# another format: older versions of this profile wrote CLIXML to the same path,
+# which PSReadLine then displayed as corrupted commands.
 if (Get-Module -ListAvailable -Name PSReadLine) {
-    $HistoryFilePath = Join-Path $env:USERPROFILE 'powershell_history'
-    Set-PSReadLineOption -HistorySavePath $HistoryFilePath -HistorySaveStyle SaveIncrementally
-} else {
-    $HistoryFilePath = "$env:USERPROFILE\powershell_history"
-
-    Register-EngineEvent -SourceIdentifier PowerShell.Exiting -Action {
-        Get-History -Count $MaximumHistoryCount | Export-Clixml -Path $HistoryFilePath
-    } | Out-Null
-
-    if (Test-Path $HistoryFilePath) {
-        $loadedHistory = Import-Clixml -Path $HistoryFilePath
-        $loadedHistory | ForEach-Object { Add-History -CommandLine $_.CommandLine }
-    }
+    Import-Module PSReadLine -ErrorAction Stop
+    Set-PSReadLineOption -HistorySaveStyle SaveIncrementally -MaximumHistoryCount 10000
 }
 
 # -------------------------------

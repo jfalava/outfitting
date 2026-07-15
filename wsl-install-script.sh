@@ -1,36 +1,29 @@
 #!/bin/bash
 
-# ========================================
 # WSL Outfitting Installation Script
-# ========================================
-# Modes:
-#   (default)     - Nix + Home Manager only (most common for updates)
-#   --full        - Full install: APT packages + Nix + runtimes
-#   --apt-only    - APT packages only (skip Nix)
-# Profiles:
-#   --work        - Use work profile (extends personal with work tools)
-#   --personal    - Use personal profile (default)
+# Modes: refer to https://outfitting.jfa.dev/docs/wsl
 
 set -euo pipefail
 
-# Colors for output
+############################### Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m'
-
 # Logging functions
 info() { echo -e "${BLUE}❖${NC} $1"; }
 success() { echo -e "${GREEN}✓${NC} $1"; }
 warning() { echo -e "${YELLOW}⚠${NC} $1"; }
 error() { echo -e "${RED}✗${NC} $1"; }
+#################################################
 
-# Configuration
+################################### Configuration
 MODE="nix"  # nix (default), full, apt-only
 PROFILE="personal"
+#################################################
 
-# Parse arguments
+########## Parse arguments for the install script
 for arg in "$@"; do
     case "$arg" in
         --full|--full-install) MODE="full" ;;
@@ -42,10 +35,9 @@ for arg in "$@"; do
 done
 
 info "Mode: $MODE | Profile: $PROFILE"
+#################################################
 
-# ========================================
-# APT Package Installation
-# ========================================
+######################## APT Package Installation
 install_apt_packages() {
     info "Updating APT and installing packages..."
     sudo apt update -y && sudo apt upgrade -y
@@ -81,10 +73,9 @@ install_apt_packages() {
         success "APT packages: $installed installed"
     fi
 }
+#################################################
 
-# ========================================
-# HashiCorp Repository Setup
-# ========================================
+###################### HashiCorp Repository Setup
 setup_hashicorp_repo() {
     info "Setting up HashiCorp repository..."
 
@@ -102,10 +93,9 @@ setup_hashicorp_repo() {
     sudo apt update -y
     success "HashiCorp repository configured"
 }
+#################################################
 
-# ========================================
-# Docker Repository Setup and Installation
-# ========================================
+######## Docker Repository Setup and Installation
 setup_docker() {
     info "Setting up Docker repository and installing Docker..."
 
@@ -144,10 +134,9 @@ setup_docker() {
 
     success "Docker installed successfully"
 }
+#################################################
 
-# ========================================
-# Repository Configuration
-# ========================================
+######################## Repository Configuration
 configure_repo() {
     info "Setting up outfitting repository..."
 
@@ -187,12 +176,11 @@ configure_repo() {
     echo "✓ Repository location configured successfully!"
     return 0
 }
+#################################################
 
 echo ""
 
-#####
-## Setup symlinks and backup existing dotfiles
-#####
+##### Setup symlinks and backup existing dotfiles
 setup_symlinks() {
     echo "❖ Setting up Home Manager configuration symlinks and backing up existing dotfiles..."
 
@@ -246,10 +234,9 @@ setup_symlinks() {
     echo "✓ Symlinks created and backups completed!"
     return 0
 }
+#################################################
 
-# ========================================
-# Nix Installation
-# ========================================
+################################ Nix Installation
 install_nix() {
     if command -v nix &>/dev/null; then
         success "Nix already installed ($(nix --version 2>/dev/null | head -1))"
@@ -280,10 +267,9 @@ EOF
 
     success "Nix installed with flakes enabled"
 }
+#################################################
 
-# ========================================
-# Home Manager Installation
-# ========================================
+####################### Home Manager Installation
 install_home_manager() {
     if ! command -v nix &>/dev/null; then
         error "Nix not found, cannot install Home Manager"
@@ -328,10 +314,9 @@ install_home_manager() {
             warning "Could not set zsh as default (run: chsh -s \$(which zsh))"
     fi
 }
+#################################################
 
-# ========================================
-# Runtime Installation (Bun, uv, etc.)
-# ========================================
+############ Runtime Installation (Bun, uv, etc.)
 install_runtimes() {
     # Bun
     if command -v bun &>/dev/null; then
@@ -356,11 +341,9 @@ install_runtimes() {
     # Install Deno (via Nix, already in PATH from Home Manager)
     deno jupyter --install 2>/dev/null || echo "Note: Deno jupyter install skipped (deno may not be available yet)"
 }
+#################################################
 
-# ========================================
-# Set ZSH as the default profile
-# ========================================
-
+################## Set ZSH as the default profile
 set_default_shell_zsh() {
     if ! command -v zsh >/dev/null 2>&1; then
         warning "zsh not found, skipping default shell change"
@@ -373,10 +356,9 @@ set_default_shell_zsh() {
     sudo chsh -s "$zsh_path" "$USER" 2>/dev/null || \
         warning "Could not set zsh as default shell (run: chsh -s $zsh_path)"
 }
+#################################################
 
-# ========================================
-# Bun Global Packages
-# ========================================
+############################# Bun Global Packages
 install_bun_packages() {
     info "Installing Bun global packages..."
 
@@ -432,10 +414,9 @@ install_bun_packages() {
         echo "❖ Warning: Bun packages: $failed failed"
     fi
 }
+#################################################
 
-# ========================================
-# Main
-# ========================================
+############################################ Main
 main() {
     echo ""
     info "WSL Outfitting Setup"
@@ -488,5 +469,5 @@ main() {
     echo "  hm-work      - Switch to work profile"
     echo ""
 }
-
 main
+#################################################

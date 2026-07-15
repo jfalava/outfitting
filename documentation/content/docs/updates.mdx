@@ -1,9 +1,9 @@
 ---
 title: Updates
-description: Update workflows after installation for WSL/Linux, macOS, and Windows.
+description: Update workflows after installation for WSL, macOS, and Windows.
 ---
 
-## WSL/Linux
+## WSL
 
 Quick update:
 
@@ -23,6 +23,13 @@ Update packages:
 ```bash
 hm-update
 update-all
+```
+
+Re-run post-install work, including the Cloudflare Access-protected licensed
+font installation:
+
+```bash
+curl -L mac.jfa.dev/post-install | bash
 ```
 
 Other update modes:
@@ -64,9 +71,16 @@ Install or update Bun global packages:
 irm win.jfa.dev/bun | iex
 ```
 
+Re-run post-install work, including the Cloudflare Access-protected licensed
+font installation. Run this from an elevated PowerShell session:
+
+```powershell
+irm win.jfa.dev/post-install | iex
+```
+
 ## Install or Update Bun Global Packages (WSL/macOS)
 
-WSL/Linux:
+WSL:
 
 ```bash
 curl -fsSL wsl.jfa.dev/packages/bun | xargs -I {} bun install -g {}

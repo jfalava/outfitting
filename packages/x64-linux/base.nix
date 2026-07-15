@@ -55,6 +55,7 @@ in
     powershell
     tailspin # log viewer
     ranger
+    tirith
   ];
 
   # Session variables
@@ -137,7 +138,7 @@ in
   programs.bat = {
     enable = true;
     config = {
-      theme = "Dracula";
+      theme = "Catppuccin Latte";
       style = "auto";
     };
   };

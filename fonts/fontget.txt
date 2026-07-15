@@ -1,0 +1,10 @@
+nerd.jetbrains-mono
+nerd.cascadiamono
+nerd.geistmono
+nerd.ibm-plex-mono
+nerd.zedmono
+nerd.victor-mono
+google.google-sans
+google.google-sans-code
+google.google-sans-flex
+fontsource.pretendard

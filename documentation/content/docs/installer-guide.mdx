@@ -5,18 +5,20 @@ description: How to choose installer commands and understand what each profile o
 
 This guide explains how to pick the right installer command and what Outfitting changes on your machine. Use this page when you want to understand the model, not just copy a single command.
 
-## How to Use the Installer
+## How to use
 
-1. Pick your platform: Windows, WSL/Linux, or macOS.
+1. Pick your platform: Windows, WSL, or macOS.
 2. Pick scope: minimal/bootstrap, default personal setup, or full setup.
 3. Pick profile set:
    - Windows uses explicit profiles like `base`, `dev`, `work`, `gaming`, `qol`, `network`.
    - WSL supports personal or work profile flags.
    - macOS uses Homebrew casks and formulae, and the repo's nix-darwin/Home Manager config.
 4. Run install command as documented in the platform page.
-5. Verify by running profile/update helper commands (`hm-profile`, `hm-sync`, `hm-update`, etc.).
+5. Optionally run the platform post-install command to install the
+   Cloudflare Access-protected licensed fonts system-wide.
+6. Verify by running profile/update helper commands (`hm-profile`, `hm-sync`, `hm-update`, etc.).
 
-## What Gets Installed
+## What gets installed
 
 Outfitting installs and configures four layers:
 
@@ -26,7 +28,7 @@ Outfitting installs and configures four layers:
   - WinGet profiles (`base`, `dev`, etc.).
   - Optional Microsoft Store profiles (`msstore-*`).
   - Optional Bun global packages via `win.jfa.dev/bun`.
-- **WSL/Linux**:
+- **WSL**:
   - Nix/Home Manager packages from `packages/x64-linux`.
   - Optional APT packages in update/full modes.
 - **macOS**:
@@ -48,11 +50,21 @@ Outfitting installs and configures four layers:
 ### 4) Maintenance Tooling
 
 - Helper commands to apply and update configs:
-  - `hm-sync`, `hm-update`, `hm-personal`, `hm-work` (WSL/Linux)
-  - `or sync`, `or upgrade`, `or switch`, `drr` (macOS)
+  - `hm-sync`, `hm-update`, `hm-personal`, `hm-work` (WSL)
+  - `outfit sync`, `outfit upgrade`, `outfit switch` (macOS)
 - Update scripts to refresh package sources and reinstall as needed.
 
-## Command Selection Examples
+### Optional post-install layer
+
+- **Windows**: `irm win.jfa.dev/post-install | iex` in an elevated PowerShell
+  session.
+- **macOS**: `curl -L mac.jfa.dev/post-install | bash`, which requests `sudo`
+  when installing fonts.
+- Both commands use an interactive Cloudflare Access login to download the
+  licensed font archive. The archive is checksum-verified before its desktop
+  fonts are installed for all local users.
+
+## Command selection examples
 
 ### Windows
 
@@ -68,7 +80,7 @@ irm win.jfa.dev/base+dev+qol | iex
 irm win.jfa.dev/msstore/msstore-base+msstore-dev | iex
 ```
 
-### WSL/Linux
+### WSL
 
 - Default personal setup:
 
@@ -90,7 +102,20 @@ curl -L wsl.jfa.dev | bash -s -- --full-install --work-profile
 curl -L mac.jfa.dev | bash
 ```
 
-## Safety and Repeatability
+## Post-install commands
+
+Run these only after the main installer. They are optional, but required to
+install the private licensed-font release.
+
+```powershell
+irm win.jfa.dev/post-install | iex
+```
+
+```bash
+curl -L mac.jfa.dev/post-install | bash
+```
+
+## Safety and repeatability
 
 - Installations are profile-driven and intended to be repeatable.
 - Re-running installer/update commands should converge your machine toward the repository state.

@@ -1,36 +1,30 @@
 #!/bin/bash
 
-# ========================================
 # macOS Outfitting Installation Script
-# ========================================
 
 set -euo pipefail
 
-# Colors for output
+########################## Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
-
-# Logging functions
 info() {
     echo -e "${BLUE}❖${NC} $1"
 }
-
 success() {
     echo -e "${GREEN}❖${NC} $1"
 }
-
 warning() {
     echo -e "${YELLOW}❖${NC} $1"
 }
-
 error() {
     echo -e "${RED}❖${NC} $1"
 }
+#############################################
 
-# Check if running on macOS
+############################## Initial checks
 check_macos() {
     if [[ "$(uname)" != "Darwin" ]]; then
         error "This script is for macOS only."
@@ -38,8 +32,6 @@ check_macos() {
     fi
     success "Running on macOS"
 }
-
-# Check if running on Apple Silicon
 check_architecture() {
     local arch
     arch=$(uname -m)
@@ -56,35 +48,41 @@ check_architecture() {
         exit 1
     fi
 }
+#############################################
 
-# Configure outfitting repository location
+#################### Configure the local repo
 configure_outfitting_repo() {
     echo ""
-    echo "======================================"
     echo "Repository Configuration"
-    echo "======================================"
     echo ""
+
+    # Guard: skip setup if git is not available (e.g. fresh macOS before nix-darwin runs).
+    # Nix will install git; the caller should retry after nix-darwin completes.
+    if ! command -v git &>/dev/null; then
+        warning "git not found — skipping repository setup. Will retry after Nix installation."
+        return 0
+    fi
 
     # Always use default location for remote installation
     repo_path="$HOME/.config/outfitting/repo"
-    echo "❖ Using default repository location: $repo_path"
+    info "Using default repository location: $repo_path"
 
     # Handle the repository setup
     if [ ! -d "$repo_path" ]; then
-        echo "❖ Directory doesn't exist. Creating: $repo_path"
+        info "Directory doesn't exist. Creating: $repo_path"
         mkdir -p "$(dirname "$repo_path")"
 
-        echo "❖ Cloning outfitting repository..."
+        info "Cloning outfitting repository..."
         if git clone https://github.com/jfalava/outfitting.git "$repo_path"; then
-            echo "✓ Repository cloned successfully"
+            success "Repository cloned successfully"
         else
-            echo "✗ Failed to clone repository, but continuing..."
+            error "Failed to clone repository, but continuing..."
         fi
     elif [ ! -d "$repo_path/.git" ]; then
         error "Directory exists but is not a git repository: $repo_path"
         return 1
     else
-        echo "✓ Using existing repository at: $repo_path"
+        echo "Using existing repository at: $repo_path"
     fi
 
     # Store the configuration
@@ -92,17 +90,14 @@ configure_outfitting_repo() {
     config_file="$config_dir/repo-path"
 
     mkdir -p "$config_dir"
+    # Write the repo path before locking permissions
     echo "$repo_path" > "$config_file"
     chmod 600 "$config_file"
 
-    echo "✓ Repository location configured successfully!"
-    echo "  Repository path: $repo_path"
-    echo "  Configuration stored in: $config_file"
+    success "Repository location configured successfully!"
 
     return 0
 }
-
-# Read the configured local outfitting clone path
 get_outfitting_repo() {
     local config_file="$HOME/.config/outfitting/repo-path"
     if [ ! -f "$config_file" ]; then
@@ -112,8 +107,9 @@ get_outfitting_repo() {
 
     cat "$config_file"
 }
+#############################################
 
-# Make newly installed package managers available in the current shell
+################# Set up the package managers
 configure_package_manager_paths() {
     if [ -x "/opt/homebrew/bin/brew" ]; then
         eval "$(/opt/homebrew/bin/brew shellenv)"
@@ -121,8 +117,6 @@ configure_package_manager_paths() {
         eval "$(/usr/local/bin/brew shellenv)"
     fi
 }
-
-# Install Homebrew via official installer
 install_homebrew() {
     info "Installing Homebrew..."
 
@@ -135,7 +129,7 @@ install_homebrew() {
     if NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"; then
         configure_package_manager_paths
         if command -v brew >/dev/null 2>&1; then
-            success "Homebrew installed successfully ($(brew --version | head -1))"
+            true
         else
             warning "Homebrew installer completed, but brew is not in PATH yet"
         fi
@@ -144,8 +138,137 @@ install_homebrew() {
         return 1
     fi
 }
+install_bun() {
+    info "Installing Bun..."
 
-# Install Homebrew packages and casks from the repo Brewfile
+    if command -v bun &> /dev/null; then
+        success "Bun is already installed ($(bun --version))"
+        # Still export for current session
+        export BUN_INSTALL="$HOME/.bun"
+        export PATH="$BUN_INSTALL/bin:$PATH"
+        return 0
+    fi
+
+    if curl -fsSL https://bun.sh/install | bash; then
+        # Source Bun in current session
+        export BUN_INSTALL="$HOME/.bun"
+        export PATH="$BUN_INSTALL/bin:$PATH"
+    else
+        warning "Failed to install Bun (network error or already installed)"
+        # Try to source it anyway in case it's already there
+        export BUN_INSTALL="$HOME/.bun"
+        export PATH="$BUN_INSTALL/bin:$PATH"
+    fi
+}
+install_astral_uv() {
+    info "Installing UV..."
+
+    # Check if already installed
+    if command -v uv &> /dev/null; then
+        success "UV is already installed ($(uv --version 2>/dev/null))"
+        return 0
+    fi
+
+    if curl -fsSL https://astral.sh/uv/install.sh 2>/dev/null | bash; then
+        if [ -d "$HOME/.local/bin" ] && [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
+            export PATH="$HOME/.local/bin:$PATH"
+        fi
+    else
+        warning "Failed to install UV (network error or already installed)"
+    fi
+}
+#############################################
+
+############################ Nix Installation
+install_nix() {
+    if command -v nix &>/dev/null; then
+        success "Nix already installed ($(nix --version 2>/dev/null | head -1))"
+        return 0
+    fi
+
+    info "Installing Nix (Determinate Systems)..."
+    if curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install --no-confirm; then
+        # Source nix for current session
+        # shellcheck source=/dev/null
+        source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh 2>/dev/null || true
+        success "Nix installed"
+    else
+        error "Failed to install Nix"
+        return 1
+    fi
+}
+#############################################
+
+############################## Setup symlinks
+setup_symlinks() {
+    info "Setting up Home Manager configuration symlinks..."
+
+    local config_file="$HOME/.config/outfitting/repo-path"
+    if [ ! -f "$config_file" ]; then
+        error "Repository not configured. Cannot create symlinks."
+        return 1
+    fi
+
+    local repo_path hm_target
+    repo_path=$(cat "$config_file")
+    hm_target="$repo_path/packages/aarch64-darwin"
+
+    mkdir -p "$HOME/.config"
+
+    # Backup existing managed dotfiles
+    local timestamp
+    timestamp=$(date +%Y%m%d_%H%M%S)
+    local managed_files=(".zshrc" ".zshrc-base")
+
+    for file in "${managed_files[@]}"; do
+        if [ -f "$HOME/$file" ] && [ ! -L "$HOME/$file" ]; then
+            info "Backing up existing $file to ${file}.backup-${timestamp}"
+            mv "$HOME/$file" "$HOME/${file}.backup-${timestamp}"
+        fi
+    done
+
+    # Create symlink for home-manager config
+    if [ ! -L "$HOME/.config/home-manager" ]; then
+        info "Creating symlink: ~/.config/home-manager → $hm_target"
+        ln -sfn "$hm_target" "$HOME/.config/home-manager"
+    else
+        success "Symlink already exists: ~/.config/home-manager"
+    fi
+
+    success "Symlinks configured!"
+    return 0
+}
+#############################################
+
+##################### nix-darwin Installation
+install_nix_darwin() {
+    if ! command -v nix &>/dev/null; then
+        error "Nix not found, cannot install nix-darwin"
+        return 1
+    fi
+
+    local config_file="$HOME/.config/outfitting/repo-path"
+    if [ ! -f "$config_file" ]; then
+        error "Repository not configured"
+        return 1
+    fi
+
+    local repo_path flake_path
+    repo_path=$(cat "$config_file")
+    flake_path="$repo_path/packages/aarch64-darwin"
+
+    info "Running nix-darwin switch (darwinConfigurations.macos)..."
+    # sudo -H is required on macOS to avoid /Users/<user> ownership warnings
+    if sudo -H nix run nix-darwin -- switch --flake "$flake_path#macos" --impure; then
+        success "nix-darwin activated"
+    else
+        error "Failed to activate nix-darwin"
+        return 1
+    fi
+}
+#############################################
+
+############################ Install packages
 install_homebrew_packages() {
     info "Installing Homebrew packages..."
 
@@ -170,157 +293,54 @@ install_homebrew_packages() {
         return 1
     fi
 }
-
-# Install Bun via official installer
-install_bun() {
-    info "Installing Bun..."
-
-    if command -v bun &> /dev/null; then
-        success "Bun is already installed ($(bun --version))"
-        # Still export for current session
-        export BUN_INSTALL="$HOME/.bun"
-        export PATH="$BUN_INSTALL/bin:$PATH"
-        return 0
-    fi
-
-    if curl -fsSL https://bun.sh/install | bash; then
-        # Source Bun in current session
-        export BUN_INSTALL="$HOME/.bun"
-        export PATH="$BUN_INSTALL/bin:$PATH"
-        success "Bun installed successfully"
-    else
-        warning "Failed to install Bun (network error or already installed)"
-        # Try to source it anyway in case it's already there
-        export BUN_INSTALL="$HOME/.bun"
-        export PATH="$BUN_INSTALL/bin:$PATH"
-    fi
+install_fontget() {
+	if ! command -v fontget >/dev/null 2>&1; then
+	   info "Installing FontGet"
+	   curl -fsSL https://raw.githubusercontent.com/Graphixa/FontGet/main/scripts/install.sh | sh
+   fi
 }
+#############################################
 
-# Install Bun global packages from bun.txt
-install_bun_packages() {
-    info "Installing Bun global packages..."
-
-    if ! command -v bun >/dev/null 2>&1; then
-        warning "Bun not found in PATH, skipping global package installations"
-        return 0
-    fi
-
-    local bunPackagesUrl="https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/packages/bun.txt"
-    local bunPackagesFile="/tmp/bun-packages.txt"
-
-    if ! curl -fsSL "$bunPackagesUrl" -o "$bunPackagesFile" 2>/dev/null; then
-        warning "Failed to fetch Bun packages list (network error), skipping"
-        return 0
-    fi
-
-    # Validate that the file is not empty
-    if [ ! -s "$bunPackagesFile" ]; then
-        warning "Bun package list is empty"
-        rm -f "$bunPackagesFile"
-        return 0
-    fi
-
-    local installed=0
-    local failed=0
-    while IFS= read -r package; do
-        # Skip empty lines and comments
-        [[ -z "$package" || "$package" =~ ^[[:space:]]*# ]] && continue
-        # Remove leading/trailing whitespace
-        package=$(echo "$package" | xargs)
-        if [[ -n "$package" ]]; then
-            # Check if already installed (idempotent)
-            if bun pm ls -g 2>/dev/null | grep -q "^$package@"; then
-                info "Package already installed: $package"
-                ((installed++))
-            else
-                info "Installing Bun package: $package"
-                if bun install -g --trust "$package" 2>/dev/null; then
-                    ((installed++))
-                else
-                    warning "Failed to install: $package"
-                    ((failed++))
-                fi
-            fi
-        fi
-    done < "$bunPackagesFile"
-    rm -f "$bunPackagesFile"
-
-    if [[ $installed -gt 0 ]]; then
-        success "Bun packages: $installed installed/verified"
-    fi
-    if [[ $failed -gt 0 ]]; then
-        warning "Bun packages: $failed failed"
-    fi
-}
-
-install_astral_uv() {
-    info "Installing UV..."
-
-    # Check if already installed
-    if command -v uv &> /dev/null; then
-        success "UV is already installed ($(uv --version 2>/dev/null))"
-        return 0
-    fi
-
-    if curl -fsSL https://astral.sh/uv/install.sh 2>/dev/null | bash; then
-        if [ -d "$HOME/.local/bin" ] && [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
-            export PATH="$HOME/.local/bin:$PATH"
-        fi
-        success "UV installed"
-    else
-        warning "Failed to install UV (network error or already installed)"
-    fi
-}
-
-# Post-installation instructions
+############## Post-installation instructions
 post_install_info() {
     local repo_path
     repo_path=$(get_outfitting_repo 2>/dev/null || true)
 
     echo ""
-    echo "======================================"
-    echo "Installation Complete!"
-    echo "======================================"
-    echo ""
-    echo "Homebrew: $(command -v brew 2>/dev/null || echo 'not found in PATH')"
-    if [ -n "$repo_path" ]; then
-        echo "Homebrew manifest: $repo_path/packages/aarch64-darwin/Brewfile"
-    fi
-    echo "Restart your shell if newly installed commands are not available yet."
+    success "Installation Complete"
     echo ""
 }
+#############################################
 
-# Main installation flow
+###################### Main installation flow
 main() {
     echo ""
-    echo "======================================"
     echo "macOS Installation"
-    echo "======================================"
     echo ""
 
     check_macos
     check_architecture
 
-    # Step 1: Configure repository
     configure_outfitting_repo
 
-    # Step 2: Install Homebrew
-    install_homebrew
+    if [ ! -f "$HOME/.config/outfitting/repo-path" ]; then
+        info "Retrying repository setup now that Nix is installed..."
+        configure_outfitting_repo
+    fi
 
-    # Step 3: Install Homebrew packages and casks
+    install_homebrew
     install_homebrew_packages
 
-    # Step 4: Install Bun
-    install_bun
+    install_nix
+    setup_symlinks
+    install_nix_darwin
 
-    # Step 5: Install UV
+    install_bun
     install_astral_uv
 
-    # Step 6: Install Bun packages
-    install_bun_packages
+    install_fontget
 
     post_install_info
 }
-
-# Run main function
-main
+main # Run main function
+#############################################

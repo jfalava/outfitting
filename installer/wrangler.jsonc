@@ -9,6 +9,12 @@
     "enabled": true,
   },
   "placement": { "mode": "smart" },
+  "r2_buckets": [
+    {
+      "binding": "PRIVATE_FONTS",
+      "bucket_name": "outfitting-private-fonts",
+    },
+  ],
   "routes": [
     {
       "pattern": "win.jfa.dev",

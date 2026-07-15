@@ -30,6 +30,7 @@ in
     eza
     powershell
     python3
+    tirith
     ripgrep
     restic
     starship
