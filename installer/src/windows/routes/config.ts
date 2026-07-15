@@ -8,7 +8,7 @@ const configRouter = new Hono();
 
 // GET /config/pwsh-profile - PowerShell profile update script
 configRouter.get("/pwsh-profile", (c) => {
-  const host = c.req.header("Host") || "";
+  const host = c.req.header("Host") || "win.jfa.dev";
   setScriptHeaders(c, CONTENT_TYPES.powershell);
   return c.body(generatePwshProfileScript(host));
 });
@@ -17,7 +17,7 @@ configRouter.get("/pwsh-profile", (c) => {
 configRouter.get("/:file", async (c) => {
   const fileKey = c.req.param("file");
 
-  if (!CONFIG_FILES[fileKey]) {
+  if (!Object.hasOwn(CONFIG_FILES, fileKey)) {
     return c.json({ error: "Invalid config file", available: Object.keys(CONFIG_FILES) }, 400);
   }
 

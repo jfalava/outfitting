@@ -26,9 +26,7 @@ function checksumHeaders(object: R2Object) {
 }
 
 async function getFontObject(c: Context<InstallerEnv>, key: string) {
-  return c.req.method === "HEAD"
-    ? c.env.PRIVATE_FONTS.head(key)
-    : c.env.PRIVATE_FONTS.get(key);
+  return c.req.method === "HEAD" ? c.env.PRIVATE_FONTS.head(key) : c.env.PRIVATE_FONTS.get(key);
 }
 
 fontsApp.on(["GET", "HEAD"], "/fonts", async (c) => {

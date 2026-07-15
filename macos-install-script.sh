@@ -294,8 +294,8 @@ install_homebrew_packages() {
     fi
 }
 install_fontget() {
-   if ! command -v tailscale >/dev/null 2>&1; then
-	   info "Installing Tailscale"
+	if ! command -v fontget >/dev/null 2>&1; then
+	   info "Installing FontGet"
 	   curl -fsSL https://raw.githubusercontent.com/Graphixa/FontGet/main/scripts/install.sh | sh
    fi
 }

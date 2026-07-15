@@ -53,6 +53,9 @@ try {
 
             $globalChoice = Read-Host "\`nChoose: (A)ll, (N)one, or (R)eview each? [A/N/R] (default: A)"
             $globalChoice = if ([string]::IsNullOrWhiteSpace($globalChoice)) { "A" } else { $globalChoice.ToUpper() }
+            if ($globalChoice -notin @("A", "N", "R")) {
+                $globalChoice = "N"
+            }
 
             switch ($globalChoice) {
                 "A" {
@@ -94,21 +97,7 @@ try {
                         }
                     }
                 }
-                default {
-                    Write-Host "❖ Invalid choice, defaulting to All." -ForegroundColor Yellow
-                    foreach ($file in $validRegFiles) {
-                        $tempRegPath = "$env:TEMP\\$($file.Name)"
-                        $file.Content | Out-File -FilePath $tempRegPath -Encoding UTF8
-                        & reg import $tempRegPath
-                        if ($LASTEXITCODE -eq 0) {
-                            Write-Host "❖ Imported registry tweak: $($file.Name)" -ForegroundColor Green
-                        } else {
-                            $script:hasErrors = $true
-                            Write-Host "❖ Failed to import registry tweak: $($file.Name)" -ForegroundColor Red
-                        }
-                        Remove-Item $tempRegPath -ErrorAction SilentlyContinue
-                    }
-                }
+                default { Write-Host "❖ Invalid choice, skipping all registry tweaks." -ForegroundColor Yellow }
             }
         } else {
             Write-Host "❖ No valid .reg files fetched from discovered paths." -ForegroundColor Yellow
@@ -132,5 +121,8 @@ if ($script:hasErrors) {
 Write-Host "\`n"
 Write-Host "Press any key to close this window..."
 $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+if ($script:hasErrors) {
+    exit 1
+}
 `;
 }

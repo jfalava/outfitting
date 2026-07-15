@@ -40,6 +40,9 @@ try {
         foreach ($package in $bunPackages) {
             try {
                 bun install -g $package
+                if ($LASTEXITCODE -ne 0) {
+                    throw "bun install exited with code $LASTEXITCODE"
+                }
                 Write-Host "❖ Installed Bun package: $package" -ForegroundColor Green
             } catch {
                 $script:hasErrors = $true

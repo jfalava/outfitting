@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 
 import { CONTENT_TYPES, SCRIPT_URLS, WINDOWS_PACKAGE_PROFILES } from "../../constants";
-import { fetchScript, setScriptHeaders } from "../../utils";
+import { fetchScript, sanitizeHost, setScriptHeaders } from "../../utils";
 import { generateProfileErrorScript } from "../scripts/profile";
 
 const profileRouter = new Hono();
@@ -9,7 +9,7 @@ const profileRouter = new Hono();
 // GET /:profile - WinGet install script with injected profile URL (supports "base+dev+gaming")
 profileRouter.get("/:profile", async (c) => {
   const profileParam = c.req.param("profile");
-  const host = c.req.header("Host") || "win.jfa.dev";
+  const host = sanitizeHost(c.req.header("Host") || "win.jfa.dev");
 
   const requestedProfiles = profileParam.split("+").map((p) => p.trim().toLowerCase());
 
@@ -19,10 +19,7 @@ profileRouter.get("/:profile", async (c) => {
 
   if (invalidProfiles.length > 0) {
     setScriptHeaders(c, CONTENT_TYPES.powershell);
-    return c.body(
-      generateProfileErrorScript(host, invalidProfiles, WINDOWS_PACKAGE_PROFILES),
-      400,
-    );
+    return c.body(generateProfileErrorScript(host, invalidProfiles, WINDOWS_PACKAGE_PROFILES), 400);
   }
 
   console.warn(`Serving installation script for profiles: ${requestedProfiles.join(", ")}`);
@@ -34,7 +31,7 @@ profileRouter.get("/:profile", async (c) => {
 
   // Inject the requested profile URL into the base script
   const originalMarker = '$wingetPackagesUrl = "https://win.jfa.dev/packages/base"';
-  const replacementURL = `$wingetPackagesUrl = "https://${host}/packages/${profileParam}"`;
+  const replacementURL = `$wingetPackagesUrl = "https://${host}/packages/${requestedProfiles.join("+")}"`;
   const modifiedScript = baseScript.replace(originalMarker, replacementURL);
 
   if (!modifiedScript.includes(replacementURL)) {

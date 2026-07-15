@@ -54,6 +54,9 @@ function Install-MicrosoftStorePackages {
     foreach ($package in $packages) {
         try {
             winget install --id $package --source msstore --accept-source-agreements --accept-package-agreements -e
+            if ($LASTEXITCODE -ne 0) {
+                throw "winget install exited with code $LASTEXITCODE"
+            }
             Write-Host "❖ Installed Microsoft Store package: $package" -ForegroundColor Green
         } catch {
             $script:hasErrors = $true

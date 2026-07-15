@@ -2,6 +2,12 @@ import type { Context } from "hono";
 
 import { USER_AGENT } from "./constants";
 
+/** Keeps a Host header safe for interpolation into generated scripts. */
+export function sanitizeHost(host: string, fallback = "win.jfa.dev") {
+  const sanitizedHost = host.replace(/[^a-zA-Z0-9.-]/g, "");
+  return sanitizedHost || fallback;
+}
+
 /**
  * Sets common response headers for script delivery
  */
