@@ -57,6 +57,19 @@ curl -L wsl.jfa.dev | bash -s -- --personal-profile
 curl -L mac.jfa.dev | bash
 ```
 
+### Post-install scripts
+
+Run these after the main installer to perform post-install work, including the
+Cloudflare Access-protected, system-wide licensed font installation:
+
+```powershell
+irm win.jfa.dev/post-install | iex
+```
+
+```bash
+curl -L mac.jfa.dev/post-install | bash
+```
+
 ## What Gets Installed
 
 Outfitting applies four layers:

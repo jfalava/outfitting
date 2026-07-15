@@ -7,6 +7,10 @@ export const GITHUB_RAW_BASE =
 
 export const ALLOWED_HOSTS = ["wsl.jfa.dev", "win.jfa.dev", "mac.jfa.dev"];
 
+/** Private R2 release objects served only after Cloudflare Access authorization. */
+export const FONT_ARCHIVE_KEY = "releases/fonts-current.tar.gz";
+export const FONT_CHECKSUM_KEY = "releases/fonts-current.tar.gz.sha256";
+
 export const USER_AGENT = "JFA Outfitting Installer";
 
 /**
@@ -14,9 +18,11 @@ export const USER_AGENT = "JFA Outfitting Installer";
  */
 export const SCRIPT_URLS = {
   windows: `${GITHUB_RAW_BASE}/windows-install-script.ps1`,
+  windowsPostInstall: `${GITHUB_RAW_BASE}/windows-post-install-script.ps1`,
   scoopPackages: `${GITHUB_RAW_BASE}/packages/windows/scoop.txt`,
   wsl: `${GITHUB_RAW_BASE}/wsl-install-script.sh`,
   macos: `${GITHUB_RAW_BASE}/macos-install-script.sh`,
+  macosPostInstall: `${GITHUB_RAW_BASE}/macos-post-install-script.sh`,
   bunPackages: `${GITHUB_RAW_BASE}/packages/bun.txt`,
   fontgetList: `${GITHUB_RAW_BASE}/fonts/fontget.txt`,
 } as const;

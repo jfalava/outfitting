@@ -14,6 +14,21 @@ This installs:
 - Homebrew-managed casks and formulae from `packages/aarch64-darwin/Brewfile`
 - nix-darwin/Home Manager configuration from `packages/aarch64-darwin`
 
+## Post-install and licensed fonts
+
+Run the post-install script after the main installer to perform post-install
+work and install licensed fonts for every local user:
+
+```bash
+curl -L mac.jfa.dev/post-install | bash
+```
+
+The script requests administrator credentials, authenticates through Cloudflare
+Access in your browser when needed, verifies the downloaded archive's SHA-256
+checksum, and installs supported `.otf`, `.ttf`, and `.ttc` files into
+`/Library/Fonts`. Only identities permitted by the Access policy can download
+the private font archive.
+
 ## Package Management
 
 The `outfit` command (aliased to `o`) unifies Homebrew and nix-darwin operations:

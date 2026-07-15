@@ -25,6 +25,13 @@ hm-update
 update-all
 ```
 
+Re-run post-install work, including the Cloudflare Access-protected licensed
+font installation:
+
+```bash
+curl -L mac.jfa.dev/post-install | bash
+```
+
 Other update modes:
 
 ```bash
@@ -62,6 +69,13 @@ Install or update Bun global packages:
 
 ```powershell
 irm win.jfa.dev/bun | iex
+```
+
+Re-run post-install work, including the Cloudflare Access-protected licensed
+font installation. Run this from an elevated PowerShell session:
+
+```powershell
+irm win.jfa.dev/post-install | iex
 ```
 
 ## Install or Update Bun Global Packages (WSL/macOS)

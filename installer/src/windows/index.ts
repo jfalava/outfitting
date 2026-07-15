@@ -5,6 +5,7 @@ import configRouter from "./routes/config";
 import helpRouter from "./routes/help";
 import msstoreRouter from "./routes/msstore";
 import packagesRouter from "./routes/packages";
+import postInstallRouter from "./routes/post-install";
 import profileRouter from "./routes/profile";
 import registryRouter from "./routes/registry";
 
@@ -28,6 +29,9 @@ windowsApp.route("/bun", bunRouter);
 
 // GET /registry
 windowsApp.route("/registry", registryRouter);
+
+// GET /post-install (must precede the profile catch-all)
+windowsApp.route("/post-install", postInstallRouter);
 
 // GET /:profile  (must be last — wildcard catch-all for WinGet profiles)
 windowsApp.route("/", profileRouter);
