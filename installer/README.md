@@ -46,8 +46,8 @@ The worker routes by `Host` header and serves scripts/config from `main` branch 
 
 ## Private fonts
 
-The private font endpoints stream `releases/fonts-current.tar.gz` and its
-`releases/fonts-current.tar.gz.sha256` sidecar from the Worker-bound,
+The private font endpoints stream `releases/fonts.tar.gz` and its
+`releases/fonts.tar.gz.sha256` sidecar from the Worker-bound,
 non-public R2 bucket. The archive contains only `.otf`, `.ttf`, or `.ttc`
 files beneath a single `fonts/` directory. Release promotion is performed by
 uploading the approved archive and checksum to those keys; the Worker never

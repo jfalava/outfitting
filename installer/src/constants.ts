@@ -8,8 +8,8 @@ export const GITHUB_RAW_BASE =
 export const ALLOWED_HOSTS = ["wsl.jfa.dev", "win.jfa.dev", "mac.jfa.dev"];
 
 /** Private R2 release objects served only after Cloudflare Access authorization. */
-export const FONT_ARCHIVE_KEY = "releases/fonts-current.tar.gz";
-export const FONT_CHECKSUM_KEY = "releases/fonts-current.tar.gz.sha256";
+export const FONT_ARCHIVE_KEY = "releases/fonts.tar.gz";
+export const FONT_CHECKSUM_KEY = "releases/fonts.tar.gz.sha256";
 
 export const USER_AGENT = "JFA Outfitting Installer";
 
