@@ -193,9 +193,9 @@ try {
     Write-Host "❖ Authenticating to fetch licensed fonts..." -ForegroundColor Cyan
     & cloudflared access login $fontUrl
     if ($LASTEXITCODE -ne 0) { Stop-FontInstall "Cloudflare Access login failed" }
-    & cloudflared access curl --fail $fontUrl -o $archivePath
+    & cloudflared access curl $fontUrl --fail -o $archivePath
     if ($LASTEXITCODE -ne 0) { Stop-FontInstall "font archive download failed" }
-    & cloudflared access curl --fail $checksumUrl -o $checksumPath
+    & cloudflared access curl $checksumUrl --fail -o $checksumPath
     if ($LASTEXITCODE -ne 0) { Stop-FontInstall "font checksum download failed" }
 
     $checksum = [IO.File]::ReadAllText($checksumPath)

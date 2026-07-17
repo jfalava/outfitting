@@ -54,8 +54,8 @@ STAGING="$TMP/staging"
 
 echo "❖ Authenticating to fetch licensed fonts..."
 cloudflared access login "$FONT_URL" || fail "Cloudflare Access login failed"
-cloudflared access curl --fail "$FONT_URL" -o "$ARCHIVE" || fail "font archive download failed"
-cloudflared access curl --fail "$CHECKSUM_URL" -o "$CHECKSUM" || fail "font checksum download failed"
+cloudflared access curl "$FONT_URL" --fail -o "$ARCHIVE" || fail "font archive download failed"
+cloudflared access curl "$CHECKSUM_URL" --fail -o "$CHECKSUM" || fail "font checksum download failed"
 
 # The sidecar must be exactly the standard sha256sum form for the archive we downloaded.
 checksum_contents=$(cat "$CHECKSUM")
