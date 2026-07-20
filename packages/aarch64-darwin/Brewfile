@@ -29,6 +29,8 @@ cask "zed"
 cask "zen"
 cask "discord"
 cask "krita"
+cask "t3-code"
+cask "t3-code@nightly"
 
 brew "cloudflared"
 brew "deno"
