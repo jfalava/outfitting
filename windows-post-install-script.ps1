@@ -63,14 +63,28 @@ foreach ($line in [regex]::Split([string] $scoopPackagesContent, "\r?\n")) {
 }
 
 $successfulBuckets = 0
+$unchangedBuckets = 0
 $successfulPackages = 0
+$unchangedPackages = 0
 $failedScoopCommands = 0
+
+$installedBucketNames = @(
+    & scoop bucket list 2>$null | ForEach-Object {
+        if ($_ -match '^\s*(?<name>\S+)\s+https?://') { $Matches.name }
+    }
+)
 
 foreach ($bucketUrl in $scoopBuckets) {
     $bucketName = Get-ScoopBucketName $bucketUrl
     if ($null -eq $bucketName) {
         $failedScoopCommands++
         Write-Host "❖ Failed to derive Scoop bucket name from: $bucketUrl" -ForegroundColor Red
+        continue
+    }
+
+    if ($installedBucketNames -contains $bucketName) {
+        $unchangedBuckets++
+        Write-Host "❖ Scoop bucket already added: $bucketName" -ForegroundColor Yellow
         continue
     }
 
@@ -85,6 +99,13 @@ foreach ($bucketUrl in $scoopBuckets) {
 }
 
 foreach ($package in $scoopPackages) {
+    $null = & scoop prefix $package 2>$null
+    if ($LASTEXITCODE -eq 0) {
+        $unchangedPackages++
+        Write-Host "❖ Scoop package already installed: $package" -ForegroundColor Yellow
+        continue
+    }
+
     & scoop install $package
     if ($LASTEXITCODE -eq 0) {
         $successfulPackages++
@@ -95,8 +116,10 @@ foreach ($package in $scoopPackages) {
     }
 }
 
-Write-Host "❖ Scoop: $successfulBuckets bucket(s) added, $successfulPackages package(s) installed, $invalidScoopEntries invalid list entry/entries, $failedScoopCommands failure(s)." -ForegroundColor Cyan
-if ($failedScoopCommands -gt 0) { exit 1 }
+Write-Host "❖ Scoop: $successfulBuckets bucket(s) added, $unchangedBuckets unchanged; $successfulPackages package(s) installed, $unchangedPackages unchanged; $invalidScoopEntries invalid list entry/entries, $failedScoopCommands failure(s)." -ForegroundColor Cyan
+if ($failedScoopCommands -gt 0) {
+    Write-Host "❖ Scoop had failures; continuing with post-install tasks." -ForegroundColor Yellow
+}
 ############################################
 
 ################### Universal Font Installer
@@ -255,4 +278,5 @@ try {
 } finally {
     Remove-Item -LiteralPath $tempDirectory -Recurse -Force -ErrorAction SilentlyContinue
 }
+if ($failedScoopCommands -gt 0) { exit 1 }
 ############################################
