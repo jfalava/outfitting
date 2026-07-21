@@ -33,6 +33,7 @@ WinDirStat.WinDirStat
 xanderfrangos.twinkletray
 ModernFlyouts.ModernFlyouts
 ImputNet.Helium
+Graphixa.FontGet
 REALiX.HWiNFO
 CrystalDewWorld.CrystalDiskInfo
 aristocratos.btop4win
