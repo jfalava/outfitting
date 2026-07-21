@@ -14,8 +14,9 @@ This guide explains how to pick the right installer command and what Outfitting 
    - WSL supports personal or work profile flags.
    - macOS uses Homebrew casks and formulae, and the repo's nix-darwin/Home Manager config.
 4. Run install command as documented in the platform page.
-5. Optionally run the platform post-install command to install the
-   Cloudflare Access-protected licensed fonts system-wide.
+5. Optionally run the platform post-install command to fetch the Cloudflare
+   Access-protected licensed fonts. Windows extracts them to the user's
+   Downloads folder; macOS installs them system-wide.
 6. Verify by running profile/update helper commands (`hm-profile`, `hm-sync`, `hm-update`, etc.).
 
 ## What gets installed
@@ -56,8 +57,8 @@ Outfitting installs and configures four layers:
 
 ### Optional post-install layer
 
-- **Windows**: `irm win.jfa.dev/post-install | iex` in an elevated PowerShell
-  session.
+- **Windows**: `irm win.jfa.dev/post-install | iex`; licensed fonts are
+  extracted to `%USERPROFILE%\Downloads\fonts` for optional manual installation.
 - **macOS**: `curl -L mac.jfa.dev/post-install | bash`, which requests `sudo`
   when installing fonts.
 - Both commands use an interactive Cloudflare Access login to download the

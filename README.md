@@ -29,8 +29,9 @@ curl -L mac.jfa.dev | bash # Main installation
 
 ### Post-install scripts
 
-Run these after the main installer to perform post-install work, including the
-Cloudflare Access-protected, system-wide licensed font installation:
+Run these after the main installer to perform post-install work. On Windows,
+licensed fonts are downloaded to your Downloads folder for optional manual
+installation; macOS installs them system-wide:
 
 ```powershell
 irm win.jfa.dev/post-install | iex
