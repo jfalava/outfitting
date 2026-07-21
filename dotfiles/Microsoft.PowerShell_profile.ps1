@@ -60,6 +60,50 @@ function killwsl {
 }
 Set-Alias wslk killwsl
 
+# Quick system update
+function Update-All {
+    $previousErrorActionPreference = $ErrorActionPreference
+    $ErrorActionPreference = "Stop"
+
+    try {
+        Write-Host "`n=== Updating WinGet Packages ===" -ForegroundColor Cyan
+        winget upgrade --all --accept-source-agreements --accept-package-agreements
+        if ($LASTEXITCODE -ne 0) { throw "winget upgrade exited with code $LASTEXITCODE" }
+
+        if (Get-Command scoop -ErrorAction SilentlyContinue) {
+            Write-Host "`n=== Updating Scoop Packages ===" -ForegroundColor Cyan
+            scoop update
+            if ($LASTEXITCODE -ne 0) { throw "scoop update exited with code $LASTEXITCODE" }
+            scoop update *
+            if ($LASTEXITCODE -ne 0) { throw "scoop package update exited with code $LASTEXITCODE" }
+            scoop cleanup *
+            if ($LASTEXITCODE -ne 0) { throw "scoop cleanup exited with code $LASTEXITCODE" }
+        }
+
+        if (Get-Command bun -ErrorAction SilentlyContinue) {
+            Write-Host "`n=== Updating Global Bun Packages ===" -ForegroundColor Cyan
+            bun update --global
+            if ($LASTEXITCODE -ne 0) { throw "bun update exited with code $LASTEXITCODE" }
+        }
+
+        Write-Host "`n=== Updating PowerShell Modules ===" -ForegroundColor Cyan
+        Get-InstalledModule -ErrorAction SilentlyContinue | Update-Module -AcceptLicense -Force
+
+        Write-Host "`n=== Updating PowerShell Profile ===" -ForegroundColor Cyan
+        Invoke-RestMethod -Uri "https://win.jfa.dev/config/pwsh-profile" | Invoke-Expression
+        . $PROFILE
+
+        Write-Host "`nSystem updated successfully" -ForegroundColor Green
+    }
+    catch {
+        Write-Host "`nSystem update failed: $($_.Exception.Message)" -ForegroundColor Red
+        throw
+    }
+    finally {
+        $ErrorActionPreference = $previousErrorActionPreference
+    }
+}
+
 # -------------------------------
 # Expressions
 # -------------------------------
