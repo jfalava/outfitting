@@ -91,8 +91,11 @@ irm win.jfa.dev/registry | iex
 ## Post-install and licensed fonts
 
 Run the post-install script after the main installer. It performs post-install
-work and extracts the licensed fonts to `%USERPROFILE%\Downloads\fonts`. You can
-then choose whether to install them manually.
+work, installs the public fonts listed in `fonts/fontget.txt` via FontGet, and
+extracts the licensed fonts to `%USERPROFILE%\Downloads\fonts`. You can then
+choose whether to install the licensed fonts manually. If your account does not
+have access to the licensed font archive, that optional step is skipped without
+failing the rest of the script.
 
 ```powershell
 irm win.jfa.dev/post-install | iex

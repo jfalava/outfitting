@@ -58,7 +58,9 @@ Outfitting installs and configures four layers:
 ### Optional post-install layer
 
 - **Windows**: `irm win.jfa.dev/post-install | iex`; licensed fonts are
-  extracted to `%USERPROFILE%\Downloads\fonts` for optional manual installation.
+  extracted to `%USERPROFILE%\Downloads\fonts` for optional manual installation,
+  while fonts in `fonts/fontget.txt` are installed through FontGet. Missing
+  Cloudflare Access permission skips only the optional licensed-font download.
 - **macOS**: `curl -L mac.jfa.dev/post-install | bash`, which requests `sudo`
   when installing fonts.
 - Both commands use an interactive Cloudflare Access login to download the

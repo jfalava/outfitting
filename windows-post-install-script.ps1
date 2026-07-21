@@ -122,6 +122,50 @@ if ($failedScoopCommands -gt 0) {
 }
 ############################################
 
+#################### Install public fonts via FontGet
+$fontGetListUrl = "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/fonts/fontget.txt"
+$failedFontGetCommands = 0
+$installedFontGetFonts = 0
+
+if (-not (Get-Command fontget -ErrorAction SilentlyContinue)) {
+    Write-Host "`n❖ Installing FontGet..." -ForegroundColor Cyan
+    winget install --id Graphixa.FontGet -e --accept-source-agreements --accept-package-agreements
+}
+
+if (-not (Get-Command fontget -ErrorAction SilentlyContinue)) {
+    $failedFontGetCommands++
+    Write-Host "❖ FontGet is unavailable; continuing with the private font download." -ForegroundColor Red
+} else {
+    try {
+        $fontGetListContent = Invoke-RestMethod -Uri $fontGetListUrl -ErrorAction Stop
+        $env:FONTGET_ACCEPT_DEFAULTS = "1"
+        $env:FONTGET_ACCEPT_AGREEMENTS = "1"
+
+        foreach ($line in [regex]::Split([string] $fontGetListContent, "\r?\n")) {
+            $font = $line.Trim()
+            if ([string]::IsNullOrWhiteSpace($font) -or $font.StartsWith("#")) { continue }
+
+            Write-Host "❖ Installing font via FontGet: $font" -ForegroundColor Cyan
+            & fontget add $font
+            if ($LASTEXITCODE -eq 0) {
+                $installedFontGetFonts++
+            } else {
+                $failedFontGetCommands++
+                Write-Host "❖ FontGet failed to install: $font" -ForegroundColor Red
+            }
+        }
+    } catch {
+        $failedFontGetCommands++
+        Write-Host "❖ FontGet font installation failed: $($_.Exception.Message)" -ForegroundColor Red
+    }
+}
+
+Write-Host "❖ FontGet: $installedFontGetFonts font(s) processed, $failedFontGetCommands failure(s)." -ForegroundColor Cyan
+if ($failedFontGetCommands -gt 0) {
+    Write-Host "❖ FontGet had failures; continuing with the private font download." -ForegroundColor Yellow
+}
+############################################
+
 ################## Private Font Downloader
 
 function Stop-FontInstall([string] $Message) {
@@ -229,10 +273,10 @@ try {
     Write-Host "`n❖ Private fonts extracted to: $fontsPath" -ForegroundColor Green
     Write-Host "❖ Install the fonts from that folder if you want to use them." -ForegroundColor Cyan
 } catch {
-    Write-Host "❖ Private font download failed: $($_.Exception.Message)" -ForegroundColor Red
-    exit 1
+    Write-Host "❖ Private fonts were not downloaded: $($_.Exception.Message)" -ForegroundColor Yellow
+    Write-Host "❖ Continuing without private fonts; Cloudflare Access permission is optional." -ForegroundColor Yellow
 } finally {
     Remove-Item -LiteralPath $tempDirectory -Recurse -Force -ErrorAction SilentlyContinue
 }
-if ($failedScoopCommands -gt 0) { exit 1 }
+if ($failedScoopCommands -gt 0 -or $failedFontGetCommands -gt 0) { exit 1 }
 ############################################
