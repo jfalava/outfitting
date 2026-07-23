@@ -29,6 +29,7 @@ cask "zed"
 cask "zen"
 cask "krita"
 cask "t3-code@nightly"
+cask "chatgpt"
 
 brew "cloudflared"
 brew "deno"
