@@ -7,11 +7,19 @@
   },
   "diff_view_style": "unified",
   "agent_servers": {
+    "amp-acp": {
+      "type": "registry",
+    },
+    "pi-acp": {
+      "default_config_options": {
+        "model": "openai-codex/gpt-5.6-sol",
+      },
+      "type": "registry",
+    },
     "github-copilot-cli": {
       "favorite_config_option_values": {
         "model": [
           "gpt-5.3-codex",
-          "gpt-5.4",
           "claude-sonnet-5",
           "mai-code-1-flash-picker",
         ],
@@ -24,8 +32,8 @@
     },
     "codex-acp": {
       "default_config_options": {
-        "reasoning_effort": "medium",
-        "model": "gpt-5.5",
+        "reasoning_effort": "low",
+        "model": "gpt-5.6-sol",
       },
       "type": "registry",
     },
@@ -55,6 +63,7 @@
     "powershell": true,
     "deno": true,
     "discord-presence": true,
+    "bearded-theme": true,
     "bearded-icon-theme": true,
     "helm": true,
     "log": true,
@@ -72,7 +81,7 @@
   "confirm_quit": true,
   "telemetry": {
     "diagnostics": true,
-    "metrics": true,
+    "metrics": false,
   },
   "base_keymap": "VSCode",
   "multi_cursor_modifier": "alt",
@@ -152,7 +161,7 @@
   },
   "ui_font_size": 19,
   "extend_comment_on_newline": false,
-  "ui_font_family": "Pretendard Variable",
+  "ui_font_family": "Pretendard",
   "tab_size": 2,
   "auto_indent": "none",
   "auto_indent_on_paste": false,
@@ -433,6 +442,15 @@
           },
         },
       ],
+    },
+    "Nix": {
+      "format_on_save": "on",
+      "formatter": {
+        "external": {
+          "command": "nixfmt",
+          "arguments": ["--filename", "{buffer_path}"],
+        },
+      },
     },
   },
 }
