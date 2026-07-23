@@ -23,6 +23,9 @@
 
   # Enable zsh as the default shell
   programs.zsh.enable = true;
+  programs.zsh.loginShellInit = ''
+    [ ! -f "$HOME/.local/bin/env" ] || . "$HOME/.local/bin/env"
+  '';
 
   # Nix configuration - using flakes
   # Note: Using Determinate Nix, so we disable nix-darwin's Nix management

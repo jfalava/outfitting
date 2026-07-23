@@ -18,6 +18,7 @@ in
     # never trust homebrew
     nixd
     nil
+    nixfmt
     git
     go
     gh
@@ -31,6 +32,8 @@ in
     powershell
     python3
     tirith
+    terraform-ls
+    terraform
     ripgrep
     restic
     starship
