@@ -1,6 +1,8 @@
 { config, ... }:
 
 {
+  imports = [ ./zed.nix ];
+
   programs.home-manager.enable = true;
 
   programs.git = {
