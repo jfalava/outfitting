@@ -172,18 +172,14 @@
   };
 
   programs.zsh = {
-    enable = true;
-
-    # Completion and all interactive behavior remain in the shared dotfile.
-    enableCompletion = false;
+    # The shared module owns the base Zsh settings. macOS adds its platform
+    # startup file, which sources the managed .zshrc-base dotfile.
     initContent = ''
       source ${config.home.homeDirectory}/.config/outfitting/repo/dotfiles/.zshrc-macos
     '';
   };
 
-  # Ghostty loads its macOS Application Support config after its XDG config.
-  # Keep a managed shim here so the native macOS path cannot override the
-  # programs.ghostty settings generated above.
+  # Ghostty loads its macOS Application Support config after its XDG config. We keep a managed shim here so the native macOS path cannot override the programs.ghostty settings generated above.
   home.file."Library/Application Support/com.mitchellh.ghostty/config.ghostty".text = ''
     config-file = ${config.xdg.configHome}/ghostty/config
   '';
