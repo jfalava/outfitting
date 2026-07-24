@@ -138,28 +138,6 @@ install_homebrew() {
         return 1
     fi
 }
-install_bun() {
-    info "Installing Bun..."
-
-    if command -v bun &> /dev/null; then
-        success "Bun is already installed ($(bun --version))"
-        # Still export for current session
-        export BUN_INSTALL="$HOME/.bun"
-        export PATH="$BUN_INSTALL/bin:$PATH"
-        return 0
-    fi
-
-    if curl -fsSL https://bun.sh/install | bash; then
-        # Source Bun in current session
-        export BUN_INSTALL="$HOME/.bun"
-        export PATH="$BUN_INSTALL/bin:$PATH"
-    else
-        warning "Failed to install Bun (network error or already installed)"
-        # Try to source it anyway in case it's already there
-        export BUN_INSTALL="$HOME/.bun"
-        export PATH="$BUN_INSTALL/bin:$PATH"
-    fi
-}
 install_astral_uv() {
     info "Installing UV..."
 
@@ -335,7 +313,6 @@ main() {
     setup_symlinks
     install_nix_darwin
 
-    install_bun
     install_astral_uv
 
     install_fontget

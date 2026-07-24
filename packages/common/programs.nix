@@ -67,6 +67,11 @@
 
   programs.btop.enable = true;
 
+  programs.bun = {
+    enable = true;
+    settings.install.minimumReleaseAge = 86400;
+  };
+
   programs.eza = {
     enable = true;
     # Custom aliases are declared in the shared Zsh module.
