@@ -1,70 +1,6 @@
 # shellcheck shell=zsh
-# ========================================
-# ZSH Configuration - Base (Universal)
-# ========================================
-# This is the universal configuration shared across all platforms (WSL, macOS, etc.)
-# Platform-specific configuration is sourced after this file.
-# See: .zshrc-wsl or .zshrc-macos
 
-# ---- Performance: Lazy Completion Init ----
-autoload -Uz compinit
-# zsh-only: check for zcompdump matching the original qualifiers (mh+24, etc.)
-# Expand into an array and check its length (N in the qualifier ensures nullglob behavior).
-zcompdump=( ${ZDOTDIR:-$HOME}/.zcompdump(Nmh+24) )
-if (( ${#zcompdump} )); then
-    compinit
-else
-    compinit -C
-fi
-
-# ---- Shell Options ----
-# Directory navigation
-setopt AUTO_CD              # cd by typing directory name
-setopt AUTO_PUSHD           # Make cd push old directory onto stack
-setopt PUSHD_IGNORE_DUPS    # Don't push duplicates
-setopt PUSHD_SILENT         # Don't print directory stack
-setopt CDABLE_VARS          # cd to path stored in variable
-
-# Globbing
-setopt EXTENDED_GLOB        # Extended globbing (^, ~, #)
-setopt GLOB_DOTS            # Include dotfiles in glob
-setopt NOMATCH              # Print error if pattern has no matches
-
-# General
-setopt INTERACTIVE_COMMENTS # Allow comments in interactive shell
-setopt NOTIFY               # Report bg job status immediately
-setopt NO_BEEP              # Disable beep
-
-# ---- History Configuration ----
-HISTFILE=~/.zsh_history
-HISTSIZE=50000
-SAVEHIST=50000
-
-setopt EXTENDED_HISTORY          # Write timestamp to history
-setopt INC_APPEND_HISTORY        # Write immediately, not on exit
-setopt SHARE_HISTORY             # Share history across terminals
-setopt HIST_EXPIRE_DUPS_FIRST    # Expire duplicates first
-setopt HIST_IGNORE_DUPS          # Don't record duplicates
-setopt HIST_IGNORE_ALL_DUPS      # Delete old duplicate entries
-setopt HIST_FIND_NO_DUPS         # Don't display duplicates in search
-setopt HIST_IGNORE_SPACE         # Ignore commands starting with space
-setopt HIST_SAVE_NO_DUPS         # Don't write duplicate entries
-setopt HIST_REDUCE_BLANKS        # Remove superfluous blanks
-setopt HIST_VERIFY               # Show command before executing from history
-
-# ---- Environment Variables (Universal) ----
-export EDITOR='vim'
-export PAGER='less'
-
-# Better colors for less/man pages
-export LESS='-R -M -i -j10'
-export LESS_TERMCAP_mb=$'\e[1;31m'     # begin bold
-export LESS_TERMCAP_md=$'\e[1;36m'     # begin blink
-export LESS_TERMCAP_me=$'\e[0m'        # reset bold/blink
-export LESS_TERMCAP_so=$'\e[01;44;33m' # begin reverse video
-export LESS_TERMCAP_se=$'\e[0m'        # reset reverse video
-export LESS_TERMCAP_us=$'\e[1;32m'     # begin underline
-export LESS_TERMCAP_ue=$'\e[0m'        # reset underline
+# Custom interactive Zsh behavior that has no native Home Manager option.
 
 # ---- PATH Helper Functions ----
 path_append() {
@@ -80,8 +16,6 @@ path_prepend() {
 }
 
 # ---- Keybindings ----
-# Use emacs keybindings
-bindkey -e
 
 # Basic navigation
 bindkey '\e[2~' overwrite-mode              # Insert
@@ -348,30 +282,6 @@ zstyle ':completion:*:*:docker:*' option-stacking yes
 zstyle ':completion:*:*:docker-*:*' option-stacking yes
 zstyle ':completion:*:*:git:*' script ~/.nix-profile/share/git/contrib/completion/git-completion.zsh 2>/dev/null
 
-# ---- Aliases (Universal) ----
-# System
-alias cls='clear'
-alias editor='zed'
-alias EDITOR='zed'
-alias reload='source ~/.zshrc'
-alias zshconfig='$EDITOR ~/.zshrc'
-alias vim='nvim'
-
-# Navigation shortcuts
-alias ..='cd ..'
-alias ...='cd ../..'
-alias ....='cd ../../..'
-alias .....='cd ../../../..'
-alias -- -='cd -'
-
-# Eza (modern ls replacement)
-alias l='eza --color=always --long --git --no-filesize --icons=always'
-alias ls='eza --color=always --long --git --no-filesize --icons=always --all --color-scale-mode=gradient'
-alias la='eza --color=always --long --git --icons=always --all --group-directories-first'
-alias ll='eza --color=always --long --git --icons=always --header --group-directories-first'
-alias lt='eza --color=always --long --git --icons=always --tree --level=2'
-alias lta='eza --color=always --long --git --icons=always --tree --level=2 --all'
-
 # Python/uv
 if command -v uv &> /dev/null; then
     alias pip='uv pip'
@@ -379,13 +289,6 @@ if command -v uv &> /dev/null; then
     alias py='uv run python'
 fi
 
-# cf dev
-alias wrangler="bun wrangler"
-
-# Misc tools
-alias ff='fastfetch'
-alias cat='bat --style=auto' 2>/dev/null || alias cat='cat'
-alias diff='diff --color=auto'
 alias -s ts='bun'
 
 # Ripgrep (preferred over grep)
@@ -509,44 +412,6 @@ if command -v rg &> /dev/null; then
     }
 fi
 
-# ---- Plugin Loading ----
-# Source zsh plugins from Nix/Home Manager paths when available.
-if [ -n "$HOME" ]; then
-    # Try to find autosuggestions plugin
-    for plugin_path in \
-        "$HOME/.nix-profile/share/zsh-autosuggestions/zsh-autosuggestions.zsh" \
-        "$HOME/.nix-profile/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh" \
-        "$HOME/.local/state/home-manager/gcroots/current-home/home-path/share/zsh-autosuggestions/zsh-autosuggestions.zsh" \
-        "$HOME/.local/state/home-manager/gcroots/current-home/home-path/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh" \
-        /nix/var/nix/profiles/per-user/"$USER"/profile/share/zsh-autosuggestions/zsh-autosuggestions.zsh \
-        /run/current-system/sw/share/zsh-autosuggestions/zsh-autosuggestions.zsh; do
-        if [ -f "$plugin_path" ]; then
-            source "$plugin_path"
-            ZSH_AUTOSUGGEST_STRATEGY=(history completion)
-            ZSH_AUTOSUGGEST_BUFFER_MAX_SIZE=20
-            break
-        fi
-    done
-
-    # Try to find syntax-highlighting plugin
-    for plugin_path in \
-        "$HOME/.nix-profile/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" \
-        "$HOME/.nix-profile/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" \
-        "$HOME/.local/state/home-manager/gcroots/current-home/home-path/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" \
-        "$HOME/.local/state/home-manager/gcroots/current-home/home-path/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" \
-        /nix/var/nix/profiles/per-user/"$USER"/profile/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh \
-        /run/current-system/sw/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh; do
-        if [ -f "$plugin_path" ]; then
-            source "$plugin_path"
-            ZSH_HIGHLIGHT_STYLES[command]='fg=green,bold'
-            ZSH_HIGHLIGHT_STYLES[alias]='fg=cyan,bold'
-            ZSH_HIGHLIGHT_STYLES[builtin]='fg=yellow,bold'
-            ZSH_HIGHLIGHT_STYLES[function]='fg=blue,bold'
-            break
-        fi
-    done
-fi
-
 # ---- Tool Initialization ----
 # Nix - Try daemon first, then single-user profile
 if [ -e /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh ]; then
@@ -555,46 +420,6 @@ elif [ -e ~/.nix-profile/etc/profile.d/nix.sh ]; then
     source ~/.nix-profile/etc/profile.d/nix.sh
 fi
 
-# Export NIX_PATH for channel-based Home Manager
-export NIX_PATH="$HOME/.nix-defexpr/channels${NIX_PATH:+:$NIX_PATH}"
-
-# Zoxide (smart cd)
-if command -v zoxide &> /dev/null; then
-    eval "$(zoxide init zsh)"
-fi
-
-# FZF (fuzzy finder)
-if command -v fzf &> /dev/null; then
-    export FZF_DEFAULT_OPTS='
-        --height 40%
-        --layout=reverse
-        --border
-        --inline-info
-        --color=fg:#f8f8f2,bg:#282a36,hl:#bd93f9
-        --color=fg+:#f8f8f2,bg+:#44475a,hl+:#bd93f9
-        --color=info:#ffb86c,prompt:#50fa7b,pointer:#ff79c6
-        --color=marker:#ff79c6,spinner:#ffb86c,header:#6272a4'
-
-    if command -v fd &> /dev/null; then
-        export FZF_DEFAULT_COMMAND='fd --type f --hidden --follow --exclude .git'
-        export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
-        export FZF_ALT_C_COMMAND='fd --type d --hidden --follow --exclude .git'
-    fi
-
-    source <(fzf --zsh) 2>/dev/null
-fi
-
-# Starship prompt (must be near the end)
-if command -v starship &> /dev/null; then
-    eval "$(starship init zsh)"
-fi
-
-# Tirith (https://github.com/sheeki03/tirith)
-if command -v tirith &> /dev/null; then
-    eval "$(tirith init)"
-fi
-
-# Bun completions
-if command -v bun &> /dev/null; then
-    [ -s "$HOME/.bun/_bun" ] && source "$HOME/.bun/_bun"
-fi
+# This project is flake-only. Drop inherited legacy channel paths so Nix does
+# not warn about ~/.nix-defexpr/channels or try to resolve <darwin>.
+unset NIX_PATH

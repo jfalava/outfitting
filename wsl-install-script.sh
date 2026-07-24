@@ -20,7 +20,6 @@ error() { echo -e "${RED}✗${NC} $1"; }
 
 ################################### Configuration
 MODE="nix"  # nix (default), full, apt-only
-PROFILE="personal"
 #################################################
 
 ########## Parse arguments for the install script
@@ -29,12 +28,13 @@ for arg in "$@"; do
         --full|--full-install) MODE="full" ;;
         --apt-only|--update-only) MODE="apt-only" ;;
         --nix|--nix-only) MODE="nix" ;;
-        --work|--work-profile) PROFILE="work" ;;
-        --personal|--personal-profile) PROFILE="personal" ;;
+        --work|--work-profile|--personal|--personal-profile)
+            warning "Profile flags are obsolete; WSL now has one personal configuration."
+            ;;
     esac
 done
 
-info "Mode: $MODE | Profile: $PROFILE"
+info "Mode: $MODE"
 #################################################
 
 ######################## APT Package Installation
@@ -201,7 +201,7 @@ setup_symlinks() {
     timestamp=$(date +%Y%m%d_%H%M%S)
 
     # List of files/directories that Home Manager will manage
-    local managed_files=(".zshrc" ".zshrc-base")
+    local managed_files=(".zshrc")
     local managed_dirs=(".config")
 
     # Backup files
@@ -282,30 +282,19 @@ install_home_manager() {
         return 1
     fi
 
-    local repo_path flake_path hm_config
+    local repo_path flake_path
     repo_path=$(cat "$config_file")
     flake_path="$repo_path/packages/x64-linux"
 
-    if [ "$PROFILE" = "work" ]; then
-        hm_config="jfalava-work"
-        info "Installing Home Manager (work profile)..."
-    else
-        hm_config="jfalava-personal"
-        info "Installing Home Manager (personal profile)..."
-    fi
+    info "Installing Home Manager..."
 
     # Use --impure for absolute path dotfile access
-    if ! nix run home-manager/master -- switch --flake "$flake_path#$hm_config" --impure; then
-        if [ "$PROFILE" = "work" ]; then
-            warning "Work profile failed, trying personal..."
-            nix run home-manager/master -- switch --flake "$flake_path#jfalava-personal" --impure
-        else
-            error "Failed to install Home Manager"
-            return 1
-        fi
+    if ! nix run home-manager/master -- switch --flake "path:$flake_path#jfalava" --impure; then
+        error "Failed to install Home Manager"
+        return 1
     fi
 
-    success "Home Manager configured ($hm_config)"
+    success "Home Manager configured"
 
     # Set zsh as default shell
     if command -v zsh &>/dev/null; then
@@ -465,8 +454,7 @@ main() {
     echo ""
     info "Update commands (after opening a new terminal):"
     echo "  hm-update    - Update Nix packages and Home Manager"
-    echo "  hm-personal  - Switch to personal profile"
-    echo "  hm-work      - Switch to work profile"
+    echo "  hm-sync      - Apply the WSL Home Manager configuration"
     echo ""
 }
 main

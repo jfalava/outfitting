@@ -11,13 +11,13 @@ This guide explains how to pick the right installer command and what Outfitting 
 2. Pick scope: minimal/bootstrap, default personal setup, or full setup.
 3. Pick profile set:
    - Windows uses explicit profiles like `base`, `dev`, `work`, `gaming`, `qol`, `network`.
-   - WSL supports personal or work profile flags.
+   - WSL uses one personal Home Manager configuration.
    - macOS uses Homebrew casks and formulae, and the repo's nix-darwin/Home Manager config.
 4. Run install command as documented in the platform page.
 5. Optionally run the platform post-install command to fetch the Cloudflare
    Access-protected licensed fonts. Windows extracts them to the user's
    Downloads folder; macOS installs them system-wide.
-6. Verify by running profile/update helper commands (`hm-profile`, `hm-sync`, `hm-update`, etc.).
+6. Verify by running the platform's apply/update helper commands (`hm-sync`, `hm-update`, etc.).
 
 ## What gets installed
 
@@ -38,7 +38,7 @@ Outfitting installs and configures four layers:
 
 ### 2) Configuration Layer
 
-- Dotfiles and shell profiles from this repository.
+- Declarative Home Manager and Nix configuration, plus the Windows PowerShell profile.
 - Home Manager configuration through symlinks.
 - PowerShell profile updates on Windows via `win.jfa.dev/config/pwsh-profile`.
 
@@ -51,7 +51,7 @@ Outfitting installs and configures four layers:
 ### 4) Maintenance Tooling
 
 - Helper commands to apply and update configs:
-  - `hm-sync`, `hm-update`, `hm-personal`, `hm-work` (WSL)
+  - `hm-sync`, `hm-update` (WSL)
   - `outfit sync`, `outfit upgrade`, `outfit switch` (macOS)
 - Update scripts to refresh package sources and reinstall as needed.
 

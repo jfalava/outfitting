@@ -2,12 +2,8 @@
 # ZSH Configuration for macOS
 # ========================================
 
-# Source universal configuration
-source ~/.zshrc-base
-
 # ---- macOS-Specific PATH Additions ----
-# Add paths in order of precedence
-path_prepend "$HOME/.local/bin"
+# Static prepends are managed by home.sessionPath.
 path_append "$HOME/go/bin"
 
 # Homebrew
@@ -17,30 +13,15 @@ elif [[ -x /usr/local/bin/brew ]]; then
     eval "$(/usr/local/bin/brew shellenv)"
 fi
 
-# Add Applications folder to PATH
-path_prepend "/Applications/"
-
-# pnpm
-export PNPM_HOME="$HOME/.local/share/pnpm"
-path_prepend "$PNPM_HOME"
-
 # Bun
-export BUN_INSTALL="$HOME/.bun"
-path_prepend "$BUN_INSTALL/bin"
+[ -s "$HOME/.bun/_bun" ] && source "$HOME/.bun/_bun"
 
 # Yarn
 path_append "$HOME/.yarn/switch/bin"
 path_append "$HOME/.yarn/switch"
 
-# Deno
-export DENO_INSTALL="$HOME/.deno"
-path_prepend "$DENO_INSTALL/bin"
-
 # UV
 path_append "$HOME/.local/share/uv/bin"
-
-# OpenCode
-path_prepend "$HOME/.opencode/bin"
 
 # Cargo
 path_append "$HOME/.cargo/bin"
@@ -61,18 +42,6 @@ for app_dir in /Applications/*.app; do
         path_prepend "$app_dir/Contents/Resources/app/bin"
     fi
 done
-
-# ---- macOS-Specific Aliases ----
-alias show='open'  # macOS equivalent of explorer
-alias finder='open .'  # Open current directory in Finder
-
-# Quick nix commands
-alias nix-clean='sudo nix-collect-garbage -d'
-alias nix-search='nix search nixpkgs'
-alias nix-shell='nix shell nixpkgs#'
-
-# Zed editor aliases
-alias zed='/Applications/Zed.app/Contents/MacOS/cli -n'
 
 # ---- macOS-Specific Functions ----
 
@@ -171,14 +140,13 @@ hm-sync() {
         ln -sfn "$hm_target" ~/.config/home-manager
     fi
 
-     sudo -H HOME=/var/root env -u SUDO_USER -u SUDO_HOME darwin-rebuild switch --flake "$repo_path/packages/aarch64-darwin"
-     echo "Synced from $repo_path"
- }
+    outfit-rebuild switch
+    echo "Synced from $repo_path"
+}
 
 hm-switch() {
-     echo "Applying nix-darwin configuration..."
-     sudo -H HOME=/var/root env -u SUDO_USER -u SUDO_HOME darwin-rebuild switch
- }
+    outfit-rebuild switch
+}
 
 hm-switch-local() {
     local repo_path
@@ -203,21 +171,7 @@ hm-switch-local() {
         ln -sfn "$hm_target" ~/.config/home-manager
     fi
 
-     # Apply configuration
-     sudo -H HOME=/var/root env -u SUDO_USER -u SUDO_HOME darwin-rebuild switch
-
-    if git -C "$repo_path" diff --quiet && git -C "$repo_path" diff --cached --quiet; then
-        echo ""
-        echo "No uncommitted changes - you're all set!"
-    else
-        echo ""
-        echo "⚠ You have uncommitted changes in $repo_path"
-        echo "  Don't forget to commit and push to sync across machines:"
-        echo "    cd $repo_path"
-        echo "    git add packages/aarch64-darwin/"
-        echo "    git commit -m 'Update nix-darwin config'"
-        echo "    git push"
-    fi
+    outfit-rebuild switch
 }
 
 hm-update() {
@@ -243,11 +197,8 @@ hm-update() {
 
      echo "Updating flake inputs and nix-darwin..."
 
-     # Update flake lock file as user to avoid root-owned lockfile
-     nix flake update --flake "$repo_path/packages/aarch64-darwin" --impure
-
-     # Apply updated configuration
-     sudo -H HOME=/var/root env -u SUDO_USER -u SUDO_HOME darwin-rebuild switch --flake "$repo_path/packages/aarch64-darwin" --impure
+     env -u NIX_PATH nix flake update --flake "$repo_path/packages/aarch64-darwin" --impure
+     outfit-rebuild switch
 
      echo ""
      echo "Nix packages updated successfully!"
@@ -450,9 +401,6 @@ outfit() {
     esac
 }
 
-# Short alias for the unified outfit command (build/switch/test/dry/sync/upgrade)
-alias o='outfit'
-
 # Quick system update
 update-all() {
      # Request elevation at the start
@@ -491,13 +439,8 @@ update-all-no-nix() {
         echo "Warning: $repo_path is not a git repository, skipping pull."
     fi
 
-    if [ -n "$ZSH_VERSION" ] && [ -f "$repo_path/dotfiles/.zshrc-macos" ]; then
-        source "$repo_path/dotfiles/.zshrc-macos"
-        echo "Zsh profile reloaded"
-    fi
-
     echo ""
-    echo "System updated (no Nix packages)"
+    echo "System updated (no Nix packages). Run 'outfit switch' to apply profile changes."
 }
 
 # Quick nix-darwin rebuild from anywhere in the system
@@ -512,6 +455,7 @@ outfit-rebuild() {
     # Ensure symlinks exist
     local darwin_target="$repo_path/packages/aarch64-darwin/darwin.nix"
     local hm_target="$repo_path/packages/aarch64-darwin"
+    local flake_ref="path:$hm_target#macos"
 
     if [ ! -L ~/.nixpkgs/darwin-configuration.nix ]; then
         mkdir -p ~/.nixpkgs
@@ -527,23 +471,23 @@ outfit-rebuild() {
     case "${1:-switch}" in
         build|b)
             echo "Building nix-darwin configuration..."
-            darwin-rebuild build --flake ".#macos" --impure
+            env -u NIX_PATH darwin-rebuild build --flake "$flake_ref" --impure
             ;;
         switch|s)
             echo "Applying nix-darwin configuration..."
-            sudo -H HOME=/var/root env -u SUDO_USER -u SUDO_HOME darwin-rebuild switch --flake ".#macos" --impure
+            sudo -H HOME=/var/root env -u SUDO_USER -u SUDO_HOME -u NIX_PATH darwin-rebuild switch --flake "$flake_ref" --impure
             ;;
         test|t)
             echo "Testing nix-darwin configuration..."
-            darwin-rebuild build --flake ".#macos" && echo "Build successful - ready to switch"
+            env -u NIX_PATH darwin-rebuild build --flake "$flake_ref" --impure && echo "Build successful - ready to switch"
             ;;
         dry|d)
             echo "Dry-run check..."
-            darwin-rebuild switch --flake ".#macos" --dry-run --impure
+            env -u NIX_PATH darwin-rebuild switch --flake "$flake_ref" --dry-run --impure
             ;;
         upgrade|u)
             echo "Upgrading packages and applying..."
-            sudo -H HOME=/var/root env -u SUDO_USER -u SUDO_HOME darwin-rebuild switch --flake ".#macos" --upgrade
+            sudo -H HOME=/var/root env -u SUDO_USER -u SUDO_HOME -u NIX_PATH darwin-rebuild switch --flake "$flake_ref" --upgrade --impure
             ;;
         *)
             echo "Usage: outfit-rebuild [build|switch|test|dry|upgrade]"

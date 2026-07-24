@@ -1,0 +1,7 @@
+{
+  "packages/common/programs.nix": [
+    "area:nix",
+    "topic:shared-programs",
+    "kind:decision"
+  ]
+}
