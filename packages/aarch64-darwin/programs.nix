@@ -158,7 +158,25 @@
     enableZshIntegration = false; # Tirith is initialized in the zshrc-base dotfile. Avoid installing the shell hook twice.
   };
 
-  programs.twitch-tui.enable = true;
+  programs.twitch-tui = {
+    enable = true;
+
+    # Authentication is configured separately and must not enter the Nix store.
+    # Only values that differ from twitch-tui 2.6.19 defaults are declared.
+    settings = {
+      twitch = {
+        username = "criccadamus";
+        channel = "criccadamus";
+      };
+
+      frontend = {
+        cursor_shape = "user";
+        show_scroll_offset = false;
+        twitch_emotes = true;
+        seventv_emotes = true;
+      };
+    };
+  };
 
   programs.vim.enable = true;
 
