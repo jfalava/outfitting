@@ -1,0 +1,71 @@
+---
+title: macOS
+description: Install Outfitting on macOS with Homebrew casks and formulae, and nix-darwin configuration.
+---
+
+## Installation
+
+```bash
+curl -L mac.jfa.dev | bash
+```
+
+This installs:
+
+- Homebrew-managed casks and formulae from `packages/aarch64-darwin/Brewfile`
+- nix-darwin/Home Manager configuration from `packages/aarch64-darwin`
+
+## Post-install and licensed fonts
+
+Run the post-install script after the main installer to perform post-install
+work and install licensed fonts for every local user:
+
+```bash
+curl -L mac.jfa.dev/post-install | bash
+```
+
+The script requests administrator credentials, authenticates through Cloudflare
+Access in your browser when needed, verifies the downloaded archive's SHA-256
+checksum, and installs supported `.otf`, `.ttf`, and `.ttc` files into
+`/Library/Fonts`. Only identities permitted by the Access policy can download
+the private font archive.
+
+## Package Management
+
+The `outfit` command (aliased to `o`) unifies Homebrew and nix-darwin operations:
+
+```bash
+# Apply Homebrew casks and formulae from the repo
+outfit sync   # or: outfit sync
+
+# Upgrade nix-darwin configuration, then upgrade Homebrew packages/casks
+outfit upgrade   # or: outfit upgrade
+```
+
+## Nix-darwin Profile Management
+
+```bash
+# Build and apply changes
+outfit switch   # (default when no argument is given)
+outfit build
+outfit test
+
+# Dry-run changes
+outfit dry
+
+# List and roll back generations
+hm-rollback
+```
+
+Traditional `nix-darwin` commands from the repository directory:
+
+```bash
+darwin-rebuild switch --flake ".#macos"
+darwin-rebuild build --flake ".#macos"
+```
+
+## Nix Package Testing
+
+```bash
+nix-test bat
+nix-try ripgrep
+```
