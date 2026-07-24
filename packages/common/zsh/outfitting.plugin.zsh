@@ -1,0 +1,425 @@
+# shellcheck shell=zsh
+
+# Custom interactive Zsh behavior that has no native Home Manager option.
+
+# ---- PATH Helper Functions ----
+path_append() {
+    if [[ -d "$1" ]] && [[ ":$PATH:" != *":$1:"* ]]; then
+        export PATH="$PATH:$1"
+    fi
+}
+
+path_prepend() {
+    if [[ -d "$1" ]] && [[ ":$PATH:" != *":$1:"* ]]; then
+        export PATH="$1:$PATH"
+    fi
+}
+
+# ---- Keybindings ----
+
+# Basic navigation
+bindkey '\e[2~' overwrite-mode              # Insert
+bindkey '\e[3~' delete-char                 # Delete
+bindkey '\e[1~' beginning-of-line           # Home
+bindkey '\e[4~' end-of-line                 # End
+bindkey '\e[H' beginning-of-line            # Home (alt)
+bindkey '\e[F' end-of-line                  # End (alt)
+bindkey '\e[5~' beginning-of-history        # Page Up
+bindkey '\e[6~' end-of-history              # Page Down
+
+# Ctrl + arrow keys for word-by-word navigation (Windows-style)
+_forward_word_windows() {
+    local WORDCHARS_OLD=$WORDCHARS
+    WORDCHARS='*?[]~=&;!#$%^(){}<>'
+    zle .forward-word
+    WORDCHARS=$WORDCHARS_OLD
+}
+zle -N _forward_word_windows
+
+_backward_word_windows() {
+    local WORDCHARS_OLD=$WORDCHARS
+    WORDCHARS='*?[]~=&;!#$%^(){}<>'
+    zle .backward-word
+    WORDCHARS=$WORDCHARS_OLD
+}
+zle -N _backward_word_windows
+
+bindkey '\e[1;5C' _forward_word_windows     # Ctrl+Right
+bindkey '\e[1;5D' _backward_word_windows    # Ctrl+Left
+
+# Alt+D: Delete word forward
+bindkey '\ed' kill-word
+
+# Ctrl+W: Delete word backward (with region support)
+_backward_kill_word_or_region() {
+    if ((REGION_ACTIVE)); then
+        zle kill-region
+    else
+        zle backward-kill-word
+    fi
+}
+zle -N _backward_kill_word_or_region
+bindkey '^W' _backward_kill_word_or_region
+
+# Ctrl+K: Kill to end of line (with region support)
+_kill_line_or_region() {
+    if ((REGION_ACTIVE)); then
+        zle kill-region
+    else
+        zle kill-line
+    fi
+}
+zle -N _kill_line_or_region
+bindkey '^K' _kill_line_or_region
+
+# Ctrl+U: Kill to beginning of line (with region support)
+_backward_kill_line_or_region() {
+    if ((REGION_ACTIVE)); then
+        zle kill-region
+    else
+        zle backward-kill-line
+    fi
+}
+zle -N _backward_kill_line_or_region
+bindkey '^U' _backward_kill_line_or_region
+
+# Ctrl+Z: Undo
+bindkey '^Z' undo
+
+# Ctrl+Y: Redo (yank)
+bindkey '^Y' redo
+
+# Shift + arrow keys for character selection
+_shift_select_forward() {
+    if ((REGION_ACTIVE)); then
+        zle .forward-char
+    else
+        zle .set-mark-command && zle .forward-char
+    fi
+}
+zle -N _shift_select_forward
+
+_shift_select_backward() {
+    if ((REGION_ACTIVE)); then
+        zle .backward-char
+    else
+        zle .set-mark-command && zle .backward-char
+    fi
+}
+zle -N _shift_select_backward
+
+bindkey '\e[1;2C' _shift_select_forward     # Shift+Right
+bindkey '\e[1;2D' _shift_select_backward    # Shift+Left
+
+# Ctrl + Shift + arrow keys for word selection (Windows-style)
+_shift_select_forward_word() {
+    if ((REGION_ACTIVE)); then
+        local WORDCHARS_OLD=$WORDCHARS
+        WORDCHARS='*?_[]~=&;!#$%^(){}<>'
+        zle .forward-word
+        WORDCHARS=$WORDCHARS_OLD
+    else
+        zle .set-mark-command
+        local WORDCHARS_OLD=$WORDCHARS
+        WORDCHARS='*?_[]~=&;!#$%^(){}<>'
+        zle .forward-word
+        WORDCHARS=$WORDCHARS_OLD
+    fi
+}
+zle -N _shift_select_forward_word
+
+_shift_select_backward_word() {
+    if ((REGION_ACTIVE)); then
+        local WORDCHARS_OLD=$WORDCHARS
+        WORDCHARS='*?_[]~=&;!#$%^(){}<>'
+        zle .backward-word
+        WORDCHARS=$WORDCHARS_OLD
+    else
+        zle .set-mark-command
+        local WORDCHARS_OLD=$WORDCHARS
+        WORDCHARS='*?_[]~=&;!#$%^(){}<>'
+        zle .backward-word
+        WORDCHARS=$WORDCHARS_OLD
+    fi
+}
+zle -N _shift_select_backward_word
+
+bindkey '\e[1;6C' _shift_select_forward_word    # Ctrl+Shift+Right
+bindkey '\e[1;6D' _shift_select_backward_word   # Ctrl+Shift+Left
+
+# Shift + Home/End for line selection
+_shift_select_to_start() {
+    if ((REGION_ACTIVE)); then
+        zle .beginning-of-line
+    else
+        zle .set-mark-command && zle .beginning-of-line
+    fi
+}
+zle -N _shift_select_to_start
+
+_shift_select_to_end() {
+    if ((REGION_ACTIVE)); then
+        zle .end-of-line
+    else
+        zle .set-mark-command && zle .end-of-line
+    fi
+}
+zle -N _shift_select_to_end
+
+bindkey '\e[1;2H' _shift_select_to_start    # Shift+Home
+bindkey '\e[1;2F' _shift_select_to_end      # Shift+End
+
+# Ctrl + Home/End for start/end of buffer
+bindkey '\e[1;5H' beginning-of-buffer       # Ctrl+Home
+bindkey '\e[1;5F' end-of-buffer             # Ctrl+End
+
+# Ctrl + Shift + Home/End for buffer selection
+_shift_select_to_start_buffer() {
+    if ((REGION_ACTIVE)); then
+        zle .beginning-of-buffer
+    else
+        zle .set-mark-command && zle .beginning-of-buffer
+    fi
+}
+zle -N _shift_select_to_start_buffer
+
+_shift_select_to_end_buffer() {
+    if ((REGION_ACTIVE)); then
+        zle .end-of-buffer
+    else
+        zle .set-mark-command && zle .end-of-buffer
+    fi
+}
+zle -N _shift_select_to_end_buffer
+
+bindkey '\e[1;6H' _shift_select_to_start_buffer # Ctrl+Shift+Home
+bindkey '\e[1;6F' _shift_select_to_end_buffer   # Ctrl+Shift+End
+
+# Ctrl+C: Copy selection to clipboard (OSC 52)
+_copy_region() {
+    if ((REGION_ACTIVE)); then
+        zle copy-region-as-kill
+        echo -n "\033]52;c;$(base64 <<< $CUTBUFFER)\a"
+        zle -M "Copied to clipboard"
+    fi
+}
+zle -N _copy_region
+bindkey '^C' _copy_region
+
+# Ctrl+X: Cut selection
+_cut_region() {
+    if ((REGION_ACTIVE)); then
+        zle kill-region
+        echo -n "\033]52;c;$(base64 <<< $CUTBUFFER)\a"
+        zle -M "Cut to clipboard"
+    else
+        zle kill-line
+    fi
+}
+zle -N _cut_region
+bindkey '^X' _cut_region
+
+# Ctrl+V: Paste (if using OSC 52 paste or just use yank)
+bindkey '^V' yank
+
+# Ctrl+A: Select all
+_select_all() {
+    zle beginning-of-buffer
+    zle set-mark-command
+    zle end-of-buffer
+}
+zle -N _select_all
+bindkey '^A' _select_all
+
+# Delete key to delete selection
+_delete_region() {
+    if ((REGION_ACTIVE)); then
+        zle kill-region
+    else
+        zle delete-char
+    fi
+}
+zle -N _delete_region
+bindkey '\e[3~' _delete_region
+
+# Backspace to delete selection
+_backward_delete_region() {
+    if ((REGION_ACTIVE)); then
+        zle kill-region
+    else
+        zle backward-delete-char
+    fi
+}
+zle -N _backward_delete_region
+bindkey '^?' _backward_delete_region
+
+# Typing replaces selection (Windows-style)
+_self_insert_with_region() {
+    if ((REGION_ACTIVE)); then
+        zle kill-region
+    fi
+    zle .self-insert
+}
+zle -N self-insert _self_insert_with_region
+
+# ---- Completion Configuration ----
+zstyle ':completion:*' menu select                          # Interactive menu
+zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}'  # Case insensitive
+zstyle ':completion:*' list-colors "${(s.:.)LS_COLORS}"    # Colored completion
+zstyle ':completion:*' group-name ''                        # Group by category
+zstyle ':completion:*' verbose yes
+zstyle ':completion:*:descriptions' format '%F{yellow}-- %d --%f'
+zstyle ':completion:*:messages' format '%F{purple}-- %d --%f'
+zstyle ':completion:*:warnings' format '%F{red}-- no matches found --%f'
+zstyle ':completion:*:corrections' format '%F{green}-- %d (errors: %e) --%f'
+
+# Cache completion for better performance
+zstyle ':completion:*' use-cache on
+zstyle ':completion:*' cache-path ~/.zsh/cache
+
+# Better completion for specific commands
+zstyle ':completion:*:*:docker:*' option-stacking yes
+zstyle ':completion:*:*:docker-*:*' option-stacking yes
+zstyle ':completion:*:*:git:*' script ~/.nix-profile/share/git/contrib/completion/git-completion.zsh 2>/dev/null
+
+# Python/uv
+if command -v uv &> /dev/null; then
+    alias pip='uv pip'
+    alias python='uv run python'
+    alias py='uv run python'
+fi
+
+alias -s ts='bun'
+
+# Ripgrep (preferred over grep)
+if command -v rg &> /dev/null; then
+    alias grep='rg'
+    alias rgi='rg -i'                          # Case insensitive
+    alias rgl='rg --files-with-matches'        # Only show filenames
+    alias rgc='rg --count'                     # Count matches per file
+    alias rgh='rg --hidden'                    # Include hidden files
+    alias rgz='rg -z'                          # Search in compressed files
+    alias rgt='rg --type-list'                 # Show supported file types
+    alias rgpy='rg --type py'                  # Python files only
+    alias rgjs='rg --type js'                  # JavaScript files only
+    alias rgts='rg --type ts'                  # TypeScript files only
+    alias rggo='rg --type go'                  # Go files only
+    alias rgrs='rg --type rust'                # Rust files only
+else
+    alias grep='grep --color=auto'
+fi
+
+# ---- Functions (Universal) ----
+
+# Smart cd that also lists contents
+unalias cd 2>/dev/null || true
+cd() {
+    builtin cd "$@" && ls
+}
+
+# Create directory and cd into it
+mkcd() {
+    mkdir -p "$1" && cd "$1"
+}
+
+# Extract any archive
+extract() {
+    if [ -f "$1" ]; then
+        case "$1" in
+            *.tar.bz2)   tar xjf "$1"     ;;
+            *.tar.gz)    tar xzf "$1"     ;;
+            *.bz2)       bunzip2 "$1"     ;;
+            *.rar)       unrar x "$1"     ;;
+            *.gz)        gunzip "$1"      ;;
+            *.tar)       tar xf "$1"      ;;
+            *.tbz2)      tar xjf "$1"     ;;
+            *.tgz)       tar xzf "$1"     ;;
+            *.zip)       unzip "$1"       ;;
+            *.Z)         uncompress "$1"  ;;
+            *.7z)        7z x "$1"        ;;
+            *.tar.xz)    tar xf "$1"      ;;
+            *)           echo "'$1' cannot be extracted via extract()" ;;
+        esac
+    else
+        echo "'$1' is not a valid file"
+    fi
+}
+
+# Quick weather
+weather() {
+    local location="${1:-}"
+    curl -s "wttr.in/${location}?format=3"
+}
+
+# Backup file with timestamp
+backup() {
+    if [ -z "$1" ]; then
+        echo "Usage: backup <file>"
+        return 1
+    fi
+    cp "$1" "${1}.backup.$(date +%Y%m%d_%H%M%S)"
+}
+
+# Ripgrep functions
+if command -v rg &> /dev/null; then
+    # Search and edit results in editor
+    rge() {
+        if [ -z "$1" ]; then
+            echo "Usage: rge <pattern> [path]"
+            return 1
+        fi
+        local files=$(rg --files-with-matches "$1" "${2:-.}")
+        if [ -n "$files" ]; then
+            echo "$files" | xargs $EDITOR
+        else
+            echo "No matches found"
+        fi
+    }
+
+    # Search with context (5 lines before/after)
+    rgx() {
+        rg --context 5 "$@"
+    }
+
+    # Search for TODO/FIXME/XXX/HACK comments
+    todos() {
+        rg --heading --line-number --color=always \
+            "TODO|FIXME|XXX|HACK|BUG|NOTE" "${1:-.}"
+    }
+
+    # Search for function/class definitions
+    rgfunc() {
+        if [ -z "$1" ]; then
+            echo "Usage: rgfunc <function_name> [path]"
+            return 1
+        fi
+        rg --heading --line-number \
+            "(function|def|class|fn|func|const|let|var)\s+$1" \
+            "${2:-.}"
+    }
+
+    # Search with stats (count + files)
+    rgstats() {
+        if [ -z "$1" ]; then
+            echo "Usage: rgstats <pattern> [path]"
+            return 1
+        fi
+        echo "=== Match Statistics ==="
+        rg --count --heading "$1" "${2:-.}"
+        echo ""
+        echo "=== Total Matches ==="
+        rg --count-matches "$1" "${2:-.}" | awk -F: '{sum+=$2} END {print sum " total matches"}'
+    }
+fi
+
+# ---- Tool Initialization ----
+# Nix - Try daemon first, then single-user profile
+if [ -e /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh ]; then
+    source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
+elif [ -e ~/.nix-profile/etc/profile.d/nix.sh ]; then
+    source ~/.nix-profile/etc/profile.d/nix.sh
+fi
+
+# This project is flake-only. Drop inherited legacy channel paths so Nix does
+# not warn about ~/.nix-defexpr/channels or try to resolve <darwin>.
+unset NIX_PATH

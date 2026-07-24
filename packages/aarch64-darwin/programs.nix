@@ -77,7 +77,7 @@
   programs.eza = {
     enable = true;
 
-    # Custom eza aliases already live in .zshrc-base.
+    # Custom eza aliases are declared in the shared common/zsh.nix module.
     enableZshIntegration = false;
     git = true;
     icons = "always";
@@ -89,9 +89,30 @@
 
   programs.fzf = {
     enable = true;
-
-    # The existing FZF environment and widgets are initialized in .zshrc-base.
-    enableZshIntegration = false;
+    enableZshIntegration = true;
+    defaultCommand = "fd --type f --hidden --follow --exclude .git";
+    fileWidgetCommand = "fd --type f --hidden --follow --exclude .git";
+    changeDirWidgetCommand = "fd --type d --hidden --follow --exclude .git";
+    defaultOptions = [
+      "--height 40%"
+      "--layout=reverse"
+      "--border"
+      "--inline-info"
+    ];
+    colors = {
+      fg = "#f8f8f2";
+      bg = "#282a36";
+      hl = "#bd93f9";
+      "fg+" = "#f8f8f2";
+      "bg+" = "#44475a";
+      "hl+" = "#bd93f9";
+      info = "#ffb86c";
+      prompt = "#50fa7b";
+      pointer = "#ff79c6";
+      marker = "#ff79c6";
+      spinner = "#ffb86c";
+      header = "#6272a4";
+    };
   };
 
   programs.go.enable = true;
@@ -152,12 +173,14 @@
 
   programs.starship = {
     enable = true;
-    enableZshIntegration = false; # Starship is initialized in the zshrc-base dotfile. Avoid adding a second initialization hook.
+    enableZshIntegration = true;
   };
 
   programs.tirith = {
     enable = true;
-    enableZshIntegration = false; # Tirith is initialized in the zshrc-base dotfile. Avoid installing the shell hook twice.
+    # Home Manager 26.05 still implements this integration through the
+    # deprecated programs.zsh.initExtra option. Initialize it below instead.
+    enableZshIntegration = false;
   };
 
   programs.twitch-tui = {
@@ -168,13 +191,13 @@
 
   programs.zoxide = {
     enable = true;
-    enableZshIntegration = false; # Zoxide is already initialized with its current defaults in .zshrc-base.
+    enableZshIntegration = true;
   };
 
   programs.zsh = {
-    # The shared module owns the base Zsh settings. macOS adds its platform
-    # startup file, which sources the managed .zshrc-base dotfile.
+    # common/zsh.nix owns the base settings; this adds the macOS startup file.
     initContent = ''
+      eval "$(${config.programs.tirith.package}/bin/tirith init --shell zsh)"
       source ${config.home.homeDirectory}/.config/outfitting/repo/dotfiles/.zshrc-macos
     '';
   };

@@ -2,9 +2,6 @@
 # ZSH Configuration for macOS
 # ========================================
 
-# Source universal configuration
-source ~/.zshrc-base
-
 # ---- macOS-Specific PATH Additions ----
 # Add paths in order of precedence
 path_prepend "$HOME/.local/bin"
@@ -27,6 +24,7 @@ path_prepend "$PNPM_HOME"
 # Bun
 export BUN_INSTALL="$HOME/.bun"
 path_prepend "$BUN_INSTALL/bin"
+[ -s "$HOME/.bun/_bun" ] && source "$HOME/.bun/_bun"
 
 # Yarn
 path_append "$HOME/.yarn/switch/bin"

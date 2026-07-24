@@ -1,14 +1,10 @@
-{ config, pkgs, ... }:
+{ pkgs, ... }:
 
-let
-  # Repository path - customize if your outfitting repo is in a different location
-  # Default location set by installation scripts: ~/.config/outfitting/repo
-  # To customize: change this path AND update ~/.config/outfitting/repo-path (or run set_outfitting_repo)
-  outfittingRepo = "${config.home.homeDirectory}/.config/outfitting/repo";
-
-in
 {
-  imports = [ ./programs.nix ];
+  imports = [
+    /Users/jfalava/.config/outfitting/repo/packages/common/zsh.nix
+    ./programs.nix
+  ];
 
   # Home Manager needs a bit of information about you and the paths it should manage
   home.username = "jfalava";
@@ -27,8 +23,6 @@ in
     terraform
     restic
     zig
-    zsh-autosuggestions
-    zsh-syntax-highlighting
     nodejs_26
     # unavailable on homebrew
     ani-cli
@@ -57,10 +51,5 @@ in
   # This is a per-user preference. Home Manager applies it as the logged-in
   # user, so F1–F12 are function keys instead of media shortcuts by default.
   targets.darwin.defaults.NSGlobalDomain."com.apple.keyboard.fnState" = true;
-
-  # Dotfiles management - symlink your dotfiles to home directory
-  home.file = {
-    ".zshrc-base".source = config.lib.file.mkOutOfStoreSymlink "${outfittingRepo}/dotfiles/.zshrc-base";
-  };
 
 }
