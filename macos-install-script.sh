@@ -259,7 +259,7 @@ install_nix_darwin() {
 
     info "Running nix-darwin switch (darwinConfigurations.macos)..."
     # sudo -H is required on macOS to avoid /Users/<user> ownership warnings
-    if sudo -H nix run nix-darwin -- switch --flake "$flake_path#macos" --impure; then
+    if sudo -H nix run nix-darwin -- switch --flake "path:$flake_path#macos" --impure; then
         success "nix-darwin activated"
     else
         error "Failed to activate nix-darwin"

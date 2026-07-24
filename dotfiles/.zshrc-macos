@@ -159,6 +159,7 @@ hm-sync() {
     # Ensure symlinks are set up correctly
     local darwin_target="$repo_path/packages/aarch64-darwin/darwin.nix"
     local hm_target="$repo_path/packages/aarch64-darwin"
+    local flake_ref="path:$hm_target#macos"
 
     if [ ! -L ~/.nixpkgs/darwin-configuration.nix ] || [ "$(readlink -f ~/.nixpkgs/darwin-configuration.nix)" != "$(readlink -f "$darwin_target")" ]; then
         echo "Creating/updating symlink: ~/.nixpkgs/darwin-configuration.nix → $darwin_target"
@@ -527,23 +528,23 @@ outfit-rebuild() {
     case "${1:-switch}" in
         build|b)
             echo "Building nix-darwin configuration..."
-            darwin-rebuild build --flake ".#macos" --impure
+            darwin-rebuild build --flake "$flake_ref" --impure
             ;;
         switch|s)
             echo "Applying nix-darwin configuration..."
-            sudo -H HOME=/var/root env -u SUDO_USER -u SUDO_HOME darwin-rebuild switch --flake ".#macos" --impure
+            sudo -H HOME=/var/root env -u SUDO_USER -u SUDO_HOME darwin-rebuild switch --flake "$flake_ref" --impure
             ;;
         test|t)
             echo "Testing nix-darwin configuration..."
-            darwin-rebuild build --flake ".#macos" && echo "Build successful - ready to switch"
+            darwin-rebuild build --flake "$flake_ref" && echo "Build successful - ready to switch"
             ;;
         dry|d)
             echo "Dry-run check..."
-            darwin-rebuild switch --flake ".#macos" --dry-run --impure
+            darwin-rebuild switch --flake "$flake_ref" --dry-run --impure
             ;;
         upgrade|u)
             echo "Upgrading packages and applying..."
-            sudo -H HOME=/var/root env -u SUDO_USER -u SUDO_HOME darwin-rebuild switch --flake ".#macos" --upgrade
+            sudo -H HOME=/var/root env -u SUDO_USER -u SUDO_HOME darwin-rebuild switch --flake "$flake_ref" --upgrade
             ;;
         *)
             echo "Usage: outfit-rebuild [build|switch|test|dry|upgrade]"

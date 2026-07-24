@@ -16,11 +16,6 @@
   networking.hostName = "jfa-mac-mini";
   networking.computerName = "jfa-mac-mini";
 
-  # System-wide packages (minimal - most packages in home.nix)
-  environment.systemPackages = with pkgs; [
-    vim
-  ];
-
   # Enable zsh as the default shell
   programs.zsh.enable = true;
   programs.zsh.loginShellInit = ''

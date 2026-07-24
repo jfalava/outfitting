@@ -4,7 +4,8 @@
   "workspaces": {
     "packages": [
       "installer",
-      "documentation"
+      "documentation",
+      "documentation-new"
     ],
     "catalogs": {
       "types": {
