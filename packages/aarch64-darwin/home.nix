@@ -60,7 +60,7 @@ in
 
   # Dotfiles management - symlink your dotfiles to home directory
   home.file = {
-    ".zshrc-base".source = "${outfittingRepo}/dotfiles/.zshrc-base";
+    ".zshrc-base".source = config.lib.file.mkOutOfStoreSymlink "${outfittingRepo}/dotfiles/.zshrc-base";
   };
 
 }

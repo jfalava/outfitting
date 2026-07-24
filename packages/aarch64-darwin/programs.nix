@@ -150,18 +150,12 @@
 
   programs.starship = {
     enable = true;
-
-    # Zsh is still sourced from the repository-managed .zshrc files, where
-    # Starship is initialized. Avoid adding a second initialization hook.
-    enableZshIntegration = false;
+    enableZshIntegration = false; # Starship is initialized in the zshrc-base dotfile. Avoid adding a second initialization hook.
   };
 
   programs.tirith = {
     enable = true;
-
-    # Zsh is still sourced from the repository-managed .zshrc files, where
-    # Tirith is initialized. Avoid installing the shell hook twice.
-    enableZshIntegration = false;
+    enableZshIntegration = false; # Tirith is initialized in the zshrc-base dotfile. Avoid installing the shell hook twice.
   };
 
   programs.twitch-tui.enable = true;
@@ -170,9 +164,7 @@
 
   programs.zoxide = {
     enable = true;
-
-    # Zoxide is already initialized with its current defaults in .zshrc-base.
-    enableZshIntegration = false;
+    enableZshIntegration = false; # Zoxide is already initialized with its current defaults in .zshrc-base.
   };
 
   programs.zsh = {
