@@ -218,7 +218,7 @@ setup_symlinks() {
     # Backup existing managed dotfiles
     local timestamp
     timestamp=$(date +%Y%m%d_%H%M%S)
-    local managed_files=(".zshrc" ".zshrc-base")
+    local managed_files=(".zshrc")
 
     for file in "${managed_files[@]}"; do
         if [ -f "$HOME/$file" ] && [ ! -L "$HOME/$file" ]; then

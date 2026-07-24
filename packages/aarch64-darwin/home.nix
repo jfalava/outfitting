@@ -2,7 +2,6 @@
 
 {
   imports = [
-    /Users/jfalava/.config/outfitting/repo/packages/common/zsh.nix
     ./programs.nix
   ];
 

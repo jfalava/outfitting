@@ -1,16 +1,18 @@
-# Base (personal) Home Manager configuration using flake composition
-# This serves as the foundation that work configuration extends
-
-{ config, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 let
-  # Repository path - used for dotfile symlinks
-  # Default location set by installation scripts: ~/.config/outfitting/repo
-  # To customize: change this path AND update ~/.config/outfitting/repo-path (or run set_outfitting_repo)
-  outfittingRepo = "${config.home.homeDirectory}/.config/outfitting/repo";
-
+  repoFromEnvironment = builtins.getEnv "OUTFITTING_REPO";
+  outfittingRepo =
+    if repoFromEnvironment != "" then repoFromEnvironment else "/home/jfalava/.config/outfitting/repo";
 in
 {
+  imports = [ (builtins.toPath "${outfittingRepo}/packages/common/programs.nix") ];
+
   # Basic home manager settings
   home.username = "jfalava";
   home.homeDirectory = "/home/jfalava";
@@ -22,27 +24,14 @@ in
   # Core personal packages
   home.packages = with pkgs; [
     # Core utilities
-    bat
-    eza
-    fastfetch
-    fzf
-    ripgrep
-    starship
     tree
-    zoxide
-    zsh
-    zsh-autosuggestions
-    zsh-syntax-highlighting
     deno
-    go
     lazygit
     nodejs_latest
     python3
     zig
     zellij
     neovim
-    fd
-    jq
     less
     shellcheck
     zip
@@ -51,11 +40,9 @@ in
     nixd
     nil
     pnpm
-    github-cli
     powershell
     tailspin # log viewer
     ranger
-    tirith
   ];
 
   # Session variables
@@ -82,123 +69,27 @@ in
 
   # PATH additions
   home.sessionPath = [
-    "${config.home.homeDirectory}/.local/bin"
     "${config.home.homeDirectory}/go/bin"
-    "${config.home.homeDirectory}/.local/share/pnpm"
-    "${config.home.homeDirectory}/.bun/bin"
-    "${config.home.homeDirectory}/.deno/bin"
     "${config.home.homeDirectory}/.local/share/uv/bin"
-    "${config.home.homeDirectory}/.opencode/bin"
     "${config.home.homeDirectory}/.cargo/bin"
+    "${config.home.homeDirectory}/.amp/bin"
+    "${config.home.homeDirectory}/.git-ai/bin"
+    "${config.home.homeDirectory}/.vite-plus/bin"
   ];
 
-  # Dotfiles management - symlink to home directory
-  # Using absolute paths with --impure flag for installation
-  home.file = {
-    ".zshrc".source = "${outfittingRepo}/dotfiles/.zshrc-wsl";
-    ".zshrc-base".source = "${outfittingRepo}/dotfiles/.zshrc-base";
-  };
-
-  # Git configuration (personal)
-  programs.git = {
-    enable = true;
-
-    signing = {
-      key = "${config.home.homeDirectory}/.ssh/jfalava-gitSign-elliptic";
-      signByDefault = true;
+  programs.zsh = {
+    shellAliases = {
+      explorer = "/mnt/c/WINDOWS/explorer.exe";
+      lazyotp = "/mnt/c/bin/lazyotp.exe";
+      cloudops-tools = "/mnt/c/Users/jalava/.bun/bin/cloudops-tools.exe";
     };
 
-    settings = {
-      user = {
-        name = "Jorge Fernando Álava";
-        email = "git@jfa.dev";
-      };
-
-      color.ui = "auto";
-      gpg.format = "ssh";
-      commit.gpgsign = true;
-      tag.gpgsign = true;
-
-      filter.lfs = {
-        required = true;
-        clean = "git-lfs clean -- %f";
-        smudge = "git-lfs smudge -- %f";
-        process = "git-lfs filter-process";
-      };
-
-      alias = {
-        undo = "reset --soft HEAD^";
-      };
-    };
-  };
-
-  # Program configurations
-  programs.home-manager.enable = true;
-
-  programs.bat = {
-    enable = true;
-    config = {
-      theme = "Catppuccin Latte";
-      style = "auto";
-    };
-  };
-
-  programs.eza = {
-    enable = true;
-    enableZshIntegration = true;
-    git = true;
-    icons = "always";
-  };
-
-  programs.ripgrep = {
-    enable = true;
-    arguments = [
-      "--hidden"
-      "--follow"
-      "--smart-case"
-      "--line-number"
-      "--column"
-      "--max-columns=500"
-      "--max-filesize=10M"
-
-      # Color configuration
-      "--colors=line:fg:yellow"
-      "--colors=line:style:bold"
-      "--colors=path:fg:green"
-      "--colors=path:style:bold"
-      "--colors=match:fg:black"
-      "--colors=match:bg:yellow"
-      "--colors=match:style:bold"
-
-      # Exclusions
-      "--glob=!.git/"
-      "--glob=!node_modules/"
-      "--glob=!.venv/"
-      "--glob=!__pycache__/"
-      "--glob=!*.pyc"
-      "--glob=!.DS_Store"
-      "--glob=!.pytest_cache/"
-      "--glob=!.mypy_cache/"
-      "--glob=!.tox/"
-      "--glob=!dist/"
-      "--glob=!build/"
-      "--glob=!*.egg-info/"
-      "--glob=!.next/"
-      "--glob=!.nuxt/"
-      "--glob=!.cache/"
-      "--glob=!*.min.js"
-      "--glob=!*.min.css"
-      "--glob=!package-lock.json"
-      "--glob=!pnpm-lock.yaml"
-      "--glob=!yarn.lock"
-      "--glob=!Cargo.lock"
-      "--glob=!go.sum"
-      "--glob=!*.log"
-      "--glob=!*.swp"
-      "--glob=!*.swo"
-      "--glob=!*~"
-      "--glob=!.terraform/"
-      "--glob=!.terragrunt-cache/"
+    plugins = lib.mkAfter [
+      {
+        name = "outfitting-wsl";
+        src = ./zsh;
+        file = "wsl.plugin.zsh";
+      }
     ];
   };
 
