@@ -1,8 +1,13 @@
 { config, lib, ... }:
 
+let
+  repoFromEnvironment = builtins.getEnv "OUTFITTING_REPO";
+  outfittingRepo =
+    if repoFromEnvironment != "" then repoFromEnvironment else "/Users/jfalava/.config/outfitting/repo";
+in
 {
   imports = [
-    /Users/jfalava/.config/outfitting/repo/packages/common/programs.nix
+    (builtins.toPath "${outfittingRepo}/packages/common/programs.nix")
     ./zed.nix
   ];
 

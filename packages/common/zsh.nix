@@ -63,6 +63,7 @@ in
     };
 
     localVariables.ZSH_AUTOSUGGEST_BUFFER_MAX_SIZE = 20;
+    sessionVariables.EDITOR = "zed";
 
     syntaxHighlighting = {
       enable = true;
@@ -77,7 +78,6 @@ in
     shellAliases = {
       cls = "clear";
       editor = "zed";
-      EDITOR = "zed";
       reload = "source ~/.zshrc";
       zshconfig = "$EDITOR ~/.zshrc";
       vim = "nvim";

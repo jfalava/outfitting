@@ -59,8 +59,8 @@ hm-rollback
 Traditional `nix-darwin` commands from the repository directory:
 
 ```bash
-darwin-rebuild switch --flake "path:$PWD#macos"
-darwin-rebuild build --flake "path:$PWD#macos"
+darwin-rebuild switch --flake "path:$PWD/packages/aarch64-darwin#macos"
+darwin-rebuild build --flake "path:$PWD/packages/aarch64-darwin#macos"
 ```
 
 ## Nix Package Testing
