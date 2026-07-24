@@ -51,6 +51,7 @@
       ShowPathbar = true;
       FXEnableExtensionChangeWarning = false;
       ShowStatusBar = true;
+      NewWindowTarget = "Home";
     };
 
     # Global macOS settings
@@ -69,6 +70,9 @@
       DragLock = false;
       TrackpadThreeFingerDrag = true;
     };
+
+    # Keep windows visible when clicking the desktop wallpaper.
+    WindowManager.EnableStandardClickToShowDesktop = false;
 
     # Security settings
     screensaver = {
