@@ -4,7 +4,7 @@
 # ========================================
 # This is the universal configuration shared across all platforms (WSL, macOS, etc.)
 # Platform-specific configuration is sourced after this file.
-# See: .zshrc-wsl or .zshrc-macos
+# See: .zshrc-wsl or packages/aarch64-darwin/zsh/macos.plugin.zsh
 
 # ---- Performance: Lazy Completion Init ----
 autoload -Uz compinit

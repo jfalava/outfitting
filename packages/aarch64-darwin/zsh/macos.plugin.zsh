@@ -3,8 +3,7 @@
 # ========================================
 
 # ---- macOS-Specific PATH Additions ----
-# Add paths in order of precedence
-path_prepend "$HOME/.local/bin"
+# Static prepends are managed by home.sessionPath.
 path_append "$HOME/go/bin"
 
 # Homebrew
@@ -14,31 +13,15 @@ elif [[ -x /usr/local/bin/brew ]]; then
     eval "$(/usr/local/bin/brew shellenv)"
 fi
 
-# Add Applications folder to PATH
-path_prepend "/Applications/"
-
-# pnpm
-export PNPM_HOME="$HOME/.local/share/pnpm"
-path_prepend "$PNPM_HOME"
-
 # Bun
-export BUN_INSTALL="$HOME/.bun"
-path_prepend "$BUN_INSTALL/bin"
 [ -s "$HOME/.bun/_bun" ] && source "$HOME/.bun/_bun"
 
 # Yarn
 path_append "$HOME/.yarn/switch/bin"
 path_append "$HOME/.yarn/switch"
 
-# Deno
-export DENO_INSTALL="$HOME/.deno"
-path_prepend "$DENO_INSTALL/bin"
-
 # UV
 path_append "$HOME/.local/share/uv/bin"
-
-# OpenCode
-path_prepend "$HOME/.opencode/bin"
 
 # Cargo
 path_append "$HOME/.cargo/bin"
@@ -59,18 +42,6 @@ for app_dir in /Applications/*.app; do
         path_prepend "$app_dir/Contents/Resources/app/bin"
     fi
 done
-
-# ---- macOS-Specific Aliases ----
-alias show='open'  # macOS equivalent of explorer
-alias finder='open .'  # Open current directory in Finder
-
-# Quick nix commands
-alias nix-clean='sudo nix-collect-garbage -d'
-alias nix-search='nix search nixpkgs'
-alias nix-shell='nix shell nixpkgs#'
-
-# Zed editor aliases
-alias zed='/Applications/Zed.app/Contents/MacOS/cli -n'
 
 # ---- macOS-Specific Functions ----
 
@@ -430,9 +401,6 @@ outfit() {
     esac
 }
 
-# Short alias for the unified outfit command (build/switch/test/dry/sync/upgrade)
-alias o='outfit'
-
 # Quick system update
 update-all() {
      # Request elevation at the start
@@ -471,13 +439,8 @@ update-all-no-nix() {
         echo "Warning: $repo_path is not a git repository, skipping pull."
     fi
 
-    if [ -n "$ZSH_VERSION" ] && [ -f "$repo_path/dotfiles/.zshrc-macos" ]; then
-        source "$repo_path/dotfiles/.zshrc-macos"
-        echo "Zsh profile reloaded"
-    fi
-
     echo ""
-    echo "System updated (no Nix packages)"
+    echo "System updated (no Nix packages). Run 'outfit switch' to apply profile changes."
 }
 
 # Quick nix-darwin rebuild from anywhere in the system
@@ -516,7 +479,7 @@ outfit-rebuild() {
             ;;
         test|t)
             echo "Testing nix-darwin configuration..."
-            env -u NIX_PATH darwin-rebuild build --flake "$flake_ref" && echo "Build successful - ready to switch"
+            env -u NIX_PATH darwin-rebuild build --flake "$flake_ref" --impure && echo "Build successful - ready to switch"
             ;;
         dry|d)
             echo "Dry-run check..."
@@ -524,7 +487,7 @@ outfit-rebuild() {
             ;;
         upgrade|u)
             echo "Upgrading packages and applying..."
-            sudo -H HOME=/var/root env -u SUDO_USER -u SUDO_HOME -u NIX_PATH darwin-rebuild switch --flake "$flake_ref" --upgrade
+            sudo -H HOME=/var/root env -u SUDO_USER -u SUDO_HOME -u NIX_PATH darwin-rebuild switch --flake "$flake_ref" --upgrade --impure
             ;;
         *)
             echo "Usage: outfit-rebuild [build|switch|test|dry|upgrade]"

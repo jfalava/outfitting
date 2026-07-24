@@ -1,7 +1,18 @@
-{ config, ... }:
+{ config, lib, ... }:
 
 {
   imports = [ ./zed.nix ];
+
+  # Home Manager prepends these in the declared order for every managed shell.
+  # Dynamic application-bundle paths remain in the macOS Zsh plugin.
+  home.sessionPath = [
+    "${config.home.homeDirectory}/.opencode/bin"
+    "${config.home.homeDirectory}/.deno/bin"
+    "${config.home.homeDirectory}/.bun/bin"
+    "${config.home.homeDirectory}/.local/share/pnpm"
+    "/Applications"
+    "${config.home.homeDirectory}/.local/bin"
+  ];
 
   programs.home-manager.enable = true;
 
@@ -195,10 +206,34 @@
   };
 
   programs.zsh = {
-    # common/zsh.nix owns the base settings; this adds the macOS startup file.
+    sessionVariables = {
+      PNPM_HOME = "${config.home.homeDirectory}/.local/share/pnpm";
+      BUN_INSTALL = "${config.home.homeDirectory}/.bun";
+      DENO_INSTALL = "${config.home.homeDirectory}/.deno";
+    };
+
+    shellAliases = {
+      show = "open";
+      finder = "open .";
+      nix-clean = "sudo nix-collect-garbage -d";
+      nix-search = "nix search nixpkgs";
+      nix-shell = "nix shell nixpkgs#";
+      zed = "/Applications/Zed.app/Contents/MacOS/cli -n";
+      o = "outfit";
+    };
+
+    plugins = lib.mkAfter [
+      {
+        name = "outfitting-macos";
+        src = ./zsh;
+        file = "macos.plugin.zsh";
+      }
+    ];
+
+    # Home Manager 26.05's native Tirith integration still uses the deprecated
+    # initExtra option, so initialize it directly until that module is updated.
     initContent = ''
       eval "$(${config.programs.tirith.package}/bin/tirith init --shell zsh)"
-      source ${config.home.homeDirectory}/.config/outfitting/repo/dotfiles/.zshrc-macos
     '';
   };
 
