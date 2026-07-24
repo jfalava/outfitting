@@ -1,16 +1,9 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "outfitting-documentation",
-  "compatibility_date": "2026-01-01",
-  "compatibility_flags": ["nodejs_compat"],
-  "main": "@tanstack/react-start/server-entry",
-  "observability": {
-    "enabled": true,
-  },
-  "routes": [
-    {
-      "pattern": "outfitting.jfa.dev",
-      "custom_domain": true,
-    },
-  ],
+  "name": "documentation",
+  "compatibility_date": "2026-07-24",
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "404-page"
+  }
 }

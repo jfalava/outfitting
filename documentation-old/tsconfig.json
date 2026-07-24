@@ -1,0 +1,29 @@
+{
+  "include": ["**/*.ts", "**/*.tsx", ".source/**/*.ts"],
+  "compilerOptions": {
+    "target": "ES2024",
+    "jsx": "react-jsx",
+    "module": "ESNext",
+    "lib": ["ES2024", "DOM", "DOM.Iterable"],
+    "types": ["./worker-configuration.d.ts", "node", "vite/client", "./types/mdx.d.ts"],
+
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": false,
+    "noEmit": true,
+
+    "skipLibCheck": true,
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedSideEffectImports": true,
+    "paths": {
+      "@/*": ["./src/*"],
+      "fumadocs-mdx:collections/server": ["./.source/server.ts"],
+      "fumadocs-mdx:collections/browser": ["./.source/browser.ts"],
+      "fumadocs-mdx:collections/dynamic": ["./.source/dynamic.ts"],
+      "*": ["./*"]
+    }
+  }
+}
