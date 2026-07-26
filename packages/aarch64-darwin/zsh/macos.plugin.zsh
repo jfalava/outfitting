@@ -343,7 +343,6 @@ outfit-homebrew() {
     case "${1:-sync}" in
         sync|s|install|i)
             echo "Applying Homebrew manifest..."
-            sudo -v || return 1
             brew bundle --file="$brewfile" || return 1
             echo ""
             echo "Removing Homebrew casks not in manifest..."
@@ -351,7 +350,6 @@ outfit-homebrew() {
             ;;
         upgrade|u)
             echo "Syncing Homebrew manifest..."
-            sudo -v || return 1
             brew bundle --file="$brewfile" || return 1
             echo ""
             echo "Upgrading installed Homebrew packages..."

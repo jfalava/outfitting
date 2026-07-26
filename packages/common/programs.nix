@@ -2,6 +2,7 @@
   config,
   lib,
   options,
+  pkgs,
   ...
 }:
 
@@ -12,8 +13,16 @@
     "${config.home.homeDirectory}/.opencode/bin"
     "${config.home.homeDirectory}/.deno/bin"
     "${config.home.homeDirectory}/.bun/bin"
+    "${config.home.homeDirectory}/.cargo/bin"
     "${config.home.homeDirectory}/.local/share/pnpm"
     "${config.home.homeDirectory}/.local/bin"
+  ];
+
+  home.packages = with pkgs; [
+    clippy
+    rust-analyzer
+    rustc
+    rustfmt
   ];
 
   programs.home-manager.enable = true;
@@ -51,8 +60,7 @@
   programs.gh = {
     enable = true;
 
-    # Authentication remains in ~/.config/gh/hosts.yml and is intentionally
-    # not copied into the Nix store.
+    # Authentication remains in ~/.config/gh/hosts.yml and is intentionally not copied into the Nix store.
     gitCredentialHelper.enable = false;
     settings.git_protocol = "ssh";
   };
@@ -66,6 +74,8 @@
   };
 
   programs.btop.enable = true;
+
+  programs.cargo.enable = true;
 
   programs.bun = {
     enable = true;
@@ -193,8 +203,7 @@
       DENO_INSTALL = "${config.home.homeDirectory}/.deno";
     };
 
-    # Initialize Tirith directly until its Home Manager module stops using
-    # programs.zsh.initExtra.
+    # Initialize Tirith directly until its Home Manager module stops using programs.zsh.initExtra.
     initContent = ''
       eval "$(${config.programs.tirith.package}/bin/tirith init --shell zsh)"
     '';
