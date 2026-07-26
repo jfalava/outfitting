@@ -20,6 +20,7 @@
     terraform-ls
     terraform
     restic
+    rustic
     zig
     nodejs_26
   ];
