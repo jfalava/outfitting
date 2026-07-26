@@ -12,7 +12,6 @@
 
   # Nix-managed and exclusive packages
   home.packages = with pkgs; [
-    # never trust homebrew
     nixd
     nil
     nixfmt
@@ -23,8 +22,6 @@
     restic
     zig
     nodejs_26
-    # unavailable on homebrew
-    ani-cli
   ];
 
   # Home Manager can also manage your environment variables through
