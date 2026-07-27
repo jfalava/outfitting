@@ -27,7 +27,6 @@
             ./darwin.nix
             home-manager.darwinModules.home-manager
             {
-              home-manager.useGlobalPkgs = true;
               home-manager.useUserPackages = true;
               home-manager.users.jfalava = import ./home.nix;
               home-manager.backupFileExtension = "backup";

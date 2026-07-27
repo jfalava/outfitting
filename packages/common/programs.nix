@@ -9,6 +9,8 @@
 {
   imports = [ ./zsh.nix ];
 
+  nixpkgs.config.allowUnfree = true;
+
   home.sessionPath = [
     "${config.home.homeDirectory}/.opencode/bin"
     "${config.home.homeDirectory}/.deno/bin"

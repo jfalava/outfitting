@@ -18,9 +18,6 @@ in
   home.homeDirectory = "/home/jfalava";
   home.stateVersion = "26.05";
 
-  # Nixpkgs configuration
-  nixpkgs.config.allowUnfree = true;
-
   # Core personal packages
   home.packages = with pkgs; [
     # Core utilities
