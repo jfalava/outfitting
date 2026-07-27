@@ -55,14 +55,6 @@ function whichwin {
 }
 Set-Alias which whichwin
 
-function wherewin {
-    param (
-        [string]$name
-    )
-    Get-Command $name | Select-Object -ExpandProperty Definition
-}
-Set-Alias where wherewin
-
 function killwsl {
   wsl --shutdown
 }
