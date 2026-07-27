@@ -484,8 +484,10 @@ outfit-rebuild() {
             env -u NIX_PATH darwin-rebuild switch --flake "$flake_ref" --dry-run --impure
             ;;
         upgrade|u)
-            echo "Upgrading packages and applying..."
-            sudo -H HOME=/var/root env -u SUDO_USER -u SUDO_HOME -u NIX_PATH darwin-rebuild switch --flake "$flake_ref" --upgrade --impure
+            echo "Updating flake inputs..."
+            env -u NIX_PATH nix flake update --flake "$hm_target" --impure || return 1
+            echo "Applying updated nix-darwin configuration..."
+            sudo -H HOME=/var/root env -u SUDO_USER -u SUDO_HOME -u NIX_PATH darwin-rebuild switch --flake "$flake_ref" --impure
             ;;
         *)
             echo "Usage: outfit-rebuild [build|switch|test|dry|upgrade]"
@@ -493,7 +495,7 @@ outfit-rebuild() {
             echo "  switch/s   - Build and apply configuration (default)"
             echo "  test/t     - Test build only"
             echo "  dry/d      - Dry-run to see what would change"
-            echo "  upgrade/u  - Upgrade packages and apply"
+            echo "  upgrade/u  - Update flake inputs and apply"
             ;;
     esac
 
