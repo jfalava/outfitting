@@ -1,6 +1,5 @@
 import { describe, expect, test } from "bun:test";
 
-import { inferOutputPath } from "../cli";
 import { app, lockfileKey, sha256 } from "../src/index";
 
 describe("lockfile helpers", () => {
@@ -15,14 +14,6 @@ describe("lockfile helpers", () => {
     expect(await sha256(content)).toBe(
       "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824",
     );
-  });
-
-  test("infers common lockfile names", () => {
-    expect(inferOutputPath("nix")).toBe("flake.lock");
-    expect(inferOutputPath("bun")).toBe("bun.lock");
-    expect(inferOutputPath("npm")).toBe("package-lock.json");
-    expect(inferOutputPath("winget")).toBe("winget.json");
-    expect(inferOutputPath("custom-kind")).toBeUndefined();
   });
 });
 

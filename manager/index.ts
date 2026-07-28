@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 
-import { runLockfilesCli } from "@outfitting/lockfiles/cli";
+import { runLockfilesCli } from "./src/commands/lockfiles";
 
 const HELP = `Usage: outfitting-manager <command>
 

@@ -62,9 +62,6 @@
       "bin": {
         "outfitting-manager": "index.ts",
       },
-      "dependencies": {
-        "@outfitting/lockfiles": "workspace:*",
-      },
       "devDependencies": {
         "@types/bun": "latest",
       },

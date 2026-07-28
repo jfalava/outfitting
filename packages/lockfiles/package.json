@@ -3,9 +3,6 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "exports": {
-    "./cli": "./cli.ts"
-  },
   "scripts": {
     "cf-typegen": "wrangler types",
     "check": "tsc --noEmit && oxlint",
