@@ -19,3 +19,4 @@ result-*
 
 # Monorepo
 node_modules/
+.wrangler/

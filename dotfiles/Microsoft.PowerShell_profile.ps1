@@ -79,6 +79,24 @@ function Get-OutfittingRepo {
     return (Resolve-Path -LiteralPath $repoPath -ErrorAction Stop).Path
 }
 
+function Push-OutfittingLockfile {
+    param(
+        [Parameter(Mandatory = $true)][string]$Machine,
+        [Parameter(Mandatory = $true)][string]$Kind,
+        [Parameter(Mandatory = $true)][string]$Path
+    )
+
+    if (-not (Get-Command outfitting-manager -ErrorAction SilentlyContinue)) {
+        $repoPath = Get-OutfittingRepo
+        throw "outfitting-manager is not installed or not in PATH. Run 'cd $repoPath\manager; bun link' first."
+    }
+
+    & outfitting-manager lockfiles push $Machine $Kind $Path
+    if ($LASTEXITCODE -ne 0) {
+        throw "outfitting-manager lockfiles push exited with code $LASTEXITCODE"
+    }
+}
+
 function Set-OutfittingRepo {
     param ([Parameter(Mandatory)][string]$Path)
 
@@ -276,6 +294,20 @@ function Update-All {
         Write-Host "`n=== Updating PowerShell Profile ===" -ForegroundColor Cyan
         Invoke-RestMethod -Uri "https://win.jfa.dev/config/pwsh-profile" | Invoke-Expression
         . $PROFILE
+
+        Write-Host "`n=== Saving WinGet Lockfile ===" -ForegroundColor Cyan
+        $wingetSnapshot = Join-Path ([System.IO.Path]::GetTempPath()) "outfitting-winget-$PID.json"
+        try {
+            winget export --output $wingetSnapshot --include-versions --accept-source-agreements
+            if ($LASTEXITCODE -ne 0) { throw "winget export exited with code $LASTEXITCODE" }
+            Push-OutfittingLockfile `
+                -Machine "jfalava:x64-windows" `
+                -Kind "winget" `
+                -Path $wingetSnapshot
+        }
+        finally {
+            Remove-Item -LiteralPath $wingetSnapshot -Force -ErrorAction SilentlyContinue
+        }
 
         Write-Host "`nSystem updated successfully" -ForegroundColor Green
     }

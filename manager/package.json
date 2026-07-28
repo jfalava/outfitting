@@ -1,0 +1,19 @@
+{
+  "name": "@outfitting/manager",
+  "version": "0.1.0",
+  "private": true,
+  "bin": {
+    "outfitting-manager": "index.ts"
+  },
+  "type": "module",
+  "module": "index.ts",
+  "dependencies": {
+    "@outfitting/lockfiles": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "7.0.2"
+  }
+}
