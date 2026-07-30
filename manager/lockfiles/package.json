@@ -1,0 +1,29 @@
+{
+  "name": "@outfitting/lockfiles",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "cf-typegen": "wrangler types",
+    "check": "bun run lint --fix && oxfmt --check",
+    "deploy": "bun run lint && wrangler deploy",
+    "dev": "bun run cf-typegen && wrangler dev",
+    "format": "oxfmt",
+    "lint": "oxlint",
+    "migrate:local": "wrangler d1 migrations apply outfitting-lockfiles --local",
+    "migrate:remote": "wrangler d1 migrations apply outfitting-lockfiles --remote",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "hono": "4.12.31"
+  },
+  "devDependencies": {
+    "@types/bun": "catalog:build",
+    "oxfmt": "catalog:build",
+    "oxlint": "catalog:build",
+    "oxlint-tsgolint": "catalog:build",
+    "typescript": "catalog:build",
+    "wrangler": "catalog:build"
+  }
+}

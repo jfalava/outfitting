@@ -116,6 +116,66 @@ set_outfitting_repo() {
     return 0
 }
 
+outfit-require-manager() {
+    if command -v outfitting-manager >/dev/null 2>&1; then
+        return 0
+    fi
+
+    echo "Error: outfitting-manager is not installed or not in PATH."
+    echo "Build manager/cli and link its binary into ~/.local/bin."
+    return 1
+}
+
+# Pull the canonical Nix lock into a physical temporary path. Nix rejects
+# external lock paths whose ancestors include macOS's /tmp or /var symlinks.
+outfit-open-nix-lock() {
+    outfit-require-manager || return 1
+
+    local lock_dir_display lock_dir lock_path
+    lock_dir_display=$(mktemp -d "${TMPDIR:-/tmp}/outfitting-nix-lock.XXXXXX") || {
+        echo "Error: Could not create a temporary Nix lock directory."
+        return 1
+    }
+    lock_dir=$(cd "$lock_dir_display" && pwd -P) || {
+        rmdir -- "$lock_dir_display" 2>/dev/null
+        return 1
+    }
+    lock_path="$lock_dir/flake.lock"
+
+    if ! outfitting-manager lockfiles pull jfalava:aarch64-darwin nix "$lock_path" >&2; then
+        rm -f -- "$lock_path"
+        rmdir -- "$lock_dir" 2>/dev/null
+        return 1
+    fi
+
+    print -r -- "$lock_dir"
+}
+
+outfit-clean-nix-lock() {
+    local lock_dir="$1"
+    rm -f -- "$lock_dir/flake.lock" "$lock_dir/updated-flake.lock"
+    rmdir -- "$lock_dir" 2>/dev/null
+}
+
+outfit-build-nix-system() {
+    local flake_path="$1"
+    local lock_path="$2"
+
+    OUTFITTING_REPO="$(get_outfitting_repo)" env -u NIX_PATH nix build \
+        --no-link --print-out-paths --impure \
+        --reference-lock-file "$lock_path" --no-write-lock-file \
+        "path:$flake_path#darwinConfigurations.macos.system"
+}
+
+outfit-activate-nix-system() {
+    local system_config="$1"
+
+    sudo -H HOME=/var/root env -u SUDO_HOME -u NIX_PATH \
+        nix-env -p /nix/var/nix/profiles/system --set "$system_config" || return 1
+    sudo -H HOME=/var/root env -u SUDO_HOME -u NIX_PATH SUDO_USER="$USER" \
+        "$system_config/sw/bin/darwin-rebuild" activate
+}
+
 # nix-darwin management functions
 hm-sync() {
     local repo_path
@@ -175,36 +235,11 @@ hm-switch-local() {
 }
 
 hm-update() {
-     local repo_path
-     repo_path=$(get_outfitting_repo) || {
-         echo "Error: Repository location not configured."
-         echo "Run 'set_outfitting_repo /path/to/outfitting' to configure."
-         return 1
-     }
+    outfit-rebuild upgrade || return 1
 
-     # Ensure symlinks are set up correctly
-     local darwin_target="$repo_path/packages/aarch64-darwin/darwin.nix"
-     local hm_target="$repo_path/packages/aarch64-darwin"
-
-     if [ ! -L ~/.nixpkgs/darwin-configuration.nix ] || [ "$(readlink -f ~/.nixpkgs/darwin-configuration.nix)" != "$(readlink -f "$darwin_target")" ]; then
-         mkdir -p ~/.nixpkgs
-         ln -sfn "$darwin_target" ~/.nixpkgs/darwin-configuration.nix
-     fi
-
-     if [ ! -L ~/.config/home-manager ] || [ "$(readlink -f ~/.config/home-manager)" != "$(readlink -f "$hm_target")" ]; then
-         ln -sfn "$hm_target" ~/.config/home-manager
-     fi
-
-     echo "Updating flake inputs and nix-darwin..."
-
-     env -u NIX_PATH nix flake update --flake "$repo_path/packages/aarch64-darwin" --impure
-     outfit-rebuild switch
-
-     echo ""
-     echo "Nix packages updated successfully!"
-     echo ""
-     echo "Flake lock file updated with latest nixpkgs"
- }
+    echo ""
+    echo "Nix packages and the remote flake lock updated successfully!"
+}
 
 hm-rollback() {
     echo "Available generations:"
@@ -368,9 +403,70 @@ outfit-homebrew() {
     esac
 }
 
+# Store the observed Homebrew package state through outfitting-manager.
+outfit-snapshot() {
+    setopt localoptions pipefail
+
+    outfit-require-manager || return 1
+    if ! command -v brew >/dev/null 2>&1; then
+        echo "Error: homebrew is not installed or not in PATH."
+        return 1
+    fi
+
+    local snapshot_dir
+    snapshot_dir=$(mktemp -d "${TMPDIR:-/tmp}/outfitting-snapshot.XXXXXX") || {
+        echo "Error: Could not create a temporary snapshot directory."
+        return 1
+    }
+    local homebrew_inventory="$snapshot_dir/homebrew-inventory.txt"
+    local machine="jfalava:aarch64-darwin"
+    local snapshot_status=0
+
+    {
+        echo "Capturing versioned Homebrew inventory..."
+        {
+            echo "outfitting-homebrew-inventory-v1"
+            echo ""
+            echo "[taps]"
+            brew tap | LC_ALL=C sort
+            echo ""
+            echo "[formulae]"
+            brew list --formula --versions | LC_ALL=C sort
+            echo ""
+            echo "[casks]"
+            brew list --cask --versions | LC_ALL=C sort
+        } > "$homebrew_inventory" || snapshot_status=1
+
+        if (( snapshot_status == 0 )); then
+            echo ""
+            echo "Pushing macOS inventory..."
+            outfitting-manager lockfiles push "$machine" homebrew-inventory "$homebrew_inventory" || snapshot_status=1
+        fi
+    } always {
+        rm -f -- "$homebrew_inventory"
+        rmdir -- "$snapshot_dir" 2>/dev/null
+    }
+
+    if (( snapshot_status != 0 )); then
+        echo "Error: macOS snapshot did not complete."
+        return 1
+    fi
+
+    echo ""
+    echo "macOS inventory stored successfully."
+}
+
 # Standard outfit command entrypoint
 outfit() {
     case "${1:-switch}" in
+        snapshot)
+            shift
+            if (( $# != 0 )); then
+                echo "Usage: outfit snapshot"
+                return 1
+            fi
+            outfit-snapshot
+            ;;
         sync|s)
             shift
             outfit-homebrew sync "$@"
@@ -387,13 +483,14 @@ outfit() {
             outfit-rebuild "$@"
             ;;
         *)
-            echo "Usage: outfit [build|switch|test|dry|sync|upgrade]"
+            echo "Usage: outfit [build|switch|test|dry|sync|upgrade|snapshot]"
             echo "  build/b    - Build nix-darwin configuration only"
             echo "  switch     - Build and apply nix-darwin configuration (default)"
             echo "  test/t     - Test nix-darwin build only"
             echo "  dry/d      - Dry-run nix-darwin changes"
             echo "  sync/s     - Apply the Homebrew manifest and remove unlisted casks"
             echo "  upgrade/u  - Upgrade nix-darwin config, then upgrade Homebrew packages/casks"
+            echo "  snapshot   - Store the versioned installed Homebrew inventory"
             return 1
             ;;
     esac
@@ -453,7 +550,12 @@ outfit-rebuild() {
     # Ensure symlinks exist
     local darwin_target="$repo_path/packages/aarch64-darwin/darwin.nix"
     local hm_target="$repo_path/packages/aarch64-darwin"
-    local flake_ref="path:$hm_target#macos"
+    local lock_dir
+    lock_dir=$(outfit-open-nix-lock) || return 1
+    local remote_lock="$lock_dir/flake.lock"
+    local updated_lock="$lock_dir/updated-flake.lock"
+    local rebuild_status=0
+    local preserve_lock=0
 
     if [ ! -L ~/.nixpkgs/darwin-configuration.nix ]; then
         mkdir -p ~/.nixpkgs
@@ -464,41 +566,80 @@ outfit-rebuild() {
         ln -sfn "$hm_target" ~/.config/home-manager
     fi
 
-    cd "$repo_path/packages/aarch64-darwin" || return 1
+    {
+        case "${1:-switch}" in
+            build|b)
+                echo "Building nix-darwin configuration with the remote lock..."
+                OUTFITTING_REPO="$repo_path" env -u NIX_PATH nix build --impure \
+                    --reference-lock-file "$remote_lock" --no-write-lock-file \
+                    "path:$hm_target#darwinConfigurations.macos.system"
+                rebuild_status=$?
+                ;;
+            switch|s)
+                echo "Applying nix-darwin configuration with the remote lock..."
+                local system_config
+                system_config=$(outfit-build-nix-system "$hm_target" "$remote_lock")
+                rebuild_status=$?
+                if (( rebuild_status == 0 )); then
+                    outfit-activate-nix-system "$system_config"
+                    rebuild_status=$?
+                fi
+                ;;
+            test|t)
+                echo "Testing nix-darwin configuration with the remote lock..."
+                outfit-build-nix-system "$hm_target" "$remote_lock" > /dev/null
+                rebuild_status=$?
+                (( rebuild_status == 0 )) && echo "Build successful - ready to switch"
+                ;;
+            dry|d)
+                echo "Dry-run check with the remote lock..."
+                OUTFITTING_REPO="$repo_path" env -u NIX_PATH nix build \
+                    --dry-run --no-link --impure \
+                    --reference-lock-file "$remote_lock" --no-write-lock-file \
+                    "path:$hm_target#darwinConfigurations.macos.system"
+                rebuild_status=$?
+                ;;
+            upgrade|u)
+                echo "Updating the remote flake lock..."
+                env -u NIX_PATH nix flake update --flake "$hm_target" --impure \
+                    --reference-lock-file "$remote_lock" --output-lock-file "$updated_lock"
+                rebuild_status=$?
 
-    case "${1:-switch}" in
-        build|b)
-            echo "Building nix-darwin configuration..."
-            env -u NIX_PATH darwin-rebuild build --flake "$flake_ref" --impure
-            ;;
-        switch|s)
-            echo "Applying nix-darwin configuration..."
-            sudo -H HOME=/var/root env -u SUDO_USER -u SUDO_HOME -u NIX_PATH darwin-rebuild switch --flake "$flake_ref" --impure
-            ;;
-        test|t)
-            echo "Testing nix-darwin configuration..."
-            env -u NIX_PATH darwin-rebuild build --flake "$flake_ref" --impure && echo "Build successful - ready to switch"
-            ;;
-        dry|d)
-            echo "Dry-run check..."
-            env -u NIX_PATH darwin-rebuild switch --flake "$flake_ref" --dry-run --impure
-            ;;
-        upgrade|u)
-            echo "Updating flake inputs..."
-            env -u NIX_PATH nix flake update --flake "$hm_target" --impure || return 1
-            echo "Applying updated nix-darwin configuration..."
-            sudo -H HOME=/var/root env -u SUDO_USER -u SUDO_HOME -u NIX_PATH darwin-rebuild switch --flake "$flake_ref" --impure
-            ;;
-        *)
-            echo "Usage: outfit-rebuild [build|switch|test|dry|upgrade]"
-            echo "  build/b    - Build configuration only"
-            echo "  switch/s   - Build and apply configuration (default)"
-            echo "  test/t     - Test build only"
-            echo "  dry/d      - Dry-run to see what would change"
-            echo "  upgrade/u  - Update flake inputs and apply"
-            ;;
-    esac
+                if (( rebuild_status == 0 )); then
+                    echo "Applying updated nix-darwin configuration..."
+                    local system_config
+                    system_config=$(outfit-build-nix-system "$hm_target" "$updated_lock")
+                    rebuild_status=$?
+                    if (( rebuild_status == 0 )); then
+                        outfit-activate-nix-system "$system_config"
+                        rebuild_status=$?
+                    fi
+                fi
 
-    # Return to original directory
-    cd - > /dev/null || return 0
+                if (( rebuild_status == 0 )); then
+                    outfitting-manager lockfiles push jfalava:aarch64-darwin nix "$updated_lock"
+                    rebuild_status=$?
+                    if (( rebuild_status != 0 )); then
+                        preserve_lock=1
+                        echo "Updated lock preserved for recovery: $updated_lock"
+                    fi
+                fi
+                ;;
+            *)
+                echo "Usage: outfit-rebuild [build|switch|test|dry|upgrade]"
+                echo "  build/b    - Build configuration only"
+                echo "  switch/s   - Build and apply configuration (default)"
+                echo "  test/t     - Test build only"
+                echo "  dry/d      - Dry-run to see what would change"
+                echo "  upgrade/u  - Update the remote flake lock and apply"
+                rebuild_status=1
+                ;;
+        esac
+    } always {
+        if (( preserve_lock == 0 )); then
+            outfit-clean-nix-lock "$lock_dir"
+        fi
+    }
+
+    return $rebuild_status
 }

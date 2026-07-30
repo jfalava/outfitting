@@ -3,5 +3,10 @@
     "area:nix",
     "topic:shared-programs",
     "kind:decision"
+  ],
+  "manager/lockfiles/README.md": [
+    "area:cli",
+    "topic:lockfiles",
+    "kind:reference"
   ]
 }

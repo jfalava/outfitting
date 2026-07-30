@@ -16,6 +16,8 @@ Thumbs.db
 result
 result-*
 .direnv/
+**/flake.lock
 
 # Monorepo
 node_modules/
+.wrangler/
