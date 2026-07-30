@@ -1,7 +1,10 @@
 # Outfitting manager
 
 The `outfitting-manager` binary is the entry point for local Outfitting
-maintenance tools.
+maintenance tools. Its command tree is built with the Effect 4 CLI API from
+`effect/unstable/cli`; each feature exports a composable command that the root
+CLI registers as a subcommand. User-facing status output uses `picocolors` and
+respects standard color-support detection.
 
 ```bash
 bun install
@@ -43,10 +46,27 @@ outfitting-manager lockfiles configure-token
 Push a lockfile:
 
 ```bash
-outfitting-manager lockfiles push jfalava:x64-wsl nix packages/x64-wsl/flake.lock
+outfitting-manager lockfiles push jfalava:aarch64-darwin nix updated-flake.lock
 outfitting-manager lockfiles push jfalava:aarch64-darwin homebrew-inventory homebrew-inventory.txt
 outfitting-manager lockfiles push jfalava:x64-windows winget winget.json
 ```
+
+The CLI refuses to upload files tracked by Git. Repository-owned lockfiles such
+as this project's `bun.lock` are already preserved by commits, so duplicating
+them in KV provides no recovery value. Generated lock state that is not
+committed—such as the canonical macOS flake lock and machine-local package
+manager snapshots—remains eligible for upload.
+
+Protect a read-modify-write update by supplying the SHA-256 of the version
+that was pulled:
+
+```bash
+outfitting-manager lockfiles push jfalava:aarch64-darwin nix updated-flake.lock \
+  --if-match 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+```
+
+The Worker rejects the push with HTTP 412 if another client has advanced that
+machine and kind. Retrying content that is already current succeeds.
 
 Pull the latest version:
 
@@ -75,6 +95,9 @@ Machine names are free-form. Automatic maintenance hooks use the repository's
 macOS uses the `nix` kind as its canonical remote flake lock. Rebuild commands
 pull it into a temporary path with Nix's `--reference-lock-file`; upgrades
 write to a temporary `--output-lock-file` and push the result after a
-successful switch. `outfit snapshot` separately stores the observed,
-versioned Homebrew state as `homebrew-inventory`. Kinds are free-form and
-require no schema migration.
+successful switch using the pulled hash as a concurrency precondition. A
+durable recovery checkpoint remains under the XDG state directory until both
+activation and upload succeed; `outfit recover` resumes it. Successful
+`outfit sync` and `outfit upgrade` operations automatically store the
+observed, versioned Homebrew state as `homebrew-inventory`. Kinds are
+free-form and require no schema migration.

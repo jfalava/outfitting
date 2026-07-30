@@ -54,21 +54,27 @@ bun run dev
 Every request requires
 `Authorization: Bearer <OUTFITTING_LOCKFILES_TOKEN>`.
 
-| Method   | Route                               | Result                                               |
-| -------- | ----------------------------------- | ---------------------------------------------------- |
-| `PUT`    | `/lockfiles/:machine/:kind`         | Stores the raw body and returns `{ hash, size }`     |
-| `GET`    | `/lockfiles/:machine/:kind`         | Returns the latest raw content as text               |
-| `GET`    | `/lockfiles/:machine/:kind/history` | Returns `{ hash, size, created_at }[]`, newest first |
-| `GET`    | `/lockfiles/:machine`               | Returns a sorted JSON array of tracked kinds         |
-| `DELETE` | `/lockfiles/:machine/:kind/:hash`   | Deletes one D1 row and its KV blob                   |
+| Method   | Route                               | Result                                                |
+| -------- | ----------------------------------- | ----------------------------------------------------- |
+| `PUT`    | `/lockfiles/:machine/:kind`         | Stores/promotes the body and returns `{ hash, size }` |
+| `GET`    | `/lockfiles/:machine/:kind`         | Returns the latest raw content as text                |
+| `GET`    | `/lockfiles/:machine/:kind/history` | Returns `{ hash, size, created_at }[]`, newest first  |
+| `GET`    | `/lockfiles/:machine`               | Returns a sorted JSON array of tracked kinds          |
+| `DELETE` | `/lockfiles/:machine/:kind/:hash`   | Deletes one D1 row and its KV blob                    |
 
 The blob key format is
 `lockfile:{machine}:{kind}:{sha256-of-content}`. Re-uploading the same content
 for the same machine and kind returns its existing hash and size without adding
 a history row.
 
+`PUT` accepts an optional standard `If-Match: "<sha256>"` header. The D1
+promotion and head update are atomic; a stale expected hash returns HTTP 412
+without advancing the head. The KV object may already exist because blobs are
+content-addressed and safe to reuse. Deleting the current head returns HTTP 409.
+
 ## Homebrew note
 
 Homebrew does not create or support a `Brewfile.lock.json`. The macOS
-integration can later use `brew bundle dump` to capture installed Homebrew
-state as a temporary `Brewfile` snapshot and push it with kind `homebrew`.
+integration records a sorted, versioned inventory after successful Homebrew
+sync and upgrade operations while keeping the committed Brewfile as desired
+state.

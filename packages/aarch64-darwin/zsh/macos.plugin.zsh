@@ -1,6 +1,6 @@
-# ========================================
+#=====================================
 # ZSH Configuration for macOS
-# ========================================
+#=====================================
 
 # ---- macOS-Specific PATH Additions ----
 # Static prepends are managed by home.sessionPath.
@@ -157,6 +157,62 @@ outfit-clean-nix-lock() {
     rmdir -- "$lock_dir" 2>/dev/null
 }
 
+outfit-nix-recovery-dir() {
+    print -r -- "${XDG_STATE_HOME:-$HOME/.local/state}/outfitting/nix-lock-recovery"
+}
+
+outfit-has-nix-recovery() {
+    [ -d "$(outfit-nix-recovery-dir)" ]
+}
+
+outfit-prepare-nix-recovery() {
+    local lock_path="$1"
+    local base_hash="$2"
+    local recovery_dir
+    recovery_dir=$(outfit-nix-recovery-dir)
+    local state_parent="${recovery_dir:h}"
+
+    if [ -e "$recovery_dir" ]; then
+        echo "Error: An unfinished Nix upgrade already exists."
+        echo "Run 'outfit recover' before starting another upgrade."
+        return 1
+    fi
+
+    mkdir -p -m 700 "$state_parent" || return 1
+    local staging_dir
+    staging_dir=$(mktemp -d "$state_parent/.nix-lock-recovery.XXXXXX") || return 1
+    chmod 700 "$staging_dir"
+
+    {
+        cp -- "$lock_path" "$staging_dir/flake.lock" &&
+            print -r -- "$base_hash" > "$staging_dir/base-hash" &&
+            print -r -- "prepared" > "$staging_dir/phase" &&
+            chmod 600 "$staging_dir/flake.lock" "$staging_dir/base-hash" "$staging_dir/phase" &&
+            mv -- "$staging_dir" "$recovery_dir"
+    } always {
+        rm -f -- "$staging_dir/flake.lock" "$staging_dir/base-hash" "$staging_dir/phase" 2>/dev/null
+        rmdir -- "$staging_dir" 2>/dev/null
+    }
+}
+
+outfit-set-nix-recovery-phase() {
+    local phase="$1"
+    local recovery_dir
+    recovery_dir=$(outfit-nix-recovery-dir)
+    local phase_tmp="$recovery_dir/.phase.$$"
+
+    print -r -- "$phase" > "$phase_tmp" &&
+        chmod 600 "$phase_tmp" &&
+        mv -f -- "$phase_tmp" "$recovery_dir/phase"
+}
+
+outfit-clear-nix-recovery() {
+    local recovery_dir
+    recovery_dir=$(outfit-nix-recovery-dir)
+    rm -f -- "$recovery_dir/flake.lock" "$recovery_dir/base-hash" "$recovery_dir/phase"
+    rmdir -- "$recovery_dir" 2>/dev/null
+}
+
 outfit-build-nix-system() {
     local flake_path="$1"
     local lock_path="$2"
@@ -174,6 +230,59 @@ outfit-activate-nix-system() {
         nix-env -p /nix/var/nix/profiles/system --set "$system_config" || return 1
     sudo -H HOME=/var/root env -u SUDO_HOME -u NIX_PATH SUDO_USER="$USER" \
         "$system_config/sw/bin/darwin-rebuild" activate
+}
+
+outfit-recover-nix-upgrade() {
+    outfit-require-manager || return 1
+
+    local repo_path
+    repo_path=$(get_outfitting_repo) || {
+        echo "Error: Repository location not configured."
+        return 1
+    }
+
+    local recovery_dir
+    recovery_dir=$(outfit-nix-recovery-dir)
+    local recovery_lock="$recovery_dir/flake.lock"
+    local base_hash_file="$recovery_dir/base-hash"
+    local phase_file="$recovery_dir/phase"
+
+    if [ ! -f "$recovery_lock" ] || [ ! -f "$base_hash_file" ] || [ ! -f "$phase_file" ]; then
+        echo "Error: No complete Nix upgrade recovery checkpoint exists."
+        return 1
+    fi
+
+    local base_hash phase
+    base_hash=$(<"$base_hash_file")
+    phase=$(<"$phase_file")
+
+    case "$phase" in
+        prepared)
+            echo "Resuming the interrupted nix-darwin activation..."
+            local system_config
+            system_config=$(outfit-build-nix-system "$repo_path/packages/aarch64-darwin" "$recovery_lock") ||
+                return 1
+            outfit-activate-nix-system "$system_config" || return 1
+            outfit-set-nix-recovery-phase activated || return 1
+            ;;
+        activated)
+            echo "The recovered configuration is already activated."
+            ;;
+        *)
+            echo "Error: Unknown Nix recovery phase: $phase"
+            return 1
+            ;;
+    esac
+
+    echo "Publishing the recovered lock if the remote base is unchanged..."
+    outfitting-manager lockfiles push jfalava:aarch64-darwin nix "$recovery_lock" \
+        --if-match "$base_hash" || {
+        echo "Recovery checkpoint retained at: $recovery_dir"
+        return 1
+    }
+
+    outfit-clear-nix-recovery
+    echo "Nix upgrade recovery completed successfully."
 }
 
 # nix-darwin management functions
@@ -469,21 +578,31 @@ outfit() {
             ;;
         sync|s)
             shift
-            outfit-homebrew sync "$@"
+            outfit-homebrew sync "$@" || return 1
+            outfit-snapshot
             ;;
         upgrade|u)
             shift
-            echo "=== Upgrading nix-darwin configuration ==="
+            echo "❖ Upgrading nix-darwin configuration"
             outfit-rebuild upgrade "$@" || return 1
             echo ""
-            echo "=== Upgrading Homebrew packages/casks ==="
-            outfit-homebrew upgrade "$@"
+            echo "❖ Upgrading Homebrew packages/casks"
+            outfit-homebrew upgrade "$@" || return 1
+            outfit-snapshot
+            ;;
+        recover)
+            shift
+            if (( $# != 0 )); then
+                echo "Usage: outfit recover"
+                return 1
+            fi
+            outfit-recover-nix-upgrade
             ;;
         build|b|switch|test|t|dry|d)
             outfit-rebuild "$@"
             ;;
         *)
-            echo "Usage: outfit [build|switch|test|dry|sync|upgrade|snapshot]"
+            echo "Usage: outfit [build|switch|test|dry|sync|upgrade|snapshot|recover]"
             echo "  build/b    - Build nix-darwin configuration only"
             echo "  switch     - Build and apply nix-darwin configuration (default)"
             echo "  test/t     - Test nix-darwin build only"
@@ -491,6 +610,7 @@ outfit() {
             echo "  sync/s     - Apply the Homebrew manifest and remove unlisted casks"
             echo "  upgrade/u  - Upgrade nix-darwin config, then upgrade Homebrew packages/casks"
             echo "  snapshot   - Store the versioned installed Homebrew inventory"
+            echo "  recover    - Resume an interrupted Nix upgrade checkpoint"
             return 1
             ;;
     esac
@@ -502,16 +622,24 @@ update-all() {
      sudo -v || return 1
 
      echo ""
-     echo "=== Updating Nix/Darwin ==="
-     hm-update && hm-clean
+     echo "❖ Updating Nix/Darwin"
+     hm-update || return 1
+     hm-clean || return 1
 
      echo ""
-     echo "=== Updating Homebrew Packages ==="
+     echo "❖ Updating Homebrew Packages"
      outfit-homebrew upgrade || return 1
 
      echo ""
-     echo "=== Updating Global Bun Packages ==="
+     echo "❖ Updating Global Bun Packages"
      bun-update-global
+
+     echo ""
+     echo "❖ Storing Homebrew Inventory"
+     outfit-snapshot || {
+         echo "Updates succeeded, but the Homebrew inventory could not be stored."
+         return 1
+     }
 
      echo ""
      echo "System updated successfully"
@@ -527,7 +655,7 @@ update-all-no-nix() {
     }
 
     echo ""
-    echo "=== Updating dotfiles ==="
+    echo "❖ Updating dotfiles"
     if git -C "$repo_path" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
         git -C "$repo_path" pull --ff-only
     else
@@ -555,7 +683,6 @@ outfit-rebuild() {
     local remote_lock="$lock_dir/flake.lock"
     local updated_lock="$lock_dir/updated-flake.lock"
     local rebuild_status=0
-    local preserve_lock=0
 
     if [ ! -L ~/.nixpkgs/darwin-configuration.nix ]; then
         mkdir -p ~/.nixpkgs
@@ -571,6 +698,7 @@ outfit-rebuild() {
             build|b)
                 echo "Building nix-darwin configuration with the remote lock..."
                 OUTFITTING_REPO="$repo_path" env -u NIX_PATH nix build --impure \
+                    --no-link \
                     --reference-lock-file "$remote_lock" --no-write-lock-file \
                     "path:$hm_target#darwinConfigurations.macos.system"
                 rebuild_status=$?
@@ -600,6 +728,12 @@ outfit-rebuild() {
                 rebuild_status=$?
                 ;;
             upgrade|u)
+                if outfit-has-nix-recovery; then
+                    echo "Error: An unfinished Nix upgrade checkpoint exists."
+                    echo "Run 'outfit recover' before starting another upgrade."
+                    return 1
+                fi
+
                 echo "Updating the remote flake lock..."
                 env -u NIX_PATH nix flake update --flake "$hm_target" --impure \
                     --reference-lock-file "$remote_lock" --output-lock-file "$updated_lock"
@@ -611,18 +745,37 @@ outfit-rebuild() {
                     system_config=$(outfit-build-nix-system "$hm_target" "$updated_lock")
                     rebuild_status=$?
                     if (( rebuild_status == 0 )); then
+                        local base_hash_output base_hash
+                        base_hash_output=$(shasum -a 256 "$remote_lock")
+                        rebuild_status=$?
+                        if (( rebuild_status == 0 )); then
+                            base_hash="${base_hash_output%% *}"
+                            outfit-prepare-nix-recovery "$updated_lock" "$base_hash"
+                            rebuild_status=$?
+                        fi
+                    fi
+                    if (( rebuild_status == 0 )); then
                         outfit-activate-nix-system "$system_config"
                         rebuild_status=$?
+                        if (( rebuild_status == 0 )); then
+                            outfit-set-nix-recovery-phase activated
+                            rebuild_status=$?
+                        fi
                     fi
                 fi
 
                 if (( rebuild_status == 0 )); then
-                    outfitting-manager lockfiles push jfalava:aarch64-darwin nix "$updated_lock"
+                    outfitting-manager lockfiles push jfalava:aarch64-darwin nix "$updated_lock" \
+                        --if-match "$base_hash"
                     rebuild_status=$?
-                    if (( rebuild_status != 0 )); then
-                        preserve_lock=1
-                        echo "Updated lock preserved for recovery: $updated_lock"
+                    if (( rebuild_status == 0 )); then
+                        outfit-clear-nix-recovery
                     fi
+                fi
+
+                if (( rebuild_status != 0 )) && outfit-has-nix-recovery; then
+                    echo "Nix upgrade checkpoint retained at: $(outfit-nix-recovery-dir)"
+                    echo "Run 'outfit recover' to resume it."
                 fi
                 ;;
             *)
@@ -636,9 +789,7 @@ outfit-rebuild() {
                 ;;
         esac
     } always {
-        if (( preserve_lock == 0 )); then
-            outfit-clean-nix-lock "$lock_dir"
-        fi
+        outfit-clean-nix-lock "$lock_dir"
     }
 
     return $rebuild_status

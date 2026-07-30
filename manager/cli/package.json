@@ -1,6 +1,6 @@
 {
   "name": "@outfitting/manager",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "bin": {
     "outfitting-manager": "index.ts"
@@ -15,16 +15,24 @@
     "build:linux-arm64": "mkdir -p dist && bun build --compile --target=bun-linux-arm64 index.ts --outfile dist/outfitting-manager-cli-linux-arm64",
     "build:linux-x64": "mkdir -p dist && bun build --compile --target=bun-linux-x64 index.ts --outfile dist/outfitting-manager-cli-linux-x64",
     "build:windows-x64": "mkdir -p dist && bun build --compile --target=bun-windows-x64 index.ts --outfile dist/outfitting-manager-cli-windows-x64.exe",
-    "check": "bun run lint --fix && bun run format --check",
+    "check": "bun run lint && bun run format --check",
+    "fix": "bun run lint --fix && bun run format",
     "format": "oxfmt",
     "lint": "oxlint",
+    "test": "vitest run",
     "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@effect/platform-bun": "4.0.0-beta.102",
+    "effect": "4.0.0-beta.102",
+    "picocolors": "1.1.1"
   },
   "devDependencies": {
     "@types/bun": "catalog:build",
     "oxfmt": "catalog:build",
     "oxlint": "catalog:build",
     "oxlint-tsgolint": "catalog:build",
-    "typescript": "catalog:build"
+    "typescript": "catalog:build",
+    "vitest": "catalog:build"
   }
 }
