@@ -525,10 +525,6 @@ function Update-All {
         Get-InstalledModule -ErrorAction SilentlyContinue | Update-Module -AcceptLicense -Force
         Save-OutfittingPowerShellInventory
 
-        Write-Host "❖ Updating PowerShell Profile" -ForegroundColor Cyan
-        Invoke-RestMethod -Uri "https://win.jfa.dev/config/pwsh-profile" | Invoke-Expression
-        . $PROFILE
-
         Write-Host "❖ Saving WinGet Lockfile" -ForegroundColor Cyan
         $wingetSnapshot = Join-Path ([System.IO.Path]::GetTempPath()) "outfitting-winget-$PID.json"
         try {
