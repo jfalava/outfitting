@@ -1,11 +1,23 @@
-import type {
-  Bindings,
-  DeleteLockfileResult,
-  HeadRow,
-  LockfileIdRow,
-  PromotionInput,
-  PromotionResult,
-} from "./types";
+interface HeadRow {
+  hash: string;
+}
+
+interface LockfileIdRow {
+  id: number;
+}
+
+interface PromotionInput {
+  content: ArrayBuffer;
+  hash: string;
+  kind: string;
+  machine: string;
+  parentHash?: string;
+  size: number;
+}
+
+type PromotionResult = { status: "ok" } | { currentHash: string | null; status: "stale" };
+
+type DeleteLockfileResult = "current" | "deleted" | "not-found";
 
 export const SHA256_PATTERN = /^[0-9a-f]{64}$/;
 
@@ -49,7 +61,7 @@ export function parseIfMatch(value: string | undefined): string | undefined {
   return match[1];
 }
 
-async function currentHead(env: Bindings, machine: string, kind: string): Promise<string | null> {
+async function currentHead(env: Env, machine: string, kind: string): Promise<string | null> {
   const current = await env.DB.prepare(
     `SELECT hash
        FROM lockfile_heads
@@ -61,7 +73,7 @@ async function currentHead(env: Bindings, machine: string, kind: string): Promis
 }
 
 export async function storeAndPromote(
-  env: Bindings,
+  env: Env,
   { content, hash, kind, machine, parentHash, size }: PromotionInput,
 ): Promise<PromotionResult> {
   if ((await currentHead(env, machine, kind)) === hash) {
@@ -99,7 +111,7 @@ export async function storeAndPromote(
 }
 
 export async function deleteLockfileVersion(
-  env: Bindings,
+  env: Env,
   machine: string,
   kind: string,
   hash: string,

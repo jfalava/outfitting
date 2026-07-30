@@ -1,35 +1,45 @@
+import { timingSafeEqual } from "node:crypto";
+
 import { Hono } from "hono";
 
-import { registerDeleteLockfileRoute } from "./routes/delete-lockfile";
-import { registerGetLockfileRoute } from "./routes/get-lockfile";
-import { registerGetLockfileHistoryRoute } from "./routes/get-lockfile-history";
-import { registerListLockfilesRoute } from "./routes/list-lockfiles";
-import { registerPutLockfileRoute } from "./routes/put-lockfile";
-import type { AppEnv } from "./types";
+import { registerLockfileRoutes, type AppEnv } from "./routes";
 
 const app = new Hono<AppEnv>();
+
+function tokensMatch(authorization: string | undefined, token: string): boolean {
+  const prefix = "Bearer ";
+  if (!authorization?.startsWith(prefix)) {
+    return false;
+  }
+
+  const encoder = new TextEncoder();
+  const supplied = encoder.encode(authorization.slice(prefix.length));
+  const expected = encoder.encode(token);
+  return supplied.byteLength === expected.byteLength && timingSafeEqual(supplied, expected);
+}
 
 app.use("*", async (c, next) => {
   const token = await c.env.OUTFITTING_LOCKFILES_TOKEN.get();
   const authorization = c.req.header("Authorization");
 
-  if (!token || authorization !== `Bearer ${token}`) {
+  if (!token || !tokensMatch(authorization, token)) {
     return c.json({ error: "Unauthorized" }, 401);
   }
 
   return next();
 });
 
-registerPutLockfileRoute(app);
-registerGetLockfileHistoryRoute(app);
-registerGetLockfileRoute(app);
-registerListLockfilesRoute(app);
-registerDeleteLockfileRoute(app);
+registerLockfileRoutes(app);
 
 app.notFound((c) => c.json({ error: "Not found" }, 404));
 
 app.onError((error, c) => {
-  console.error(error);
+  console.error(
+    JSON.stringify({
+      message: "Unhandled lockfiles Worker error",
+      error: error.message,
+    }),
+  );
   return c.json({ error: "Internal server error" }, 500);
 });
 

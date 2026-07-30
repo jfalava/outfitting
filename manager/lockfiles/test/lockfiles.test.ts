@@ -45,4 +45,13 @@ describe("authentication", () => {
     );
     expect(response.status).toBe(401);
   });
+
+  test("accepts the configured bearer token", async () => {
+    const response = await app.request(
+      "http://worker.test/not-found",
+      { headers: { Authorization: "Bearer correct-token" } },
+      env,
+    );
+    expect(response.status).toBe(404);
+  });
 });
