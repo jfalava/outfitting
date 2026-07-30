@@ -1,5 +1,7 @@
+import { execFile } from "node:child_process";
 import { mkdir } from "node:fs/promises";
-import { dirname } from "node:path";
+import { dirname, relative, resolve as resolvePath } from "node:path";
+import { promisify } from "node:util";
 
 import { Console, Effect } from "effect";
 
@@ -8,6 +10,7 @@ import { ui } from "./ui";
 const SECRET_SERVICE = "outfitting-lockfiles";
 const TOKEN_SECRET_NAME = "api-token";
 const URL_SECRET_NAME = "worker-url";
+const execFileAsync = promisify(execFile);
 
 interface PushResult {
   hash: string;
@@ -235,11 +238,32 @@ export function inferOutputPath(kind: string): string | undefined {
     nix: "flake.lock",
     npm: "package-lock.json",
     "package-lock": "package-lock.json",
-    "repo-bun": "bun.lock",
     winget: "winget.json",
   };
 
   return names[kind.toLowerCase()];
+}
+
+export async function isGitTrackedFile(path: string): Promise<boolean> {
+  const absolutePath = resolvePath(path);
+
+  try {
+    const { stdout } = await execFileAsync(
+      "git",
+      ["-C", dirname(absolutePath), "rev-parse", "--show-toplevel"],
+      { encoding: "utf8" },
+    );
+    const root = stdout.trim();
+    if (!root) {
+      return false;
+    }
+
+    const repositoryPath = relative(root, absolutePath);
+    await execFileAsync("git", ["-C", root, "ls-files", "--error-unmatch", "--", repositoryPath]);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export function normalizeSha256(value: string): string {
@@ -271,6 +295,14 @@ export const pushLockfile = ({
 
     if (!(yield* tryPromise(() => file.exists()))) {
       return yield* Effect.fail(new Error(`File not found: ${path}`));
+    }
+
+    if (yield* tryPromise(() => isGitTrackedFile(path))) {
+      return yield* Effect.fail(
+        new Error(
+          `Refusing to upload Git-tracked file: ${path}; KV is reserved for lock state that is not committed to Git.`,
+        ),
+      );
     }
 
     const headers: Record<string, string> = {

@@ -46,10 +46,16 @@ outfitting-manager lockfiles configure-token
 Push a lockfile:
 
 ```bash
-outfitting-manager lockfiles push jfalava:x64-wsl nix packages/x64-wsl/flake.lock
+outfitting-manager lockfiles push jfalava:aarch64-darwin nix updated-flake.lock
 outfitting-manager lockfiles push jfalava:aarch64-darwin homebrew-inventory homebrew-inventory.txt
 outfitting-manager lockfiles push jfalava:x64-windows winget winget.json
 ```
+
+The CLI refuses to upload files tracked by Git. Repository-owned lockfiles such
+as this project's `bun.lock` are already preserved by commits, so duplicating
+them in KV provides no recovery value. Generated lock state that is not
+committed—such as the canonical macOS flake lock and machine-local package
+manager snapshots—remains eligible for upload.
 
 Protect a read-modify-write update by supplying the SHA-256 of the version
 that was pulled:

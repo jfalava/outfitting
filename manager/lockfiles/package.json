@@ -1,6 +1,6 @@
 {
   "name": "@outfitting/lockfiles",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -24,7 +24,7 @@
     "oxlint": "catalog:build",
     "oxlint-tsgolint": "catalog:build",
     "typescript": "catalog:build",
-    "vitest": "^4.1.10",
+    "vitest": "catalog:build",
     "wrangler": "catalog:build"
   }
 }
