@@ -5,11 +5,12 @@ import { Effect } from "effect";
 import { CliError, Command } from "effect/unstable/cli";
 import pc from "picocolors";
 
+import { normalizeCommandAlias } from "@/arguments";
 import { makeRootCommand } from "@/cli";
 
 import packageJson from "./package.json" with { type: "json" };
 
-const args = Bun.argv.slice(2);
+const args = normalizeCommandAlias(Bun.argv.slice(2));
 const program = Command.runWith(makeRootCommand(packageJson.version), {
   version: packageJson.version,
 })(args.length === 0 ? ["--help"] : args).pipe(

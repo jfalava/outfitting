@@ -12,7 +12,7 @@ export { assetNameFor, executablePath } from "@/upgrade/platform";
 export { latestCliRelease } from "@/upgrade/release";
 export { isNewerVersion, parseCliVersion } from "@/upgrade/version";
 
-export const ugprade = (currentVersion: string) =>
+export const upgrade = (currentVersion: string) =>
   Effect.gen(function* () {
     const targetPath = executablePath();
     const release = yield* tryPromise(() => latestCliRelease(assetNameFor()));

@@ -52,7 +52,7 @@ export async function installRelease(release: CliRelease, targetPath: string): P
     );
   }
 
-  const temporaryPath = `${targetPath}.ugprade-${process.pid}`;
+  const temporaryPath = `${targetPath}.upgrade-${process.pid}`;
   await writeFile(temporaryPath, bytes, { mode: 0o755 });
 
   if (process.platform === "win32") {

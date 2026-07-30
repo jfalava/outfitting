@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
 
+import { normalizeCommandAlias } from "@/arguments";
 import {
   assetNameFor,
   checksumFromFile,
@@ -9,7 +10,13 @@ import {
   parseCliVersion,
 } from "@/upgrade";
 
-describe("ugprade command helpers", () => {
+describe("upgrade command helpers", () => {
+  test("silently normalizes the misspelled command alias", () => {
+    expect(normalizeCommandAlias(["ugprade"])).toEqual(["upgrade"]);
+    expect(normalizeCommandAlias(["ugprade", "--help"])).toEqual(["upgrade", "--help"]);
+    expect(normalizeCommandAlias(["upgrade"])).toEqual(["upgrade"]);
+  });
+
   test("compares stable CLI versions", () => {
     expect(parseCliVersion("cli-v1.2.3")).toEqual([1, 2, 3]);
     expect(isNewerVersion("1.3.0", "1.2.9")).toBe(true);
