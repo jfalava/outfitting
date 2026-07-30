@@ -5,9 +5,12 @@
 
 let
   outfittingRepo = "${config.home.homeDirectory}/.config/outfitting/repo";
+  completionDirectory = "${config.home.homeDirectory}/.zsh/completions";
   sharedPlugin = config.lib.file.mkOutOfStoreSymlink "${outfittingRepo}/packages/common/zsh";
 in
 {
+  home.file.".zsh/completions/.keep".text = "";
+
   programs.zsh = {
     enable = true;
     enableCompletion = true;
@@ -15,6 +18,7 @@ in
     defaultKeymap = "emacs";
 
     completionInit = ''
+      fpath=("${completionDirectory}" $fpath)
       autoload -Uz compinit
       zcompdump=( ''${ZDOTDIR:-$HOME}/.zcompdump(Nmh+24) )
       if (( ''${#zcompdump} )); then
