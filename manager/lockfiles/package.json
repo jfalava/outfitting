@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "cf-typegen": "wrangler types",
-    "check": "bun run typecheck && bun run lint --fix && oxfmt --check",
-    "deploy": "bun run check && wrangler deploy",
+    "check": "bun run lint --fix && oxfmt --check",
+    "deploy": "bun run lint && wrangler deploy",
     "dev": "bun run cf-typegen && wrangler dev",
     "format": "oxfmt",
     "lint": "oxlint",

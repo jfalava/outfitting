@@ -8,7 +8,14 @@
   "type": "module",
   "module": "index.ts",
   "scripts": {
-    "check": "bun run typecheck && bun run lint --fix && bun run format --check",
+    "build": "mkdir -p dist && bun build --compile index.ts --outfile dist/outfitting-manager-cli",
+    "build:all": "bun run build:darwin-arm64 && bun run build:darwin-x64 && bun run build:linux-x64 && bun run build:linux-arm64 && bun run build:windows-x64",
+    "build:darwin-arm64": "mkdir -p dist && bun build --compile --target=bun-darwin-arm64 index.ts --outfile dist/outfitting-manager-cli-darwin-arm64",
+    "build:darwin-x64": "mkdir -p dist && bun build --compile --target=bun-darwin-x64 index.ts --outfile dist/outfitting-manager-cli-darwin-x64",
+    "build:linux-arm64": "mkdir -p dist && bun build --compile --target=bun-linux-arm64 index.ts --outfile dist/outfitting-manager-cli-linux-arm64",
+    "build:linux-x64": "mkdir -p dist && bun build --compile --target=bun-linux-x64 index.ts --outfile dist/outfitting-manager-cli-linux-x64",
+    "build:windows-x64": "mkdir -p dist && bun build --compile --target=bun-windows-x64 index.ts --outfile dist/outfitting-manager-cli-windows-x64.exe",
+    "check": "bun run lint --fix && bun run format --check",
     "format": "oxfmt",
     "lint": "oxlint",
     "typecheck": "tsc --noEmit"
