@@ -225,6 +225,57 @@ function Save-OutfittingScoopInventory {
     Write-Host "Scoop inventory stored successfully." -ForegroundColor Green
 }
 
+function Save-OutfittingBunGlobalInventory {
+    [CmdletBinding()]
+    param ()
+
+    if (-not (Get-Command bun -ErrorAction SilentlyContinue)) {
+        throw "Bun is not installed or not available in PATH."
+    }
+
+    Write-Host "❖ Saving Global Bun Package Inventory" -ForegroundColor Cyan
+    $snapshotPath = Join-Path ([System.IO.Path]::GetTempPath()) "outfitting-bun-global-inventory-$PID.json"
+    try {
+        $globalBinPath = (& bun pm bin -g | Out-String).Trim()
+        if ($LASTEXITCODE -ne 0) { throw "bun pm bin exited with code $LASTEXITCODE" }
+        if (-not $globalBinPath) { throw "bun pm bin returned an empty global bin path" }
+
+        $manifestPath = Join-Path (Split-Path -Parent $globalBinPath) "install\global\package.json"
+        if (-not (Test-Path -LiteralPath $manifestPath -PathType Leaf)) {
+            throw "Global Bun package manifest not found: $manifestPath"
+        }
+
+        try {
+            $manifest = Get-Content -Raw -LiteralPath $manifestPath | ConvertFrom-Json -ErrorAction Stop
+        } catch {
+            throw "Unable to parse the global Bun package manifest: $($_.Exception.Message)"
+        }
+
+        $inventory = [ordered]@{
+            format = "outfitting-bun-global-inventory-v1"
+            packages = @(
+                $manifest.dependencies.PSObject.Properties.Name |
+                    Sort-Object
+            )
+        }
+        $content = $inventory | ConvertTo-Json -Depth 3
+        [IO.File]::WriteAllText(
+            $snapshotPath,
+            "$content$([Environment]::NewLine)",
+            [Text.UTF8Encoding]::new($false)
+        )
+        Push-OutfittingLockfile `
+            -Machine "jfalava:x64-windows" `
+            -Kind "bun-global-inventory" `
+            -Path $snapshotPath
+    }
+    finally {
+        Remove-Item -LiteralPath $snapshotPath -Force -ErrorAction SilentlyContinue
+    }
+
+    Write-Host "Global Bun package inventory stored successfully." -ForegroundColor Green
+}
+
 function Sync-OutfittingScoop {
     [CmdletBinding(SupportsShouldProcess)]
     param (
@@ -398,6 +449,7 @@ function Update-All {
             Write-Host "❖ Updating Global Bun Packages" -ForegroundColor Cyan
             bun update --global
             if ($LASTEXITCODE -ne 0) { throw "bun update exited with code $LASTEXITCODE" }
+            Save-OutfittingBunGlobalInventory
         }
 
         Write-Host "❖ Updating PowerShell Modules" -ForegroundColor Cyan
@@ -410,7 +462,7 @@ function Update-All {
         Write-Host "❖ Saving WinGet Lockfile" -ForegroundColor Cyan
         $wingetSnapshot = Join-Path ([System.IO.Path]::GetTempPath()) "outfitting-winget-$PID.json"
         try {
-            winget export --output $wingetSnapshot --include-versions --accept-source-agreements
+            winget export --output $wingetSnapshot --accept-source-agreements
             if ($LASTEXITCODE -ne 0) { throw "winget export exited with code $LASTEXITCODE" }
             Push-OutfittingLockfile `
                 -Machine "jfalava:x64-windows" `

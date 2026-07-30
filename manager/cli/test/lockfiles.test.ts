@@ -21,6 +21,7 @@ describe("lockfiles command helpers", () => {
   test("infers common lockfile names", () => {
     expect(inferOutputPath("nix")).toBe("flake.lock");
     expect(inferOutputPath("bun")).toBe("bun.lock");
+    expect(inferOutputPath("bun-global-inventory")).toBe("bun-global-inventory.json");
     expect(inferOutputPath("homebrew-inventory")).toBe("homebrew-inventory.txt");
     expect(inferOutputPath("npm")).toBe("package-lock.json");
     expect(inferOutputPath("scoop-inventory")).toBe("scoop-inventory.json");

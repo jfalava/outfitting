@@ -30,6 +30,7 @@ const OUTPUT_PATHS: Readonly<Record<string, string>> = {
   brew: "Brewfile",
   brewfile: "Brewfile",
   bun: "bun.lock",
+  "bun-global-inventory": "bun-global-inventory.json",
   flake: "flake.lock",
   homebrew: "Brewfile",
   "homebrew-inventory": "homebrew-inventory.txt",
