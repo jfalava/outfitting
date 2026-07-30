@@ -39,6 +39,22 @@ ON CONFLICT (machine, kind) DO UPDATE SET
   hash = excluded.hash,
   updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')`;
 
+export const DELETE_PROMOTIONS_SQL = `DELETE FROM lockfile_promotions
+WHERE machine = ? AND kind = ? AND hash = ?
+  AND NOT EXISTS (
+    SELECT 1
+      FROM lockfile_heads
+     WHERE machine = ? AND kind = ? AND hash = ?
+  )`;
+
+export const DELETE_LOCKFILE_SQL = `DELETE FROM lockfiles
+WHERE machine = ? AND kind = ? AND hash = ?
+  AND NOT EXISTS (
+    SELECT 1
+      FROM lockfile_heads
+     WHERE machine = ? AND kind = ? AND hash = ?
+  )`;
+
 export function lockfileKey(machine: string, kind: string, hash: string): string {
   return `lockfile:${machine}:${kind}:${hash}`;
 }
@@ -116,10 +132,6 @@ export async function deleteLockfileVersion(
   kind: string,
   hash: string,
 ): Promise<DeleteLockfileResult> {
-  if ((await currentHead(env, machine, kind)) === hash) {
-    return "current";
-  }
-
   const existing = await env.DB.prepare(
     `SELECT id
        FROM lockfiles
@@ -131,16 +143,15 @@ export async function deleteLockfileVersion(
     return "not-found";
   }
 
-  await env.DB.batch([
-    env.DB.prepare(
-      `DELETE FROM lockfile_promotions
-        WHERE machine = ? AND kind = ? AND hash = ?`,
-    ).bind(machine, kind, hash),
-    env.DB.prepare(
-      `DELETE FROM lockfiles
-        WHERE machine = ? AND kind = ? AND hash = ?`,
-    ).bind(machine, kind, hash),
+  const results = await env.DB.batch([
+    env.DB.prepare(DELETE_PROMOTIONS_SQL).bind(machine, kind, hash, machine, kind, hash),
+    env.DB.prepare(DELETE_LOCKFILE_SQL).bind(machine, kind, hash, machine, kind, hash),
   ]);
-  await env.LOCKFILES.delete(lockfileKey(machine, kind, hash));
+  if (results[1]?.meta.changes === 0) {
+    return "current";
+  }
+
+  // Keep the content-addressed KV blob: KV and D1 cannot share a transaction, so deleting it
+  // here could race with a concurrent promotion that recreates the metadata for this hash.
   return "deleted";
 }

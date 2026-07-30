@@ -5,11 +5,10 @@ on:
     tags:
       - "cli-v*"
 
-permissions:
-  contents: write
-
 jobs:
   build:
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       matrix:
@@ -55,10 +54,11 @@ jobs:
         shell: bash
         run: |
           cd manager/cli/dist
+          BINARY="$(basename "${{ matrix.outfile }}")"
           if command -v sha256sum >/dev/null 2>&1; then
-            sha256sum "${{ matrix.artifact_name }}" > "${{ matrix.artifact_name }}.sha256"
+            sha256sum "${BINARY}" > "${BINARY}.sha256"
           else
-            shasum -a 256 "${{ matrix.artifact_name }}" > "${{ matrix.artifact_name }}.sha256"
+            shasum -a 256 "${BINARY}" > "${BINARY}.sha256"
           fi
 
       - name: Upload binary artifact
@@ -71,6 +71,8 @@ jobs:
 
   release:
     needs: build
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
     steps:
       - name: Download build artifacts

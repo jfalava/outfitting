@@ -7,8 +7,10 @@ import pc from "picocolors";
 
 import { rootCommand } from "@/cli";
 
+import packageJson from "./package.json" with { type: "json" };
+
 const args = Bun.argv.slice(2);
-const program = Command.runWith(rootCommand, { version: "0.1.0" })(
+const program = Command.runWith(rootCommand, { version: packageJson.version })(
   args.length === 0 ? ["--help"] : args,
 ).pipe(
   Effect.provide(BunServices.layer),

@@ -193,8 +193,18 @@ install_outfitting_manager() {
         return 1
     fi
 
-    mkdir -p "$install_dir"
-    install -m 755 "$temp_dir/$asset" "$install_dir/outfitting-manager"
+    if ! mkdir -p "$install_dir"; then
+        error "Failed to create outfitting-manager install directory: $install_dir"
+        rm -f "$temp_dir/$asset" "$temp_dir/$asset.sha256"
+        rmdir "$temp_dir"
+        return 1
+    fi
+    if ! install -m 755 "$temp_dir/$asset" "$install_dir/outfitting-manager"; then
+        error "Failed to install outfitting-manager to $install_dir"
+        rm -f "$temp_dir/$asset" "$temp_dir/$asset.sha256"
+        rmdir "$temp_dir"
+        return 1
+    fi
     rm -f "$temp_dir/$asset" "$temp_dir/$asset.sha256"
     rmdir "$temp_dir"
     export PATH="$install_dir:$PATH"
@@ -387,7 +397,7 @@ main() {
     check_architecture
 
     configure_outfitting_repo
-    install_outfitting_manager
+    install_outfitting_manager || exit 1
 
     if [ ! -f "$HOME/.config/outfitting/repo-path" ]; then
         info "Retrying repository setup now that Nix is installed..."

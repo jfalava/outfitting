@@ -45,6 +45,8 @@ app.onError((error, c) => {
 
 export {
   ADVANCE_HEAD_SQL,
+  DELETE_LOCKFILE_SQL,
+  DELETE_PROMOTIONS_SQL,
   lockfileKey,
   parseIfMatch,
   PROMOTE_HISTORY_SQL,

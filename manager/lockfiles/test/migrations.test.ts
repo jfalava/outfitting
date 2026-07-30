@@ -3,7 +3,12 @@ import { DatabaseSync } from "node:sqlite";
 
 import { describe, expect, test } from "vitest";
 
-import { ADVANCE_HEAD_SQL, PROMOTE_HISTORY_SQL } from "@/index";
+import {
+  ADVANCE_HEAD_SQL,
+  DELETE_LOCKFILE_SQL,
+  DELETE_PROMOTIONS_SQL,
+  PROMOTE_HISTORY_SQL,
+} from "@/index";
 
 const migration = (name: string) =>
   readFileSync(new URL(`../migrations/${name}`, import.meta.url), "utf8");
@@ -53,6 +58,22 @@ describe("lockfile head migration", () => {
       advance.run("machine", "nix", firstHash, firstHash, "machine", "nix", firstHash).changes,
     ).toBe(0);
     expect(getHead.get("machine", "nix")).toEqual({ hash: secondHash });
+
+    const deleteArguments = (hash: string) => ["machine", "nix", hash, "machine", "nix", hash];
+    const deletePromotions = database.prepare(DELETE_PROMOTIONS_SQL);
+    const deleteLockfile = database.prepare(DELETE_LOCKFILE_SQL);
+
+    expect(deletePromotions.run(...deleteArguments(secondHash)).changes).toBe(0);
+    expect(deleteLockfile.run(...deleteArguments(secondHash)).changes).toBe(0);
+    expect(getHead.get("machine", "nix")).toEqual({ hash: secondHash });
+
+    expect(deletePromotions.run(...deleteArguments(firstHash)).changes).toBe(1);
+    expect(deleteLockfile.run(...deleteArguments(firstHash)).changes).toBe(1);
+    expect(
+      database
+        .prepare("SELECT id FROM lockfiles WHERE machine = ? AND kind = ? AND hash = ?")
+        .get("machine", "nix", firstHash),
+    ).toBeUndefined();
 
     database.close();
   });
