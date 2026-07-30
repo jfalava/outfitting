@@ -404,10 +404,10 @@ if command -v rg &> /dev/null; then
             echo "Usage: rgstats <pattern> [path]"
             return 1
         fi
-        echo "=== Match Statistics ==="
+        echo "❖ Match Statistics"
         rg --count --heading "$1" "${2:-.}"
         echo ""
-        echo "=== Total Matches ==="
+        echo "❖ Total Matches"
         rg --count-matches "$1" "${2:-.}" | awk -F: '{sum+=$2} END {print sum " total matches"}'
     }
 fi

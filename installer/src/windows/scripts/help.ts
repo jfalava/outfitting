@@ -31,9 +31,7 @@ export function generateHelpScript(host: string): string {
 # Note: Packages must be explicitly specified. There is no default installation.
 
 Write-Host ""
-Write-Host "========================================" -ForegroundColor Cyan
-Write-Host "    Outfitting - Windows Installer" -ForegroundColor Cyan
-Write-Host "========================================" -ForegroundColor Cyan
+Write-Host "❖❖❖ Outfitting - Windows Installer ❖❖❖" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "WinGet Package Profiles:" -ForegroundColor Yellow
 Write-Host "  • base     - Core packages, runtimes, and utilities" -ForegroundColor White
