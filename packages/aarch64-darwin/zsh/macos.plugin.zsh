@@ -368,9 +368,82 @@ outfit-homebrew() {
     esac
 }
 
+# Store the current macOS dependency and package state through outfitting-manager.
+outfit-snapshot() {
+    local repo_path
+    repo_path=$(get_outfitting_repo) || {
+        echo "Error: Repository location not configured."
+        echo "Run 'set_outfitting_repo /path/to/outfitting' to configure."
+        return 1
+    }
+
+    if ! command -v outfitting-manager >/dev/null 2>&1; then
+        echo "Error: outfitting-manager is not installed or not in PATH."
+        echo "Build manager/cli and link its binary into ~/.local/bin."
+        return 1
+    fi
+
+    if ! command -v brew >/dev/null 2>&1; then
+        echo "Error: homebrew is not installed or not in PATH."
+        return 1
+    fi
+
+    local nix_lock="$repo_path/packages/aarch64-darwin/flake.lock"
+    local bun_lock="$repo_path/bun.lock"
+    if [[ ! -f "$nix_lock" ]]; then
+        echo "Error: Nix flake lockfile not found: $nix_lock"
+        return 1
+    fi
+    if [[ ! -f "$bun_lock" ]]; then
+        echo "Error: Repository Bun lockfile not found: $bun_lock"
+        return 1
+    fi
+
+    local snapshot_dir
+    snapshot_dir=$(mktemp -d "${TMPDIR:-/tmp}/outfitting-snapshot.XXXXXX") || {
+        echo "Error: Could not create a temporary snapshot directory."
+        return 1
+    }
+    local homebrew_snapshot="$snapshot_dir/Brewfile"
+    local machine="jfalava:aarch64-darwin"
+    local snapshot_status=0
+
+    {
+        echo "Capturing installed Homebrew state..."
+        brew bundle dump --file="$homebrew_snapshot" --force || snapshot_status=1
+
+        if (( snapshot_status == 0 )); then
+            echo ""
+            echo "Pushing macOS snapshots..."
+            outfitting-manager lockfiles push "$machine" nix "$nix_lock" || snapshot_status=1
+            outfitting-manager lockfiles push "$machine" repo-bun "$bun_lock" || snapshot_status=1
+            outfitting-manager lockfiles push "$machine" homebrew "$homebrew_snapshot" || snapshot_status=1
+        fi
+    } always {
+        rm -f -- "$homebrew_snapshot"
+        rmdir -- "$snapshot_dir" 2>/dev/null
+    }
+
+    if (( snapshot_status != 0 )); then
+        echo "Error: macOS snapshot did not complete."
+        return 1
+    fi
+
+    echo ""
+    echo "macOS snapshot stored successfully."
+}
+
 # Standard outfit command entrypoint
 outfit() {
     case "${1:-switch}" in
+        snapshot)
+            shift
+            if (( $# != 0 )); then
+                echo "Usage: outfit snapshot"
+                return 1
+            fi
+            outfit-snapshot
+            ;;
         sync|s)
             shift
             outfit-homebrew sync "$@"
@@ -387,13 +460,14 @@ outfit() {
             outfit-rebuild "$@"
             ;;
         *)
-            echo "Usage: outfit [build|switch|test|dry|sync|upgrade]"
+            echo "Usage: outfit [build|switch|test|dry|sync|upgrade|snapshot]"
             echo "  build/b    - Build nix-darwin configuration only"
             echo "  switch     - Build and apply nix-darwin configuration (default)"
             echo "  test/t     - Test nix-darwin build only"
             echo "  dry/d      - Dry-run nix-darwin changes"
             echo "  sync/s     - Apply the Homebrew manifest and remove unlisted casks"
             echo "  upgrade/u  - Upgrade nix-darwin config, then upgrade Homebrew packages/casks"
+            echo "  snapshot   - Store current Nix, repository Bun, and Homebrew state"
             return 1
             ;;
     esac
