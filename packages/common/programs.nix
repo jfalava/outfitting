@@ -189,6 +189,15 @@
     enable = true;
     # Home Manager still uses deprecated initExtra for its integration.
     enableZshIntegration = false;
+    allowlist = [ "jfa.dev" ];
+    policy = {
+      allowlist_rules = [
+        {
+          rule_id = "lookalike_tld";
+          patterns = [ "*.dev" ];
+        }
+      ];
+    };
   };
 
   programs.vim.enable = true;
