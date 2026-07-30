@@ -56,7 +56,7 @@
         "wrangler": "catalog:build",
       },
     },
-    "manager": {
+    "manager/cli": {
       "name": "@outfitting/manager",
       "version": "0.1.0",
       "bin": {
@@ -69,7 +69,7 @@
         "typescript": "7.0.2",
       },
     },
-    "packages/lockfiles": {
+    "manager/lockfiles": {
       "name": "@outfitting/lockfiles",
       "version": "0.1.0",
       "dependencies": {
@@ -324,9 +324,9 @@
 
     "@outfitting/installer": ["@outfitting/installer@workspace:installer"],
 
-    "@outfitting/lockfiles": ["@outfitting/lockfiles@workspace:packages/lockfiles"],
+    "@outfitting/lockfiles": ["@outfitting/lockfiles@workspace:manager/lockfiles"],
 
-    "@outfitting/manager": ["@outfitting/manager@workspace:manager"],
+    "@outfitting/manager": ["@outfitting/manager@workspace:manager/cli"],
 
     "@oxc-project/types": ["@oxc-project/types@0.139.0", "", {}, "sha512-r9gHphtCs+1M7J0pw6Sn/hh/Wpa/iQrOOkrNAlVLF/gHq+/CJmHIWKKUUhdWjcD6CIa8idarspCsASiXCXvFUw=="],
 

@@ -10,7 +10,7 @@ Install the monorepo dependencies and authenticate Wrangler:
 
 ```bash
 bun install
-cd packages/lockfiles
+cd manager/lockfiles
 bunx wrangler login
 ```
 
@@ -39,7 +39,7 @@ bun run migrate:remote
 bun run deploy
 ```
 
-`wrangler deploy` prints the Worker URL. Configure it in the [manager CLI](../../manager/README.md).
+`wrangler deploy` prints the Worker URL. Configure it in the [manager CLI](../cli/README.md).
 
 For local Worker development, apply the migration locally before starting the
 dev server:

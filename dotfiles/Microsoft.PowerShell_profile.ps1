@@ -88,7 +88,7 @@ function Push-OutfittingLockfile {
 
     if (-not (Get-Command outfitting-manager -ErrorAction SilentlyContinue)) {
         $repoPath = Get-OutfittingRepo
-        throw "outfitting-manager is not installed or not in PATH. Run 'cd $repoPath\manager; bun link' first."
+        throw "outfitting-manager is not installed or not in PATH. Run 'cd $repoPath\manager\cli; bun link' first."
     }
 
     & outfitting-manager lockfiles push $Machine $Kind $Path

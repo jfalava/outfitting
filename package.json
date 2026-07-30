@@ -5,8 +5,8 @@
     "packages": [
       "installer",
       "documentation",
-      "manager",
-      "packages/lockfiles"
+      "manager/cli",
+      "manager/lockfiles"
     ],
     "catalogs": {
       "types": {

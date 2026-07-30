@@ -51,9 +51,7 @@ function baseUrl(): string {
 }
 
 async function apiToken(): Promise<string> {
-  // Bun.secrets is experimental and does not isolate credentials between
-  // scripts running as the same OS user. That is acceptable for this personal
-  // tool, but the keychain entry is not a hard security boundary.
+  // Bun.secrets is experimental and does not isolate credentials between scripts running as the same OS user. That is acceptable for this personal tool, but the keychain entry is not a hard security boundary.
   let token = await Bun.secrets.get({
     service: SECRET_SERVICE,
     name: SECRET_NAME,

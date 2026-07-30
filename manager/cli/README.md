@@ -11,7 +11,7 @@ bun link
 Run it without linking:
 
 ```bash
-bun run manager/index.ts --help
+bun run manager/cli/index.ts --help
 ```
 
 ## Lockfiles
