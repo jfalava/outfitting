@@ -19,7 +19,9 @@ describe("lockfile helpers", () => {
 
 describe("authentication", () => {
   const env = {
-    OUTFITTING_LOCKFILES_TOKEN: "correct-token",
+    OUTFITTING_LOCKFILES_TOKEN: {
+      get: async () => "correct-token",
+    },
   } as unknown as Env;
 
   test("rejects a missing bearer token", async () => {

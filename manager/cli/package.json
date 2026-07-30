@@ -8,7 +8,7 @@
   "type": "module",
   "module": "index.ts",
   "scripts": {
-    "build": "mkdir -p dist && bun build --compile index.ts --outfile dist/outfitting-manager-cli",
+    "build": "mkdir -p dist && bun build --compile index.ts --outfile dist/outfitting-manager",
     "build:all": "bun run build:darwin-arm64 && bun run build:darwin-x64 && bun run build:linux-x64 && bun run build:linux-arm64 && bun run build:windows-x64",
     "build:darwin-arm64": "mkdir -p dist && bun build --compile --target=bun-darwin-arm64 index.ts --outfile dist/outfitting-manager-cli-darwin-arm64",
     "build:darwin-x64": "mkdir -p dist && bun build --compile --target=bun-darwin-x64 index.ts --outfile dist/outfitting-manager-cli-darwin-x64",

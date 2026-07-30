@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 
 interface Bindings {
-  OUTFITTING_LOCKFILES_TOKEN: string;
+  OUTFITTING_LOCKFILES_TOKEN: SecretsStoreSecret;
   DB: D1Database;
   LOCKFILES: KVNamespace;
 }
@@ -28,7 +28,7 @@ export async function sha256(content: ArrayBuffer): Promise<string> {
 }
 
 app.use("*", async (c, next) => {
-  const token = c.env.OUTFITTING_LOCKFILES_TOKEN;
+  const token = await c.env.OUTFITTING_LOCKFILES_TOKEN.get();
   const authorization = c.req.header("Authorization");
 
   if (!token || authorization !== `Bearer ${token}`) {

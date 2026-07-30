@@ -22,4 +22,11 @@
       "migrations_dir": "migrations",
     },
   ],
+  "secrets_store_secrets": [
+    {
+      "binding": "OUTFITTING_LOCKFILES_TOKEN",
+      "store_id": "6722243507114af69e9626e2a66436d0",
+      "secret_name": "OUTFITTING_LOCKFILES_TOKEN",
+    },
+  ],
 }

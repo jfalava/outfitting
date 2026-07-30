@@ -2,17 +2,20 @@ import { mkdir } from "node:fs/promises";
 import { dirname } from "node:path";
 
 const SECRET_SERVICE = "outfitting-lockfiles";
-const SECRET_NAME = "api-token";
+const TOKEN_SECRET_NAME = "api-token";
+const URL_SECRET_NAME = "worker-url";
 
 const HELP = `Usage: outfitting-manager lockfiles <command>
 
 Commands:
+  configure-worker [url]
+  configure-token
   push <machine> <kind> <path>
   pull <machine> <kind> [outPath]
   list <machine>
   history <machine> <kind>
 
-Set OUTFITTING_LOCKFILES_URL to the deployed Worker URL.`;
+The Worker URL and API token are stored in your OS keychain.`;
 
 interface PushResult {
   hash: string;
@@ -31,49 +34,162 @@ function requireArgs(args: string[], count: number, usage: string): string[] {
   return args;
 }
 
-function baseUrl(): string {
-  const value = Bun.env.OUTFITTING_LOCKFILES_URL?.trim();
-
-  if (!value) {
-    throw new Error("OUTFITTING_LOCKFILES_URL is not set. Point it at the deployed Worker.");
-  }
-
+export function normalizeWorkerUrl(value: string): string {
   let parsed: URL;
   try {
-    parsed = new URL(value);
+    parsed = new URL(value.trim());
   } catch {
-    throw new Error("OUTFITTING_LOCKFILES_URL must be a valid URL.");
+    throw new Error("Worker URL must be a valid URL.");
+  }
+
+  if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
+    throw new Error("Worker URL must use HTTP or HTTPS.");
   }
 
   return parsed.toString().replace(/\/$/, "");
 }
 
+async function storeWorkerUrl(value: string): Promise<string> {
+  const url = normalizeWorkerUrl(value);
+  await Bun.secrets.set({
+    service: SECRET_SERVICE,
+    name: URL_SECRET_NAME,
+    value: url,
+  });
+  return url;
+}
+
+async function baseUrl(): Promise<string> {
+  const stored = await Bun.secrets.get({
+    service: SECRET_SERVICE,
+    name: URL_SECRET_NAME,
+  });
+
+  if (stored) {
+    return normalizeWorkerUrl(stored);
+  }
+
+  const value = prompt("Lockfiles Worker URL (stored in your OS keychain):")?.trim();
+  if (!value) {
+    throw new Error("A Worker URL is required.");
+  }
+
+  return storeWorkerUrl(value);
+}
+
+type TerminalEscapeState = "normal" | "escape" | "csi";
+
+function consumeTerminalEscape(
+  character: string,
+  state: TerminalEscapeState,
+): TerminalEscapeState | undefined {
+  if (state === "escape") {
+    return character === "[" ? "csi" : "normal";
+  }
+  if (state === "csi") {
+    return character >= "@" && character <= "~" ? "normal" : "csi";
+  }
+  return character === "\u001b" ? "escape" : undefined;
+}
+
+async function maskedPrompt(message: string): Promise<string | null> {
+  const input = process.stdin;
+  const output = process.stderr;
+
+  if (!input.isTTY || typeof input.setRawMode !== "function") {
+    throw new Error("API token entry requires an interactive terminal.");
+  }
+
+  output.write(message);
+  input.setEncoding("utf8");
+  input.setRawMode(true);
+  input.resume();
+
+  return new Promise((resolve, reject) => {
+    let value = "";
+    let escapeState: TerminalEscapeState = "normal";
+
+    const cleanup = () => {
+      input.off("data", onData);
+      input.setRawMode(false);
+      input.pause();
+      output.write("\n");
+    };
+
+    const finish = (result: string | null) => {
+      cleanup();
+      resolve(result);
+    };
+
+    const onData = (chunk: string) => {
+      for (const character of chunk) {
+        const nextEscapeState = consumeTerminalEscape(character, escapeState);
+        if (nextEscapeState) {
+          escapeState = nextEscapeState;
+          continue;
+        }
+
+        if (character === "\r" || character === "\n") {
+          finish(value);
+          return;
+        }
+
+        if (character === "\u0003") {
+          cleanup();
+          reject(new Error("API token entry cancelled."));
+          return;
+        }
+
+        if (character === "\u007f" || character === "\b") {
+          if (value.length > 0) {
+            value = Array.from(value).slice(0, -1).join("");
+            output.write("\b \b");
+          }
+          continue;
+        }
+
+        if (character >= " " && character !== "\u007f") {
+          value += character;
+          output.write("*");
+        }
+      }
+    };
+
+    input.on("data", onData);
+  });
+}
+
 async function apiToken(): Promise<string> {
   // Bun.secrets is experimental and does not isolate credentials between scripts running as the same OS user. That is acceptable for this personal tool, but the keychain entry is not a hard security boundary.
-  let token = await Bun.secrets.get({
+  const token = await Bun.secrets.get({
     service: SECRET_SERVICE,
-    name: SECRET_NAME,
+    name: TOKEN_SECRET_NAME,
   });
 
   if (token) {
     return token;
   }
 
-  token = prompt("Lockfiles API token (stored in your OS keychain):")?.trim() ?? null;
+  return promptAndStoreApiToken();
+}
+
+async function promptAndStoreApiToken(): Promise<string> {
+  const token =
+    (await maskedPrompt("Lockfiles API token (stored in your OS keychain): "))?.trim() ?? null;
   if (!token) {
     throw new Error("An API token is required.");
   }
 
   await Bun.secrets.set({
     service: SECRET_SERVICE,
-    name: SECRET_NAME,
+    name: TOKEN_SECRET_NAME,
     value: token,
   });
   return token;
 }
 
-function endpoint(parts: string[]): string {
-  return `${baseUrl()}/${parts.map(encodeURIComponent).join("/")}`;
+async function endpoint(parts: string[]): Promise<string> {
+  return `${await baseUrl()}/${parts.map(encodeURIComponent).join("/")}`;
 }
 interface CliRequestInit {
   body?: ArrayBuffer;
@@ -82,10 +198,11 @@ interface CliRequestInit {
 }
 
 async function request(parts: string[], init: CliRequestInit = {}): Promise<Response> {
+  const url = await endpoint(parts);
   const token = await apiToken();
   const headers = { ...init.headers, Authorization: `Bearer ${token}` };
 
-  const response = await fetch(endpoint(parts), { ...init, headers });
+  const response = await fetch(url, { ...init, headers });
   if (response.ok) {
     return response;
   }
@@ -115,6 +232,7 @@ export function inferOutputPath(kind: string): string | undefined {
     nix: "flake.lock",
     npm: "package-lock.json",
     "package-lock": "package-lock.json",
+    "repo-bun": "bun.lock",
     winget: "winget.json",
   };
 
@@ -200,10 +318,32 @@ async function history(args: string[]): Promise<void> {
   }
 }
 
+async function configureWorker(args: string[]): Promise<void> {
+  const requestedUrl =
+    args[0] ?? prompt("Lockfiles Worker URL (stored in your OS keychain):")?.trim();
+  if (!requestedUrl) {
+    throw new Error("A Worker URL is required.");
+  }
+
+  const url = await storeWorkerUrl(requestedUrl);
+  console.log(`Stored Worker URL: ${url}`);
+}
+
+async function configureToken(): Promise<void> {
+  await promptAndStoreApiToken();
+  console.log("Stored API token in your OS keychain.");
+}
+
 export async function runLockfilesCli(args: string[]): Promise<void> {
   const [command, ...commandArgs] = args;
 
   switch (command) {
+    case "configure-worker":
+      await configureWorker(commandArgs);
+      return;
+    case "configure-token":
+      await configureToken();
+      return;
     case "push":
       await push(commandArgs);
       return;

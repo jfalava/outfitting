@@ -5,10 +5,12 @@ maintenance tools.
 
 ```bash
 bun install
-bun link
+bun run build
+mkdir -p ~/.local/bin
+ln -sfn "$PWD/dist/outfitting-manager" ~/.local/bin/outfitting-manager
 ```
 
-Run it without linking:
+Run it without building or linking:
 
 ```bash
 bun run manager/cli/index.ts --help
@@ -16,30 +18,33 @@ bun run manager/cli/index.ts --help
 
 ## Lockfiles
 
-Set `OUTFITTING_LOCKFILES_URL` to the deployed Worker URL on each client machine:
+Configure the deployed Worker URL on each client machine:
 
 ```bash
-export OUTFITTING_LOCKFILES_URL="https://outfitting-lockfiles.<subdomain>.workers.dev"
+outfitting-manager lockfiles configure-worker "https://url-to-your-worker"
 ```
 
-In PowerShell:
+The CLI stores the URL with `Bun.secrets` using service
+`outfitting-lockfiles` and name `worker-url`. If it has not been configured,
+the first API call prompts for it. That call also prompts for the bearer token
+with masked input and stores it under the same service with name `api-token`.
+The token is never echoed after it is entered or saved. This uses Keychain on
+macOS, the Secret Service on Linux, and Credential Manager on Windows.
+`Bun.secrets` is experimental and is appropriate here as personal credential
+storage, not as a hard boundary between programs running as the same user.
+Run `configure-worker` again whenever the Worker URL changes.
 
-```powershell
-$env:OUTFITTING_LOCKFILES_URL = "https://outfitting-lockfiles.<subdomain>.workers.dev"
+Set or replace the API token with masked input:
+
+```bash
+outfitting-manager lockfiles configure-token
 ```
-
-The first API call prompts for the bearer token and stores it with
-`Bun.secrets` using service `outfitting-lockfiles` and name `api-token`. This
-uses Keychain on macOS, the Secret Service on Linux, and Credential Manager on
-Windows. `Bun.secrets` is experimental and is appropriate here as personal
-credential storage, not as a hard boundary between programs running as the
-same user.
 
 Push a lockfile:
 
 ```bash
 outfitting-manager lockfiles push jfalava:x64-wsl nix packages/x64-wsl/flake.lock
-outfitting-manager lockfiles push jfalava:aarch64-darwin bun bun.lock
+outfitting-manager lockfiles push jfalava:aarch64-darwin repo-bun bun.lock
 outfitting-manager lockfiles push jfalava:x64-windows winget winget.json
 ```
 
@@ -66,5 +71,7 @@ Machine names are free-form. Automatic maintenance hooks use the repository's
 
 - `jfalava:x64-windows`
 
-The macOS and WSL labels are reserved for later integration. Kinds are also
-free-form and require no schema migration.
+The macOS `outfit snapshot` hook uses `jfalava:aarch64-darwin` with kinds
+`nix`, `repo-bun`, and `homebrew`. The `repo-bun` snapshot is the monorepo
+dependency lockfile; it is not an inventory of globally installed Bun
+packages. Kinds are free-form and require no schema migration.
