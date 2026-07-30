@@ -1,10 +1,9 @@
 import { Console, Effect } from "effect";
 
-import { ui } from "../ui";
-
-import { tryPromise } from "./effect";
-import { request } from "./request";
-import type { HistoryEntry } from "./types";
+import { tryPromise } from "@/lockfiles/effect";
+import { request } from "@/lockfiles/request";
+import type { HistoryEntry } from "@/lockfiles/types";
+import { ui } from "@/ui";
 
 export const historyLockfiles = (machine: string, kind: string) =>
   Effect.gen(function* () {

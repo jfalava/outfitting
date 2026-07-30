@@ -3,7 +3,7 @@ import { DatabaseSync } from "node:sqlite";
 
 import { describe, expect, test } from "vitest";
 
-import { ADVANCE_HEAD_SQL, PROMOTE_HISTORY_SQL } from "../src/index";
+import { ADVANCE_HEAD_SQL, PROMOTE_HISTORY_SQL } from "@/index";
 
 const migration = (name: string) =>
   readFileSync(new URL(`../migrations/${name}`, import.meta.url), "utf8");

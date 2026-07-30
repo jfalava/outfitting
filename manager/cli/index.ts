@@ -5,7 +5,7 @@ import { Effect } from "effect";
 import { CliError, Command } from "effect/unstable/cli";
 import pc from "picocolors";
 
-import { rootCommand } from "./src/cli";
+import { rootCommand } from "@/cli";
 
 const args = Bun.argv.slice(2);
 const program = Command.runWith(rootCommand, { version: "0.1.0" })(

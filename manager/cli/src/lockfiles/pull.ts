@@ -3,12 +3,11 @@ import { dirname } from "node:path";
 
 import { Console, Effect } from "effect";
 
-import { ui } from "../ui";
-
-import { tryPromise } from "./effect";
-import { inferOutputPath } from "./files";
-import { request } from "./request";
-import type { PullLockfileOptions } from "./types";
+import { tryPromise } from "@/lockfiles/effect";
+import { inferOutputPath } from "@/lockfiles/files";
+import { request } from "@/lockfiles/request";
+import type { PullLockfileOptions } from "@/lockfiles/types";
+import { ui } from "@/ui";
 
 export const pullLockfile = ({ machine, kind, outPath: requestedPath }: PullLockfileOptions) =>
   Effect.gen(function* () {

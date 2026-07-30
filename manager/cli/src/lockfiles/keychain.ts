@@ -1,4 +1,4 @@
-import { maskedPrompt } from "./masked-prompt";
+import { maskedPrompt } from "@/lockfiles/masked-prompt";
 
 const SECRET_SERVICE = "outfitting-lockfiles";
 const TOKEN_SECRET_NAME = "api-token";

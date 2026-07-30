@@ -1,10 +1,10 @@
 import { Command } from "effect/unstable/cli";
 
-import { configureTokenCommand, configureWorkerCommand } from "./configure";
-import { historyCommand } from "./history";
-import { listCommand } from "./list";
-import { pullCommand } from "./pull";
-import { pushCommand } from "./push";
+import { configureTokenCommand, configureWorkerCommand } from "@/commands/lockfiles/configure";
+import { historyCommand } from "@/commands/lockfiles/history";
+import { listCommand } from "@/commands/lockfiles/list";
+import { pullCommand } from "@/commands/lockfiles/pull";
+import { pushCommand } from "@/commands/lockfiles/push";
 
 export const lockfilesCommand = Command.make("lockfiles").pipe(
   Command.withDescription(

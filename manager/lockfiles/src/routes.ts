@@ -7,7 +7,7 @@ import {
   sha256,
   SHA256_PATTERN,
   storeAndPromote,
-} from "./lockfiles";
+} from "@/lockfiles";
 
 export interface AppEnv {
   Bindings: Env;

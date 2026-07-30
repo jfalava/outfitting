@@ -1,9 +1,8 @@
 import { Console, Effect } from "effect";
 
-import { ui } from "../ui";
-
-import { tryPromise } from "./effect";
-import { promptAndStoreApiToken, storeWorkerUrl } from "./keychain";
+import { tryPromise } from "@/lockfiles/effect";
+import { promptAndStoreApiToken, storeWorkerUrl } from "@/lockfiles/keychain";
+import { ui } from "@/ui";
 
 export const configureWorker = (requestedUrl?: string) =>
   Effect.gen(function* () {

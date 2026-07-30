@@ -1,7 +1,7 @@
 import { Option } from "effect";
 import { Argument, Command } from "effect/unstable/cli";
 
-import { configureToken, configureWorker } from "../../lockfiles";
+import { configureToken, configureWorker } from "@/lockfiles";
 
 export const configureWorkerCommand = Command.make(
   "configure-worker",

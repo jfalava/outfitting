@@ -1,11 +1,10 @@
 import { Console, Effect } from "effect";
 
-import { ui } from "../ui";
-
-import { tryPromise, toError } from "./effect";
-import { isGitTrackedFile, normalizeSha256 } from "./files";
-import { request } from "./request";
-import type { PushLockfileOptions, PushResult } from "./types";
+import { tryPromise, toError } from "@/lockfiles/effect";
+import { isGitTrackedFile, normalizeSha256 } from "@/lockfiles/files";
+import { request } from "@/lockfiles/request";
+import type { PushLockfileOptions, PushResult } from "@/lockfiles/types";
+import { ui } from "@/ui";
 
 export const pushLockfile = ({
   machine,

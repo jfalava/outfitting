@@ -1,8 +1,7 @@
 import { Command } from "effect/unstable/cli";
 
-import { historyLockfiles } from "../../lockfiles";
-
-import { kindArgument, machineArgument } from "./arguments";
+import { kindArgument, machineArgument } from "@/commands/lockfiles/arguments";
+import { historyLockfiles } from "@/lockfiles";
 
 export const historyCommand = Command.make(
   "history",

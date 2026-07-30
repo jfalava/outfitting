@@ -1,9 +1,8 @@
 import { Option } from "effect";
 import { Argument, Command } from "effect/unstable/cli";
 
-import { pullLockfile } from "../../lockfiles";
-
-import { kindArgument, machineArgument } from "./arguments";
+import { kindArgument, machineArgument } from "@/commands/lockfiles/arguments";
+import { pullLockfile } from "@/lockfiles";
 
 export const pullCommand = Command.make(
   "pull",

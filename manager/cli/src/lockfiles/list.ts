@@ -1,9 +1,8 @@
 import { Console, Effect } from "effect";
 
-import { ui } from "../ui";
-
-import { tryPromise } from "./effect";
-import { request } from "./request";
+import { tryPromise } from "@/lockfiles/effect";
+import { request } from "@/lockfiles/request";
+import { ui } from "@/ui";
 
 function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((item) => typeof item === "string");

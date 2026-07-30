@@ -2,7 +2,7 @@ import { timingSafeEqual } from "node:crypto";
 
 import { Hono } from "hono";
 
-import { registerLockfileRoutes, type AppEnv } from "./routes";
+import { registerLockfileRoutes, type AppEnv } from "@/routes";
 
 const app = new Hono<AppEnv>();
 
@@ -49,6 +49,6 @@ export {
   parseIfMatch,
   PROMOTE_HISTORY_SQL,
   sha256,
-} from "./lockfiles";
+} from "@/lockfiles";
 export { app };
 export default app;

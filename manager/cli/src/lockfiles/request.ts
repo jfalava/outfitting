@@ -1,5 +1,5 @@
-import { apiToken, baseUrl } from "./keychain";
-import type { CliRequestInit } from "./types";
+import { apiToken, baseUrl } from "@/lockfiles/keychain";
+import type { CliRequestInit } from "@/lockfiles/types";
 
 async function endpoint(parts: ReadonlyArray<string>): Promise<string> {
   return `${await baseUrl()}/${parts.map(encodeURIComponent).join("/")}`;

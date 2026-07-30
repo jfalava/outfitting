@@ -5,7 +5,7 @@ import {
   isGitTrackedFile,
   normalizeSha256,
   normalizeWorkerUrl,
-} from "../src/lockfiles";
+} from "@/lockfiles";
 
 describe("lockfiles command helpers", () => {
   test("infers common lockfile names", () => {

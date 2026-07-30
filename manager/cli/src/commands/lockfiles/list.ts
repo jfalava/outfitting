@@ -1,8 +1,7 @@
 import { Command } from "effect/unstable/cli";
 
-import { listLockfiles } from "../../lockfiles";
-
-import { machineArgument } from "./arguments";
+import { machineArgument } from "@/commands/lockfiles/arguments";
+import { listLockfiles } from "@/lockfiles";
 
 export const listCommand = Command.make("list", { machine: machineArgument }, ({ machine }) =>
   listLockfiles(machine),

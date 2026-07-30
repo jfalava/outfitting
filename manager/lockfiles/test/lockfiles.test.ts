@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { app, lockfileKey, parseIfMatch, sha256 } from "../src/index";
+import { app, lockfileKey, parseIfMatch, sha256 } from "@/index";
 
 describe("lockfile helpers", () => {
   test("builds the specified content-addressed KV key", () => {
