@@ -8,5 +8,10 @@
     "area:cli",
     "topic:lockfiles",
     "kind:reference"
+  ],
+  "manager/lockfiles/src": [
+    "area:manager",
+    "topic:lockfiles",
+    "kind:reference"
   ]
 }
