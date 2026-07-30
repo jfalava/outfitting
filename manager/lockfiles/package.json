@@ -5,9 +5,10 @@
   "type": "module",
   "scripts": {
     "cf-typegen": "wrangler types",
-    "check": "bun run lint --fix && oxfmt --check",
+    "check": "bun run lint && oxfmt --check",
     "deploy": "bun run lint && wrangler deploy",
     "dev": "bun run cf-typegen && wrangler dev",
+    "fix": "bun run lint --fix && bun run format",
     "format": "oxfmt",
     "lint": "oxlint",
     "migrate:local": "wrangler d1 migrations apply outfitting-lockfiles --local",
@@ -19,7 +20,7 @@
     "hono": "4.12.31"
   },
   "devDependencies": {
-    "@types/bun": "catalog:build",
+    "@types/node": "catalog:types",
     "oxfmt": "catalog:build",
     "oxlint": "catalog:build",
     "oxlint-tsgolint": "catalog:build",

@@ -98,6 +98,7 @@ function Push-OutfittingLockfile {
 }
 
 function Set-OutfittingRepo {
+    [CmdletBinding(SupportsShouldProcess)]
     param ([Parameter(Mandatory)][string]$Path)
 
     $repoPath = (Resolve-Path -LiteralPath $Path -ErrorAction Stop).Path
@@ -107,9 +108,11 @@ function Set-OutfittingRepo {
 
     $configDirectory = Join-Path $env:USERPROFILE ".config\outfitting"
     $configFile = Join-Path $configDirectory "repo-path"
-    $null = New-Item -ItemType Directory -Path $configDirectory -Force
-    [IO.File]::WriteAllText($configFile, $repoPath, [Text.UTF8Encoding]::new($false))
-    Write-Host "Outfitting repository path set to: $repoPath" -ForegroundColor Green
+    if ($PSCmdlet.ShouldProcess($configFile, "Set outfitting repository path to '$repoPath'")) {
+        $null = New-Item -ItemType Directory -Path $configDirectory -Force
+        [IO.File]::WriteAllText($configFile, $repoPath, [Text.UTF8Encoding]::new($false))
+        Write-Host "Outfitting repository path set to: $repoPath" -ForegroundColor Green
+    }
 }
 
 function Sync-OutfittingScoop {

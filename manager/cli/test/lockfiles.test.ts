@@ -1,3 +1,10 @@
+import { execFile } from "node:child_process";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { promisify } from "node:util";
+
+import { Effect } from "effect";
 import { describe, expect, test } from "vitest";
 
 import {
@@ -5,7 +12,10 @@ import {
   isGitTrackedFile,
   normalizeSha256,
   normalizeWorkerUrl,
+  pullLockfile,
 } from "@/lockfiles";
+
+const execFileAsync = promisify(execFile);
 
 describe("lockfiles command helpers", () => {
   test("infers common lockfile names", () => {
@@ -18,8 +28,30 @@ describe("lockfiles command helpers", () => {
   });
 
   test("distinguishes repository-owned lockfiles from external lock state", async () => {
-    expect(await isGitTrackedFile(`${import.meta.dir}/../bun.lock`)).toBe(true);
-    expect(await isGitTrackedFile(`${import.meta.dir}/not-tracked.lock`)).toBe(false);
+    const repository = await mkdtemp(join(tmpdir(), "outfitting-lockfiles-test-"));
+    const trackedPath = join(repository, "tracked.lock");
+    const untrackedPath = join(repository, "untracked.lock");
+
+    try {
+      await execFileAsync("git", ["init", "--quiet", repository]);
+      await writeFile(trackedPath, "tracked");
+      await writeFile(untrackedPath, "untracked");
+      await execFileAsync("git", ["-C", repository, "add", "tracked.lock"]);
+
+      expect(await isGitTrackedFile(trackedPath)).toBe(true);
+      expect(await isGitTrackedFile(untrackedPath)).toBe(false);
+      await expect(
+        Effect.runPromise(
+          pullLockfile({
+            machine: "test-machine",
+            kind: "test-kind",
+            outPath: trackedPath,
+          }),
+        ),
+      ).rejects.toThrow(`Refusing to overwrite Git-tracked file: ${trackedPath}`);
+    } finally {
+      await rm(repository, { force: true, recursive: true });
+    }
   });
 
   test("normalizes Worker URLs", () => {

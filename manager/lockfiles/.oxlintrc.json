@@ -5,7 +5,7 @@
     "browser": true,
     "es2024": true
   },
-  "ignorePatterns": ["*.d.ts", "**/*.d.ts", "test/**"],
+  "ignorePatterns": ["*.d.ts", "**/*.d.ts"],
   "rules": {
     "no-console": [
       "error",
@@ -16,5 +16,15 @@
     "complexity": ["error", 6],
     "max-depth": ["error", 2],
     "max-statements": ["error", 12]
-  }
+  },
+  "overrides": [
+    {
+      "files": ["test/**/*.ts"],
+      "rules": {
+        "complexity": "off",
+        "max-depth": "off",
+        "max-statements": "off"
+      }
+    }
+  ]
 }

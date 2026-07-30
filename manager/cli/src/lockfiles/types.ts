@@ -24,4 +24,5 @@ export interface CliRequestInit {
   body?: ArrayBuffer;
   headers?: Record<string, string>;
   method?: "PUT";
+  signal?: AbortSignal;
 }

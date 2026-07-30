@@ -1,8 +1,30 @@
 import { execFile } from "node:child_process";
+import { realpath } from "node:fs/promises";
 import { dirname, relative, resolve as resolvePath } from "node:path";
 import { promisify } from "node:util";
 
 const execFileAsync = promisify(execFile);
+
+interface GitExecutionError {
+  code?: number | string;
+  stderr?: string;
+}
+
+function isGitExecutionError(cause: unknown): cause is GitExecutionError {
+  return cause instanceof Error;
+}
+
+function isOutsideGitRepository(cause: unknown): boolean {
+  return (
+    isGitExecutionError(cause) &&
+    cause.code === 128 &&
+    cause.stderr?.includes("not a git repository") === true
+  );
+}
+
+function isUntrackedPath(cause: unknown): boolean {
+  return isGitExecutionError(cause) && cause.code === 1;
+}
 
 const OUTPUT_PATHS: Readonly<Record<string, string>> = {
   brew: "Brewfile",
@@ -22,7 +44,14 @@ export function inferOutputPath(kind: string): string | undefined {
 }
 
 export async function isGitTrackedFile(path: string): Promise<boolean> {
-  const absolutePath = resolvePath(path);
+  const requestedPath = resolvePath(path);
+  const absolutePath = await realpath(requestedPath).catch((cause: unknown) => {
+    if (isGitExecutionError(cause) && cause.code === "ENOENT") {
+      return requestedPath;
+    }
+    throw cause;
+  });
+  let root: string;
 
   try {
     const { stdout } = await execFileAsync(
@@ -30,16 +59,27 @@ export async function isGitTrackedFile(path: string): Promise<boolean> {
       ["-C", dirname(absolutePath), "rev-parse", "--show-toplevel"],
       { encoding: "utf8" },
     );
-    const root = stdout.trim();
-    if (!root) {
+    root = await realpath(stdout.trim());
+  } catch (cause) {
+    if (isOutsideGitRepository(cause)) {
       return false;
     }
+    throw cause;
+  }
 
-    const repositoryPath = relative(root, absolutePath);
+  if (!root) {
+    throw new Error(`Git returned an empty repository root for: ${absolutePath}`);
+  }
+
+  const repositoryPath = relative(root, absolutePath);
+  try {
     await execFileAsync("git", ["-C", root, "ls-files", "--error-unmatch", "--", repositoryPath]);
     return true;
-  } catch {
-    return false;
+  } catch (cause) {
+    if (isUntrackedPath(cause)) {
+      return false;
+    }
+    throw cause;
   }
 }
 

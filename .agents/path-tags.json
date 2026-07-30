@@ -14,5 +14,5 @@
     "topic:lockfiles",
     "kind:reference"
   ],
-  "manager/cli/src/cli.ts": ["area:manager", "topic:cli", "kind:decision"]
+  "manager/cli/src/cli.ts": ["area:manager", "topic:cli", "kind:reference"]
 }

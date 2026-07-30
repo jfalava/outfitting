@@ -4,7 +4,7 @@ import { dirname } from "node:path";
 import { Console, Effect } from "effect";
 
 import { tryPromise } from "@/lockfiles/effect";
-import { inferOutputPath } from "@/lockfiles/files";
+import { inferOutputPath, isGitTrackedFile } from "@/lockfiles/files";
 import { request } from "@/lockfiles/request";
 import type { PullLockfileOptions } from "@/lockfiles/types";
 import { ui } from "@/ui";
@@ -15,6 +15,14 @@ export const pullLockfile = ({ machine, kind, outPath: requestedPath }: PullLock
     if (!outPath) {
       return yield* Effect.fail(
         new Error(`Cannot infer a filename for kind "${kind}"; provide out-path explicitly.`),
+      );
+    }
+
+    if (yield* tryPromise(() => isGitTrackedFile(outPath))) {
+      return yield* Effect.fail(
+        new Error(
+          `Refusing to overwrite Git-tracked file: ${outPath}; use --out-path to write elsewhere.`,
+        ),
       );
     }
 

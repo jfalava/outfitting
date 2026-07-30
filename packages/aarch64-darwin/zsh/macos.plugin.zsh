@@ -698,6 +698,7 @@ outfit-rebuild() {
             build|b)
                 echo "Building nix-darwin configuration with the remote lock..."
                 OUTFITTING_REPO="$repo_path" env -u NIX_PATH nix build --impure \
+                    --no-link \
                     --reference-lock-file "$remote_lock" --no-write-lock-file \
                     "path:$hm_target#darwinConfigurations.macos.system"
                 rebuild_status=$?

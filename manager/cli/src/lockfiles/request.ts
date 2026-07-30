@@ -13,7 +13,11 @@ export async function request(
   const token = await apiToken();
   const headers = { ...init.headers, Authorization: `Bearer ${token}` };
 
-  const response = await fetch(url, { ...init, headers });
+  const response = await fetch(url, {
+    ...init,
+    headers,
+    signal: init.signal ?? AbortSignal.timeout(15_000),
+  });
   if (response.ok) {
     return response;
   }

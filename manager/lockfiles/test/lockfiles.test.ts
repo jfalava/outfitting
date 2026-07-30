@@ -10,7 +10,7 @@ describe("lockfile helpers", () => {
   });
 
   test("hashes raw bytes with SHA-256", async () => {
-    const content = new TextEncoder().encode("hello").buffer;
+    const content = await new Blob(["hello"]).arrayBuffer();
     expect(await sha256(content)).toBe(
       "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824",
     );
