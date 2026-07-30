@@ -38,5 +38,26 @@ export const docsTree: Root = {
       name: "Updates",
       url: "/docs/updates",
     },
+    {
+      type: "folder",
+      name: "Manager",
+      children: [
+        {
+          type: "page",
+          name: "Overview",
+          url: "/docs/manager",
+        },
+        {
+          type: "page",
+          name: "CLI",
+          url: "/docs/manager/cli",
+        },
+        {
+          type: "page",
+          name: "Lockfiles Worker",
+          url: "/docs/manager/lockfiles-worker",
+        },
+      ],
+    },
   ],
 };
