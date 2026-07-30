@@ -35,7 +35,7 @@ if (Get-Module -ListAvailable -Name PSReadLine) {
 }
 
 # -------------------------------
-# Aliases and Functions
+# Aliases
 # -------------------------------
 function ezals {
   eza --color=always --long --git --bytes --icons=always
@@ -59,6 +59,10 @@ function killwsl {
   wsl --shutdown
 }
 Set-Alias wslk killwsl
+
+# -------------------------------
+# Functions
+# -------------------------------
 
 function Get-OutfittingRepo {
     if (-not [string]::IsNullOrWhiteSpace($env:OUTFITTING_REPO)) {
@@ -157,6 +161,70 @@ function Set-OutfittingRepo {
     }
 }
 
+function Save-OutfittingScoopInventory {
+    [CmdletBinding()]
+    param ()
+
+    if (-not (Get-Command scoop -ErrorAction SilentlyContinue)) {
+        throw "Scoop is not installed or not available in PATH."
+    }
+
+    Write-Host "❖ Saving Scoop Inventory" -ForegroundColor Cyan
+    $snapshotPath = Join-Path ([System.IO.Path]::GetTempPath()) "outfitting-scoop-inventory-$PID.json"
+    try {
+        $json = & scoop export 2>$null | Out-String
+        if ($LASTEXITCODE -ne 0) { throw "scoop export exited with code $LASTEXITCODE" }
+
+        try {
+            $state = $json | ConvertFrom-Json -ErrorAction Stop
+        } catch {
+            throw "Unable to parse scoop export output: $($_.Exception.Message)"
+        }
+
+        $inventory = [ordered]@{
+            format = "outfitting-scoop-inventory-v1"
+            apps = @(
+                $state.apps |
+                    Sort-Object Name, Source |
+                    ForEach-Object {
+                        [ordered]@{
+                            Name = [string]$_.Name
+                            Source = [string]$_.Source
+                            Version = [string]$_.Version
+                            Info = [string]$_.Info
+                        }
+                    }
+            )
+            buckets = @(
+                $state.buckets |
+                    Sort-Object Name |
+                    ForEach-Object {
+                        [ordered]@{
+                            Name = [string]$_.Name
+                            Source = [string]$_.Source
+                        }
+                    }
+            )
+        }
+
+        $content = $inventory | ConvertTo-Json -Depth 5
+        [IO.File]::WriteAllText(
+            $snapshotPath,
+            "$content$([Environment]::NewLine)",
+            [Text.UTF8Encoding]::new($false)
+        )
+        Push-OutfittingLockfile `
+            -Machine "jfalava:x64-windows" `
+            -Kind "scoop-inventory" `
+            -Path $snapshotPath
+    }
+    finally {
+        Remove-Item -LiteralPath $snapshotPath -Force -ErrorAction SilentlyContinue
+    }
+
+    Write-Host "Scoop inventory stored successfully." -ForegroundColor Green
+}
+
 function Sync-OutfittingScoop {
     [CmdletBinding(SupportsShouldProcess)]
     param (
@@ -175,7 +243,7 @@ function Sync-OutfittingScoop {
         throw "Local Scoop manifest not found: $ManifestPath"
     }
 
-    Write-Host "`n=== Reconciling Scoop Packages ===" -ForegroundColor Cyan
+    Write-Host "❖ Reconciling Scoop Packages" -ForegroundColor Cyan
     Write-Host "Manifest: $ManifestPath" -ForegroundColor DarkGray
     try {
         $content = Get-Content -LiteralPath $ManifestPath -Raw -ErrorAction Stop
@@ -310,37 +378,36 @@ function Sync-OutfittingScoop {
         Write-Host "Scoop reconciliation preview complete." -ForegroundColor Cyan
     } else {
         Write-Host "Scoop packages match scoop.txt." -ForegroundColor Green
+        Save-OutfittingScoopInventory
     }
 }
 
-# Quick system update
 function Update-All {
     $previousErrorActionPreference = $ErrorActionPreference
     $ErrorActionPreference = "Stop"
 
     try {
-        Write-Host "`n=== Updating WinGet Packages ===" -ForegroundColor Cyan
+        Write-Host "❖ Updating WinGet Packages" -ForegroundColor Cyan
         winget upgrade --all --accept-source-agreements --accept-package-agreements
         if ($LASTEXITCODE -ne 0) { throw "winget upgrade exited with code $LASTEXITCODE" }
 
-        if (Get-Command scoop -ErrorAction SilentlyContinue) {
-            Sync-OutfittingScoop
-        }
+        Write-Host "❖ Reconciling Scoop Packages from scoop.txt" -ForegroundColor Cyan
+        Sync-OutfittingScoop
 
         if (Get-Command bun -ErrorAction SilentlyContinue) {
-            Write-Host "`n=== Updating Global Bun Packages ===" -ForegroundColor Cyan
+            Write-Host "❖ Updating Global Bun Packages" -ForegroundColor Cyan
             bun update --global
             if ($LASTEXITCODE -ne 0) { throw "bun update exited with code $LASTEXITCODE" }
         }
 
-        Write-Host "`n=== Updating PowerShell Modules ===" -ForegroundColor Cyan
+        Write-Host "❖ Updating PowerShell Modules" -ForegroundColor Cyan
         Get-InstalledModule -ErrorAction SilentlyContinue | Update-Module -AcceptLicense -Force
 
-        Write-Host "`n=== Updating PowerShell Profile ===" -ForegroundColor Cyan
+        Write-Host "❖ Updating PowerShell Profile" -ForegroundColor Cyan
         Invoke-RestMethod -Uri "https://win.jfa.dev/config/pwsh-profile" | Invoke-Expression
         . $PROFILE
 
-        Write-Host "`n=== Saving WinGet Lockfile ===" -ForegroundColor Cyan
+        Write-Host "❖ Saving WinGet Lockfile" -ForegroundColor Cyan
         $wingetSnapshot = Join-Path ([System.IO.Path]::GetTempPath()) "outfitting-winget-$PID.json"
         try {
             winget export --output $wingetSnapshot --include-versions --accept-source-agreements

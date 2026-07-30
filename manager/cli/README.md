@@ -48,6 +48,7 @@ Push a lockfile:
 ```bash
 outfitting-manager lockfiles push jfalava:aarch64-darwin nix updated-flake.lock
 outfitting-manager lockfiles push jfalava:aarch64-darwin homebrew-inventory homebrew-inventory.txt
+outfitting-manager lockfiles push jfalava:x64-windows scoop-inventory scoop-inventory.json
 outfitting-manager lockfiles push jfalava:x64-windows winget winget.json
 ```
 
@@ -77,7 +78,7 @@ outfitting-manager lockfiles pull jfalava:x64-windows winget restored-winget.jso
 
 The default output filename is inferred for common kinds, including `nix`,
 `flake`, `bun`, `npm`, `package-lock`, `homebrew-inventory`, `homebrew`,
-`brew`, `brewfile`, and `winget`. Pass an explicit output path for any other
+`brew`, `brewfile`, `scoop-inventory`, and `winget`. Pass an explicit output path for any other
 free-form kind.
 
 List kinds and inspect history:
@@ -101,3 +102,9 @@ activation and upload succeed; `outfit recover` resumes it. Successful
 `outfit sync` and `outfit upgrade` operations automatically store the
 observed, versioned Homebrew state as `homebrew-inventory`. Kinds are
 free-form and require no schema migration.
+
+Windows treats `packages/x64-windows/scoop.txt` as the source of truth for directly installed Scoop packages, and every `Update-All` run reconciles against it.
+After a successful `Sync-OutfittingScoop`, the PowerShell profile writes a
+stable, sorted Scoop export without volatile timestamps and uploads it as
+`scoop-inventory` for `jfalava:x64-windows`. Run
+`Save-OutfittingScoopInventory` to capture current state without reconciling first.
