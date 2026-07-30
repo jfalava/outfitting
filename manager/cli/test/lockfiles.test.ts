@@ -7,6 +7,7 @@ describe("lockfiles command helpers", () => {
     expect(inferOutputPath("nix")).toBe("flake.lock");
     expect(inferOutputPath("bun")).toBe("bun.lock");
     expect(inferOutputPath("repo-bun")).toBe("bun.lock");
+    expect(inferOutputPath("homebrew-inventory")).toBe("homebrew-inventory.txt");
     expect(inferOutputPath("npm")).toBe("package-lock.json");
     expect(inferOutputPath("winget")).toBe("winget.json");
     expect(inferOutputPath("custom-kind")).toBeUndefined();

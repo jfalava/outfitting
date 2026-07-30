@@ -41,15 +41,22 @@ outfit sync   # or: outfit sync
 outfit upgrade   # or: outfit upgrade
 ```
 
-Store the current Nix input lock, repository Bun dependency lock, and installed
-Homebrew state in outfitting-manager:
+Store a versioned inventory of the installed Homebrew taps, formulae, and
+casks:
 
 ```bash
 outfit snapshot
 ```
 
-Snapshots use the machine name `jfalava:aarch64-darwin` and the kinds `nix`, `repo-bun`, and `homebrew`.
-The command only pushes data; it does not overwrite local declarative configuration.
+The inventory uses machine `jfalava:aarch64-darwin` and kind
+`homebrew-inventory`. The committed Brewfile remains the desired state; this
+inventory records the observed state and installed versions.
+
+The macOS `flake.lock` is canonical remote state under kind `nix`, rather than
+a repository file. Every rebuild downloads it into a physical temporary
+directory and passes it to Nix with `--reference-lock-file`. `outfit upgrade`
+updates a temporary lock with `--output-lock-file`, applies it, and pushes it
+back only after a successful switch.
 
 ## Nix-darwin Profile Management
 
@@ -66,12 +73,8 @@ outfit dry
 hm-rollback
 ```
 
-Traditional `nix-darwin` commands from the repository directory:
-
-```bash
-darwin-rebuild switch --flake "path:$PWD/packages/aarch64-darwin#macos"
-darwin-rebuild build --flake "path:$PWD/packages/aarch64-darwin#macos"
-```
+Use the `outfit` commands rather than invoking `darwin-rebuild` directly; they
+supply the remote lock and prevent Nix from creating a local `flake.lock`.
 
 ## Nix Package Testing
 

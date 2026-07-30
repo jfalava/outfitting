@@ -44,7 +44,7 @@ Push a lockfile:
 
 ```bash
 outfitting-manager lockfiles push jfalava:x64-wsl nix packages/x64-wsl/flake.lock
-outfitting-manager lockfiles push jfalava:aarch64-darwin repo-bun bun.lock
+outfitting-manager lockfiles push jfalava:aarch64-darwin homebrew-inventory homebrew-inventory.txt
 outfitting-manager lockfiles push jfalava:x64-windows winget winget.json
 ```
 
@@ -55,9 +55,10 @@ outfitting-manager lockfiles pull jfalava:x64-wsl nix
 outfitting-manager lockfiles pull jfalava:x64-windows winget restored-winget.json
 ```
 
-The default output filename is inferred for common kinds: `nix`, `flake`,
-`bun`, `npm`, `package-lock`, `homebrew`, `brew`, `brewfile`, and `winget`.
-Pass an explicit output path for any other free-form kind.
+The default output filename is inferred for common kinds, including `nix`,
+`flake`, `bun`, `npm`, `package-lock`, `homebrew-inventory`, `homebrew`,
+`brew`, `brewfile`, and `winget`. Pass an explicit output path for any other
+free-form kind.
 
 List kinds and inspect history:
 
@@ -71,7 +72,9 @@ Machine names are free-form. Automatic maintenance hooks use the repository's
 
 - `jfalava:x64-windows`
 
-The macOS `outfit snapshot` hook uses `jfalava:aarch64-darwin` with kinds
-`nix`, `repo-bun`, and `homebrew`. The `repo-bun` snapshot is the monorepo
-dependency lockfile; it is not an inventory of globally installed Bun
-packages. Kinds are free-form and require no schema migration.
+macOS uses the `nix` kind as its canonical remote flake lock. Rebuild commands
+pull it into a temporary path with Nix's `--reference-lock-file`; upgrades
+write to a temporary `--output-lock-file` and push the result after a
+successful switch. `outfit snapshot` separately stores the observed,
+versioned Homebrew state as `homebrew-inventory`. Kinds are free-form and
+require no schema migration.

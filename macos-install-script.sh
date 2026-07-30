@@ -155,6 +155,52 @@ install_astral_uv() {
         warning "Failed to install UV (network error or already installed)"
     fi
 }
+
+install_outfitting_manager() {
+    if command -v outfitting-manager >/dev/null 2>&1; then
+        success "outfitting-manager is already installed"
+        return 0
+    fi
+
+    local arch asset release_base install_dir temp_dir
+    arch=$(uname -m)
+    if [[ "$arch" != "arm64" ]]; then
+        error "No outfitting-manager release binary is available for macOS architecture: $arch"
+        return 1
+    fi
+
+    asset="outfitting-manager-darwin-arm64"
+    release_base="https://github.com/jfalava/outfitting/releases/latest/download"
+    install_dir="$HOME/.local/bin"
+    temp_dir=$(mktemp -d "${TMPDIR:-/tmp}/outfitting-manager.XXXXXX")
+
+    info "Installing the latest outfitting-manager release..."
+    if ! curl -fL "$release_base/$asset" -o "$temp_dir/$asset"; then
+        error "Failed to download outfitting-manager"
+        rmdir "$temp_dir"
+        return 1
+    fi
+    if ! curl -fL "$release_base/$asset.sha256" -o "$temp_dir/$asset.sha256"; then
+        error "Failed to download outfitting-manager checksum"
+        rm -f "$temp_dir/$asset"
+        rmdir "$temp_dir"
+        return 1
+    fi
+    if ! (cd "$temp_dir" && shasum -a 256 -c "$asset.sha256"); then
+        error "outfitting-manager checksum verification failed"
+        rm -f "$temp_dir/$asset" "$temp_dir/$asset.sha256"
+        rmdir "$temp_dir"
+        return 1
+    fi
+
+    mkdir -p "$install_dir"
+    install -m 755 "$temp_dir/$asset" "$install_dir/outfitting-manager"
+    rm -f "$temp_dir/$asset" "$temp_dir/$asset.sha256"
+    rmdir "$temp_dir"
+    export PATH="$install_dir:$PATH"
+
+    success "outfitting-manager installed"
+}
 #############################################
 
 ############################ Nix Installation
@@ -231,18 +277,59 @@ install_nix_darwin() {
         return 1
     fi
 
-    local repo_path flake_path
-    repo_path=$(cat "$config_file")
-    flake_path="$repo_path/packages/aarch64-darwin"
-
-    info "Running nix-darwin switch (darwinConfigurations.macos)..."
-    # sudo -H is required on macOS to avoid /Users/<user> ownership warnings
-    if sudo -H env -u NIX_PATH nix run nix-darwin -- switch --flake "path:$flake_path#macos" --impure; then
-        success "nix-darwin activated"
-    else
-        error "Failed to activate nix-darwin"
+    if ! command -v outfitting-manager >/dev/null 2>&1; then
+        error "outfitting-manager is required to retrieve the remote Nix lock"
         return 1
     fi
+
+    local repo_path flake_path lock_dir_display lock_dir lock_path
+    repo_path=$(cat "$config_file")
+    flake_path="$repo_path/packages/aarch64-darwin"
+    lock_dir_display=$(mktemp -d "${TMPDIR:-/tmp}/outfitting-nix-lock.XXXXXX")
+    lock_dir=$(cd "$lock_dir_display" && pwd -P)
+    lock_path="$lock_dir/flake.lock"
+
+    if ! outfitting-manager lockfiles pull jfalava:aarch64-darwin nix "$lock_path"; then
+        error "Failed to retrieve the canonical Nix lock"
+        rm -f "$lock_path"
+        rmdir "$lock_dir"
+        return 1
+    fi
+
+    info "Building nix-darwin with the canonical remote lock..."
+    local system_config
+    if ! system_config=$(
+        OUTFITTING_REPO="$repo_path" env -u NIX_PATH nix build \
+            --no-link --print-out-paths --impure \
+            --reference-lock-file "$lock_path" --no-write-lock-file \
+            "path:$flake_path#darwinConfigurations.macos.system"
+    ); then
+        error "Failed to build nix-darwin"
+        rm -f "$lock_path"
+        rmdir "$lock_dir"
+        return 1
+    fi
+
+    info "Activating nix-darwin..."
+    # sudo -H is required on macOS to avoid /Users/<user> ownership warnings
+    if ! sudo -H HOME=/var/root env -u SUDO_HOME -u NIX_PATH \
+        nix-env -p /nix/var/nix/profiles/system --set "$system_config"; then
+        error "Failed to update the nix-darwin system profile"
+        rm -f "$lock_path"
+        rmdir "$lock_dir"
+        return 1
+    fi
+    if ! sudo -H HOME=/var/root env -u SUDO_HOME -u NIX_PATH SUDO_USER="$USER" \
+        "$system_config/sw/bin/darwin-rebuild" activate; then
+        error "Failed to activate nix-darwin"
+        rm -f "$lock_path"
+        rmdir "$lock_dir"
+        return 1
+    fi
+    success "nix-darwin activated"
+
+    rm -f "$lock_path"
+    rmdir "$lock_dir"
 }
 #############################################
 
@@ -300,6 +387,7 @@ main() {
     check_architecture
 
     configure_outfitting_repo
+    install_outfitting_manager
 
     if [ ! -f "$HOME/.config/outfitting/repo-path" ]; then
         info "Retrying repository setup now that Nix is installed..."

@@ -229,6 +229,7 @@ export function inferOutputPath(kind: string): string | undefined {
     bun: "bun.lock",
     flake: "flake.lock",
     homebrew: "Brewfile",
+    "homebrew-inventory": "homebrew-inventory.txt",
     nix: "flake.lock",
     npm: "package-lock.json",
     "package-lock": "package-lock.json",
