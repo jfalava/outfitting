@@ -1,6 +1,6 @@
 # Project memory
 
-This project uses `machine-memory` for persistent agent context stored at `.agents/memory.db`.
+This project uses `machine-memory` for persistent agent context stored at [`.agents/memory.db`](./agents/memory.db) in the root of the monorepo.
 
 ## One-sweep workflow (use this every task)
 

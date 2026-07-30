@@ -29,7 +29,7 @@ installer Worker's bindings.
 Set the shared bearer token as a Worker secret:
 
 ```bash
-bunx wrangler secret put API_TOKEN
+bunx wrangler secret put OUTFITTING_LOCKFILES_TOKEN
 ```
 
 Apply the schema and deploy:
@@ -51,7 +51,8 @@ bun run dev
 
 ## HTTP API
 
-Every request requires `Authorization: Bearer <API_TOKEN>`.
+Every request requires
+`Authorization: Bearer <OUTFITTING_LOCKFILES_TOKEN>`.
 
 | Method   | Route                               | Result                                               |
 | -------- | ----------------------------------- | ---------------------------------------------------- |
