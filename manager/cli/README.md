@@ -1,7 +1,10 @@
 # Outfitting manager
 
 The `outfitting-manager` binary is the entry point for local Outfitting
-maintenance tools.
+maintenance tools. Its command tree is built with the Effect 4 CLI API from
+`effect/unstable/cli`; each feature exports a composable command that the root
+CLI registers as a subcommand. User-facing status output uses `picocolors` and
+respects standard color-support detection.
 
 ```bash
 bun install

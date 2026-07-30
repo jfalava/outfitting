@@ -1,34 +1,26 @@
 #!/usr/bin/env bun
 
-import { runLockfilesCli } from "./src/commands/lockfiles";
+import { BunRuntime, BunServices } from "@effect/platform-bun";
+import { Effect } from "effect";
+import { CliError, Command } from "effect/unstable/cli";
+import pc from "picocolors";
 
-const HELP = `Usage: outfitting-manager <command>
+import { rootCommand } from "./src/cli";
 
-Commands:
-  lockfiles  Push and pull lockfile snapshots
-  help       Show this help
-`;
+const args = Bun.argv.slice(2);
+const program = Command.runWith(rootCommand, { version: "0.1.0" })(
+  args.length === 0 ? ["--help"] : args,
+).pipe(
+  Effect.provide(BunServices.layer),
+  Effect.catch((error) =>
+    Effect.sync(() => {
+      process.exitCode = 1;
+      if (!CliError.isCliError(error)) {
+        const message = error instanceof Error ? error.message : String(error);
+        console.error(`${pc.red(pc.bold("Error:"))} ${message}`);
+      }
+    }),
+  ),
+);
 
-async function main(args: string[]): Promise<void> {
-  const [command, ...commandArgs] = args;
-
-  switch (command) {
-    case "lockfiles":
-      await runLockfilesCli(commandArgs);
-      return;
-    case "help":
-    case "--help":
-    case "-h":
-    case undefined:
-      console.log(HELP);
-      return;
-    default:
-      throw new Error(`Unknown command: ${command}\n\n${HELP}`);
-  }
-}
-
-main(Bun.argv.slice(2)).catch((error: unknown) => {
-  const message = error instanceof Error ? error.message : String(error);
-  console.error(`Error: ${message}`);
-  process.exitCode = 1;
-});
+BunRuntime.runMain(program, { disableErrorReporting: true });

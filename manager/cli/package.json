@@ -21,12 +21,17 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
+  "dependencies": {
+    "@effect/platform-bun": "4.0.0-beta.102",
+    "effect": "4.0.0-beta.102",
+    "picocolors": "1.1.1"
+  },
   "devDependencies": {
     "@types/bun": "catalog:build",
     "oxfmt": "catalog:build",
     "oxlint": "catalog:build",
     "oxlint-tsgolint": "catalog:build",
     "typescript": "catalog:build",
-    "vitest": "^4.1.10"
+    "vitest": "catalog:build"
   }
 }

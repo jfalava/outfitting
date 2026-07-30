@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { inferOutputPath, normalizeSha256, normalizeWorkerUrl } from "../src/commands/lockfiles";
+import { inferOutputPath, normalizeSha256, normalizeWorkerUrl } from "../src/lockfiles";
 
 describe("lockfiles command helpers", () => {
   test("infers common lockfile names", () => {
