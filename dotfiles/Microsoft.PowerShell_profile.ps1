@@ -79,6 +79,48 @@ function Get-OutfittingRepo {
     return (Resolve-Path -LiteralPath $repoPath -ErrorAction Stop).Path
 }
 
+function Initialize-OutfittingManagerLink {
+    $repoPath = Get-OutfittingRepo
+    $managerSourcePath = Join-Path $repoPath "manager\cli\dist\outfitting-manager-cli-windows-x64.exe"
+    if (-not (Test-Path -LiteralPath $managerSourcePath -PathType Leaf)) {
+        Write-Warning "Outfitting manager is not built at '$managerSourcePath'. Run 'bun run --cwd manager/cli build:windows-x64'."
+        return
+    }
+    $managerSourcePath = (Resolve-Path -LiteralPath $managerSourcePath -ErrorAction Stop).Path
+
+    $managerLinkDirectory = "C:\bin"
+    $managerLinkPath = Join-Path $managerLinkDirectory "outfitting-manager.exe"
+    $existingManager = Get-Item -LiteralPath $managerLinkPath -Force -ErrorAction SilentlyContinue
+    if ($null -ne $existingManager) {
+        if ($existingManager.LinkType -ne "SymbolicLink") {
+            Write-Warning "Cannot link outfitting-manager because a non-symlink already exists at '$managerLinkPath'."
+            return
+        }
+
+        $existingTarget = $existingManager.Target | Select-Object -First 1
+        if ($existingTarget -and -not [System.IO.Path]::IsPathRooted($existingTarget)) {
+            $existingTarget = Join-Path $managerLinkDirectory $existingTarget
+        }
+        if ($existingTarget -and [System.IO.Path]::GetFullPath($existingTarget) -eq $managerSourcePath) {
+            return
+        }
+
+        Remove-Item -LiteralPath $managerLinkPath -Force
+    }
+
+    New-Item -Path $managerLinkDirectory -ItemType Directory -Force | Out-Null
+    & cmd.exe /d /c mklink "$managerLinkPath" "$managerSourcePath" | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+        throw "mklink failed for '$managerLinkPath' with exit code $LASTEXITCODE."
+    }
+}
+
+try {
+    Initialize-OutfittingManagerLink
+} catch {
+    Write-Warning "Could not initialize the outfitting manager link: $_"
+}
+
 function Push-OutfittingLockfile {
     param(
         [Parameter(Mandatory = $true)][string]$Machine,
@@ -88,7 +130,7 @@ function Push-OutfittingLockfile {
 
     if (-not (Get-Command outfitting-manager -ErrorAction SilentlyContinue)) {
         $repoPath = Get-OutfittingRepo
-        throw "outfitting-manager is not installed or not in PATH. Run 'cd $repoPath\manager\cli; bun link' first."
+        throw "outfitting-manager is not built or linked. Run 'bun run --cwd $repoPath\manager\cli build:windows-x64' and reload the profile."
     }
 
     & outfitting-manager lockfiles push $Machine $Kind $Path
