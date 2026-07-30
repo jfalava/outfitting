@@ -59,16 +59,27 @@ update-all
 
 ## Windows
 
-Update PowerShell profile:
+Update the repository-managed configuration and rebuild `outfitting-manager`:
 
 ```powershell
-irm win.jfa.dev/config/pwsh-profile | iex
+Set-Location "$HOME\.config\outfitting\repo"
+git pull
+bun run --cwd manager/cli build:windows-x64
 ```
 
-Install or update Bun global packages:
+The PowerShell profile entry points and `C:\bin\outfitting-manager.exe` are
+symlinks to files in the repository, so they do not need to be downloaded or
+copied again. Open a new PowerShell session after pulling, or reload the profile
+in the current session:
 
 ```powershell
-irm win.jfa.dev/bun | iex
+. $PROFILE
+```
+
+Update packages and record the current Windows package inventories:
+
+```powershell
+Update-All
 ```
 
 Re-run post-install work, including downloading and extracting the Cloudflare

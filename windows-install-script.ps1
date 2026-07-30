@@ -18,6 +18,12 @@ winget --info
 ########################### Variable setting
 $wingetPackagesUrl = "https://win.jfa.dev/packages/base"
 $wingetPackagesFile = "$env:TEMP\winget.txt"
+$outfittingManagerReleaseUrl = "https://github.com/jfalava/outfitting/releases/latest/download"
+$outfittingManagerAsset = "outfitting-manager-windows-x64.exe"
+$outfittingManagerInstallPath = "$env:USERPROFILE\.local\bin\outfitting-manager.exe"
+$outfittingRepoUrl = "https://github.com/jfalava/outfitting.git"
+$outfittingRepoConfigPath = "$env:USERPROFILE\.config\outfitting\repo-path"
+$outfittingRepoDefaultPath = "$env:USERPROFILE\.config\outfitting\repo"
 ############################################
 
 ################# Download the package list
@@ -85,15 +91,114 @@ function Install-PSModules {
         }
     }
 }
+function Initialize-OutfittingRepo {
+    if (-Not [string]::IsNullOrWhiteSpace($env:OUTFITTING_REPO)) {
+        $repoPath = $env:OUTFITTING_REPO
+    } elseif (Test-Path -LiteralPath $outfittingRepoConfigPath -PathType Leaf) {
+        $repoPath = (Get-Content -LiteralPath $outfittingRepoConfigPath -Raw).Trim()
+    } else {
+        $repoPath = $outfittingRepoDefaultPath
+    }
+
+    if ([string]::IsNullOrWhiteSpace($repoPath)) {
+        throw "The configured outfitting repository path is empty."
+    }
+    $repoPath = [IO.Path]::GetFullPath($repoPath)
+
+    $machinePath = [Environment]::GetEnvironmentVariable("Path", "Machine")
+    $userPath = [Environment]::GetEnvironmentVariable("Path", "User")
+    $env:Path = "$machinePath;$userPath"
+
+    $gitCommand = Get-Command git.exe -ErrorAction SilentlyContinue
+    if ($null -eq $gitCommand) {
+        $gitCandidates = @(
+            "$env:ProgramFiles\Git\cmd\git.exe",
+            "$env:LOCALAPPDATA\Microsoft\WinGet\Links\git.exe"
+        )
+        $gitCommand = $gitCandidates |
+            Where-Object { Test-Path -LiteralPath $_ -PathType Leaf } |
+            Select-Object -First 1
+    }
+    if ($null -eq $gitCommand) {
+        throw "Git is not available after package installation."
+    }
+
+    if (Test-Path -LiteralPath $repoPath -PathType Container) {
+        $isGitRepo = & $gitCommand -C $repoPath rev-parse --is-inside-work-tree 2>$null
+        if ($LASTEXITCODE -ne 0 -or $isGitRepo -ne "true") {
+            throw "The outfitting repository path exists but is not a Git checkout: $repoPath"
+        }
+        Write-Host "❖ Outfitting repository already exists: $repoPath" -ForegroundColor Yellow
+    } elseif (Test-Path -LiteralPath $repoPath) {
+        throw "The outfitting repository path exists but is not a directory: $repoPath"
+    } else {
+        New-Item -Path (Split-Path -Parent $repoPath) -ItemType Directory -Force | Out-Null
+        & $gitCommand clone $outfittingRepoUrl $repoPath
+        if ($LASTEXITCODE -ne 0) {
+            throw "git clone exited with code $LASTEXITCODE."
+        }
+        Write-Host "❖ Cloned outfitting repository: $repoPath" -ForegroundColor Green
+    }
+
+    New-Item -Path (Split-Path -Parent $outfittingRepoConfigPath) -ItemType Directory -Force | Out-Null
+    [IO.File]::WriteAllText(
+        $outfittingRepoConfigPath,
+        $repoPath,
+        [Text.UTF8Encoding]::new($false)
+    )
+}
+
+function Install-OutfittingManager {
+    $installDirectory = Split-Path -Parent $outfittingManagerInstallPath
+    $temporaryBinary = Join-Path $env:TEMP "$outfittingManagerAsset.download"
+    $temporaryChecksum = Join-Path $env:TEMP "$outfittingManagerAsset.sha256"
+
+    try {
+        Write-Host "❖ Downloading outfitting-manager..." -ForegroundColor Cyan
+        Invoke-WebRequest -Uri "$outfittingManagerReleaseUrl/$outfittingManagerAsset" -OutFile $temporaryBinary
+        Invoke-WebRequest -Uri "$outfittingManagerReleaseUrl/$outfittingManagerAsset.sha256" -OutFile $temporaryChecksum
+
+        $expectedChecksum = ((Get-Content -LiteralPath $temporaryChecksum -Raw).Trim() -split "\s+")[0]
+        $actualChecksum = (Get-FileHash -LiteralPath $temporaryBinary -Algorithm SHA256).Hash
+        if ($actualChecksum -ne $expectedChecksum) {
+            throw "Checksum mismatch for $outfittingManagerAsset."
+        }
+
+        New-Item -Path $installDirectory -ItemType Directory -Force | Out-Null
+        Move-Item -LiteralPath $temporaryBinary -Destination $outfittingManagerInstallPath -Force
+        Write-Host "❖ Installed outfitting-manager: $outfittingManagerInstallPath" -ForegroundColor Green
+    } catch {
+        $script:hasErrors = $true
+        Write-Host "❖ Failed to install outfitting-manager:" -ForegroundColor Red
+        Write-Host "  - $_" -ForegroundColor Red
+    } finally {
+        Remove-Item -LiteralPath $temporaryBinary -Force -ErrorAction SilentlyContinue
+        Remove-Item -LiteralPath $temporaryChecksum -Force -ErrorAction SilentlyContinue
+    }
+}
 ############################################
 
 ########################### Install packages
 Install-WingetPackages -filePath $wingetPackagesFile
 ############################################
 
+############ Configure outfitting repository
+try {
+    Initialize-OutfittingRepo
+} catch {
+    $script:hasErrors = $true
+    Write-Host "❖ Failed to configure the outfitting repository:" -ForegroundColor Red
+    Write-Host "  - $_" -ForegroundColor Red
+}
+############################################
+
 ################# Install PowerShell modules
 $psModules = @("PSReadLine")
 Install-PSModules -modules $psModules
+############################################
+
+################ Install outfitting-manager
+Install-OutfittingManager
 ############################################
 
 ####### Install and configure OpenSSH Server

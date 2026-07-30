@@ -19,7 +19,6 @@ export function generateHelpScript(host: string): string {
 #   msstore-qol     - Quality of life Store apps
 #
 # Additional Installations:
-#   bun      - Install Bun global packages (requires Bun to be installed)
 #   registry - Install Windows registry tweaks only
 #
 # Examples:
@@ -27,7 +26,6 @@ export function generateHelpScript(host: string): string {
 #   irm ${host}/dev+gaming | iex                        # Install dev + gaming packages
 #   irm ${host}/msstore/msstore-base | iex              # Install Microsoft Store base apps
 #   irm ${host}/msstore/msstore-base+msstore-qol | iex  # Install Store base + qol apps
-#   irm ${host}/bun | iex                               # Install Bun global packages
 #   irm ${host}/registry | iex                          # Install registry tweaks only
 #
 # Note: Packages must be explicitly specified. There is no default installation.
@@ -53,7 +51,6 @@ Write-Host "  • msstore-work    - Work-related Store apps" -ForegroundColor Wh
 Write-Host "  • msstore-qol     - Quality of life Store apps" -ForegroundColor White
 Write-Host ""
 Write-Host "Additional Installations:" -ForegroundColor Yellow
-Write-Host "  • bun      - Install Bun global packages (requires Bun installed)" -ForegroundColor White
 Write-Host "  • registry - Install Windows registry tweaks only" -ForegroundColor White
 Write-Host ""
 Write-Host "Usage Examples:" -ForegroundColor Yellow
@@ -64,9 +61,6 @@ Write-Host ""
 Write-Host "  Microsoft Store packages:" -ForegroundColor Cyan
 Write-Host "    irm ${host}/msstore/msstore-base | iex" -ForegroundColor Green
 Write-Host "    irm ${host}/msstore/msstore-base+msstore-gaming | iex" -ForegroundColor Green
-Write-Host ""
-Write-Host "  Bun global packages:" -ForegroundColor Cyan
-Write-Host "    irm ${host}/bun | iex" -ForegroundColor Green
 Write-Host ""
 Write-Host "  Registry tweaks only:" -ForegroundColor Cyan
 Write-Host "    irm ${host}/registry | iex" -ForegroundColor Green

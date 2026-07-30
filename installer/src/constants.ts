@@ -63,13 +63,3 @@ export const CONTENT_TYPES = {
   shellscript: "text/x-shellscript",
   plaintext: "text/plain",
 } as const;
-
-/**
- * Config file mappings (Windows only)
- */
-export const CONFIG_FILES: Record<string, { path: string; contentType: string }> = {
-  powershell: {
-    path: `${GITHUB_RAW_BASE}/dotfiles/Microsoft.PowerShell_profile.ps1`,
-    contentType: CONTENT_TYPES.plaintext,
-  },
-};
