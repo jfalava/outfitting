@@ -1,99 +1,20 @@
 {
-  "$schema": "https://raw.githubusercontent.com/oxc-project/oxc/main/npm/oxlint/configuration_schema.json",
-  "plugins": ["eslint", "react", "typescript", "unicorn", "oxc", "import", "promise"],
-  "categories": {
-    "correctness": "error",
-    "suspicious": "warn"
-  },
-  "options": {
-    "typeAware": true,
-    "typeCheck": true
-  },
+  "extends": ["../.oxlintrc.json"],
+  "plugins": ["react"],
   "env": {
     "browser": true,
     "es2024": true
   },
   "ignorePatterns": ["*.d.ts", "**/*.d.ts", "test/**"],
   "rules": {
-    "typescript/no-explicit-any": "error",
-    "typescript/no-unsafe-assignment": "error",
-    "typescript/no-unsafe-call": "error",
-    "typescript/no-unsafe-member-access": "error",
-    "typescript/no-unsafe-return": "error",
-
-    "no-unused-vars": [
-      "error",
-      {
-        "vars": "all",
-        "args": "after-used",
-        "caughtErrors": "all",
-        "ignoreRestSiblings": false,
-        "varsIgnorePattern": "^_",
-        "argsIgnorePattern": "^_",
-        "caughtErrorsIgnorePattern": "^_"
-      }
-    ],
-    "no-undef": "error",
-    "no-unreachable": "error",
-    "no-dupe-keys": "error",
-    "no-dupe-class-members": "error",
-    "no-fallthrough": "error",
-    "no-duplicate-imports": "error",
-    "no-eval": "error",
-    "no-debugger": "error",
     "no-console": [
       "error",
       {
         "allow": ["warn", "error"]
       }
     ],
-    "no-with": "error",
-    "no-proto": "error",
-    "no-new-wrappers": "error",
-    "no-iterator": "error",
-    "no-labels": "error",
-    "no-var": "error",
-    "no-param-reassign": "error",
-    "no-extend-native": "error",
-    "no-func-assign": "error",
-    "no-empty-function": "error",
-    "no-extra-bind": "error",
-    "no-useless-constructor": "error",
-    "no-unused-expressions": "error",
-
-    "eqeqeq": [
-      "error",
-      "always",
-      {
-        "null": "ignore"
-      }
-    ],
-    "curly": ["error", "all"],
-    "no-implicit-coercion": [
-      "error",
-      {
-        "boolean": true,
-        "number": true,
-        "string": true,
-        "disallowTemplateShorthand": true
-      }
-    ],
-    "prefer-const": [
-      "error",
-      {
-        "destructuring": "all"
-      }
-    ],
     "complexity": ["error", 6],
     "max-depth": ["error", 2],
-    "max-params": ["error", 4],
-    "max-statements": ["error", 12],
-    "import/no-duplicates": "error",
-    "import/no-mutable-exports": "error",
-    "import/no-cycle": "error",
-    "import/no-self-import": "error",
-    "typescript/no-implied-eval": "error",
-    "typescript/no-unsafe-type-assertion": "off",
-    "typescript/no-unnecessary-type-assertion": "off"
+    "max-statements": ["error", 12]
   }
 }
