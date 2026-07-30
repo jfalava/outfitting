@@ -35,9 +35,7 @@ function baseUrl(): string {
   const value = Bun.env.OUTFITTING_LOCKFILES_URL?.trim();
 
   if (!value) {
-    throw new Error(
-      "OUTFITTING_LOCKFILES_URL is not set. Point it at the deployed Worker.",
-    );
+    throw new Error("OUTFITTING_LOCKFILES_URL is not set. Point it at the deployed Worker.");
   }
 
   let parsed: URL;
@@ -61,8 +59,7 @@ async function apiToken(): Promise<string> {
     return token;
   }
 
-  token =
-    prompt("Lockfiles API token (stored in your OS keychain):")?.trim() ?? null;
+  token = prompt("Lockfiles API token (stored in your OS keychain):")?.trim() ?? null;
   if (!token) {
     throw new Error("An API token is required.");
   }
@@ -84,10 +81,7 @@ interface CliRequestInit {
   method?: "PUT";
 }
 
-async function request(
-  parts: string[],
-  init: CliRequestInit = {},
-): Promise<Response> {
+async function request(parts: string[], init: CliRequestInit = {}): Promise<Response> {
   const token = await apiToken();
   const headers = { ...init.headers, Authorization: `Bearer ${token}` };
 
@@ -158,9 +152,7 @@ async function pull(args: string[]): Promise<void> {
   const outPath = requestedPath ?? inferOutputPath(kind);
 
   if (!outPath) {
-    throw new Error(
-      `Cannot infer a filename for kind "${kind}"; provide outPath explicitly.`,
-    );
+    throw new Error(`Cannot infer a filename for kind "${kind}"; provide outPath explicitly.`);
   }
 
   const response = await request(["lockfiles", machine, kind]);
@@ -170,18 +162,11 @@ async function pull(args: string[]): Promise<void> {
 }
 
 async function list(args: string[]): Promise<void> {
-  const [machine] = requireArgs(
-    args,
-    1,
-    "outfitting-manager lockfiles list <machine>",
-  ) as [string];
+  const [machine] = requireArgs(args, 1, "outfitting-manager lockfiles list <machine>") as [string];
   const response = await request(["lockfiles", machine]);
   const kinds = (await response.json()) as unknown;
 
-  if (
-    !Array.isArray(kinds) ||
-    !kinds.every((kind) => typeof kind === "string")
-  ) {
+  if (!Array.isArray(kinds) || !kinds.every((kind) => typeof kind === "string")) {
     throw new Error("Worker returned an invalid kinds response.");
   }
 

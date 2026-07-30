@@ -5,10 +5,10 @@
   "type": "module",
   "scripts": {
     "cf-typegen": "wrangler types",
-    "check": "tsc --noEmit && oxlint",
-    "deploy": "wrangler types && tsc --noEmit && oxlint && oxfmt --check . && wrangler deploy",
+    "check": "bun run typecheck && bun run lint --fix && oxfmt --check",
+    "deploy": "bun run check && wrangler deploy",
     "dev": "bun run cf-typegen && wrangler dev",
-    "format": "oxfmt .",
+    "format": "oxfmt",
     "lint": "oxlint",
     "migrate:local": "wrangler d1 migrations apply outfitting-lockfiles --local",
     "migrate:remote": "wrangler d1 migrations apply outfitting-lockfiles --remote",
@@ -19,7 +19,7 @@
     "hono": "4.12.31"
   },
   "devDependencies": {
-    "@types/bun": "latest",
+    "@types/bun": "catalog:build",
     "oxfmt": "catalog:build",
     "oxlint": "catalog:build",
     "oxlint-tsgolint": "catalog:build",

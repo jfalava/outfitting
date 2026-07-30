@@ -18,19 +18,13 @@ interface KindRow {
 
 const app = new Hono<{ Bindings: Bindings }>();
 
-export function lockfileKey(
-  machine: string,
-  kind: string,
-  hash: string,
-): string {
+export function lockfileKey(machine: string, kind: string, hash: string): string {
   return `lockfile:${machine}:${kind}:${hash}`;
 }
 
 export async function sha256(content: ArrayBuffer): Promise<string> {
   const digest = await crypto.subtle.digest("SHA-256", content);
-  return Array.from(new Uint8Array(digest), (byte) =>
-    byte.toString(16).padStart(2, "0"),
-  ).join("");
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
 app.use("*", async (c, next) => {
@@ -41,7 +35,7 @@ app.use("*", async (c, next) => {
     return c.json({ error: "Unauthorized" }, 401);
   }
 
-  await next();
+  return next();
 });
 
 app.put("/lockfiles/:machine/:kind", async (c) => {
@@ -106,10 +100,7 @@ app.get("/lockfiles/:machine/:kind", async (c) => {
     return c.json({ error: "Lockfile not found" }, 404);
   }
 
-  const content = await c.env.LOCKFILES.get(
-    lockfileKey(machine, kind, latest.hash),
-    "arrayBuffer",
-  );
+  const content = await c.env.LOCKFILES.get(lockfileKey(machine, kind, latest.hash), "arrayBuffer");
 
   if (!content) {
     console.error(`Missing KV blob for ${machine}/${kind}/${latest.hash}`);
