@@ -44,18 +44,18 @@ jobs:
       - name: Inject version from tag
         shell: bash
         run: |
-          TAG="${GITHUB_REF_NAME#v}"
-          sed -i.bak "s/\"version\": \".*\"/\"version\": \"${TAG}\"/" package.json
-          rm -f package.json.bak
+          TAG="${GITHUB_REF_NAME#cli-v}"
+          sed -i.bak "s/\"version\": \".*\"/\"version\": \"${TAG}\"/" manager/cli/package.json
+          rm -f manager/cli/package.json.bak
 
       - name: Build target
-        run: bun build --compile --target=${{ matrix.target }} index.ts --outfile ${{ matrix.outfile }}
+        run: bun build --compile --target=${{ matrix.target }} manager/cli/index.ts --outfile manager/cli/${{ matrix.outfile }}
 
       - name: Upload binary artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact_name }}
-          path: ${{ matrix.outfile }}
+          path: manager/cli/${{ matrix.outfile }}
 
   release:
     needs: build

@@ -41,6 +41,16 @@ outfit sync   # or: outfit sync
 outfit upgrade   # or: outfit upgrade
 ```
 
+Store the current Nix input lock, repository Bun dependency lock, and installed
+Homebrew state in outfitting-manager:
+
+```bash
+outfit snapshot
+```
+
+Snapshots use the machine name `jfalava:aarch64-darwin` and the kinds `nix`, `repo-bun`, and `homebrew`.
+The command only pushes data; it does not overwrite local declarative configuration.
+
 ## Nix-darwin Profile Management
 
 ```bash
