@@ -279,37 +279,83 @@ try {
 #################### Cleanup temporary files
 Remove-Item $wingetPackagesFile -ErrorAction SilentlyContinue
 
-####### Copy PowerShell profile to documents
-$masterProfilePath = "$env:USERPROFILE\Documents\PowerShell\Microsoft.PowerShell_profile.ps1"
-$slaveProfiles = @(
-    "$env:USERPROFILE\Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1",
-    "$env:USERPROFILE\Documents\PowerShell\Microsoft.VSCode_profile.ps1"
-)
-$profileUrl = "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/dotfiles/Microsoft.PowerShell_profile.ps1"
+####### Link PowerShell profiles to the local repository
+$repoCandidates = @()
+if (-Not [string]::IsNullOrWhiteSpace($env:OUTFITTING_REPO)) {
+    $repoCandidates += $env:OUTFITTING_REPO
+}
+
+$repoPathFile = "$env:USERPROFILE\.config\outfitting\repo-path"
+if (Test-Path -LiteralPath $repoPathFile -PathType Leaf) {
+    $configuredRepoPath = (Get-Content -LiteralPath $repoPathFile -Raw).Trim()
+    if (-Not [string]::IsNullOrWhiteSpace($configuredRepoPath)) {
+        $repoCandidates += $configuredRepoPath
+    }
+}
+$repoCandidates += "$env:USERPROFILE\.config\outfitting\repo"
+
+$profileSourcePath = $null
+foreach ($repoCandidate in $repoCandidates) {
+    $candidateProfilePath = Join-Path $repoCandidate "dotfiles\Microsoft.PowerShell_profile.ps1"
+    if (Test-Path -LiteralPath $candidateProfilePath -PathType Leaf) {
+        $profileSourcePath = (Resolve-Path -LiteralPath $candidateProfilePath).Path
+        break
+    }
+}
+
 try {
-    # create directories if needed
-    New-Item -Path "$env:USERPROFILE\Documents\PowerShell" -ItemType Directory -Force | Out-Null
-    New-Item -Path "$env:USERPROFILE\Documents\WindowsPowerShell" -ItemType Directory -Force | Out-Null
+    if ($null -eq $profileSourcePath) {
+        throw "Could not find dotfiles\Microsoft.PowerShell_profile.ps1 in OUTFITTING_REPO, ~/.config/outfitting/repo-path, or ~/.config/outfitting/repo."
+    }
 
-    # download master profile
-    Invoke-WebRequest -Uri $profileUrl -OutFile $masterProfilePath
-    Write-Host "❖ Downloaded master profile to: $masterProfilePath" -ForegroundColor Green
+    $profilePaths = @(
+        "$env:USERPROFILE\Documents\PowerShell\Microsoft.PowerShell_profile.ps1",
+        "$env:USERPROFILE\Documents\PowerShell\Microsoft.VSCode_profile.ps1",
+        "$env:USERPROFILE\Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1"
+    )
+    $backupTimestamp = Get-Date -Format "yyyyMMdd-HHmmss"
 
-    # copy to slaves
-    foreach ($slavePath in $slaveProfiles) {
-        Copy-Item -Path $masterProfilePath -Destination $slavePath -Force
-        Write-Host "❖ Copied profile to: $slavePath" -ForegroundColor Green
+    foreach ($profilePath in $profilePaths) {
+        $backupPath = $null
+        $profileDirectory = Split-Path -Parent $profilePath
+        New-Item -Path $profileDirectory -ItemType Directory -Force | Out-Null
+
+        $existingProfile = Get-Item -LiteralPath $profilePath -Force -ErrorAction SilentlyContinue
+        if ($null -ne $existingProfile) {
+            $existingTarget = $existingProfile.Target | Select-Object -First 1
+            if ($existingProfile.LinkType -eq "SymbolicLink" -and $existingTarget) {
+                if (-Not [System.IO.Path]::IsPathRooted($existingTarget)) {
+                    $existingTarget = Join-Path $profileDirectory $existingTarget
+                }
+
+                if ([System.IO.Path]::GetFullPath($existingTarget) -eq $profileSourcePath) {
+                    Write-Host "❖ PowerShell profile already linked: $profilePath" -ForegroundColor Yellow
+                    continue
+                }
+            }
+
+            $backupPath = "$profilePath.backup-$backupTimestamp"
+            Move-Item -LiteralPath $profilePath -Destination $backupPath
+            Write-Host "❖ Backed up existing profile to: $backupPath" -ForegroundColor Yellow
+        }
+
+        & cmd.exe /d /c mklink "$profilePath" "$profileSourcePath" | Out-Null
+        if ($LASTEXITCODE -ne 0) {
+            if ($null -ne $backupPath -and -Not (Test-Path -LiteralPath $profilePath)) {
+                Move-Item -LiteralPath $backupPath -Destination $profilePath
+            }
+            throw "mklink failed for $profilePath with exit code $LASTEXITCODE."
+        }
+
+        Write-Host "❖ Linked PowerShell profile to repository: $profilePath" -ForegroundColor Green
     }
 } catch {
     $script:hasErrors = $true
-    Write-Host "❖ Failed to set up PowerShell profiles:" -ForegroundColor Red
+    Write-Host "❖ Failed to link PowerShell profiles:" -ForegroundColor Red
     Write-Host "  - $_" -ForegroundColor Red
-    Write-Host "`nPress any key to exit..."
-    $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
-    exit 1
+    Write-Host "❖ Confirm the repository is configured locally and Windows Developer Mode is enabled." -ForegroundColor Yellow
 }
 ############################################
-
 ############################### End messages
 Write-Host "`n"
 if ($script:hasErrors) {

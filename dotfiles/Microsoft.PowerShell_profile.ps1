@@ -346,28 +346,3 @@ if (Get-Command zoxide -ErrorAction SilentlyContinue) {
         Invoke-Expression $zoxideInit
     }
 }
-
-# -------------------------------
-# Profile Sync
-# -------------------------------
-$slaveProfiles = @(
-    "$env:USERPROFILE\Documents\PowerShell\Microsoft.VSCode_profile.ps1",
-    "$env:USERPROFILE\Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1"
-)
-
-$masterProfilePath = $PROFILE.CurrentUserAllHosts
-
-if ($masterProfilePath -eq "$env:USERPROFILE\Documents\PowerShell\Microsoft.PowerShell_profile.ps1") { ## this one is the master
-    foreach ($slaveProfile in $slaveProfiles) {
-        if (Test-Path $slaveProfile) {
-            $masterContent = Get-Content -Path $masterProfilePath -Raw
-            $slaveContent = Get-Content -Path $slaveProfile -Raw
-
-            if ($masterContent -ne $slaveContent) {
-                Copy-Item -Path $masterProfilePath -Destination $slaveProfile -Force
-            }
-        } else {
-            Copy-Item -Path $masterProfilePath -Destination $slaveProfile -Force
-        }
-    }
-}
