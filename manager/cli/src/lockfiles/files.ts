@@ -37,6 +37,7 @@ const OUTPUT_PATHS: Readonly<Record<string, string>> = {
   nix: "flake.lock",
   npm: "package-lock.json",
   "package-lock": "package-lock.json",
+  "powershell-inventory": "powershell-inventory.json",
   "scoop-inventory": "scoop-inventory.json",
   winget: "winget.json",
 };

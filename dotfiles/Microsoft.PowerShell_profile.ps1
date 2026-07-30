@@ -8,6 +8,7 @@ $pathList = @(
     "$env:LOCALAPPDATA\pnpm\",
     "$env:USERPROFILE\.bun\bin",
     "$env:USERPROFILE\.local\share\",
+    "$env:USERPROFILE\.local\bin\",
     "$env:LOCALAPPDATA\Microsoft\WinGet\Links"
     "$env:LOCALAPPDATA\Microsoft\WinGet\Packages"
 )
@@ -276,6 +277,74 @@ function Save-OutfittingBunGlobalInventory {
     Write-Host "Global Bun package inventory stored successfully." -ForegroundColor Green
 }
 
+function Save-OutfittingPowerShellInventory {
+    [CmdletBinding()]
+    param ()
+
+    if (-not (Get-Command Get-InstalledModule -ErrorAction SilentlyContinue)) {
+        throw "PowerShellGet is not installed or Get-InstalledModule is not available."
+    }
+
+    Write-Host "❖ Saving PowerShell Package Inventory" -ForegroundColor Cyan
+    $snapshotPath = Join-Path ([System.IO.Path]::GetTempPath()) "outfitting-powershell-inventory-$PID.json"
+    try {
+        $moduleNames = @(
+            Get-InstalledModule -ErrorAction Stop |
+                ForEach-Object { [string]$_.Name } |
+                Sort-Object -Unique
+        )
+        $installedModules = foreach ($moduleName in $moduleNames) {
+            Get-InstalledModule -Name $moduleName -AllVersions -ErrorAction Stop
+        }
+        $modules = @(
+            $installedModules |
+                Sort-Object Name, Version |
+                ForEach-Object {
+                    [ordered]@{
+                        Name = [string]$_.Name
+                        Version = [string]$_.Version
+                        Repository = [string]$_.Repository
+                    }
+                }
+        )
+
+        $scripts = @()
+        if (Get-Command Get-InstalledScript -ErrorAction SilentlyContinue) {
+            $scripts = @(
+                Get-InstalledScript -ErrorAction Stop |
+                    Sort-Object Name, Version |
+                    ForEach-Object {
+                        [ordered]@{
+                            Name = [string]$_.Name
+                            Version = [string]$_.Version
+                            Repository = [string]$_.Repository
+                        }
+                    }
+            )
+        }
+
+        $inventory = [ordered]@{
+            format = "outfitting-powershell-inventory-v1"
+            modules = $modules
+            scripts = $scripts
+        }
+        $content = $inventory | ConvertTo-Json -Depth 4
+        [IO.File]::WriteAllText(
+            $snapshotPath,
+            "$content$([Environment]::NewLine)",
+            [Text.UTF8Encoding]::new($false)
+        )
+        Push-OutfittingLockfile `
+            -Machine "jfalava:x64-windows" `
+            -Kind "powershell-inventory" `
+            -Path $snapshotPath
+    }
+    finally {
+        Remove-Item -LiteralPath $snapshotPath -Force -ErrorAction SilentlyContinue
+    }
+
+    Write-Host "PowerShell package inventory stored successfully." -ForegroundColor Green
+}
 function Sync-OutfittingScoop {
     [CmdletBinding(SupportsShouldProcess)]
     param (
@@ -454,6 +523,7 @@ function Update-All {
 
         Write-Host "❖ Updating PowerShell Modules" -ForegroundColor Cyan
         Get-InstalledModule -ErrorAction SilentlyContinue | Update-Module -AcceptLicense -Force
+        Save-OutfittingPowerShellInventory
 
         Write-Host "❖ Updating PowerShell Profile" -ForegroundColor Cyan
         Invoke-RestMethod -Uri "https://win.jfa.dev/config/pwsh-profile" | Invoke-Expression
