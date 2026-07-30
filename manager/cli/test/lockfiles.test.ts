@@ -1,6 +1,6 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "vitest";
 
-import { inferOutputPath, normalizeWorkerUrl } from "../src/commands/lockfiles";
+import { inferOutputPath, normalizeSha256, normalizeWorkerUrl } from "../src/commands/lockfiles";
 
 describe("lockfiles command helpers", () => {
   test("infers common lockfile names", () => {
@@ -19,5 +19,10 @@ describe("lockfiles command helpers", () => {
     expect(() => normalizeWorkerUrl("file:///tmp/worker")).toThrow(
       "Worker URL must use HTTP or HTTPS.",
     );
+  });
+
+  test("validates and normalizes SHA-256 preconditions", () => {
+    expect(normalizeSha256("A".repeat(64))).toBe("a".repeat(64));
+    expect(() => normalizeSha256("abc")).toThrow("64-character SHA-256");
   });
 });

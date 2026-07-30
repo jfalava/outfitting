@@ -18,6 +18,7 @@
     "check": "bun run lint --fix && bun run format --check",
     "format": "oxfmt",
     "lint": "oxlint",
+    "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
@@ -25,6 +26,7 @@
     "oxfmt": "catalog:build",
     "oxlint": "catalog:build",
     "oxlint-tsgolint": "catalog:build",
-    "typescript": "catalog:build"
+    "typescript": "catalog:build",
+    "vitest": "^4.1.10"
   }
 }

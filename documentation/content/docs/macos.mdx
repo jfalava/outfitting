@@ -41,8 +41,9 @@ outfit sync   # or: outfit sync
 outfit upgrade   # or: outfit upgrade
 ```
 
-Store a versioned inventory of the installed Homebrew taps, formulae, and
-casks:
+Successful `outfit sync` and `outfit upgrade` runs automatically store a
+versioned inventory of installed Homebrew taps, formulae, and casks. You can
+also capture one explicitly:
 
 ```bash
 outfit snapshot
@@ -56,7 +57,20 @@ The macOS `flake.lock` is canonical remote state under kind `nix`, rather than
 a repository file. Every rebuild downloads it into a physical temporary
 directory and passes it to Nix with `--reference-lock-file`. `outfit upgrade`
 updates a temporary lock with `--output-lock-file`, applies it, and pushes it
-back only after a successful switch.
+back only after a successful switch. The upload is conditional on the remote
+hash that was originally pulled, preventing a concurrent upgrade from being
+silently overwritten.
+
+If an upgrade is interrupted after producing its candidate lock, Outfitting
+keeps a recovery checkpoint under `${XDG_STATE_HOME:-~/.local/state}`. Resume
+activation and publication with:
+
+```bash
+outfit recover
+```
+
+The checkpoint is removed only after activation and the conditional remote
+upload both succeed.
 
 ## Nix-darwin Profile Management
 

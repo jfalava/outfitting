@@ -10,7 +10,7 @@ const HELP = `Usage: outfitting-manager lockfiles <command>
 Commands:
   configure-worker [url]
   configure-token
-  push <machine> <kind> <path>
+  push <machine> <kind> <path> [--if-match <sha256>]
   pull <machine> <kind> [outPath]
   list <machine>
   history <machine> <kind>
@@ -240,22 +240,45 @@ export function inferOutputPath(kind: string): string | undefined {
   return names[normalized];
 }
 
+export function normalizeSha256(value: string): string {
+  const hash = value.trim().toLowerCase();
+  if (!/^[0-9a-f]{64}$/.test(hash)) {
+    throw new Error("Expected a 64-character SHA-256 hash.");
+  }
+  return hash;
+}
+
 async function push(args: string[]): Promise<void> {
-  const [machine, kind, path] = requireArgs(
+  const required = requireArgs(
     args,
     3,
-    "outfitting-manager lockfiles push <machine> <kind> <path>",
-  ) as [string, string, string];
+    "outfitting-manager lockfiles push <machine> <kind> <path> [--if-match <sha256>]",
+  ) as [string, string, string, ...string[]];
+  const [machine, kind, path, ...options] = required;
+  let ifMatch: string | undefined;
+  if (options.length > 0) {
+    if (options.length !== 2 || options[0] !== "--if-match") {
+      throw new Error(
+        "Usage: outfitting-manager lockfiles push <machine> <kind> <path> [--if-match <sha256>]",
+      );
+    }
+    ifMatch = normalizeSha256(options[1] as string);
+  }
   const file = Bun.file(path);
 
   if (!(await file.exists())) {
     throw new Error(`File not found: ${path}`);
   }
 
+  const headers: Record<string, string> = { "Content-Type": "text/plain; charset=utf-8" };
+  if (ifMatch) {
+    headers["If-Match"] = `"${ifMatch}"`;
+  }
+
   const response = await request(["lockfiles", machine, kind], {
     method: "PUT",
     body: await file.arrayBuffer(),
-    headers: { "Content-Type": "text/plain; charset=utf-8" },
+    headers,
   });
   const result = (await response.json()) as PushResult;
 

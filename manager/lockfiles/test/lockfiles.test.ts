@@ -1,6 +1,6 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "vitest";
 
-import { app, lockfileKey, sha256 } from "../src/index";
+import { app, lockfileKey, parseIfMatch, sha256 } from "../src/index";
 
 describe("lockfile helpers", () => {
   test("builds the specified content-addressed KV key", () => {
@@ -14,6 +14,14 @@ describe("lockfile helpers", () => {
     expect(await sha256(content)).toBe(
       "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824",
     );
+  });
+
+  test("parses a quoted SHA-256 If-Match precondition", () => {
+    const hash = "a".repeat(64);
+    expect(parseIfMatch(`"${hash}"`)).toBe(hash);
+    expect(parseIfMatch(undefined)).toBeUndefined();
+    expect(() => parseIfMatch(hash)).toThrow("quoted lowercase SHA-256");
+    expect(() => parseIfMatch('"ABC"')).toThrow("quoted lowercase SHA-256");
   });
 });
 
