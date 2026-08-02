@@ -19,6 +19,29 @@ On macOS, the repository also stores the package manifests used by the helper co
 packages/aarch64-darwin/Brewfile
 ```
 
+## Windows
+
+The installer resolves the repository path in this order:
+
+1. The `OUTFITTING_REPO` environment variable.
+2. The path stored in `%USERPROFILE%\.config\outfitting\repo-path`.
+3. The default path:
+
+```text
+%USERPROFILE%\.config\outfitting\repo
+```
+
+When the repository is cloned or an existing checkout is selected, the resolved path is persisted to `repo-path`. The Windows installer links these PowerShell profile entry points to the repository-owned profile:
+
+```text
+%USERPROFILE%\Documents\PowerShell\Microsoft.PowerShell_profile.ps1
+%USERPROFILE%\Documents\PowerShell\Microsoft.VSCode_profile.ps1
+%USERPROFILE%\Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1
+    -> <repository>\dotfiles\Microsoft.PowerShell_profile.ps1
+```
+
+Existing profiles are backed up with a timestamp before they are replaced. Windows symbolic links require Developer Mode or an elevated installer session.
+
 ## WSL
 
 ```text
