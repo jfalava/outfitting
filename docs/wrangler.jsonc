@@ -1,9 +1,15 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "docs",
+  "name": "outfitting-docs",
   "compatibility_date": "2026-08-02",
   "assets": {
     "directory": "./dist",
     "not_found_handling": "404-page"
-  }
+  },
+  "routes": [
+    {
+      "pattern": "outfitting.jfa.dev",
+      "custom_domain": true,
+    },
+  ],
 }
