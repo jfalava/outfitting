@@ -1,7 +1,7 @@
 [user]
     name = Jorge Fernando Álava
     email = git@jfa.dev
-    signingkey = "C:\\Users\\jfalava\\.ssh\\jfalava-gitSign-elliptic"
+    signingkey = "C:\\Users\\jfalava\\.ssh\\id-ed25519"
 [color]
     ui = auto
 [alias]
