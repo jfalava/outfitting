@@ -1,6 +1,6 @@
-# -------------------------------
-# Paths
-# -------------------------------
+#############################################
+####################################### Paths
+#############################################
 $pathList = @(
     "C:\bin"
     "C:\Program Files\Go\bin",
@@ -18,26 +18,20 @@ foreach ($path in $pathList) {
     }
 }
 
-# -------------------------------
-# ENV
-# -------------------------------
 $env:BUN_INSTALL = "$env:USERPROFILE\.bun"
 $env:PNPM_HOME = "$env:LOCALAPPDATA\Microsoft\WinGet\Links\"
 
-# -------------------------------
-# History Configuration
-# -------------------------------
-# PSReadLine owns persistent history. Do not reuse its text history file for
-# another format: older versions of this profile wrote CLIXML to the same path,
-# which PSReadLine then displayed as corrupted commands.
+#############################################
+############################### Shell History
+#############################################
 if (Get-Module -ListAvailable -Name PSReadLine) {
     Import-Module PSReadLine -ErrorAction Stop
     Set-PSReadLineOption -HistorySaveStyle SaveIncrementally -MaximumHistoryCount 10000
 }
 
-# -------------------------------
-# Aliases
-# -------------------------------
+#############################################
+##################################### Aliases
+#############################################
 function ezals {
   eza --color=always --long --git --bytes --icons=always
 }
@@ -61,9 +55,9 @@ function killwsl {
 }
 Set-Alias wslk killwsl
 
-# -------------------------------
-# Functions
-# -------------------------------
+#############################################
+################################### Functions
+#############################################
 
 function Get-OutfittingRepo {
     if (-not [string]::IsNullOrWhiteSpace($env:OUTFITTING_REPO)) {
@@ -84,25 +78,6 @@ function Get-OutfittingRepo {
     return (Resolve-Path -LiteralPath $repoPath -ErrorAction Stop).Path
 }
 
-function Push-OutfittingLockfile {
-    param(
-        [Parameter(Mandatory = $true)][string]$Machine,
-        [Parameter(Mandatory = $true)][string]$Kind,
-        [Parameter(Mandatory = $true)][string]$Path
-    )
-
-    $managerCommand = Get-Command outfitting-manager -CommandType Application -ErrorAction SilentlyContinue
-    if ($null -eq $managerCommand) {
-        Write-Warning "Skipping lockfile update because outfitting-manager is not available on PATH."
-        return
-    }
-
-    & $managerCommand.Source lockfiles push $Machine $Kind $Path
-    if ($LASTEXITCODE -ne 0) {
-        throw "outfitting-manager lockfiles push exited with code $LASTEXITCODE"
-    }
-}
-
 function Set-OutfittingRepo {
     [CmdletBinding(SupportsShouldProcess)]
     param ([Parameter(Mandatory)][string]$Path)
@@ -120,6 +95,10 @@ function Set-OutfittingRepo {
         Write-Host "Outfitting repository path set to: $repoPath" -ForegroundColor Green
     }
 }
+
+#############################################
+######################## Lockfiles management
+#############################################
 
 function Save-OutfittingScoopInventory {
     [CmdletBinding()]
@@ -304,6 +283,7 @@ function Save-OutfittingPowerShellInventory {
 
     Write-Host "PowerShell package inventory stored successfully." -ForegroundColor Green
 }
+
 function Sync-OutfittingScoop {
     [CmdletBinding(SupportsShouldProcess)]
     param (
@@ -461,6 +441,29 @@ function Sync-OutfittingScoop {
     }
 }
 
+function Push-OutfittingLockfile {
+    param(
+        [Parameter(Mandatory = $true)][string]$Machine,
+        [Parameter(Mandatory = $true)][string]$Kind,
+        [Parameter(Mandatory = $true)][string]$Path
+    )
+
+    $managerCommand = Get-Command outfitting-manager -CommandType Application -ErrorAction SilentlyContinue
+    if ($null -eq $managerCommand) {
+        Write-Warning "Skipping lockfile update because outfitting-manager is not available on PATH."
+        return
+    }
+
+    & $managerCommand.Source lockfiles push $Machine $Kind $Path
+    if ($LASTEXITCODE -ne 0) {
+        throw "outfitting-manager lockfiles push exited with code $LASTEXITCODE"
+    }
+}
+
+#############################################
+##################################### Updates
+#############################################
+
 function Update-All {
     $previousErrorActionPreference = $ErrorActionPreference
     $ErrorActionPreference = "Stop"
@@ -509,9 +512,10 @@ function Update-All {
     }
 }
 
-# -------------------------------
-# Expressions
-# -------------------------------
+#############################################
+################################# Expressions
+#############################################
+
 if (Get-Command starship -ErrorAction SilentlyContinue) {
     $starshipInit = & starship init powershell
     if ($starshipInit) {
