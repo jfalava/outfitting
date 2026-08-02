@@ -16,17 +16,26 @@ const nimbusConfig = defineNimbusConfig({
     items: [
       {
         label: "Windows",
-        items: [{ autogenerate: { directory: "docs/windows" } }],
+        items: [
+          { label: "Installation", link: "/docs/windows" },
+          { autogenerate: { directory: "docs/windows" } },
+        ],
         landing: "/docs/windows",
       },
       {
         label: "Windows Subsystem for Linux",
-        items: [{ autogenerate: { directory: "docs/wsl" } }],
+        items: [
+          { label: "Installation", link: "/docs/wsl" },
+          { autogenerate: { directory: "docs/wsl" } },
+        ],
         landing: "/docs/wsl",
       },
       {
         label: "macOS",
-        items: [{ autogenerate: { directory: "docs/macos" } }],
+        items: [
+          { label: "Installation", link: "/docs/macos" },
+          { autogenerate: { directory: "docs/macos" } },
+        ],
         landing: "/docs/macos",
       },
       "docs/repository-configuration",
