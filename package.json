@@ -4,6 +4,7 @@
   "workspaces": {
     "packages": [
       "installer",
+      "docs",
       "manager/cli",
       "manager/lockfiles"
     ],

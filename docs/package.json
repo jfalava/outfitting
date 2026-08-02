@@ -42,7 +42,7 @@
     "@typescript-eslint/parser": "8.65.0",
     "eslint": "10.8.0",
     "eslint-plugin-astro": "3.0.1",
-    "oxlint": "1.76.0",
+    "oxlint": "catalog:build",
     "pagefind": "1.5.2",
     "prettier": "3.9.6",
     "prettier-plugin-astro": "0.14.1",
