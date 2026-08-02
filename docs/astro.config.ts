@@ -12,6 +12,31 @@ const nimbusConfig = defineNimbusConfig({
   locale: "en",
   github: "https://github.com/jfalava/outfitting",
   socialImageAlt: "Outfitting documentation",
+  sidebar: {
+    items: [
+      {
+        label: "Windows",
+        items: [{ autogenerate: { directory: "docs/windows" } }],
+        landing: "/docs/windows",
+      },
+      {
+        label: "Windows Subsystem for Linux",
+        items: [{ autogenerate: { directory: "docs/wsl" } }],
+        landing: "/docs/wsl",
+      },
+      {
+        label: "macOS",
+        items: [{ autogenerate: { directory: "docs/macos" } }],
+        landing: "/docs/macos",
+      },
+      "docs/repository-configuration",
+      {
+        label: "Manager",
+        items: [{ autogenerate: { directory: "docs/manager" } }],
+        landing: "/docs/manager",
+      },
+    ],
+  },
 });
 
 export default defineConfig({

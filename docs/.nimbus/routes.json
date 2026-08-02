@@ -6,13 +6,15 @@
     "/404",
     "/docs",
     "/docs/macos",
+    "/docs/macos/updates",
     "/docs/manager",
     "/docs/manager/cli",
     "/docs/manager/lockfiles-worker",
     "/docs/repository-configuration",
-    "/docs/updates",
     "/docs/windows",
-    "/docs/wsl"
+    "/docs/windows/updates",
+    "/docs/wsl",
+    "/docs/wsl/updates"
   ],
   "opaqueNamespaces": []
 }
