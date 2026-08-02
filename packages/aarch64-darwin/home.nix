@@ -16,7 +16,6 @@
     nil
     nixfmt
     powershell
-    protonmail-bridge
     python3
     terraform-ls
     terraform
