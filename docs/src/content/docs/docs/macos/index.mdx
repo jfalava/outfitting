@@ -9,7 +9,7 @@ sidebar:
 
 ## Prerequisites
 
-- The current installer is intended for Apple Silicon Macs. It accepts Intel detection long enough to warn, but the installer exits because no x86_64 `outfitting-manager` release is available and the configuration targets aarch64-darwin.
+- The current installer is intended for Apple Silicon Macs.
 - Run the installer from an interactive terminal with an account that can use `sudo`. Nix-darwin activation and the licensed-font post-install both require administrator authentication.
 - The installer needs network access to GitHub, Homebrew, Determinate Systems, and the Outfitting lockfile service.
 
@@ -71,7 +71,7 @@ hm-sync
 hm-rollback
 ~~~
 
-Use the outfit wrappers rather than invoking darwin-rebuild directly. They retrieve the canonical remote lock and prevent Nix from creating a repository flake.lock.
+Use the outfit wrappers rather than invoking `darwin-rebuild` directly. They retrieve the canonical remote lock and prevent Nix from creating a repository `flake.lock`.
 
 ## Nix package testing
 

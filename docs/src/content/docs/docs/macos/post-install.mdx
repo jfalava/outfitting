@@ -21,7 +21,7 @@ It then:
 
 - Installs cloudflared with Homebrew when it is missing.
 - Requires administrator authentication with sudo.
-- Authenticates to Cloudflare Access and downloads the protected font archive and SHA-256 checksum from mac.jfa.dev.
+- Authenticates to Cloudflare Access and downloads the protected font archive and SHA-256 checksum from [mac.jfa.dev](https://mac.jfa.dev).
 - Verifies the checksum and rejects archive traversal, absolute paths, symbolic links, hard links, and non-font payloads before extraction.
 - Installs the verified fonts for all local users under `/Library/Fonts` and removes the macOS quarantine attribute when possible.
 

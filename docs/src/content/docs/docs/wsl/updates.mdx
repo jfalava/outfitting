@@ -41,11 +41,3 @@ curl -L wsl.jfa.dev | bash -s -- --full-install
 ```bash
 curl -fsSL wsl.jfa.dev/packages/bun | xargs -I {} bun install -g {}
 ```
-
-## Post-install work
-
-Re-run post-install work, including the Cloudflare Access-protected licensed font installation:
-
-```bash
-curl -L mac.jfa.dev/post-install | bash
-```

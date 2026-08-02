@@ -7,7 +7,7 @@ sidebar:
 
 ## Repository-managed configuration
 
-The installer stores the repository path in %USERPROFILE%\.config\outfitting\repo-path. If OUTFITTING_REPO is set, it takes precedence; otherwise the default is %USERPROFILE%\.config\outfitting\repo.
+The installer stores the repository path in `%USERPROFILE%\.config\outfitting\repo-path`. If `OUTFITTING_REPO` is set, it takes precedence; otherwise the default is `%USERPROFILE%\.config\outfitting\repo`.
 
 Pull the latest repository changes using the configured path:
 
@@ -22,6 +22,7 @@ $repoPath = if ($env:OUTFITTING_REPO) {
 }
 Set-Location $repoPath
 git pull
+
 ~~~
 
 The PowerShell profile entry points remain symbolic links to the repository-owned profile, so pulling updates the linked source directly. Open a new PowerShell session after pulling, or reload the profile in the current session:
@@ -41,7 +42,7 @@ reload
 Update-All performs these operations:
 
 - Upgrades all WinGet packages.
-- Reconciles Scoop against packages/x64-windows/scoop.txt, including required buckets and dependencies, removes undeclared non-global packages, updates Scoop packages, cleans old versions, and stores the resulting inventory.
+- Reconciles Scoop against `packages/x64-windows/scoop.txt`, including required buckets and dependencies, removes undeclared non-global packages, updates Scoop packages, cleans old versions, and stores the resulting inventory.
 - Updates global Bun packages and stores their inventory when Bun is installed.
 - Updates installed PowerShell modules and stores the PowerShell inventory.
 - Exports the installed WinGet package state and uploads its lockfile.
@@ -52,11 +53,11 @@ Run it from a session with the repository-owned profile loaded:
 Update-All
 ~~~
 
-Each inventory or lockfile upload uses outfitting-manager only when an application with that name is available on PATH. If it is unavailable, that upload is skipped with a warning; the package update work continues. A failure in the WinGet, Scoop, or PowerShell update steps still causes Update-All to fail.
+Each inventory or lockfile upload uses `outfitting-manager` only when an application with that name is available on `PATH`. If it is unavailable, that upload is skipped with a warning; the package update work continues. A failure in the WinGet, Scoop, or PowerShell update steps still causes `Update-All` to fail.
 
 ## Post-install work
 
-Re-run the [post-install steps](/docs/windows/post-install/), including optional downloading and extracting of the Cloudflare Access-protected licensed fonts to %USERPROFILE%\Downloads\fonts:
+Re-run the [post-install steps](/docs/windows/post-install/), including optional downloading and extracting of the Cloudflare Access-protected licensed fonts to `%USERPROFILE%\Downloads\fonts`:
 
 ~~~powershell
 irm win.jfa.dev/post-install | iex
