@@ -45,21 +45,21 @@ irm win.jfa.dev/dev+gaming+qol | iex
 
 Available WinGet profiles:
 
-- base: Core packages, runtimes, and utilities
-- dev: Development tools and environments
-- gaming: Gaming platforms and tools
-- work: Work-related applications
-- qol: Quality of life improvements
-- network: Network tools and utilities
+- `base`: Core packages, runtimes, and utilities
+- `dev`: Development tools and environments
+- `gaming`: Gaming platforms and tools
+- `work`: Work-related applications
+- `qol`: Quality of life improvements
+- `network`: Network tools and utilities
 
 The installer also:
 
-- Installs the PSReadLine PowerShell module for the current user.
-- Resolves the repository from OUTFITTING_REPO, then %USERPROFILE%\.config\outfitting\repo-path, then %USERPROFILE%\.config\outfitting\repo. It validates an existing Git checkout or clones the repository when it is missing, then persists the resolved path to repo-path.
-- Downloads the latest Windows x64 outfitting-manager release and its .sha256 file, verifies the SHA-256 checksum, and installs the binary under %USERPROFILE%\.local\bin.
-- Installs OpenSSH Server when it is missing, starts sshd, configures automatic startup, and creates the inbound TCP port 22 firewall rule.
-- Links the PowerShell, VS Code PowerShell, and Windows PowerShell profile entry points to dotfiles/Microsoft.PowerShell_profile.ps1. Existing profiles are backed up with a timestamp before replacement.
-- Discovers .reg files under system/windows/registry and interactively offers to import them. The default choice is all discovered tweaks; choose N to skip them.
+- Installs the `PSReadLine PowerShell` module for the current user.
+- Resolves the repository from `OUTFITTING_REPO`, then `%USERPROFILE%\.config\outfitting\repo-path`, then `%USERPROFILE%\.config\outfitting\repo`. It validates an existing Git checkout or clones the repository when it is missing, then persists the resolved path to repo-path.
+- Downloads the latest Windows x64 outfitting-manager release and its .sha256 file, verifies the SHA-256 checksum, and installs the binary under `%USERPROFILE%\.local\bin`.
+- Installs OpenSSH Server when it is missing, starts `sshd`, configures automatic startup, and creates the inbound TCP port 22 firewall rule.
+- Links the PowerShell, VS Code PowerShell, and Windows PowerShell profile entry points to `dotfiles/Microsoft.PowerShell_profile.ps1`. Existing profiles are backed up with a timestamp before replacement.
+- Discovers .reg files under [system/windows/registry](https://github.com/jfalava/outfitting/tree/main/system/windows/registry) and interactively offers to import them. The default choice is all discovered tweaks; choose N to skip them.
 
 The profile links use Windows symbolic links. Enable Windows Developer Mode or run the installer with the required elevation for those links to be created.
 
@@ -78,11 +78,11 @@ irm win.jfa.dev/msstore/msstore-base+msstore-gaming+msstore-qol | iex
 
 Available Microsoft Store profiles:
 
-- msstore-base: Core Microsoft Store apps
-- msstore-dev: Development-related Store apps
-- msstore-gaming: Gaming-related Store apps
-- msstore-work: Work-related Store apps
-- msstore-qol: Quality of life Store apps
+- `msstore-base`: Core Microsoft Store apps
+- `msstore-dev`: Development-related Store apps
+- `msstore-gaming`: Gaming-related Store apps
+- `msstore-work`: Work-related Store apps
+- `msstore-qol`: Quality of life Store apps
 
 Correct format:
 
@@ -100,11 +100,9 @@ The main Windows installer downloads the latest Windows x64 outfitting-manager r
 
 The separate [post-install script](/docs/windows/post-install/) silently performs the same checksum-verified download as a best-effort fallback when the executable is missing. It suppresses manager download errors and does not block its other tasks. The manager is a release binary; these scripts do not create a manager symlink or build it from the repository.
 
-The repository-owned PowerShell profile adds C:\bin, Go, Scoop, Bun, pnpm, %USERPROFILE%\.local\share, %USERPROFILE%\.local\bin, and WinGet locations to the current session PATH. Lockfile inventory uploads performed by Update-All check for outfitting-manager on PATH. If it is unavailable, that upload is skipped with a warning and Update-All continues.
-
 ## Bun Global Packages
 
-Requires Bun installed first, typically through the dev profile.
+Requires Bun installed first:
 
 ~~~powershell
 irm win.jfa.dev/bun | iex
@@ -112,9 +110,9 @@ irm win.jfa.dev/bun | iex
 
 ## Scoop inventory
 
-The repository-owned packages/x64-windows/scoop.txt is the source of truth for directly installed Scoop packages. Every Update-All run must reconcile the local installation to that manifest; missing Scoop is an error rather than a skipped step. After reconciliation it stores a stable, versioned scoop-inventory snapshot through outfitting-manager, including resolved dependencies and installed versions.
+The repository-owned `packages/x64-windows/scoop.txt` is the source of truth for directly installed Scoop packages. Every Update-All run must reconcile the local installation to that manifest; missing Scoop is an error rather than a skipped step. After reconciliation it stores a stable, versioned scoop-inventory snapshot through outfitting-manager, including resolved dependencies and installed versions.
 
-Run Save-OutfittingScoopInventory to capture state without reconciling first.
+Run `Save-OutfittingScoopInventory` to capture state without reconciling first.
 
 ## Registry Tweaks Only
 

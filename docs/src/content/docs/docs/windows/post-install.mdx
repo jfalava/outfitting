@@ -16,10 +16,10 @@ irm win.jfa.dev/post-install | iex
 The script is separate from the main installer and performs the following work:
 
 - Sets the current-user PowerShell execution policy to RemoteSigned.
-- Quietly downloads the latest checksum-verified Windows x64 outfitting-manager release only when %USERPROFILE%\.local\bin\outfitting-manager.exe is missing. Download or checksum failures are suppressed.
-- Installs Scoop when it is missing, reloads the current profile, then reads packages/x64-windows/scoop.txt from the repository's main branch. It adds the declared buckets and installs the declared packages. It does not remove packages, update all packages, or save the Scoop inventory; Update-All performs that reconciliation later.
-- Installs FontGet through WinGet when needed, then processes the public font list in fonts/fontget.txt.
-- Attempts to authenticate to Cloudflare Access and download the protected private-font archive and checksum. After verification and archive safety checks, it extracts the fonts to %USERPROFILE%\Downloads\fonts.
+- Quietly downloads the latest checksum-verified Windows x64 outfitting-manager release only when `%USERPROFILE%\.local\bin\outfitting-manager.exe` is missing. Download or checksum failures are suppressed.
+- Installs Scoop when it is missing, reloads the current profile, then reads `packages/x64-windows/scoop.txt` from the repository's main branch. It adds the declared buckets and installs the declared packages. It does not remove packages, update all packages, or save the Scoop inventory; Update-All performs that reconciliation later.
+- Installs FontGet through WinGet when needed, then processes the public font list in `fonts/fontget.txt`.
+- Attempts to authenticate to Cloudflare Access and download the protected private-font archive and checksum. After verification and archive safety checks, it extracts the fonts to `%USERPROFILE%\Downloads\fonts`.
 
 The private-font step is optional. If Cloudflare Access does not authorize the account, the archive cannot be downloaded, or the archive fails validation, the script reports the issue and continues without private fonts. Install any extracted licensed fonts manually from the fonts folder.
 

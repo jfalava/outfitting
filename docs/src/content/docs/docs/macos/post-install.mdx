@@ -1,0 +1,38 @@
+---
+title: Post-install
+description: Install public and licensed fonts on macOS.
+sidebar:
+  order: 1
+---
+
+Run the post-install script after the main macOS installer from a new shell:
+
+~~~bash
+curl -L mac.jfa.dev/post-install | bash
+~~~
+
+The new shell is important because the main installer installs FontGet and Homebrew tools, but the current shell may not have their paths loaded yet.
+
+## What it does
+
+The script reads the public font list from `$HOME/.config/outfitting/repo/fonts/fontget.txt`. It enables FontGet's default and agreement settings, then installs every non-empty, non-comment entry in that file.
+
+It then:
+
+- Installs cloudflared with Homebrew when it is missing.
+- Requires administrator authentication with sudo.
+- Authenticates to Cloudflare Access and downloads the protected font archive and SHA-256 checksum from mac.jfa.dev.
+- Verifies the checksum and rejects archive traversal, absolute paths, symbolic links, hard links, and non-font payloads before extraction.
+- Installs the verified fonts for all local users under `/Library/Fonts` and removes the macOS quarantine attribute when possible.
+
+## Requirements and failures
+
+The post-install script requires:
+
+- A working repository at `$HOME/.config/outfitting/repo`.
+- FontGet available on `PATH`.
+- Homebrew available for installing cloudflared when needed.
+- A Cloudflare Access identity authorized to download the licensed archive.
+- `sudo` access to write `/Library/Fonts`.
+
+This is a strict script: a missing FontGet list, public-font installation failure, Cloudflare Access failure, checksum mismatch, unsafe archive, or private-font installation failure exits with a non-zero status. Run it only for identities covered by the font license and Access policy.
