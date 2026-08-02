@@ -1,0 +1,51 @@
+---
+title: Updates
+description: Update WSL configuration and packages after installation.
+sidebar:
+  order: 2
+---
+
+## Configuration
+
+Quick update:
+
+```bash
+curl -L wsl.jfa.dev | bash
+```
+
+Update local configuration after editing files in `~/.config/outfitting/repo`:
+
+```bash
+git pull
+hm-sync
+```
+
+## Packages
+
+Update packages:
+
+```bash
+hm-update
+update-all
+```
+
+Other update modes:
+
+```bash
+curl -L wsl.jfa.dev | bash -s -- --update-only
+curl -L wsl.jfa.dev | bash -s -- --full-install
+```
+
+## Bun global packages
+
+```bash
+curl -fsSL wsl.jfa.dev/packages/bun | xargs -I {} bun install -g {}
+```
+
+## Post-install work
+
+Re-run post-install work, including the Cloudflare Access-protected licensed font installation:
+
+```bash
+curl -L mac.jfa.dev/post-install | bash
+```

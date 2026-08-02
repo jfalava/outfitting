@@ -1,0 +1,38 @@
+---
+title: Updates
+description: Update macOS configuration, packages, and inventory snapshots after installation.
+sidebar:
+  order: 2
+---
+
+## Configuration
+
+Update local configuration after editing files in `~/.config/outfitting/repo`:
+
+```bash
+git pull
+outfit sync
+hm-sync
+```
+
+## Packages and inventories
+
+Update packages:
+
+```bash
+outfit upgrade
+hm-update
+update-all
+```
+
+Successful `outfit sync` and `outfit upgrade` runs automatically store a versioned inventory of installed Homebrew taps, formulae, and casks. You can also capture one explicitly:
+
+```bash
+outfit snapshot
+```
+
+## Bun global packages
+
+```bash
+curl -fsSL mac.jfa.dev/packages/bun | xargs -I {} bun install -g {}
+```

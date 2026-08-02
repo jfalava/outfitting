@@ -1,0 +1,39 @@
+---
+title: Updates
+description: Update Windows configuration, packages, and inventory snapshots after installation.
+sidebar:
+  order: 2
+---
+
+## Repository-managed configuration
+
+Pull the latest repository changes:
+
+```powershell
+Set-Location "$HOME\.config\outfitting\repo"
+git pull
+```
+
+The PowerShell profile entry points remain symlinks to the repository-owned profile. Open a new PowerShell session after pulling, or reload the profile in the current session:
+
+```powershell
+. $PROFILE
+```
+
+## Packages and inventories
+
+Update packages and record the current Windows package inventories:
+
+```powershell
+Update-All
+```
+
+The inventory steps use `outfitting-manager` only when an application with that name is available on `PATH`. If it is unavailable, the affected lockfile snapshot is skipped with a warning; the rest of `Update-All` continues.
+
+## Post-install work
+
+Re-run post-install work, including downloading and extracting the Cloudflare Access-protected licensed fonts to `%USERPROFILE%\Downloads\fonts` for optional manual installation:
+
+```powershell
+irm win.jfa.dev/post-install | iex
+```
