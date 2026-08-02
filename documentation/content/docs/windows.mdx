@@ -72,6 +72,19 @@ Correct format:
 irm win.jfa.dev/msstore/<profile>+<profile> | iex
 ```
 
+## Outfitting manager
+
+The main Windows installer downloads the latest Windows x64 `outfitting-manager` release and its SHA-256 checksum to:
+
+```text
+%USERPROFILE%\.local\bin\outfitting-manager.exe
+```
+
+The post-install script silently checks that path and makes the same checksum-verified download as a best-effort fallback when the executable is
+missing. It suppresses download errors and does not block the other post-install tasks. The manager is a release binary; these scripts do not create a manager symlink or build it from the repository.
+
+The PowerShell profile adds `%USERPROFILE%\.local\bin` to the session `PATH`. Lockfile inventory uploads performed by `Update-All` check for outfitting-manager on `PATH`. If it is unavailable, the affected upload is skipped with a warning and `Update-All` continues.
+
 ## Bun Global Packages
 
 Requires Bun installed first (typically through the `dev` profile).
@@ -82,11 +95,8 @@ irm win.jfa.dev/bun | iex
 
 ## Scoop inventory
 
-The repository-owned `packages/x64-windows/scoop.txt` is the source of truth for
-directly installed Scoop packages. Every `Update-All` run must reconcile the local
-installation to that manifest; missing Scoop is an error rather than a skipped step.
-After reconciliation it stores a stable, versioned `scoop-inventory` snapshot
-through `outfitting-manager`, including resolved dependencies and installed versions.
+The repository-owned `packages/x64-windows/scoop.txt` is the source of truth for directly installed Scoop packages. Every `Update-All` run must reconcile the local
+installation to that manifest; missing Scoop is an error rather than a skipped step. After reconciliation it stores a stable, versioned `scoop-inventory` snapshot through `outfitting-manager`, including resolved dependencies and installed versions.
 Run `Save-OutfittingScoopInventory` to capture state without reconciling first.
 
 ## Registry Tweaks Only
@@ -99,18 +109,10 @@ irm win.jfa.dev/registry | iex
 
 ## Post-install and licensed fonts
 
-Run the post-install script after the main installer. It performs post-install
-work, installs the public fonts listed in `fonts/fontget.txt` via FontGet, and
-extracts the licensed fonts to `%USERPROFILE%\Downloads\fonts`. You can then
-choose whether to install the licensed fonts manually. If your account does not
-have access to the licensed font archive, that optional step is skipped without
-failing the rest of the script.
+Run the post-install script after the main installer. It performs post-install work, installs the public fonts listed in `fonts/fontget.txt` via FontGet, and
+extracts the licensed fonts to `%USERPROFILE%\Downloads\fonts`. You can then choose whether to install the licensed fonts manually. If your account does not
+have access to the licensed font archive, that optional step is skipped without failing the rest of the script.
 
 ```powershell
 irm win.jfa.dev/post-install | iex
 ```
-
-The font download is protected by Cloudflare Access. `cloudflared` opens a
-browser sign-in when needed; only identities allowed by the Access policy can
-download the archive. The script verifies its SHA-256 checksum before installing
-`.otf`, `.ttf`, and `.ttc` files into the Windows system font store.

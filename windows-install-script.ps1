@@ -1,4 +1,6 @@
-# Windows install script
+#############################################
+###################### Windows Install Script
+#############################################
 
 ############################## Initial Setup
 # Set error action preference to stop so all errors become terminating and trigger trap
@@ -384,7 +386,7 @@ try {
 #################### Cleanup temporary files
 Remove-Item $wingetPackagesFile -ErrorAction SilentlyContinue
 
-####### Link PowerShell profiles to the local repository
+########## Link PowerShell profiles to local
 $repoCandidates = @()
 if (-Not [string]::IsNullOrWhiteSpace($env:OUTFITTING_REPO)) {
     $repoCandidates += $env:OUTFITTING_REPO
@@ -461,6 +463,7 @@ try {
     Write-Host "❖ Confirm the repository is configured locally and Windows Developer Mode is enabled." -ForegroundColor Yellow
 }
 ############################################
+
 ############################### End messages
 Write-Host "`n"
 if ($script:hasErrors) {

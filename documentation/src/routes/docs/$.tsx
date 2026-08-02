@@ -10,7 +10,6 @@ import { baseOptions } from "@/lib/layout.shared";
 const docModules: Record<string, () => Promise<typeof import("*.mdx")>> = {
   "": () => import("../../../content/docs/index.mdx"),
   index: () => import("../../../content/docs/index.mdx"),
-  "installer-guide": () => import("../../../content/docs/installer-guide.mdx"),
   windows: () => import("../../../content/docs/windows.mdx"),
   wsl: () => import("../../../content/docs/wsl.mdx"),
   macos: () => import("../../../content/docs/macos.mdx"),

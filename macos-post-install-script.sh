@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 
-# macOS Outfitting Post Installation Script
+#############################################
+################### macOS Post-Install Script
+#############################################
 
 set -euo pipefail
 

@@ -1,8 +1,46 @@
-# Post install script for Windows
+#############################################
+################# Windows Post-Install Script
+#############################################
 
 ## This requires a shell reload.
 
 $ErrorActionPreference = "Stop"
+
+######################### Outfitting manager
+$outfittingManagerReleaseUrl = "https://github.com/jfalava/outfitting/releases/latest/download"
+$outfittingManagerAsset = "outfitting-manager-windows-x64.exe"
+$outfittingManagerInstallPath = "$env:USERPROFILE\.local\bin\outfitting-manager.exe"
+
+function Install-OutfittingManagerQuietly {
+    if (Test-Path -LiteralPath $outfittingManagerInstallPath -PathType Leaf) {
+        return
+    }
+
+    $installDirectory = Split-Path -Parent $outfittingManagerInstallPath
+    $temporaryBinary = Join-Path $env:TEMP "$outfittingManagerAsset.post-install.download"
+    $temporaryChecksum = Join-Path $env:TEMP "$outfittingManagerAsset.post-install.sha256"
+
+    try {
+        Invoke-WebRequest -Uri "$outfittingManagerReleaseUrl/$outfittingManagerAsset" -OutFile $temporaryBinary -ErrorAction Stop
+        Invoke-WebRequest -Uri "$outfittingManagerReleaseUrl/$outfittingManagerAsset.sha256" -OutFile $temporaryChecksum -ErrorAction Stop
+
+        $expectedChecksum = ((Get-Content -LiteralPath $temporaryChecksum -Raw -ErrorAction Stop).Trim() -split "\s+")[0]
+        $actualChecksum = (Get-FileHash -LiteralPath $temporaryBinary -Algorithm SHA256 -ErrorAction Stop).Hash
+        if ($actualChecksum -ne $expectedChecksum) {
+            return
+        }
+
+        New-Item -Path $installDirectory -ItemType Directory -Force -ErrorAction Stop | Out-Null
+        Move-Item -LiteralPath $temporaryBinary -Destination $outfittingManagerInstallPath -Force -ErrorAction Stop
+    } catch {
+        # The post-install script is best-effort for outfitting-manager.
+    } finally {
+        Remove-Item -LiteralPath $temporaryBinary -Force -ErrorAction SilentlyContinue
+        Remove-Item -LiteralPath $temporaryChecksum -Force -ErrorAction SilentlyContinue
+    }
+}
+
+Install-OutfittingManagerQuietly
 Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 
 ###################################### Scoop

@@ -1,7 +1,10 @@
 #!/bin/bash
 
-# WSL Outfitting Installation Script
+#############################################
+########################## WSL Install Script
+#############################################
 # Modes: refer to https://outfitting.jfa.dev/docs/wsl
+#############################################
 
 set -euo pipefail
 

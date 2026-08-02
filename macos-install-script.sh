@@ -1,6 +1,8 @@
 #!/bin/bash
 
-# macOS Outfitting Installation Script
+#############################################
+######################## macOS Install Script
+#############################################
 
 set -euo pipefail
 

@@ -19,7 +19,10 @@
         "vitest": "4.1.10",
         "oxlint-tsgolint": "7.0.2001",
         "typescript": "7.0.2",
-        "wrangler": "4.115.0"
+        "wrangler": "4.118.0"
+      },
+      "backend": {
+        "hono": "4.12.33"
       }
     }
   },
