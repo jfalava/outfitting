@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "base": "/",
+  "knownRoutes": [
+    "/",
+    "/404",
+    "/docs",
+    "/docs/macos",
+    "/docs/manager",
+    "/docs/manager/cli",
+    "/docs/manager/lockfiles-worker",
+    "/docs/repository-configuration",
+    "/docs/updates",
+    "/docs/windows",
+    "/docs/wsl"
+  ],
+  "opaqueNamespaces": []
+}

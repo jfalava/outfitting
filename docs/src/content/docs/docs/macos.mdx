@@ -1,0 +1,77 @@
+---
+title: macOS
+description: Install Outfitting on macOS with Homebrew casks and formulae, and nix-darwin configuration.
+sidebar:
+  order: 3
+---
+
+## Installation
+
+```bash
+curl -L mac.jfa.dev | bash
+```
+
+This installs:
+
+- Homebrew-managed casks and formulae from `packages/aarch64-darwin/Brewfile`
+- nix-darwin/Home Manager configuration from `packages/aarch64-darwin`
+
+## Post-install and licensed fonts
+
+Run the post-install script after the main installer to perform post-install work and install licensed fonts for every local user:
+
+```bash
+curl -L mac.jfa.dev/post-install | bash
+```
+
+> Only identities permitted by the Access Policy can download the private font archive.
+
+## Package Management
+
+The `outfit` command (aliased to `o`) unifies Homebrew and nix-darwin operations:
+
+```bash
+# Apply Homebrew casks and formulae from the repo
+outfit sync   # or: o sync
+
+# Upgrade nix-darwin configuration, then upgrade Homebrew packages/casks
+outfit upgrade   # or: o u
+```
+
+Successful `outfit sync` and `outfit upgrade` runs automatically store a versioned inventory of installed Homebrew taps, formulae, and casks. You can also capture one explicitly:
+
+```bash
+outfit snapshot
+```
+
+If an upgrade is interrupted after producing its candidate lock, Outfitting keeps a recovery checkpoint under `${XDG_STATE_HOME:-~/.local/state}`. Resume activation and publication with:
+
+```bash
+outfit recover
+```
+
+The checkpoint is removed only after activation and the conditional remote upload both succeed.
+
+## Nix-darwin Profile Management
+
+```bash
+# Build and apply changes
+outfit switch   # (default when no argument is given)
+outfit build
+outfit test
+
+# Dry-run changes
+outfit dry
+
+# List and roll back generations
+hm-rollback
+```
+
+Use the `outfit` commands rather than invoking `darwin-rebuild` directly; they supply the remote lock and prevent Nix from creating a local `flake.lock`.
+
+## Nix Package Testing
+
+```bash
+nix-test bat
+nix-try ripgrep
+```

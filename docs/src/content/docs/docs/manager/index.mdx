@@ -1,0 +1,27 @@
+---
+title: Manager
+description: The portable Outfitting CLI and its lockfile storage service.
+sidebar:
+  order: 6
+---
+
+The Outfitting manager is split into two packages:
+
+- [Manager CLI](/docs/manager/cli) is the portable `outfitting-manager` executable used by local maintenance commands.
+- [Lockfiles Worker](/docs/manager/lockfiles-worker) is the Cloudflare Worker that stores and serves generated, machine-local lock state for the CLI.
+
+The CLI remains independent of the Worker package at runtime. Features that do not need a backend can be added to the executable without deploying or importing a manager service.
+
+## Source layout
+
+```text
+manager/
+├── cli/        # Portable local executable
+└── lockfiles/  # Cloudflare Worker, D1 migrations, and KV storage
+```
+
+Install the monorepo dependencies from the repository root before working on either package:
+
+```bash
+bun install
+```

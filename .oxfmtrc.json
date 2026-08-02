@@ -13,7 +13,7 @@
   },
   "ignorePatterns": [
     "installer/**",
-    "documentation/**",
+    "docs/**",
     "node_modules/**",
     "manager/**"
   ]

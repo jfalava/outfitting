@@ -20,7 +20,7 @@ This project uses `machine-memory` for persistent agent context stored at [`.age
      - `machine-memory update --match "topic query" "new canonical content"`
      - If no reliable match exists, create with `machine-memory add ... --upsert-match "topic query"` so repeated writes update instead of duplicating.
    - Add new durable knowledge (prefer path-driven tagging):
-     - `machine-memory add "..." --path "documentation/content/docs/guides/example.mdx" --context "why it matters" --type "decision|reference|status|..." --certainty "verified|inferred|speculative"`
+     - `machine-memory add "..." --path "docs/src/content/docs/guides/example.mdx" --context "why it matters" --type "decision|reference|status|..." --certainty "verified|inferred|speculative"`
      - If path mapping is unavailable, use `--tags "area:...,topic:...,kind:..."`.
    - Update stale memories:
      - `machine-memory update <id> "new content"`
@@ -34,9 +34,9 @@ This project uses `machine-memory` for persistent agent context stored at [`.age
 
 4. **Use tight tag taxonomy via path mapping (recommended)**
    - Prefer scoped tags: `area:*`, `topic:*`, `kind:*` (for example: `area:cli,topic:vendor-aws,kind:status`)
-   - `machine-memory tag-map set "documentation/content/docs/guides/example.mdx" "area:docs,topic:guides,kind:reference"`
-   - `machine-memory tag-map suggest "documentation/content/docs/guides/example.mdx"`
-   - `machine-memory add "..." --path "documentation/content/docs/guides/example.mdx"` (preferred over manual tag strings)
+   - `machine-memory tag-map set "docs/src/content/docs/guides/example.mdx" "area:docs,topic:guides,kind:reference"`
+   - `machine-memory tag-map suggest "docs/src/content/docs/guides/example.mdx"`
+   - `machine-memory add "..." --path "docs/src/content/docs/guides/example.mdx"` (preferred over manual tag strings)
 
 5. **Status hygiene**
    - When adding `--type status`, `status_cascade` suggestions are candidates, not auto-actions.
