@@ -2,38 +2,62 @@
 title: Updates
 description: Update Windows configuration, packages, and inventory snapshots after installation.
 sidebar:
-  order: 2
+  order: 3
 ---
 
 ## Repository-managed configuration
 
-Pull the latest repository changes:
+The installer stores the repository path in %USERPROFILE%\.config\outfitting\repo-path. If OUTFITTING_REPO is set, it takes precedence; otherwise the default is %USERPROFILE%\.config\outfitting\repo.
 
-```powershell
-Set-Location "$HOME\.config\outfitting\repo"
+Pull the latest repository changes using the configured path:
+
+~~~powershell
+$repoPathFile = Join-Path $HOME ".config\outfitting\repo-path"
+$repoPath = if ($env:OUTFITTING_REPO) {
+    $env:OUTFITTING_REPO
+} elseif (Test-Path -LiteralPath $repoPathFile -PathType Leaf) {
+    (Get-Content -LiteralPath $repoPathFile -Raw).Trim()
+} else {
+    Join-Path $HOME ".config\outfitting\repo"
+}
+Set-Location $repoPath
 git pull
-```
+~~~
 
-The PowerShell profile entry points remain symlinks to the repository-owned profile. Open a new PowerShell session after pulling, or reload the profile in the current session:
+The PowerShell profile entry points remain symbolic links to the repository-owned profile, so pulling updates the linked source directly. Open a new PowerShell session after pulling, or reload the profile in the current session:
 
-```powershell
+~~~powershell
 . $PROFILE
-```
+~~~
+
+The profile also provides the reload alias:
+
+~~~powershell
+reload
+~~~
 
 ## Packages and inventories
 
-Update packages and record the current Windows package inventories:
+Update-All performs these operations:
 
-```powershell
+- Upgrades all WinGet packages.
+- Reconciles Scoop against packages/x64-windows/scoop.txt, including required buckets and dependencies, removes undeclared non-global packages, updates Scoop packages, cleans old versions, and stores the resulting inventory.
+- Updates global Bun packages and stores their inventory when Bun is installed.
+- Updates installed PowerShell modules and stores the PowerShell inventory.
+- Exports the installed WinGet package state and uploads its lockfile.
+
+Run it from a session with the repository-owned profile loaded:
+
+~~~powershell
 Update-All
-```
+~~~
 
-The inventory steps use `outfitting-manager` only when an application with that name is available on `PATH`. If it is unavailable, the affected lockfile snapshot is skipped with a warning; the rest of `Update-All` continues.
+Each inventory or lockfile upload uses outfitting-manager only when an application with that name is available on PATH. If it is unavailable, that upload is skipped with a warning; the package update work continues. A failure in the WinGet, Scoop, or PowerShell update steps still causes Update-All to fail.
 
 ## Post-install work
 
-Re-run post-install work, including downloading and extracting the Cloudflare Access-protected licensed fonts to `%USERPROFILE%\Downloads\fonts` for optional manual installation:
+Re-run the [post-install steps](/docs/windows/post-install/), including optional downloading and extracting of the Cloudflare Access-protected licensed fonts to %USERPROFILE%\Downloads\fonts:
 
-```powershell
+~~~powershell
 irm win.jfa.dev/post-install | iex
-```
+~~~

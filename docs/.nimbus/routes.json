@@ -12,6 +12,7 @@
     "/docs/manager/lockfiles-worker",
     "/docs/repository-configuration",
     "/docs/windows",
+    "/docs/windows/post-install",
     "/docs/windows/updates",
     "/docs/wsl",
     "/docs/wsl/updates"
