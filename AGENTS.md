@@ -1,58 +1,41 @@
-# Project memory
+<!-- machine-memory:start -->
+## Project memory
 
-This project uses `machine-memory` for persistent agent context stored at [`.agents/memory.db`](./.agents/memory.db) in the root of the monorepo.
+This project uses `machine-memory` with a shared remote Worker-backed database.
+Remote credentials are stored in the OS keychain. To change them, use `machine-memory remote setup`; to provision a new Alchemy D1 stack, use `machine-memory remote provision` with optional `--stack-name`, `--database-name`, and `--api-name`.
+Every database-backed command requires exactly one backend flag. Use `--remote` for this repository and do not pass both flags.
+Run `machine-memory doctor` during maintenance, not every task. Do not create or rely on a local `machine-memory.db` for this repository.
 
-## One-sweep workflow (use this every task)
+⚠️ MANDATORY: Complete the memory scan BEFORE any code changes. Skipping it causes rework, regressions, and duplicated decisions.
 
-1. **Scan relevant context fast (compact mode)**
-   - `machine-memory suggest --files "<paths you'll touch>" --brief`
-   - `machine-memory query "<feature/topic>" --brief`
-   - `machine-memory list --tags "<domain>" --brief`
-   - Run this sweep once per task; repeat only if touched paths or scope materially change.
-   - Use `machine-memory get <id>` only when you need full detail.
+### Required pre-workflow (DO NOT SKIP)
 
-2. **If your inference may conflict, verify before editing memory**
-   - `machine-memory verify <id> "<inferred fact>"`
-   - `machine-memory diff <id> "<proposed updated wording>"`
+Before touching code, complete this scan from the repository root. Every database command must include the backend flag shown below:
 
-3. **Maintain memories while implementing**
-   - Prefer one canonical memory per feature thread:
-     - `machine-memory update --match "topic query" "new canonical content"`
-     - If no reliable match exists, create with `machine-memory add ... --upsert-match "topic query"` so repeated writes update instead of duplicating.
-   - Add new durable knowledge (prefer path-driven tagging):
-     - `machine-memory add "..." --path "docs/src/content/docs/guides/example.mdx" --context "why it matters" --type "decision|reference|status|..." --certainty "verified|inferred|speculative"`
-     - If path mapping is unavailable, use `--tags "area:...,topic:...,kind:..."`.
-   - Update stale memories:
-     - `machine-memory update <id> "new content"`
-     - `machine-memory update <id1,id2,id3> "new content"` (multi-ID)
-     - `machine-memory update --match "topic" --from-file ./notes.md`
-   - Deprecate replaced memories:
-     - `machine-memory deprecate <id> --superseded-by <new_id>`
-     - `machine-memory deprecate <id1,id2,id3> --superseded-by <new_id>` (multi-ID)
-   - Delete invalid memories:
-     - `machine-memory delete <id>` or `machine-memory delete <id1,id2,id3>`
+- Known files: `machine-memory suggest --files "path/a.ts,path/b.ts" --remote --json-min`
+- Known topic: `machine-memory query "topic" --remote --json-min`
+- Broad audit: `machine-memory list --tags "area:..." --remote --json-min`
 
-4. **Use tight tag taxonomy via path mapping (recommended)**
-   - Prefer scoped tags: `area:*`, `topic:*`, `kind:*` (for example: `area:cli,topic:vendor-aws,kind:status`)
-   - `machine-memory tag-map set "docs/src/content/docs/guides/example.mdx" "area:docs,topic:guides,kind:reference"`
-   - `machine-memory tag-map suggest "docs/src/content/docs/guides/example.mdx"`
-   - `machine-memory add "..." --path "docs/src/content/docs/guides/example.mdx"` (preferred over manual tag strings)
+If results look relevant, fetch full records before editing: `machine-memory get <id> --remote` or `machine-memory get <id,id,...> --remote`.
 
-5. **Status hygiene**
-   - When adding `--type status`, `status_cascade` suggestions are candidates, not auto-actions.
-   - Before any deprecate from `status_cascade`, run `machine-memory get <id>` and `machine-memory verify <id> "<replacement claim>"` (or `diff`) to confirm semantic overlap.
-   - Keep one active status memory per task thread; prefer updating it over adding same-task status memories unless scope materially changes.
-   - Short-lived status should include expiry: `--expires-after-days <n>`.
-   - Run `machine-memory doctor` and review suggested `deprecate`/`update` commands semantically before applying.
+### One-sweep workflow (use this every task)
 
-6. **Write for retrieval**
-   - Put key anchors in the first sentence when possible: command names, API paths, file paths, and exact feature keywords.
+1. Scan relevant context fast. Run exactly one focused `suggest`, `query`, or `list` command before code changes; repeat only if the touched paths or scope materially changes.
+2. Verify uncertain context before acting. Use `machine-memory verify <id> "<inferred fact>" --remote` or `machine-memory diff <id> "<proposed updated wording>" --remote` when an inference may conflict with existing memory.
+3. Maintain memory while implementing. Prefer `machine-memory update --match "topic query" "new canonical content" --remote`; if no reliable match exists, use `machine-memory add "..." --upsert-match "topic query" --remote`.
+4. Write for retrieval. Put commands, API paths, file paths, keys, routes, thresholds, and exact feature keywords in the first sentence.
+5. Use path-driven tags. Prefer `--path` and `tag-map`; use scoped tags such as `area:cli,topic:backend,kind:decision` when no mapping exists.
+6. Capture third-party quirks. Always add a `--type gotcha` memory for surprising library or tool behavior, leading with the library name, behavior, and fix.
+7. Keep status hygiene. Status memories are for transient progress, should include `--expires-after-days`, and should be updated rather than duplicated. Review `doctor` suggestions semantically before applying deprecations or updates.
+8. Separate durable and transient facts. Use `decision`, `reference`, or `gotcha` for reusable knowledge; use `status` only for short-lived snapshots.
+9. At task end, persist every durable decision, constraint, preference, non-obvious gotcha, and verified status future sessions need. Use `machine-memory add ... --remote` or update the canonical record with `machine-memory update ... --remote`. Do not store obvious code facts, routine test results, temporary progress, or duplicates.
 
-7. **Separate durable vs transient facts**
-   - Use `--type reference` for durable implementation facts, reusable docs notes, and non-obvious gotchas.
-   - Use `--type decision` for durable rules/architecture.
-   - Use `--type status` for progress snapshots/current state.
+### Checklist (verify before proceeding)
 
-8. **Task-end persistence rule**
-   - Always persist non-obvious outcomes future sessions need (decisions, references, status snapshots, gotchas, tooling notes, user preferences).
-   - Do **not** store obvious code facts, temporary notes, or duplicates.
+- [ ] I ran `machine-memory suggest`, `query`, or `list` with --remote for the files or feature I will touch
+- [ ] I reviewed the returned memory IDs and fetched full records when relevant
+- [ ] I considered whether existing memories constrain the planned approach
+- [ ] I will document significant findings and decisions after completing the task
+
+Project preference: replace obsolete systems when practical; preserve backwards compatibility only when it is explicitly required.
+<!-- machine-memory:end -->
