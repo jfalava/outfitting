@@ -1,15 +1,10 @@
 { pkgs }:
 with pkgs;
-[
-  nixd
-  nil
+(import ../common/packages.nix { inherit pkgs; })
+++ [
   nixfmt
-  powershell
-  python3
   terraform-ls
   terraform
   restic
   rustic
-  zig
-  nodejs_26
 ]
