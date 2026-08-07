@@ -24,9 +24,9 @@ The main installer:
 - Verifies that it is running on macOS and detects the CPU architecture.
 - Uses `$HOME/.config/outfitting/repo` as the repository location. It clones the repository when missing, validates an existing Git checkout, and stores the path in `$HOME/.config/outfitting/repo-path` with mode 600.
 - Downloads the latest macOS arm64 `outfitting-manager` release and its SHA-256 checksum, verifies the checksum, installs the binary at `$HOME/.local/bin/`outfitting-manager``, and adds that directory to the current session PATH.
-- Installs Homebrew when needed and applies `packages/aarch64-darwin/Brewfile`, which owns the Homebrew formulae and casks.
+- Installs Homebrew when needed and applies `packages/macos/Brewfile`, which owns the Homebrew formulae and casks.
 - Installs Determinate Systems Nix and sources the Nix daemon profile for the current shell.
-- Links `$HOME/.config/home-manager` to the repository's `packages/aarch64-darwin` configuration and backs up an existing regular `$HOME/.zshrc` with a timestamp.
+- Links `$HOME/.config/home-manager` to the repository's `system/macos` configuration and backs up an existing regular `$HOME/.zshrc` with a timestamp.
 - Pulls the canonical `jfalava:aarch64-darwin/nix` lock through `outfitting-manager`, builds nix-darwin with that lock without writing a local `flake.lock`, and activates the system with `sudo`.
 - Installs uv and the FontGet command when they are missing. It does not install the fonts themselves; use the separate [post-install page](/docs/macos/post-install/) for that.
 

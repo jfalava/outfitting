@@ -17,7 +17,7 @@ _outfitting_repo() {
 _ensure_home_manager_link() {
     local repo_path target
     repo_path=$(_outfitting_repo)
-    target="$repo_path/packages/x64-wsl"
+    target="$repo_path/system/ubuntu-wsl"
     mkdir -p "$HOME/.config"
 
     if [ ! -L "$HOME/.config/home-manager" ] ||
@@ -30,7 +30,7 @@ hm-sync() {
     local repo_path
     repo_path=$(_outfitting_repo)
     _ensure_home_manager_link || return 1
-    home-manager switch --flake "path:$repo_path/packages/x64-wsl#jfalava" --impure
+    home-manager switch --flake "path:$repo_path/system/ubuntu-wsl#jfalava" --impure
 }
 
 hm-switch() {
@@ -41,8 +41,8 @@ hm-update() {
     local repo_path
     repo_path=$(_outfitting_repo)
     _ensure_home_manager_link || return 1
-    nix flake update --flake "$repo_path/packages/x64-wsl" &&
-        home-manager switch --flake "path:$repo_path/packages/x64-wsl#jfalava" --impure
+    nix flake update --flake "$repo_path/system/ubuntu-wsl" &&
+        home-manager switch --flake "path:$repo_path/system/ubuntu-wsl#jfalava" --impure
 }
 
 hm-rollback() {

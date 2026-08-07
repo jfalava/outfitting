@@ -45,7 +45,7 @@ install_apt_packages() {
     info "Updating APT and installing packages..."
     sudo apt update -y && sudo apt upgrade -y
 
-    local apt_url="https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/packages/x64-wsl/apt.txt"
+    local apt_url="https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/packages/ubuntu-wsl/apt.txt"
     local apt_file="/tmp/apt-packages.txt"
 
     if ! curl -fsSL "$apt_url" -o "$apt_file"; then
@@ -194,7 +194,7 @@ setup_symlinks() {
     fi
 
     repo_path=$(cat "$config_file")
-    hm_target="$repo_path/packages/x64-wsl"
+    hm_target="$repo_path/system/ubuntu-wsl"
 
     # Create ~/.config directory if it doesn't exist
     mkdir -p "$HOME/.config"
@@ -287,7 +287,7 @@ install_home_manager() {
 
     local repo_path flake_path
     repo_path=$(cat "$config_file")
-    flake_path="$repo_path/packages/x64-wsl"
+    flake_path="$repo_path/system/ubuntu-wsl"
 
     info "Installing Home Manager..."
 

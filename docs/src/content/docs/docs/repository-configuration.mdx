@@ -16,7 +16,7 @@ The installation then creates symlinks into platform-specific configuration loca
 On macOS, the repository also stores the package manifests used by the helper commands:
 
 ```text
-packages/aarch64-darwin/Brewfile
+packages/macos/Brewfile
 ```
 
 ## Windows
@@ -45,12 +45,12 @@ Existing profiles are backed up with a timestamp before they are replaced. Windo
 ## WSL
 
 ```text
-~/.config/home-manager -> ~/.config/outfitting/repo/packages/x64-wsl
+~/.config/home-manager -> ~/.config/outfitting/repo/system/ubuntu-wsl
 ```
 
 ## macOS
 
 ```text
-~/.config/home-manager -> ~/.config/outfitting/repo/packages/aarch64-darwin
-~/.nixpkgs/darwin-configuration.nix -> ~/.config/outfitting/repo/packages/aarch64-darwin/darwin.nix
+~/.config/home-manager -> ~/.config/outfitting/repo/system/macos
+~/.nixpkgs/darwin-configuration.nix -> ~/.config/outfitting/repo/system/macos/darwin.nix
 ```

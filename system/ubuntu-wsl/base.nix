@@ -19,28 +19,7 @@ in
   home.stateVersion = "26.05";
 
   # Core personal packages
-  home.packages = with pkgs; [
-    # Core utilities
-    tree
-    deno
-    lazygit
-    nodejs_latest
-    python3
-    zig
-    zellij
-    neovim
-    less
-    shellcheck
-    zip
-    _7zz
-    p7zip
-    nixd
-    nil
-    pnpm
-    powershell
-    tailspin # log viewer
-    ranger
-  ];
+  home.packages = import (builtins.toPath "${outfittingRepo}/packages/ubuntu-wsl/packages.nix") { inherit pkgs; };
 
   # Session variables
   home.sessionVariables = {

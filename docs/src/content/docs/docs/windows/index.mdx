@@ -110,7 +110,7 @@ irm win.jfa.dev/bun | iex
 
 ## Scoop inventory
 
-The repository-owned `packages/x64-windows/scoop.txt` is the source of truth for directly installed Scoop packages. Every Update-All run must reconcile the local installation to that manifest; missing Scoop is an error rather than a skipped step. After reconciliation it stores a stable, versioned scoop-inventory snapshot through outfitting-manager, including resolved dependencies and installed versions.
+The repository-owned `packages/windows/scoop.txt` is the source of truth for directly installed Scoop packages. Every Update-All run must reconcile the local installation to that manifest; missing Scoop is an error rather than a skipped step. After reconciliation it stores a stable, versioned scoop-inventory snapshot through outfitting-manager, including resolved dependencies and installed versions.
 
 Run `Save-OutfittingScoopInventory` to capture state without reconciling first.
 

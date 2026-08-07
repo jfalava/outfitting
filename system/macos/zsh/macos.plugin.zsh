@@ -260,7 +260,7 @@ outfit-recover-nix-upgrade() {
         prepared)
             echo "Resuming the interrupted nix-darwin activation..."
             local system_config
-            system_config=$(outfit-build-nix-system "$repo_path/packages/aarch64-darwin" "$recovery_lock") ||
+            system_config=$(outfit-build-nix-system "$repo_path/system/macos" "$recovery_lock") ||
                 return 1
             outfit-activate-nix-system "$system_config" || return 1
             outfit-set-nix-recovery-phase activated || return 1
@@ -295,8 +295,8 @@ hm-sync() {
     }
 
     # Ensure symlinks are set up correctly
-    local darwin_target="$repo_path/packages/aarch64-darwin/darwin.nix"
-    local hm_target="$repo_path/packages/aarch64-darwin"
+    local darwin_target="$repo_path/system/macos/darwin.nix"
+    local hm_target="$repo_path/system/macos"
 
     if [ ! -L ~/.nixpkgs/darwin-configuration.nix ] || [ "$(readlink -f ~/.nixpkgs/darwin-configuration.nix)" != "$(readlink -f "$darwin_target")" ]; then
         echo "Creating/updating symlink: ~/.nixpkgs/darwin-configuration.nix → $darwin_target"
@@ -328,8 +328,8 @@ hm-switch-local() {
     echo "Applying nix-darwin configuration from local repo..."
 
     # Ensure symlinks are set up correctly
-    local darwin_target="$repo_path/packages/aarch64-darwin/darwin.nix"
-    local hm_target="$repo_path/packages/aarch64-darwin"
+    local darwin_target="$repo_path/system/macos/darwin.nix"
+    local hm_target="$repo_path/system/macos"
 
     if [ ! -L ~/.nixpkgs/darwin-configuration.nix ] || [ "$(readlink -f ~/.nixpkgs/darwin-configuration.nix)" != "$(readlink -f "$darwin_target")" ]; then
         mkdir -p ~/.nixpkgs
@@ -467,7 +467,7 @@ outfit-homebrew() {
         return 1
     fi
 
-    local brewfile="$repo_path/packages/aarch64-darwin/Brewfile"
+    local brewfile="$repo_path/packages/macos/Brewfile"
     if [ ! -f "$brewfile" ]; then
         echo "Error: Homebrew cask manifest not found: $brewfile"
         return 1
@@ -676,8 +676,8 @@ outfit-rebuild() {
     }
 
     # Ensure symlinks exist
-    local darwin_target="$repo_path/packages/aarch64-darwin/darwin.nix"
-    local hm_target="$repo_path/packages/aarch64-darwin"
+    local darwin_target="$repo_path/system/macos/darwin.nix"
+    local hm_target="$repo_path/system/macos"
     local lock_dir
     lock_dir=$(outfit-open-nix-lock) || return 1
     local remote_lock="$lock_dir/flake.lock"

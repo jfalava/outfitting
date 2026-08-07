@@ -38,6 +38,7 @@
       "tsgo"
       "mdx"
       "ini"
+      "make"
     ];
 
     userSettings = {

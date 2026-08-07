@@ -30,7 +30,7 @@ export const SCRIPT_URLS = {
 /**
  * Windows package file base URL
  */
-export const WINDOWS_PACKAGES_BASE = `${GITHUB_RAW_BASE}/packages/x64-windows`;
+export const WINDOWS_PACKAGES_BASE = `${GITHUB_RAW_BASE}/packages/windows`;
 
 /**
  * Valid Windows package profiles

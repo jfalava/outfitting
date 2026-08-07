@@ -247,7 +247,7 @@ setup_symlinks() {
 
     local repo_path hm_target
     repo_path=$(cat "$config_file")
-    hm_target="$repo_path/packages/aarch64-darwin"
+    hm_target="$repo_path/system/macos"
 
     mkdir -p "$HOME/.config"
 
@@ -296,7 +296,7 @@ install_nix_darwin() {
 
     local repo_path flake_path lock_dir_display lock_dir lock_path
     repo_path=$(cat "$config_file")
-    flake_path="$repo_path/packages/aarch64-darwin"
+    flake_path="$repo_path/system/macos"
     lock_dir_display=$(mktemp -d "${TMPDIR:-/tmp}/outfitting-nix-lock.XXXXXX")
     lock_dir=$(cd "$lock_dir_display" && pwd -P)
     lock_path="$lock_dir/flake.lock"
@@ -357,7 +357,7 @@ install_homebrew_packages() {
     local repo_path
     repo_path=$(get_outfitting_repo) || return 1
 
-    local brewfile="$repo_path/packages/aarch64-darwin/Brewfile"
+    local brewfile="$repo_path/packages/macos/Brewfile"
     if [ ! -f "$brewfile" ]; then
         error "Homebrew manifest not found: $brewfile"
         return 1

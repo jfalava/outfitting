@@ -296,7 +296,7 @@ function Sync-OutfittingScoop {
 
     if ([string]::IsNullOrWhiteSpace($ManifestPath)) {
         $repoPath = Get-OutfittingRepo
-        $ManifestPath = Join-Path $repoPath "packages\x64-windows\scoop.txt"
+        $ManifestPath = Join-Path $repoPath "packages\windows\scoop.txt"
     }
     if (-not (Test-Path -LiteralPath $ManifestPath -PathType Leaf)) {
         throw "Local Scoop manifest not found: $ManifestPath"

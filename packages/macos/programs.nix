@@ -44,7 +44,7 @@ in
     plugins = lib.mkAfter [
       {
         name = "outfitting-macos";
-        src = ./zsh;
+        src = ../../system/macos/zsh;
         file = "macos.plugin.zsh";
       }
     ];

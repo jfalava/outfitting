@@ -44,7 +44,7 @@ Install-OutfittingManagerQuietly
 Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 
 ###################################### Scoop
-$scoopPackagesUrl = "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/packages/x64-windows/scoop.txt"
+$scoopPackagesUrl = "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/packages/windows/scoop.txt"
 if (-not (Get-Command scoop -ErrorAction SilentlyContinue)) {
     try {
         Invoke-RestMethod -Uri https://get.scoop.sh -ErrorAction Stop | Invoke-Expression

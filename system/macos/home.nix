@@ -1,8 +1,13 @@
 { pkgs, ... }:
 
+let
+  repoFromEnvironment = builtins.getEnv "OUTFITTING_REPO";
+  outfittingRepo =
+    if repoFromEnvironment != "" then repoFromEnvironment else "/Users/jfalava/.config/outfitting/repo";
+in
 {
   imports = [
-    ./programs.nix
+    (builtins.toPath "${outfittingRepo}/packages/macos/programs.nix")
   ];
 
   # Home Manager needs a bit of information about you and the paths it should manage
@@ -11,19 +16,7 @@
   home.stateVersion = "26.05";
 
   # Nix-managed and exclusive packages
-  home.packages = with pkgs; [
-    nixd
-    nil
-    nixfmt
-    powershell
-    python3
-    terraform-ls
-    terraform
-    restic
-    rustic
-    zig
-    nodejs_26
-  ];
+  home.packages = import (builtins.toPath "${outfittingRepo}/packages/macos/packages.nix") { inherit pkgs; };
 
   # Home Manager can also manage your environment variables through
   # 'home.sessionVariables'. These will be explicitly sourced when using a

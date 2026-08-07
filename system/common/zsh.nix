@@ -6,7 +6,7 @@
 let
   outfittingRepo = "${config.home.homeDirectory}/.config/outfitting/repo";
   completionDirectory = "${config.home.homeDirectory}/.zsh/completions";
-  sharedPlugin = config.lib.file.mkOutOfStoreSymlink "${outfittingRepo}/packages/common/zsh";
+  sharedPlugin = config.lib.file.mkOutOfStoreSymlink "${outfittingRepo}/system/common/zsh";
 in
 {
   home.file.".zsh/completions/.keep".text = "";
