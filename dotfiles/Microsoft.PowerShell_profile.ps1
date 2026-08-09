@@ -55,6 +55,52 @@ function killwsl {
 }
 Set-Alias wslk killwsl
 
+function Set-Chmod {
+    [CmdletBinding(SupportsShouldProcess)]
+    param (
+        [Parameter(Mandatory, Position = 0)]
+        [ValidateSet(400, 600)]
+        [int]$Mode,
+
+        [Parameter(Mandatory, Position = 1, ValueFromRemainingArguments = $true)]
+        [string[]]$Path
+    )
+
+    if (-not (Get-Command icacls -CommandType Application -ErrorAction SilentlyContinue)) {
+        throw "icacls is not available in PATH."
+    }
+
+    $identity = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
+    $permission = if ($Mode -eq 400) { "R" } else { "RW" }
+    $grant = "{0}:{1}" -f $identity, $permission
+
+    foreach ($inputPath in $Path) {
+        foreach ($resolvedPath in @(Resolve-Path -LiteralPath $inputPath -ErrorAction Stop)) {
+            $target = $resolvedPath.Path
+            if (-not $PSCmdlet.ShouldProcess($target, "Set ACL to chmod $Mode for $identity")) {
+                continue
+            }
+
+            # Reset to inherited ACLs, remove those inherited entries, then add only the user grant.
+            & icacls $target /reset /q
+            if ($LASTEXITCODE -ne 0) {
+                throw "icacls /reset failed for '$target' (exit code $LASTEXITCODE)."
+            }
+
+            & icacls $target /inheritance:r /q
+            if ($LASTEXITCODE -ne 0) {
+                throw "icacls /inheritance:r failed for '$target' (exit code $LASTEXITCODE)."
+            }
+
+            & icacls $target /grant:r $grant /q
+            if ($LASTEXITCODE -ne 0) {
+                throw "icacls /grant:r failed for '$target' (exit code $LASTEXITCODE)."
+            }
+        }
+    }
+}
+Set-Alias chmod Set-Chmod
+
 #############################################
 ################################### Functions
 #############################################
