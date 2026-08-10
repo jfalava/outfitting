@@ -100,6 +100,7 @@ in
       lta = "eza --color=always --long --git --icons=always --tree --level=2 --all";
 
       wrangler = "bun wrangler";
+      alchemy = "bun alchemy";
       ff = "fastfetch";
       cat = "bat --style=auto";
       diff = "diff --color=auto";
