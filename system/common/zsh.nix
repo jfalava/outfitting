@@ -101,7 +101,6 @@ in
 
       wrangler = "bun wrangler";
       alchemy = "bun alchemy";
-      skills = "bun skills";
       ff = "fastfetch";
       cat = "bat --style=auto";
       diff = "diff --color=auto";
