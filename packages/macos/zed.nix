@@ -173,7 +173,7 @@
       };
       "ui_font_size" = 19;
       "extend_comment_on_newline" = false;
-      "ui_font_family" = "Pretendard";
+      "ui_font_family" = "Atlassian Sans";
       "tab_size" = 2;
       "auto_indent" = "none";
       "auto_indent_on_paste" = false;
