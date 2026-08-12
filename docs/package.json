@@ -25,10 +25,10 @@
     "typecheck": "astro check"
   },
   "dependencies": {
-    "@cloudflare/nimbus-docs": "0.9.0",
+    "@cloudflare/nimbus-docs": "0.10.0",
     "@fontsource/google-sans-code": "5.3.0",
     "@iconify-json/ph": "1.2.2",
-    "astro": "7.2.0",
+    "astro": "7.2.1",
     "astro-icon": "1.1.5",
     "astro-og-canvas": "0.13.0",
     "canvaskit-wasm": "0.41.1",
@@ -39,7 +39,7 @@
     "@astrojs/check": "0.9.10",
     "@oxlint/plugins": "catalog:build",
     "@tailwindcss/vite": "4.3.3",
-    "@typescript-eslint/parser": "8.66.0",
+    "@typescript-eslint/parser": "8.67.0",
     "eslint": "10.8.1",
     "eslint-plugin-astro": "3.1.0",
     "oxlint": "catalog:build",
@@ -48,6 +48,6 @@
     "prettier-plugin-astro": "0.14.1",
     "tailwindcss": "4.3.3",
     "typescript": "6.0.3",
-    "wrangler": "4.120.0"
+    "wrangler": "4.122.0"
   }
 }
