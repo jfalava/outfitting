@@ -9,14 +9,21 @@ interface Props extends HTMLAttributes<"aside"> {
   title?: string;
 }
 
+type AsideType = NonNullable<Props["type"]>;
+interface AsideConfig {
+  label: string;
+  color: string;
+  tint: string;
+}
+
 const { type = "note", title, class: className, ...attrs } = Astro.props;
 
-const config: Record<string, { label: string; color: string; tint: string }> = {
+const config = {
   note:    { label: "Note",    color: "var(--nb-info)",    tint: "var(--nb-info-muted)" },
   tip:     { label: "Tip",     color: "var(--nb-success)", tint: "var(--nb-success-muted)" },
   caution: { label: "Caution", color: "var(--nb-warning)", tint: "var(--nb-warning-muted)" },
   danger:  { label: "Danger",  color: "var(--nb-danger)",  tint: "var(--nb-danger-muted)" },
-};
+} satisfies Record<AsideType, AsideConfig>;
 
 const c = config[type] ?? config.note;
 const displayTitle = title ?? c.label;

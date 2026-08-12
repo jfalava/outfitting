@@ -43,12 +43,8 @@ export async function getStaticPaths() {
 export async function GET({ props }: { props: SlugProps }) {
   const { item } = props;
   const { entry, title, description, version } = item;
-  const data = (entry.data ?? {}) as Record<string, unknown>;
-  const rawImage = data.socialImage;
-  const socialImage =
-    typeof rawImage === "string" && rawImage.length > 0
-      ? rawImage
-      : config.socialImage;
+  const rawImage = entry.data.socialImage?.trim();
+  const socialImage = rawImage || config.socialImage;
 
   const body = [
     "---",

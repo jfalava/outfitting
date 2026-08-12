@@ -13,6 +13,12 @@ interface Props extends HTMLAttributes<"div"> {
   dismissible?: { id: string; days?: number };
 }
 
+type BannerVariant = NonNullable<Props["variant"]>;
+interface BannerConfig {
+  color: string;
+  tint: string;
+}
+
 const { content, variant = "note", dismissible, class: className, ...attrs } = Astro.props;
 
 function sanitizeBannerHtml(value: string): string {
@@ -22,12 +28,12 @@ function sanitizeBannerHtml(value: string): string {
     .replace(/\s+(href|src)\s*=\s*(["'])\s*javascript:[\s\S]*?\2/gi, "");
 }
 
-const config: Record<string, { color: string; tint: string }> = {
+const config = {
   note: { color: "var(--nb-info)", tint: "var(--nb-info-muted)" },
   tip: { color: "var(--nb-success)", tint: "var(--nb-success-muted)" },
   caution: { color: "var(--nb-warning)", tint: "var(--nb-warning-muted)" },
   danger: { color: "var(--nb-danger)", tint: "var(--nb-danger-muted)" },
-};
+} satisfies Record<BannerVariant, BannerConfig>;
 
 const c = config[variant] ?? config.note;
 const safeContent = sanitizeBannerHtml(content);

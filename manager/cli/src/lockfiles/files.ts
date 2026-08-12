@@ -26,7 +26,7 @@ function isUntrackedPath(cause: unknown): boolean {
   return isGitExecutionError(cause) && cause.code === 1;
 }
 
-const OUTPUT_PATHS: Readonly<Record<string, string>> = {
+const OUTPUT_PATHS = {
   brew: "Brewfile",
   brewfile: "Brewfile",
   bun: "bun.lock",
@@ -40,10 +40,17 @@ const OUTPUT_PATHS: Readonly<Record<string, string>> = {
   "powershell-inventory": "powershell-inventory.json",
   "scoop-inventory": "scoop-inventory.json",
   winget: "winget.json",
-};
+} as const satisfies Readonly<Record<string, string>>;
+
+type OutputPathKind = keyof typeof OUTPUT_PATHS;
+
+function isOutputPathKind(value: string): value is OutputPathKind {
+  return Object.hasOwn(OUTPUT_PATHS, value);
+}
 
 export function inferOutputPath(kind: string): string | undefined {
-  return OUTPUT_PATHS[kind.toLowerCase()];
+  const normalizedKind = kind.toLowerCase();
+  return isOutputPathKind(normalizedKind) ? OUTPUT_PATHS[normalizedKind] : undefined;
 }
 
 export async function isGitTrackedFile(path: string): Promise<boolean> {

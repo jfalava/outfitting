@@ -9,10 +9,13 @@ interface Props extends HTMLAttributes<"span"> {
   size?: "small" | "medium" | "large";
 }
 
+type BadgeVariant = NonNullable<Props["variant"]>;
+type BadgeSize = NonNullable<Props["size"]>;
+
 const { text, variant = "default", size = "small", class: className, ...attrs } = Astro.props;
 
 // note→info, tip→success, caution→warning: variant aliases
-const variantClass: Record<string, string> = {
+const variantClass = {
   default: "bg-accent text-muted-foreground",
   info:    "bg-info-muted text-info",
   note:    "bg-info-muted text-info",
@@ -21,13 +24,13 @@ const variantClass: Record<string, string> = {
   warning: "bg-warning-muted text-warning",
   caution: "bg-warning-muted text-warning",
   danger:  "bg-danger-muted text-danger",
-};
+} satisfies Record<BadgeVariant, string>;
 
-const sizeClass: Record<string, string> = {
+const sizeClass = {
   small:  "px-2 py-0.5 text-xs",
   medium: "px-2.5 py-0.5 text-[0.8125rem]",
   large:  "px-3 py-1 text-sm",
-};
+} satisfies Record<BadgeSize, string>;
 ---
 
 <span

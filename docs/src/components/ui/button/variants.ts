@@ -17,14 +17,14 @@ export type ButtonVariant =
   | "secondary-destructive"
   | "outline";
 export type ButtonSize = "xs" | "sm" | "base" | "lg";
-export type ButtonShape = "base" | "square" | "circle";
+export type ButtonAppearance = "base" | "square" | "circle";
 
 // `rounded-lg` is the default radius for every button; `circle` overrides
 // it to `rounded-full` (see `buttonVariants`), `square` keeps it.
 export const buttonBase =
   "group inline-flex w-max shrink-0 items-center justify-center rounded-lg font-medium whitespace-nowrap no-underline transition-all cursor-pointer select-none focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
 
-export const buttonVariantClasses: Record<ButtonVariant, string> = {
+export const buttonVariantClasses = {
   primary:
     "bg-primary text-primary-foreground shadow-sm hover:bg-primary-hover hover:shadow",
   secondary:
@@ -35,48 +35,52 @@ export const buttonVariantClasses: Record<ButtonVariant, string> = {
     "bg-card text-danger ring ring-border shadow-sm hover:bg-accent hover:ring-danger/40",
   outline:
     "bg-transparent text-foreground ring ring-border hover:ring-border-strong",
-};
+} as const satisfies Record<ButtonVariant, string>;
 
 // Rectangular sizing (shape="base"). Radius comes from `buttonBase`.
-export const buttonSizeText: Record<ButtonSize, string> = {
+export const buttonSizeText = {
   xs: "gap-1 px-2 py-1 text-xs",
   sm: "gap-1 px-3 py-1.5 text-xs",
   base: "gap-1.5 px-4 py-2 text-sm",
   lg: "gap-2 px-5 py-2.5 text-sm",
-};
+} as const satisfies Record<ButtonSize, string>;
 
 // Square/circle sizing (icon-only): equal dimensions, no padding.
-export const buttonSizeCompact: Record<ButtonSize, string> = {
+export const buttonSizeCompact = {
   xs: "size-7",
   sm: "size-8",
   base: "size-9",
   lg: "size-10",
-};
+} as const satisfies Record<ButtonSize, string>;
 
-export const buttonIconSize: Record<ButtonSize, string> = {
+export const buttonIconSize = {
   xs: "h-3.5 w-3.5",
   sm: "h-3.5 w-3.5",
   base: "h-4 w-4",
   lg: "h-[1.125rem] w-[1.125rem]",
-};
+} as const satisfies Record<ButtonSize, string>;
 
 export interface ButtonVariantsOptions {
   variant?: ButtonVariant;
   size?: ButtonSize;
-  shape?: ButtonShape;
+  appearance?: ButtonAppearance;
 }
 
 /** Compose the base + variant + size/shape classes for a button-shaped element. */
 export function buttonVariants({
   variant = "secondary",
   size = "base",
-  shape = "base",
+  appearance = "base",
 }: ButtonVariantsOptions = {}): string {
   // base + square inherit `rounded-lg` from buttonBase; circle overrides it
   // to a full pill.
   const dims =
-    shape === "base"
+    appearance === "base"
       ? buttonSizeText[size]
-      : cn(buttonSizeCompact[size], "p-0", shape === "circle" && "rounded-full");
+      : cn(
+          buttonSizeCompact[size],
+          "p-0",
+          appearance === "circle" && "rounded-full",
+        );
   return cn(buttonBase, buttonVariantClasses[variant], dims);
 }

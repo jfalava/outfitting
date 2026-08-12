@@ -16,14 +16,15 @@ function consumeTerminalEscape(
 export async function maskedPrompt(message: string): Promise<string | null> {
   const input = process.stdin;
   const output = process.stderr;
+  const setRawMode = (mode: boolean) => input.setRawMode?.(mode);
 
-  if (!input.isTTY || typeof input.setRawMode !== "function") {
+  if (!input.isTTY || input.setRawMode === undefined) {
     throw new Error("API token entry requires an interactive terminal.");
   }
 
   output.write(message);
   input.setEncoding("utf8");
-  input.setRawMode(true);
+  setRawMode(true);
   input.resume();
 
   return new Promise((resolve, reject) => {
@@ -32,7 +33,7 @@ export async function maskedPrompt(message: string): Promise<string | null> {
 
     const cleanup = () => {
       input.off("data", onData);
-      input.setRawMode(false);
+      setRawMode(false);
       input.pause();
       output.write("\n");
     };

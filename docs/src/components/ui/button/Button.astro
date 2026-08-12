@@ -5,7 +5,7 @@
  *   <Button variant="primary">Save</Button>
  *   <Button variant="secondary" icon="ph:plus">Create</Button>
  *   <Button variant="ghost" loading>Saving…</Button>
- *   <Button variant="outline" shape="square" icon="ph:gear" aria-label="Settings" />
+ *   <Button variant="outline" appearance="square" icon="ph:gear" aria-label="Settings" />
  *
  * Variants: primary · secondary (default) · ghost · destructive ·
  * secondary-destructive · outline.
@@ -26,13 +26,13 @@ import {
   buttonIconSize,
   type ButtonVariant,
   type ButtonSize,
-  type ButtonShape,
+  type ButtonAppearance,
 } from "./variants";
 
 interface Props extends Omit<HTMLAttributes<"button">, "size"> {
   variant?: ButtonVariant;
   size?: ButtonSize;
-  shape?: ButtonShape;
+  appearance?: ButtonAppearance;
   /** Iconify name rendered before the label, e.g. "ph:plus". */
   icon?: string;
   /** Show a spinner and disable interaction. */
@@ -42,7 +42,7 @@ interface Props extends Omit<HTMLAttributes<"button">, "size"> {
 const {
   variant = "secondary",
   size = "base",
-  shape = "base",
+  appearance = "base",
   icon,
   loading = false,
   type = "button",
@@ -55,7 +55,7 @@ const {
 <button
   type={type}
   disabled={disabled || loading}
-  class={cn(buttonVariants({ variant, size, shape }), className)}
+  class={cn(buttonVariants({ variant, size, appearance }), className)}
   {...attrs}
 >
   {

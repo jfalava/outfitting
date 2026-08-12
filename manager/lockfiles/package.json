@@ -20,8 +20,8 @@
     "hono": "catalog:backend"
   },
   "devDependencies": {
-    "@types/node": "catalog:types",
     "@oxlint/plugins": "catalog:build",
+    "@types/node": "catalog:types",
     "oxfmt": "catalog:build",
     "oxlint": "catalog:build",
     "oxlint-tsgolint": "catalog:build",

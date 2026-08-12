@@ -27,8 +27,8 @@
     "picocolors": "1.1.1"
   },
   "devDependencies": {
-    "@types/bun": "catalog:build",
     "@oxlint/plugins": "catalog:build",
+    "@types/bun": "catalog:build",
     "oxfmt": "catalog:build",
     "oxlint": "catalog:build",
     "oxlint-tsgolint": "catalog:build",

@@ -1,18 +1,25 @@
+import { Option, Schema } from "effect";
+
 import { isNewerVersion } from "@/upgrade/version";
 
 const RELEASES_URL = "https://api.github.com/repos/jfalava/outfitting/releases?per_page=30";
 
-interface GitHubAsset {
-  name: string;
-  browser_download_url: string;
-}
+const GitHubAssetSchema = Schema.Struct({
+  name: Schema.String,
+  browser_download_url: Schema.String,
+});
 
-interface GitHubRelease {
-  draft: boolean;
-  prerelease: boolean;
-  tag_name: string;
-  assets: GitHubAsset[];
-}
+const GitHubReleaseSchema = Schema.Struct({
+  draft: Schema.Boolean,
+  prerelease: Schema.Boolean,
+  tag_name: Schema.String,
+  assets: Schema.Array(GitHubAssetSchema),
+});
+
+type GitHubRelease = Schema.Schema.Type<typeof GitHubReleaseSchema>;
+const ReleaseListSchema = Schema.Array(Schema.Unknown);
+const decodeReleaseList = Schema.decodeUnknownOption(ReleaseListSchema);
+const decodeGitHubRelease = Schema.decodeUnknownOption(GitHubReleaseSchema);
 
 export interface CliRelease {
   version: string;
@@ -21,19 +28,6 @@ export interface CliRelease {
 }
 
 type Fetcher = (input: string | URL | Request, init?: RequestInit) => Promise<Response>;
-
-function isRelease(value: unknown): value is GitHubRelease {
-  if (!value || typeof value !== "object") {
-    return false;
-  }
-  const release = value as Partial<GitHubRelease>;
-  return (
-    typeof release.draft === "boolean" &&
-    typeof release.prerelease === "boolean" &&
-    typeof release.tag_name === "string" &&
-    Array.isArray(release.assets)
-  );
-}
 
 export async function latestCliRelease(
   assetName: string,
@@ -51,20 +45,23 @@ export async function latestCliRelease(
     throw new Error(`GitHub release check failed with HTTP ${response.status}.`);
   }
 
-  const body: unknown = await response.json();
-  if (!Array.isArray(body)) {
+  const body = decodeReleaseList(await response.json());
+  if (Option.isNone(body)) {
     throw new Error("GitHub returned an invalid releases response.");
   }
 
-  const releases = body
-    .filter(isRelease)
-    .filter(
-      (candidate) =>
-        !candidate.draft &&
-        !candidate.prerelease &&
-        /^cli-v\d+\.\d+\.\d+$/.test(candidate.tag_name),
-    );
-  const release = releases.reduce<GitHubRelease | undefined>(
+  const releases = body.value.flatMap((candidate) => {
+    const decoded = decodeGitHubRelease(candidate);
+    if (Option.isNone(decoded)) {
+      return [];
+    }
+    return [decoded.value];
+  });
+  const stableReleases = releases.filter(
+    (candidate) =>
+      !candidate.draft && !candidate.prerelease && /^cli-v\d+\.\d+\.\d+$/.test(candidate.tag_name),
+  );
+  const release = stableReleases.reduce<GitHubRelease | undefined>(
     (newest, candidate) =>
       !newest || isNewerVersion(candidate.tag_name, newest.tag_name) ? candidate : newest,
     undefined,

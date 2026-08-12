@@ -26,11 +26,12 @@ describe("lockfile helpers", () => {
 });
 
 describe("authentication", () => {
-  const env = {
+  const partialEnv = {
     OUTFITTING_LOCKFILES_TOKEN: {
       get: async () => "correct-token",
     },
-  } as unknown as Env;
+  } satisfies Pick<Env, "OUTFITTING_LOCKFILES_TOKEN">;
+  const env = partialEnv as Env;
 
   test("rejects a missing bearer token", async () => {
     const response = await app.request("http://worker.test/lockfiles/jfalava%3Ax64-wsl", {}, env);
