@@ -17,7 +17,9 @@ export function assetNameFor(platform = process.platform, arch = process.arch): 
 }
 
 export function executablePath(main = Bun.main, execPath = process.execPath): string {
-  if (normalizePath(main) !== normalizePath(execPath)) {
+  const normalizedMain = normalizePath(main);
+  const isCompiledBinary = normalizedMain.startsWith("/$bunfs/");
+  if (!isCompiledBinary && normalizedMain !== normalizePath(execPath)) {
     throw new Error(
       "upgrade must be run from the compiled outfitting-manager binary, not from Bun source.",
     );

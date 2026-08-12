@@ -37,6 +37,20 @@ Upgrade to the latest version with:
 outfitting-manager upgrade
 ```
 
+If you downloaded a release binary in a browser, macOS saves it without the executable bit. Repair it before the first run:
+
+```bash
+chmod 755 ~/.local/bin/outfitting-manager
+```
+
+If macOS blocks the verified release with a quarantine warning, remove only the browser quarantine attribute from this downloaded binary and retry:
+
+```bash
+xattr -d com.apple.quarantine ~/.local/bin/outfitting-manager 2>/dev/null || true
+```
+
+The self-updater sets the executable bit on replacements automatically. It also verifies the downloaded binary against its release SHA-256 checksum before replacing the current file.
+
 ## Configure lockfile storage
 
 Point the CLI at your deployed Worker. See the [worker docs](/docs/manager/lockfiles-worker) for deployment, and [credentials](/docs/manager/architecture#credentials) for where configuration is stored.

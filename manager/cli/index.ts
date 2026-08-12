@@ -24,6 +24,13 @@ const program = Command.runWith(makeRootCommand(packageJson.version), {
       }
     }),
   ),
+  Effect.catchDefect((defect) =>
+    Effect.sync(() => {
+      process.exitCode = 1;
+      const message = defect instanceof Error ? defect.message : String(defect);
+      console.error(`${pc.red(pc.bold("Error:"))} ${message}`);
+    }),
+  ),
 );
 
 BunRuntime.runMain(program, { disableErrorReporting: true });

@@ -35,6 +35,12 @@ describe("upgrade command helpers", () => {
       "/opt/outfitting-manager",
     );
     expect(() => executablePath("/repo/index.ts", "/usr/bin/bun")).toThrow("compiled");
+    expect(
+      executablePath(
+        "/$bunfs/root/outfitting-manager",
+        "/Users/test/.local/bin/outfitting-manager",
+      ),
+    ).toBe("/Users/test/.local/bin/outfitting-manager");
   });
 
   test("parses release checksum files", () => {
