@@ -50,17 +50,25 @@ jobs:
       - name: Build target
         run: bun build --compile --target=${{ matrix.target }} manager/cli/index.ts --outfile manager/cli/${{ matrix.outfile }}
 
-      - name: Create checksum
+      - name: Create archive and checksums
         shell: bash
         run: |
           cd manager/cli/dist
           BINARY="$(basename "${{ matrix.outfile }}")"
+          ARCHIVE="${BINARY}.zip"
           chmod 755 "${BINARY}"
-          if command -v sha256sum >/dev/null 2>&1; then
-            sha256sum "${BINARY}" > "${BINARY}.sha256"
+          if [[ "${RUNNER_OS}" == "Windows" ]]; then
+            powershell -NoProfile -Command "Compress-Archive -LiteralPath '${BINARY}' -DestinationPath '${ARCHIVE}' -Force"
           else
-            shasum -a 256 "${BINARY}" > "${BINARY}.sha256"
+            zip -j "${ARCHIVE}" "${BINARY}"
           fi
+          for FILE in "${BINARY}" "${ARCHIVE}"; do
+            if command -v sha256sum >/dev/null 2>&1; then
+              sha256sum "${FILE}" > "${FILE}.sha256"
+            else
+              shasum -a 256 "${FILE}" > "${FILE}.sha256"
+            fi
+          done
 
       - name: Upload binary artifact
         uses: actions/upload-artifact@v4
@@ -69,6 +77,8 @@ jobs:
           path: |
             manager/cli/${{ matrix.outfile }}
             manager/cli/${{ matrix.outfile }}.sha256
+            manager/cli/${{ matrix.outfile }}.zip
+            manager/cli/${{ matrix.outfile }}.zip.sha256
 
   release:
     needs: build

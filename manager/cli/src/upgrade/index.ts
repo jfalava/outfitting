@@ -8,7 +8,9 @@ import { latestCliRelease } from "@/upgrade/release";
 import { isNewerVersion } from "@/upgrade/version";
 
 export { checksumFromFile } from "@/upgrade/install";
-export { assetNameFor, executablePath } from "@/upgrade/platform";
+export { downloadBytes } from "@/upgrade/install";
+export { assetNameFor, executableNameFor, executablePath } from "@/upgrade/platform";
+export { extractZipBinary } from "@/upgrade/archive";
 export { latestCliRelease } from "@/upgrade/release";
 export { isNewerVersion, parseCliVersion } from "@/upgrade/version";
 

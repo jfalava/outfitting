@@ -17,17 +17,49 @@ const GitHubReleaseSchema = Schema.Struct({
 });
 
 type GitHubRelease = Schema.Schema.Type<typeof GitHubReleaseSchema>;
+type GitHubAsset = Schema.Schema.Type<typeof GitHubAssetSchema>;
+interface SelectedReleaseAsset {
+  asset: GitHubAsset;
+  checksum: GitHubAsset;
+  format: "binary" | "zip";
+}
+
 const ReleaseListSchema = Schema.Array(Schema.Unknown);
 const decodeReleaseList = Schema.decodeUnknownOption(ReleaseListSchema);
 const decodeGitHubRelease = Schema.decodeUnknownOption(GitHubReleaseSchema);
 
 export interface CliRelease {
   version: string;
-  binaryUrl: string;
+  assetUrl: string;
   checksumUrl: string;
+  format: "binary" | "zip";
+  executableName: string;
 }
 
 type Fetcher = (input: string | URL | Request, init?: RequestInit) => Promise<Response>;
+
+function selectReleaseAsset(
+  release: GitHubRelease,
+  assetName: string,
+): SelectedReleaseAsset | undefined {
+  const archive = release.assets.find((asset) => asset.name === assetName);
+  if (archive) {
+    const checksum = release.assets.find((asset) => asset.name === `${archive.name}.sha256`);
+    if (checksum) {
+      return { asset: archive, checksum, format: "zip" };
+    }
+  }
+
+  if (!assetName.endsWith(".zip")) {
+    return undefined;
+  }
+  const legacyName = assetName.slice(0, -4);
+  const legacyBinary = release.assets.find((asset) => asset.name === legacyName);
+  const legacyChecksum = release.assets.find((asset) => asset.name === `${legacyName}.sha256`);
+  return legacyBinary && legacyChecksum
+    ? { asset: legacyBinary, checksum: legacyChecksum, format: "binary" }
+    : undefined;
+}
 
 export async function latestCliRelease(
   assetName: string,
@@ -70,15 +102,16 @@ export async function latestCliRelease(
     throw new Error("No stable outfitting-manager CLI release was found.");
   }
 
-  const binary = release.assets.find((asset) => asset.name === assetName);
-  const checksum = release.assets.find((asset) => asset.name === `${assetName}.sha256`);
-  if (!binary || !checksum) {
+  const selected = selectReleaseAsset(release, assetName);
+  if (!selected) {
     throw new Error(`Release ${release.tag_name} does not contain ${assetName} and its checksum.`);
   }
 
   return {
     version: release.tag_name.slice("cli-v".length),
-    binaryUrl: binary.browser_download_url,
-    checksumUrl: checksum.browser_download_url,
+    assetUrl: selected.asset.browser_download_url,
+    checksumUrl: selected.checksum.browser_download_url,
+    format: selected.format,
+    executableName: assetName.endsWith(".zip") ? assetName.slice(0, -4) : assetName,
   };
 }
