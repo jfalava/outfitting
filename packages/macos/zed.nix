@@ -39,6 +39,7 @@
       "mdx"
       "ini"
       "make"
+      "windows-batch"
     ];
 
     userSettings = {
