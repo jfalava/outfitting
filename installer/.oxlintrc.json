@@ -1,6 +1,9 @@
 {
   "$schema": "https://raw.githubusercontent.com/oxc-project/oxc/main/npm/oxlint/configuration_schema.json",
   "plugins": ["eslint", "react", "typescript", "unicorn", "oxc", "import", "promise"],
+  "jsPlugins": [
+    { "name": "anti-slop", "specifier": "../tools/oxlint/anti-slop/index.ts" }
+  ],
   "categories": {
     "correctness": "error",
     "suspicious": "warn"
@@ -11,6 +14,16 @@
   },
   "ignorePatterns": ["worker-configuration.d.ts", "**/*.d.ts"],
   "rules": {
+    "anti-slop/no-chained-type-assertions": "error",
+    "anti-slop/no-conditional-empty-object-spread": "error",
+    "anti-slop/no-known-value-widening": "error",
+    "anti-slop/no-object-parameters": "error",
+    "anti-slop/no-runtime-typeof": "error",
+    "anti-slop/no-shape-in-symbol-names": "error",
+    "anti-slop/no-unknown-parameters": "error",
+    "anti-slop/no-unknown-type-aliases": "error",
+    "anti-slop/no-unsafe-dictionary-type": "error",
+    "anti-slop/no-widen-then-assert": "error",
     "typescript/no-explicit-any": "error",
     "typescript/no-unsafe-assignment": "error",
     "typescript/no-unsafe-call": "error",

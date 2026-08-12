@@ -21,6 +21,7 @@
   },
   "devDependencies": {
     "@types/node": "catalog:types",
+    "@oxlint/plugins": "catalog:build",
     "oxfmt": "catalog:build",
     "oxlint": "catalog:build",
     "oxlint-tsgolint": "catalog:build",
