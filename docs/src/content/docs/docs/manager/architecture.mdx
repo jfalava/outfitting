@@ -1,0 +1,43 @@
+---
+title: Architecture
+description: Manager packages, storage, credentials, and local development.
+sidebar:
+  order: 1
+---
+
+Manager has two packages:
+
+- [Manager CLI](/docs/manager/cli) is the portable `outfitting-manager` executable.
+- [Lockfiles Worker](/docs/manager/lockfiles-worker) is the Cloudflare Worker used by the CLI to store generated, machine-local state.
+
+The CLI remains independent of the Worker package at runtime. Features that do not need a backend can be added to the executable without deploying or importing a manager service.
+
+## Local development
+
+```text
+manager/
+├── cli/        # Portable local executable
+└── lockfiles/  # Cloudflare Worker, D1 migrations, and KV storage
+```
+
+Install the monorepo dependencies from the repository root before working on either package:
+
+```bash
+bun install
+```
+
+## Storage
+
+The Worker keeps the content of each lockfile in KV as a content-addressed blob, keyed by `lockfile:{machine}:{kind}:{sha256-of-content}`. D1 stores the searchable machine, kind, hash, size, and creation-time metadata.
+
+Versions are append-only and uploads are idempotent:
+
+- Re-uploading the same content for the same machine and kind returns its existing hash and size without adding a history row.
+- `PUT` accepts an optional standard `If-Match: "<sha256>"` header. The D1 promotion and head update are atomic; a stale expected hash returns HTTP 412 without advancing the head. The KV object may already exist because blobs are content-addressed and safe to reuse. Deleting the current head returns HTTP 409.
+- Deleting a historical version removes its D1 metadata. The content-addressed KV blob is deliberately retained because KV and D1 cannot share a transaction, and deleting it after the metadata transaction could race with a concurrent promotion.
+
+## Credentials
+
+The CLI stores the configured Worker URL with `Bun.secrets` using service `outfitting-lockfiles` and name `worker-url`. The bearer token is stored under the same service with name `api-token`.
+
+The token is never echoed after it is entered or saved. `Bun.secrets` uses Keychain on macOS, Secret Service on Linux, and Credential Manager on Windows. It is appropriate here as personal credential storage, but it is not a hard boundary between programs running as the same user.

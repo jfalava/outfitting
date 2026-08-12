@@ -12,6 +12,7 @@
     "/docs/manager",
     "/docs/manager/cli",
     "/docs/manager/lockfiles-worker",
+    "/docs/manager/architecture",
     "/docs/repository-configuration",
     "/docs/windows",
     "/docs/windows/installation",

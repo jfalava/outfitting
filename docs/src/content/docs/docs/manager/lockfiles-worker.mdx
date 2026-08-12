@@ -1,11 +1,13 @@
 ---
 title: Lockfiles Worker
-description: Deploy and operate the Cloudflare Worker used by outfitting-manager.
+description: Deploy the Worker that stores generated machine-local state.
 sidebar:
-  order: 2
+  order: 3
 ---
 
-The lockfiles package contains the Cloudflare Worker used by `outfitting-manager`. KV stores content-addressed blobs; D1 stores searchable machine, kind, hash, size, and creation-time metadata.
+The lockfiles package contains the Cloudflare Worker used by `outfitting-manager`. It stores generated state that is not committed to Git, so it can be restored after rebuilding or replacing a machine.
+
+KV holds content-addressed blobs; D1 holds searchable metadata. See [storage](/docs/manager/overview#storage) for the storage model.
 
 ## Cloudflare setup
 
@@ -52,19 +54,15 @@ bun run dev
 
 Every request requires `Authorization: Bearer <OUTFITTING_LOCKFILES_TOKEN>`.
 
-| Method | Route | Result |
-| --- | --- | --- |
-| `PUT` | `/lockfiles/:machine/:kind` | Stores/promotes the body and returns `{ hash, size }` |
-| `GET` | `/lockfiles/:machine/:kind` | Returns the latest raw content as text |
-| `GET` | `/lockfiles/:machine/:kind/history` | Returns `{ hash, size, created_at }[]`, newest first |
-| `GET` | `/lockfiles/:machine` | Returns a sorted JSON array of tracked kinds |
-| `DELETE` | `/lockfiles/:machine/:kind/:hash` | Deletes one D1 row |
+| Method   | Route                               | Result                                                |
+| -------- | ----------------------------------- | ----------------------------------------------------- |
+| `PUT`    | `/lockfiles/:machine/:kind`         | Stores/promotes the body and returns `{ hash, size }` |
+| `GET`    | `/lockfiles/:machine/:kind`         | Returns the latest raw content as text                |
+| `GET`    | `/lockfiles/:machine/:kind/history` | Returns `{ hash, size, created_at }[]`, newest first  |
+| `GET`    | `/lockfiles/:machine`               | Returns a sorted JSON array of tracked kinds          |
+| `DELETE` | `/lockfiles/:machine/:kind/:hash`   | Deletes one D1 row                                    |
 
-The blob key format is `lockfile:{machine}:{kind}:{sha256-of-content}`. Re-uploading the same content for the same machine and kind returns its existing hash and size without adding a history row.
-
-`PUT` accepts an optional standard `If-Match: "<sha256>"` header. The D1 promotion and head update are atomic; a stale expected hash returns HTTP 412 without advancing the head. The KV object may already exist because blobs are content-addressed and safe to reuse. Deleting the current head returns HTTP 409.
-
-Deleting a historical version removes its D1 metadata. The content-addressed KV blob is deliberately retained because KV and D1 cannot share a transaction, and deleting it after the metadata transaction could race with a concurrent promotion.
+`PUT` accepts an optional standard `If-Match: "<sha256>"` header. The D1 promotion and head update are atomic; a stale expected hash returns HTTP 412 without advancing the head. Deleting the current head returns HTTP 409.
 
 ## Homebrew inventories
 

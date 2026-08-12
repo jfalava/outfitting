@@ -1,11 +1,17 @@
 ---
 title: Manager CLI
-description: Build, configure, and use the portable outfitting-manager executable.
+description: Send, restore, and inspect generated machine-local state.
 sidebar:
-  order: 1
+  order: 2
 ---
 
-The `outfitting-manager` binary is the entry point for local Outfitting maintenance tools.
+The `outfitting-manager` executable is the local entry point for Outfitting maintenance tools. It stores generated state that is not committed to Git, such as the canonical macOS flake lock and package-manager inventories.
+
+- Push state to the [Lockfiles Worker](/docs/manager/lockfiles-worker).
+- Restore, list, and inspect stored state on another machine.
+- Update the executable with `upgrade`.
+
+It accepts any machine and kind. Files tracked by Git are refused because commits already preserve them.
 
 ## Build and run
 
@@ -33,17 +39,13 @@ outfitting-manager upgrade
 
 ## Configure lockfile storage
 
-Configure the deployed Worker URL on each client machine:
+Point the CLI at your deployed Worker. See the [worker docs](/docs/manager/lockfiles-worker) for deployment, and [credentials](/docs/manager/overview#credentials) for where configuration is stored.
 
 ```bash
 outfitting-manager lockfiles configure-worker "https://url-to-your-worker"
 ```
 
-The CLI stores the URL with `Bun.secrets` using service `outfitting-lockfiles` and name `worker-url`. If it has not been configured, the first API call prompts for it. That call also prompts for the bearer token with masked input and stores it under the same service with name `api-token`.
-
-The token is never echoed after it is entered or saved. `Bun.secrets` uses Keychain on macOS, Secret Service on Linux, and Credential Manager on Windows. It is appropriate here as personal credential storage, but it is not a hard boundary between programs running as the same user.
-
-Run `configure-worker` again whenever the Worker URL changes. Set or replace the API token with masked input:
+If it has not been configured, the first API call prompts for it and for the bearer token using masked input. Run `configure-worker` again whenever the Worker URL changes, and `configure-token` to set or replace the API token:
 
 ```bash
 outfitting-manager lockfiles configure-token
@@ -57,8 +59,6 @@ outfitting-manager lockfiles push jfalava:aarch64-darwin homebrew-inventory home
 outfitting-manager lockfiles push jfalava:x64-windows scoop-inventory scoop-inventory.json
 outfitting-manager lockfiles push jfalava:x64-windows winget winget.json
 ```
-
-The CLI refuses to upload files tracked by Git. Repository-owned lockfiles such as this project's `bun.lock` are already preserved by commits, so duplicating them in remote storage provides no recovery value. Generated lock state that is not committed—such as the canonical macOS flake lock and machine-local package manager snapshots—remains eligible for upload.
 
 Protect a read-modify-write update by supplying the SHA-256 of the version that was pulled:
 
