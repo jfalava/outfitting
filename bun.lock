@@ -10,11 +10,10 @@
     },
     "docs": {
       "name": "@outfitting/docs",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "dependencies": {
         "@cloudflare/nimbus-docs": "0.9.0",
         "@fontsource/google-sans-code": "5.3.0",
-        "@fontsource/pretendard": "5.3.0",
         "@iconify-json/ph": "1.2.2",
         "astro": "7.2.0",
         "astro-icon": "1.1.5",
@@ -296,8 +295,6 @@
     "@eslint/plugin-kit": ["@eslint/plugin-kit@0.7.2", "", { "dependencies": { "@eslint/core": "^1.2.1", "levn": "^0.4.1" } }, "sha512-+CNAzxglkrpNf/kKywqQfk74QjtceuOE7Qm+AF8miRvPF/wmmK5+OJOgVh3AVTT3RP2mH3+FOaxlE5v72owk0A=="],
 
     "@fontsource/google-sans-code": ["@fontsource/google-sans-code@5.3.0", "", {}, "sha512-z1IDzMNX66oWak+RSEwk84DxsglnEuLDERpMnzzuatLTewbFeB/HM/aKXOkpXMKGDT3tm+TQZaX59q8g6+BqQw=="],
-
-    "@fontsource/pretendard": ["@fontsource/pretendard@5.3.0", "", {}, "sha512-IDvI+QlHSFW9AkBX8cKXFi9nRJXdj7IQSGSqgemwFqII6EptpWQmWKcs3OfTZBT2yftzqt6VF6abQpUeAmHxMA=="],
 
     "@humanfs/core": ["@humanfs/core@0.19.2", "", { "dependencies": { "@humanfs/types": "^0.15.0" } }, "sha512-UhXNm+CFMWcbChXywFwkmhqjs3PRCmcSa/hfBgLIb7oQ5HNb1wS0icWsGtSAUNgefHeI+eBrA8I1fxmbHsGdvA=="],
 

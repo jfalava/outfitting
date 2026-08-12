@@ -2,39 +2,17 @@
 title: Windows Subsystem for Linux
 description: Install Outfitting for Ubuntu-based WSL distributions with Home Manager.
 sidebar:
-  order: 2
-  group:
-    hideIndex: true
+  order: 1
+  label: Overview
 ---
 
-For Ubuntu-based WSL distributions:
+Outfitting configures Ubuntu-based Windows Subsystem for Linux distributions with Nix and Home Manager.
 
-## Installation Modes
+Start with the [installation instructions](/docs/wsl/installation/), then use the [updates](/docs/wsl/updates/) page to apply repository and package changes.
 
-Default mode:
+## After installation
 
-```bash
-curl -L wsl.jfa.dev | bash
-```
-
-- Updates Nix channels and packages
-- Applies the Home Manager configuration
-- Skips APT package installation
-
-Full installation:
-
-```bash
-curl -L wsl.jfa.dev | bash -s -- --full-install
-```
-
-Other modes:
-
-```bash
-curl -L wsl.jfa.dev | bash -s -- --update-only
-curl -L wsl.jfa.dev | bash -s -- --nix-only
-```
-
-## Home Manager Commands
+Use Home Manager to apply configuration changes or update packages:
 
 ```bash
 # Apply config changes
@@ -43,3 +21,5 @@ hm-sync
 # Update packages and apply config
 hm-update
 ```
+
+The WSL setup is independent of the Windows host setup; use the [Windows overview](/docs/windows/) for the host installation.

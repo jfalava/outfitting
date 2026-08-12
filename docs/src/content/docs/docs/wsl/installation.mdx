@@ -1,0 +1,33 @@
+---
+title: Installation
+description: Install Outfitting for Ubuntu-based WSL distributions with Home Manager.
+sidebar:
+  order: 2
+---
+
+For Ubuntu-based WSL distributions:
+
+## Installation Modes
+
+Default mode:
+
+```bash
+curl -L wsl.jfa.dev | bash
+```
+
+- Updates Nix channels and packages
+- Applies the Home Manager configuration
+- Skips APT package installation
+
+Full installation:
+
+```bash
+curl -L wsl.jfa.dev | bash -s -- --full-install
+```
+
+Other modes:
+
+```bash
+curl -L wsl.jfa.dev | bash -s -- --update-only
+curl -L wsl.jfa.dev | bash -s -- --nix-only
+```

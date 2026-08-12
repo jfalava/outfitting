@@ -6,6 +6,7 @@
     "/404",
     "/docs",
     "/docs/macos",
+    "/docs/macos/installation",
     "/docs/macos/post-install",
     "/docs/macos/updates",
     "/docs/manager",
@@ -13,9 +14,11 @@
     "/docs/manager/lockfiles-worker",
     "/docs/repository-configuration",
     "/docs/windows",
+    "/docs/windows/installation",
     "/docs/windows/post-install",
     "/docs/windows/updates",
     "/docs/wsl",
+    "/docs/wsl/installation",
     "/docs/wsl/updates"
   ],
   "opaqueNamespaces": []

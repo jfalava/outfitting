@@ -2,84 +2,63 @@
 title: macOS
 description: Install Outfitting on macOS with Homebrew, Nix, and nix-darwin configuration.
 sidebar:
-  order: 3
-  group:
-    hideIndex: true
+  order: 1
+  label: Overview
 ---
 
-## Prerequisites
+Outfitting manages an Apple Silicon macOS development environment with Homebrew, Nix, nix-darwin, Home Manager, and the repository's inventory tools.
 
-- The current installer is intended for Apple Silicon Macs.
-- Run the installer from an interactive terminal with an account that can use `sudo`. Nix-darwin activation and the licensed-font post-install both require administrator authentication.
-- The installer needs network access to GitHub, Homebrew, Determinate Systems, and the Outfitting lockfile service.
+Start with the [installation instructions](/docs/macos/installation/) to bootstrap the machine, then use the [post-install steps](/docs/macos/post-install/) and [updates](/docs/macos/updates/) as needed.
 
-## Installation
+## Everyday commands
 
-~~~bash
-curl -L mac.jfa.dev | bash
-~~~
+The macOS Zsh profile provides the `outfit` command, also available as `o`:
 
-The main installer:
-
-- Verifies that it is running on macOS and detects the CPU architecture.
-- Uses `$HOME/.config/outfitting/repo` as the repository location. It clones the repository when missing, validates an existing Git checkout, and stores the path in `$HOME/.config/outfitting/repo-path` with mode 600.
-- Downloads the latest macOS arm64 `outfitting-manager` release and its SHA-256 checksum, verifies the checksum, installs the binary at `$HOME/.local/bin/`outfitting-manager``, and adds that directory to the current session PATH.
-- Installs Homebrew when needed and applies `packages/macos/Brewfile`, which owns the Homebrew formulae and casks.
-- Installs Determinate Systems Nix and sources the Nix daemon profile for the current shell.
-- Links `$HOME/.config/home-manager` to the repository's `system/macos` configuration and backs up an existing regular `$HOME/.zshrc` with a timestamp.
-- Pulls the canonical `jfalava:aarch64-darwin/nix` lock through `outfitting-manager`, builds nix-darwin with that lock without writing a local `flake.lock`, and activates the system with `sudo`.
-- Installs uv and the FontGet command when they are missing. It does not install the fonts themselves; use the separate [post-install page](/docs/macos/post-install/) for that.
-
-## Package management
-
-The macOS Zsh profile provides the outfit command, also available as o:
-
-~~~bash
+```bash
 # Apply the Homebrew manifest, remove unlisted casks, and store an inventory
 outfit sync
 
-# Upgrade nix-darwin, upgrade Homebrew packages/casks, and store an inventory
+# Upgrade nix-darwin, Homebrew packages/casks, and store an inventory
 outfit upgrade
 
-# Store the observed Homebrew inventory without changing packages
-outfit snapshot
-~~~
+# Preview, build, test, or apply Nix-darwin changes
+outfit dry
+outfit build
+outfit test
+outfit switch
+```
 
-Successful outfit sync and outfit upgrade operations store a versioned inventory of Homebrew taps, formulae, and casks through `outfitting-manager`. The inventory is observed state; the committed Brewfile remains the desired Homebrew configuration.
+Successful `outfit sync` and `outfit upgrade` operations store a versioned inventory of Homebrew taps, formulae, and casks through `outfitting-manager`. The inventory is observed state; the committed Brewfile remains the desired Homebrew configuration.
+
+Store the observed Homebrew inventory without changing packages:
+
+```bash
+outfit snapshot
+```
 
 If an upgrade is interrupted after creating a candidate Nix lock, Outfitting keeps a recovery checkpoint under the XDG state directory, by default `$HOME/.local/state/outfitting/nix-lock-recovery`. Resume it with:
 
-~~~bash
+```bash
 outfit recover
-~~~
+```
 
 ## Nix-darwin profile management
 
-~~~bash
-# Build and apply changes
-outfit switch
-outfit build
-outfit test
-
-# Preview changes without activation
-outfit dry
-
+```bash
 # Repair profile symlinks and apply the local repository configuration
 hm-sync
 
 # List and roll back generations
 hm-rollback
-~~~
+```
 
-Use the outfit wrappers rather than invoking `darwin-rebuild` directly. They retrieve the canonical remote lock and prevent Nix from creating a repository `flake.lock`.
+Use the `outfit` wrappers rather than invoking `darwin-rebuild` directly. They retrieve the canonical remote lock and prevent Nix from creating a repository `flake.lock`.
 
 ## Nix package testing
 
-~~~bash
+```bash
 nix-test bat
 nix-try ripgrep
-~~~
+```
 
-## Post-install
-
-Run the [post-install steps](/docs/macos/post-install/) after the main installer to install public and licensed fonts.
+Use the [updates](/docs/macos/updates/) page for the full maintenance workflow.

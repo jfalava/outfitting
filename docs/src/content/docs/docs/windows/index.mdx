@@ -3,125 +3,17 @@ title: Windows
 description: Install Outfitting profiles and bootstrap the Windows development environment.
 sidebar:
   order: 1
-  group:
-    hideIndex: true
+  label: Overview
 ---
 
-## Prerequisites
+Outfitting provisions a Windows development environment from the repository's package manifests, PowerShell profile, registry tweaks, and manager tools.
 
-- You may need to install or update [WinGet](https://learn.microsoft.com/en-us/windows/package-manager/winget/#install-winget).
-- Most regular Windows machines already have it, but it can be outdated.
-- Update WinGet from the [Microsoft Store listing](https://apps.microsoft.com/detail/9NBLGGH4NNS1) if needed.
-- Run the main installer from an elevated PowerShell session. OpenSSH, its firewall rule, and machine-level registry tweaks need elevation to complete.
-- If PowerShell blocks the command, run:
+Start with the [installation instructions](/docs/windows/installation/) to bootstrap the machine, then use the [post-install steps](/docs/windows/post-install/) and [updates](/docs/windows/updates/) to finish and maintain it.
 
-~~~powershell
-Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process
-~~~
+## Windows setup flow
 
-- WinGet and Microsoft Store package installations must use an explicit profile. There is no default profile.
+1. Install one or more WinGet or Microsoft Store profiles.
+2. Run the post-install script for Scoop and fonts.
+3. Pull repository changes and run `Update-All` when you need to reconcile packages and inventories.
 
-## View Available Profiles
-
-~~~powershell
-irm win.jfa.dev | iex
-~~~
-
-## WinGet Package Installation
-
-The main installer downloads the selected WinGet package list and installs each package by ID with source and package agreements accepted. Package failures are reported while the script continues with the remaining setup steps.
-
-Use elevated PowerShell for the full installer:
-
-~~~powershell
-# Single profile
-irm win.jfa.dev/base | iex
-irm win.jfa.dev/dev | iex
-
-# Multiple profiles combined
-irm win.jfa.dev/base+dev+gaming | iex
-irm win.jfa.dev/dev+gaming+qol | iex
-~~~
-
-Available WinGet profiles:
-
-- `base`: Core packages, runtimes, and utilities
-- `dev`: Development tools and environments
-- `gaming`: Gaming platforms and tools
-- `work`: Work-related applications
-- `qol`: Quality of life improvements
-- `network`: Network tools and utilities
-
-The installer also:
-
-- Installs the `PSReadLine PowerShell` module for the current user.
-- Resolves the repository from `OUTFITTING_REPO`, then `%USERPROFILE%\.config\outfitting\repo-path`, then `%USERPROFILE%\.config\outfitting\repo`. It validates an existing Git checkout or clones the repository when it is missing, then persists the resolved path to repo-path.
-- Downloads the latest Windows x64 outfitting-manager release and its .sha256 file, verifies the SHA-256 checksum, and installs the binary under `%USERPROFILE%\.local\bin`.
-- Installs OpenSSH Server when it is missing, starts `sshd`, configures automatic startup, and creates the inbound TCP port 22 firewall rule.
-- Links the PowerShell, VS Code PowerShell, and Windows PowerShell profile entry points to `dotfiles/Microsoft.PowerShell_profile.ps1`. Existing profiles are backed up with a timestamp before replacement.
-- Discovers .reg files under [system/windows/registry](https://github.com/jfalava/outfitting/tree/main/system/windows/registry) and interactively offers to import them. The default choice is all discovered tweaks; choose N to skip them.
-
-The profile links use Windows symbolic links. Enable Windows Developer Mode or run the installer with the required elevation for those links to be created.
-
-## Microsoft Store Package Installation
-
-Microsoft Store packages require the /msstore/ prefix in the URL.
-
-~~~powershell
-# Single profile
-irm win.jfa.dev/msstore/msstore-base | iex
-
-# Multiple profiles combined
-irm win.jfa.dev/msstore/msstore-base+msstore-gaming | iex
-irm win.jfa.dev/msstore/msstore-base+msstore-gaming+msstore-qol | iex
-~~~
-
-Available Microsoft Store profiles:
-
-- `msstore-base`: Core Microsoft Store apps
-- `msstore-dev`: Development-related Store apps
-- `msstore-gaming`: Gaming-related Store apps
-- `msstore-work`: Work-related Store apps
-- `msstore-qol`: Quality of life Store apps
-
-Correct format:
-
-~~~powershell
-irm win.jfa.dev/msstore/<profile>+<profile> | iex
-~~~
-
-## Outfitting manager
-
-The main Windows installer downloads the latest Windows x64 outfitting-manager release and its SHA-256 checksum to:
-
-~~~text
-%USERPROFILE%\.local\bin\outfitting-manager.exe
-~~~
-
-The separate [post-install script](/docs/windows/post-install/) silently performs the same checksum-verified download as a best-effort fallback when the executable is missing. It suppresses manager download errors and does not block its other tasks. The manager is a release binary; these scripts do not create a manager symlink or build it from the repository.
-
-## Bun Global Packages
-
-Requires Bun installed first:
-
-~~~powershell
-irm win.jfa.dev/bun | iex
-~~~
-
-## Scoop inventory
-
-The repository-owned `packages/windows/scoop.txt` is the source of truth for directly installed Scoop packages. Every Update-All run must reconcile the local installation to that manifest; missing Scoop is an error rather than a skipped step. After reconciliation it stores a stable, versioned scoop-inventory snapshot through outfitting-manager, including resolved dependencies and installed versions.
-
-Run `Save-OutfittingScoopInventory` to capture state without reconciling first.
-
-## Registry Tweaks Only
-
-Runs only the registry tweak installer (no WinGet or Microsoft Store packages).
-
-~~~powershell
-irm win.jfa.dev/registry | iex
-~~~
-
-## Post-install
-
-Run the [post-install steps](/docs/windows/post-install/) after the main installer to configure Scoop and fonts.
+The Windows installer supports regular Windows hosts. Windows Subsystem for Linux has its own [installation instructions](/docs/wsl/installation/).
