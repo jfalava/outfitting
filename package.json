@@ -1,14 +1,6 @@
 {
   "name": "@outfitting/monorepo",
-  "version": "0.3.0",
-  "devDependencies": {
-    "@oxlint/plugins": "1.78.0",
-    "oxfmt": "^0.63.0"
-  },
-  "scripts": {
-    "format": "oxfmt"
-  },
-  "type": "module",
+  "version": "0.12.0",
   "workspaces": {
     "packages": [
       "installer",
@@ -33,5 +25,13 @@
         "hono": "4.13.1"
       }
     }
+  },
+  "type": "module",
+  "scripts": {
+    "format": "oxfmt"
+  },
+  "devDependencies": {
+    "@oxlint/plugins": "1.78.0",
+    "oxfmt": "^0.63.0"
   }
 }
