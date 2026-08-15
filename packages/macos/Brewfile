@@ -1,7 +1,7 @@
-tap "hashicorp/tap"
-tap "cloudflare/cloudflare"
-tap "pystardust/ani-cli"
-tap "productdevbook/tap"
+tap "hashicorp/tap", trusted: true
+tap "cloudflare/cloudflare", trusted: true
+tap "pystardust/ani-cli", trusted: true
+tap "productdevbook/tap", trusted: true
 
 cask "altserver"
 cask "balenaetcher"
