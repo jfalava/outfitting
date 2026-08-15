@@ -43,16 +43,6 @@ in
     DENO_INSTALL = "${config.home.homeDirectory}/.deno";
   };
 
-  # PATH additions
-  home.sessionPath = [
-    "${config.home.homeDirectory}/go/bin"
-    "${config.home.homeDirectory}/.local/share/uv/bin"
-    "${config.home.homeDirectory}/.cargo/bin"
-    "${config.home.homeDirectory}/.amp/bin"
-    "${config.home.homeDirectory}/.git-ai/bin"
-    "${config.home.homeDirectory}/.vite-plus/bin"
-  ];
-
   programs.zsh = {
     shellAliases = {
       explorer = "/mnt/c/WINDOWS/explorer.exe";
