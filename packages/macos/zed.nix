@@ -118,6 +118,8 @@
                 "name" = "mlx-community/Qwen3.6-35B-A3B-4bit";
                 "display_name" = "Qwen3.6-35B-A3B (MLX)";
                 "max_tokens" = 131072;
+                "max_output_tokens" = 65536;
+                "max_completion_tokens" = 65536;
                 "capabilities" = {
                   "images" = false;
                   "tools" = true;
