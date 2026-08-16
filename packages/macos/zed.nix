@@ -51,9 +51,6 @@
       };
       "diff_view_style" = "unified";
       "agent_servers" = {
-        "amp-acp" = {
-          "type" = "registry";
-        };
         "github-copilot-cli" = {
           "favorite_config_option_values" = {
             "model" = [
@@ -81,6 +78,58 @@
             "model" = "opencode/nemotron-3-ultra-free";
           };
           "type" = "registry";
+        };
+      };
+      "context_servers" = {
+        "Chrome DevTools" = {
+          "enabled" = true;
+          "remote" = false;
+          "command" = "bunx chrome-devtools-mcp@latest";
+          "args" = [
+            "-y"
+          ];
+        };
+        "Cloudflare Builds" = {
+          "enabled" = true;
+          "url" = "https://builds.mcp.cloudflare.com/mcp";
+        };
+        "Cloudflare Bindings" = {
+          "enabled" = true;
+          "url" = "https://bindings.mcp.cloudflare.com/mcp";
+        };
+        "Cloudflare Docs" = {
+          "enabled" = true;
+          "url" = "https://docs.mcp.cloudflare.com/mcp";
+        };
+        "Cloudflare" = {
+          "enabled" = true;
+          "url" = "https://mcp.cloudflare.com/mcp";
+        };
+      };
+      "language_models" = {
+        "lmstudio" = {
+          "api_url" = "http://localhost:1234/api/v0";
+        };
+        "openai_compatible" = {
+          "mlx" = {
+            "api_url" = "http://localhost:8080/v1";
+            "available_models" = [
+              {
+                "name" = "mlx-community/Qwen3.6-35B-A3B-4bit";
+                "display_name" = "Qwen3.6-35B-A3B (MLX)";
+                "max_tokens" = 131072;
+                "capabilities" = {
+                  "images" = false;
+                  "tools" = true;
+                  "parallel_tool_calls" = false;
+                  "prompt_cache_key" = false;
+                  "chat_completions" = true;
+                  "interleaved_reasoning" = false;
+                  "max_tokens_parameter" = true;
+                };
+              }
+            ];
+          };
         };
       };
       "show_edit_predictions" = false;

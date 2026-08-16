@@ -7,4 +7,5 @@ with pkgs;
   terraform
   restic
   rustic
+  llama-cpp
 ]
