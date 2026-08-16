@@ -54,12 +54,6 @@
         "amp-acp" = {
           "type" = "registry";
         };
-        "pi-acp" = {
-          "default_config_options" = {
-            "model" = "openai-codex/gpt-5.6-sol";
-          };
-          "type" = "registry";
-        };
         "github-copilot-cli" = {
           "favorite_config_option_values" = {
             "model" = [
