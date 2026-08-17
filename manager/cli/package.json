@@ -23,8 +23,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@effect/platform-bun": "^4.0.0-rc.108",
-    "effect": "^4.0.0-rc.108",
+    "@effect/platform-bun": "4.0.0-rc.108",
+    "effect": "4.0.0-rc.108",
     "picocolors": "1.1.1"
   },
   "devDependencies": {
