@@ -1,5 +1,6 @@
 {
   "file_types": {
-    "Shell Script": ["*.plugin.zsh"]
+    "Shell Script": ["*.plugin.zsh"],
+    "JSON": ["*.webmanifest"]
   }
 }

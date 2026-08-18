@@ -35,6 +35,7 @@ cask "t3-code"
 cask "t3-code@nightly"
 cask "chatgpt"
 cask "portkiller"
+cask "cap"
 
 brew "cloudflared"
 brew "ffmpeg"
