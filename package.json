@@ -1,6 +1,6 @@
 {
   "name": "@outfitting/monorepo",
-  "version": "0.12.0",
+  "version": "0.12.1",
   "workspaces": {
     "packages": [
       "installer",
@@ -13,10 +13,10 @@
       },
       "build": {
         "@types/bun": "1.3.14",
-        "@oxlint/plugins": "1.78.0",
-        "oxlint": "1.78.0",
-        "oxfmt": "0.63.0",
-        "vitest": "4.1.10",
+        "@oxlint/plugins": "1.79.0",
+        "oxlint": "1.79.0",
+        "oxfmt": "0.64.0",
+        "vitest": "4.1.11",
         "oxlint-tsgolint": "7.0.2001",
         "typescript": "7.0.2",
         "wrangler": "4.122.0"
@@ -33,5 +33,6 @@
   "devDependencies": {
     "@oxlint/plugins": "1.78.0",
     "oxfmt": "^0.63.0"
-  }
+  },
+  "packageManager": "bun@1.4.0"
 }

@@ -1,6 +1,6 @@
 {
   "name": "@outfitting/cli",
-  "version": "0.12.0",
+  "version": "0.12.1",
   "private": true,
   "bin": {
     "outfitting-manager": "index.ts"
@@ -23,8 +23,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@effect/platform-bun": "4.0.0-rc.108",
-    "effect": "4.0.0-rc.108",
+    "@effect/platform-bun": "4.0.0-rc.110",
+    "effect": "4.0.0-rc.110",
     "picocolors": "1.1.1"
   },
   "devDependencies": {
