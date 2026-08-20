@@ -2,7 +2,6 @@ tap "hashicorp/tap", trusted: true
 tap "cloudflare/cloudflare", trusted: true
 tap "pystardust/ani-cli", trusted: true
 tap "productdevbook/tap", trusted: true
-tap "jundot/omlx", "https://github.com/jundot/omlx", trusted: true
 
 cask "altserver"
 cask "balenaetcher"
@@ -39,7 +38,6 @@ cask "portkiller"
 cask "cap"
 cask "raycast"
 
-brew "jundot/omlx/omlx"
 brew "cloudflared"
 brew "ffmpeg"
 brew "awscli"

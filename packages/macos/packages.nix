@@ -8,4 +8,5 @@ with pkgs;
   restic
   rustic
   llama-cpp
+  switchaudio-osx
 ]
