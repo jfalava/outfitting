@@ -220,4 +220,72 @@
       eval "$(${config.programs.tirith.package}/bin/tirith init --shell zsh)"
     '';
   };
+
+  programs.opencode = {
+    enable = true;
+    # nixpkgs opencode (1.15.10 on 26.05, newer on unstable) provides the service binary;
+    # interactive shells still prefer the installer-managed ~/.opencode/bin via home.sessionPath above (currently 1.18.20).
+    # To use only the installer binary, set package = null and disable web (service requires a Nix package).
+    package = pkgs.opencode;
+    extraPackages = with pkgs; [ bun ];
+    settings = {
+      lsp = true;
+      mcp = {
+        "Chrome DevTools" = {
+          type = "local";
+          command = [
+            "bunx"
+            "chrome-devtools-mcp@latest"
+            "-y"
+          ];
+        };
+        "Cloudflare" = {
+          type = "remote";
+          url = "https://mcp.cloudflare.com/mcp";
+          oauth = { };
+        };
+        "Cloudflare Bindings" = {
+          type = "remote";
+          url = "https://bindings.mcp.cloudflare.com/mcp";
+          oauth = { };
+        };
+        "Cloudflare Builds" = {
+          type = "remote";
+          url = "https://builds.mcp.cloudflare.com/mcp";
+          oauth = { };
+        };
+        "Cloudflare Docs" = {
+          type = "remote";
+          url = "https://docs.mcp.cloudflare.com/mcp";
+          oauth = { };
+        };
+        "Cloudflare Observability" = {
+          type = "remote";
+          url = "https://observability.mcp.cloudflare.com/mcp";
+          oauth = { };
+        };
+        "Machine Memory" = {
+          type = "remote";
+          url = "https://machine-memory-api.jfalava.workers.dev/mcp";
+          oauth = { };
+        };
+      };
+    };
+    web = {
+      enable = true;
+      # extraArgs override server options; empty uses defaults (random port, 127.0.0.1).
+      # Example: [ "--hostname" "127.0.0.1" "--port" "4096" ]
+      extraArgs = [ ];
+      # Password migrated from service.json to service.env (chmod 600) to avoid Nix store leak.
+      environmentFile = "${config.xdg.configHome}/opencode/service.env";
+    };
+  };
+
+  # Back up legacy opencode.jsonc (pre-Nix) once, since Nix now manages opencode.json.
+  home.activation.migrateOpencodeJsonc = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    if [ -f "${config.xdg.configHome}/opencode/opencode.jsonc" ] && [ ! -f "${config.xdg.configHome}/opencode/opencode.jsonc.migrated" ]; then
+      mv "${config.xdg.configHome}/opencode/opencode.jsonc" "${config.xdg.configHome}/opencode/opencode.jsonc.migrated"
+      echo "Backed up legacy opencode.jsonc to opencode.jsonc.migrated (Nix now manages opencode.json)"
+    fi
+  '';
 }
