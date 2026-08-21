@@ -207,6 +207,13 @@ install_outfitting_manager() {
         rmdir "$temp_dir"
         return 1
     fi
+    # Ad-hoc sign so the binary can access the macOS keychain (Bun.secrets) without being killed (exit 137).
+    # Newer Bun versions produce unsigned binaries that are killed on first keychain access, causing silent outfit failures.
+    if command -v codesign >/dev/null 2>&1; then
+        if ! codesign --force --sign - "$install_dir/outfitting-manager" 2>/dev/null; then
+            warning "codesign failed for outfitting-manager — it may be killed on keychain access (exit 137). Run 'codesign --force --sign - $install_dir/outfitting-manager' manually."
+        fi
+    fi
     rm -f "$temp_dir/$asset" "$temp_dir/$asset.sha256"
     rmdir "$temp_dir"
     export PATH="$install_dir:$PATH"

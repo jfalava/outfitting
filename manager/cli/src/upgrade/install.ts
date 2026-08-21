@@ -127,4 +127,25 @@ export async function installRelease(release: CliRelease, targetPath: string): P
 
   await chmod(temporaryPath, 0o755);
   await rename(temporaryPath, targetPath);
+
+  // On macOS, ad-hoc sign the binary so it can access the keychain (Bun.secrets) without being killed (exit 137).
+  // Newer Bun versions produce unsigned binaries that are killed on first keychain access, causing silent outfit failures.
+  if (process.platform === "darwin") {
+    try {
+      const proc = Bun.spawn(["codesign", "--force", "--sign", "-", targetPath], {
+        stdout: "ignore",
+        stderr: "ignore",
+      });
+      await proc.exited;
+      if (proc.exitCode !== 0) {
+        console.warn(
+          `Warning: codesign failed for ${targetPath} (exit ${proc.exitCode}). The binary may be killed on keychain access (exit 137). Run 'codesign --force --sign - ${targetPath}' manually.`,
+        );
+      }
+    } catch (cause) {
+      console.warn(
+        `Warning: Could not codesign ${targetPath}: ${cause instanceof Error ? cause.message : String(cause)}. The binary may be killed on keychain access.`,
+      );
+    }
+  }
 }

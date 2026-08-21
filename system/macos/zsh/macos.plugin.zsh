@@ -108,7 +108,7 @@ outfit-open-nix-lock() {
 
     local lock_dir_display lock_dir lock_path
     lock_dir_display=$(mktemp -d "${TMPDIR:-/tmp}/outfitting-nix-lock.XXXXXX") || {
-        echo "Error: Could not create a temporary Nix lock directory."
+        echo "Error: Could not create a temporary Nix lock directory." >&2
         return 1
     }
     lock_dir=$(cd "$lock_dir_display" && pwd -P) || {
@@ -117,9 +117,38 @@ outfit-open-nix-lock() {
     }
     lock_path="$lock_dir/flake.lock"
 
-    if ! outfitting-manager lockfiles pull jfalava:aarch64-darwin nix "$lock_path" >&2; then
+    local pull_status=0
+    outfitting-manager lockfiles pull jfalava:aarch64-darwin nix "$lock_path" >&2 || pull_status=$?
+
+    if (( pull_status == 137 )); then
+        echo "Warning: outfitting-manager was killed (exit 137) — likely an unsigned binary after a Bun upgrade." >&2
+        if command -v codesign >/dev/null 2>&1; then
+            echo "Attempting to re-sign ~/.local/bin/outfitting-manager automatically..." >&2
+            if codesign --force --sign - ~/.local/bin/outfitting-manager 2>&1; then
+                echo "Re-signed successfully, retrying pull..." >&2
+                pull_status=0
+                outfitting-manager lockfiles pull jfalava:aarch64-darwin nix "$lock_path" >&2 || pull_status=$?
+                if (( pull_status == 0 )); then
+                    print -r -- "$lock_dir"
+                    return 0
+                fi
+                echo "Warning: Retry still failed (exit $pull_status)." >&2
+            else
+                echo "Warning: Automatic re-sign failed. Run 'codesign --force --sign - ~/.local/bin/outfitting-manager' manually." >&2
+            fi
+        else
+            echo "Warning: Run 'codesign --force --sign - ~/.local/bin/outfitting-manager' to re-sign, or re-run the macOS install script." >&2
+        fi
+    fi
+
+    if (( pull_status != 0 )); then
+        if (( pull_status != 137 )); then
+            echo "Warning: Failed to pull remote Nix lock (outfitting-manager exit $pull_status)." >&2
+        fi
+        echo "Warning: Continuing with local flake.lock — remote lock unavailable. This may be outdated." >&2
         rm -f -- "$lock_path"
         rmdir -- "$lock_dir" 2>/dev/null
+        rmdir -- "$lock_dir_display" 2>/dev/null
         return 1
     fi
 
@@ -190,12 +219,23 @@ outfit-clear-nix-recovery() {
 
 outfit-build-nix-system() {
     local flake_path="$1"
-    local lock_path="$2"
+    local lock_path="${2:-}"
 
-    OUTFITTING_REPO="$(get_outfitting_repo)" env -u NIX_PATH nix build \
-        --no-link --print-out-paths --impure \
-        --reference-lock-file "$lock_path" --no-write-lock-file \
-        "path:$flake_path#darwinConfigurations.macos.system"
+    if [[ -n "$lock_path" && -f "$lock_path" ]]; then
+        OUTFITTING_REPO="$(get_outfitting_repo)" env -u NIX_PATH nix build \
+            --no-link --print-out-paths --impure \
+            --reference-lock-file "$lock_path" --no-write-lock-file \
+            "path:$flake_path#darwinConfigurations.macos.system"
+    else
+        if [[ -n "$lock_path" ]]; then
+            echo "Warning: Remote lock not found at $lock_path, building with local flake.lock." >&2
+        else
+            echo "Warning: Building with local flake.lock (remote unavailable)." >&2
+        fi
+        OUTFITTING_REPO="$(get_outfitting_repo)" env -u NIX_PATH nix build \
+            --no-link --print-out-paths --impure \
+            "path:$flake_path#darwinConfigurations.macos.system"
+    fi
 }
 
 outfit-activate-nix-system() {
@@ -435,7 +475,17 @@ outfit-snapshot() {
         if (( snapshot_status == 0 )); then
             echo ""
             echo "Pushing macOS inventory..."
-            outfitting-manager lockfiles push "$machine" homebrew-inventory "$homebrew_inventory" || snapshot_status=1
+            local push_status=0
+            outfitting-manager lockfiles push "$machine" homebrew-inventory "$homebrew_inventory" 2>&1 || push_status=$?
+            if (( push_status != 0 )); then
+                if (( push_status == 137 )); then
+                    echo "Warning: outfitting-manager was killed (exit 137) during snapshot." >&2
+                    echo "Warning: Run 'codesign --force --sign - ~/.local/bin/outfitting-manager' to re-sign." >&2
+                else
+                    echo "Warning: Failed to push inventory (outfitting-manager exit $push_status)." >&2
+                fi
+                snapshot_status=1
+            fi
         fi
     } always {
         rm -f -- "$homebrew_inventory"
@@ -465,7 +515,7 @@ outfit() {
         sync|s)
             shift
             outfit-homebrew sync "$@" || return 1
-            outfit-snapshot
+            outfit-snapshot || echo "Warning: Snapshot failed, but sync completed. Run 'outfit snapshot' manually after fixing codesign." >&2
             ;;
         upgrade|u)
             shift
@@ -474,7 +524,7 @@ outfit() {
             echo ""
             echo "❖ Upgrading Homebrew packages/casks"
             outfit-homebrew upgrade "$@" || return 1
-            outfit-snapshot
+            outfit-snapshot || echo "Warning: Snapshot failed, but upgrade completed. Run 'outfit snapshot' manually after fixing." >&2
             ;;
         recover)
             shift
@@ -564,10 +614,20 @@ outfit-rebuild() {
     # Ensure symlinks exist
     local darwin_target="$repo_path/system/macos/darwin.nix"
     local hm_target="$repo_path/system/macos"
-    local lock_dir
-    lock_dir=$(outfit-open-nix-lock) || return 1
-    local remote_lock="$lock_dir/flake.lock"
-    local updated_lock="$lock_dir/updated-flake.lock"
+    local lock_dir remote_lock updated_lock
+    local use_remote_lock=0
+    if lock_dir=$(outfit-open-nix-lock); then
+        remote_lock="$lock_dir/flake.lock"
+        updated_lock="$lock_dir/updated-flake.lock"
+        use_remote_lock=1
+    else
+        echo "Warning: Proceeding without remote lock — using local flake.lock." >&2
+        echo "Warning: Run 'outfitting-manager lockfiles pull' manually to diagnose, or verify 'codesign -v ~/.local/bin/outfitting-manager'." >&2
+        lock_dir=""
+        remote_lock=""
+        updated_lock=""
+        use_remote_lock=0
+    fi
     local rebuild_status=0
 
     if [ ! -L ~/.nixpkgs/darwin-configuration.nix ]; then
@@ -582,15 +642,26 @@ outfit-rebuild() {
     {
         case "${1:-switch}" in
             build|b)
-                echo "Building nix-darwin configuration with the remote lock..."
-                OUTFITTING_REPO="$repo_path" env -u NIX_PATH nix build --impure \
-                    --no-link \
-                    --reference-lock-file "$remote_lock" --no-write-lock-file \
-                    "path:$hm_target#darwinConfigurations.macos.system"
+                if (( use_remote_lock )); then
+                    echo "Building nix-darwin configuration with the remote lock..."
+                    OUTFITTING_REPO="$repo_path" env -u NIX_PATH nix build --impure \
+                        --no-link \
+                        --reference-lock-file "$remote_lock" --no-write-lock-file \
+                        "path:$hm_target#darwinConfigurations.macos.system"
+                else
+                    echo "Building nix-darwin configuration with local flake.lock (remote unavailable)..." >&2
+                    OUTFITTING_REPO="$repo_path" env -u NIX_PATH nix build --impure \
+                        --no-link \
+                        "path:$hm_target#darwinConfigurations.macos.system"
+                fi
                 rebuild_status=$?
                 ;;
             switch|s)
-                echo "Applying nix-darwin configuration with the remote lock..."
+                if (( use_remote_lock )); then
+                    echo "Applying nix-darwin configuration with the remote lock..."
+                else
+                    echo "Applying nix-darwin configuration with local flake.lock (remote unavailable)..." >&2
+                fi
                 local system_config
                 system_config=$(outfit-build-nix-system "$hm_target" "$remote_lock")
                 rebuild_status=$?
@@ -600,17 +671,28 @@ outfit-rebuild() {
                 fi
                 ;;
             test|t)
-                echo "Testing nix-darwin configuration with the remote lock..."
+                if (( use_remote_lock )); then
+                    echo "Testing nix-darwin configuration with the remote lock..."
+                else
+                    echo "Testing nix-darwin configuration with local flake.lock (remote unavailable)..." >&2
+                fi
                 outfit-build-nix-system "$hm_target" "$remote_lock" > /dev/null
                 rebuild_status=$?
                 (( rebuild_status == 0 )) && echo "Build successful - ready to switch"
                 ;;
             dry|d)
-                echo "Dry-run check with the remote lock..."
-                OUTFITTING_REPO="$repo_path" env -u NIX_PATH nix build \
-                    --dry-run --no-link --impure \
-                    --reference-lock-file "$remote_lock" --no-write-lock-file \
-                    "path:$hm_target#darwinConfigurations.macos.system"
+                if (( use_remote_lock )); then
+                    echo "Dry-run check with the remote lock..."
+                    OUTFITTING_REPO="$repo_path" env -u NIX_PATH nix build \
+                        --dry-run --no-link --impure \
+                        --reference-lock-file "$remote_lock" --no-write-lock-file \
+                        "path:$hm_target#darwinConfigurations.macos.system"
+                else
+                    echo "Dry-run check with local flake.lock (remote unavailable)..." >&2
+                    OUTFITTING_REPO="$repo_path" env -u NIX_PATH nix build \
+                        --dry-run --no-link --impure \
+                        "path:$hm_target#darwinConfigurations.macos.system"
+                fi
                 rebuild_status=$?
                 ;;
             upgrade|u)
@@ -620,25 +702,52 @@ outfit-rebuild() {
                     return 1
                 fi
 
-                echo "Updating the remote flake lock..."
-                env -u NIX_PATH nix flake update --flake "$hm_target" --impure \
-                    --reference-lock-file "$remote_lock" --output-lock-file "$updated_lock"
-                rebuild_status=$?
+                local effective_remote_lock="$remote_lock"
+                local effective_updated_lock="$updated_lock"
+                local fallback_lock_dir=""
+
+                if (( use_remote_lock )); then
+                    echo "Updating the remote flake lock..."
+                    env -u NIX_PATH nix flake update --flake "$hm_target" --impure \
+                        --reference-lock-file "$effective_remote_lock" --output-lock-file "$effective_updated_lock"
+                    rebuild_status=$?
+                else
+                    echo "Warning: Updating local flake.lock directly (remote unavailable)..." >&2
+                    fallback_lock_dir=$(mktemp -d "${TMPDIR:-/tmp}/outfitting-nix-lock.XXXXXX") || {
+                        echo "Error: Could not create temporary directory for flake update." >&2
+                        rebuild_status=1
+                    }
+                    if (( rebuild_status == 0 )); then
+                        fallback_lock_dir=$(cd "$fallback_lock_dir" && pwd -P) || fallback_lock_dir=""
+                        if [[ -n "$fallback_lock_dir" ]]; then
+                            effective_updated_lock="$fallback_lock_dir/updated-flake.lock"
+                            env -u NIX_PATH nix flake update --flake "$hm_target" --impure \
+                                --output-lock-file "$effective_updated_lock"
+                            rebuild_status=$?
+                        else
+                            rebuild_status=1
+                        fi
+                    fi
+                fi
 
                 if (( rebuild_status == 0 )); then
                     echo "Applying updated nix-darwin configuration..."
                     local system_config
-                    system_config=$(outfit-build-nix-system "$hm_target" "$updated_lock")
+                    system_config=$(outfit-build-nix-system "$hm_target" "$effective_updated_lock")
                     rebuild_status=$?
-                    if (( rebuild_status == 0 )); then
+                    if (( use_remote_lock && rebuild_status == 0 )); then
                         local base_hash_output base_hash
-                        base_hash_output=$(shasum -a 256 "$remote_lock")
+                        base_hash_output=$(shasum -a 256 "$effective_remote_lock")
                         rebuild_status=$?
                         if (( rebuild_status == 0 )); then
                             base_hash="${base_hash_output%% *}"
-                            outfit-prepare-nix-recovery "$updated_lock" "$base_hash"
+                            outfit-prepare-nix-recovery "$effective_updated_lock" "$base_hash"
                             rebuild_status=$?
                         fi
+                    elif (( ! use_remote_lock && rebuild_status == 0 )); then
+                        local base_hash="local"
+                        outfit-prepare-nix-recovery "$effective_updated_lock" "$base_hash"
+                        rebuild_status=$?
                     fi
                     if (( rebuild_status == 0 )); then
                         outfit-activate-nix-system "$system_config"
@@ -651,10 +760,26 @@ outfit-rebuild() {
                 fi
 
                 if (( rebuild_status == 0 )); then
-                    outfitting-manager lockfiles push jfalava:aarch64-darwin nix "$updated_lock" \
-                        --if-match "$base_hash"
-                    rebuild_status=$?
-                    if (( rebuild_status == 0 )); then
+                    local push_status=0
+                    if (( use_remote_lock )); then
+                        outfitting-manager lockfiles push jfalava:aarch64-darwin nix "$effective_updated_lock" \
+                            --if-match "$base_hash" 2>&1 || push_status=$?
+                    else
+                        echo "Warning: Pushing updated lock without --if-match (no remote base)." >&2
+                        outfitting-manager lockfiles push jfalava:aarch64-darwin nix "$effective_updated_lock" 2>&1 || push_status=$?
+                    fi
+                    if (( push_status != 0 )); then
+                        if (( push_status == 137 )); then
+                            echo "Warning: outfitting-manager was killed (exit 137) during push — likely an unsigned binary after a Bun upgrade." >&2
+                            echo "Warning: Run 'codesign --force --sign - ~/.local/bin/outfitting-manager' to re-sign." >&2
+                        else
+                            echo "Warning: Failed to push updated Nix lock to remote (outfitting-manager exit $push_status)." >&2
+                        fi
+                        echo "Warning: Local activation succeeded but remote lock not updated. Other machines will stay on the old lock." >&2
+                        echo "Warning: Retry with 'outfitting-manager lockfiles push jfalava:aarch64-darwin nix $effective_updated_lock' after fixing codesign." >&2
+                        # Keep recovery for manual retry, but don't fail the overall upgrade (local is already active).
+                        rebuild_status=0
+                    else
                         outfit-clear-nix-recovery
                     fi
                 fi
@@ -662,6 +787,10 @@ outfit-rebuild() {
                 if (( rebuild_status != 0 )) && outfit-has-nix-recovery; then
                     echo "Nix upgrade checkpoint retained at: $(outfit-nix-recovery-dir)"
                     echo "Run 'outfit recover' to resume it."
+                fi
+                if [[ -n "$fallback_lock_dir" ]]; then
+                    rm -f -- "$effective_updated_lock"
+                    rmdir -- "$fallback_lock_dir" 2>/dev/null
                 fi
                 ;;
             *)
@@ -675,7 +804,7 @@ outfit-rebuild() {
                 ;;
         esac
     } always {
-        outfit-clean-nix-lock "$lock_dir"
+        [[ -n "$lock_dir" ]] && outfit-clean-nix-lock "$lock_dir"
     }
 
     return $rebuild_status
