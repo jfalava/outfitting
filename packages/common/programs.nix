@@ -223,13 +223,11 @@
 
   programs.opencode = {
     enable = true;
-    # nixpkgs opencode (1.15.10 on 26.05, newer on unstable) provides the service binary;
-    # interactive shells still prefer the installer-managed ~/.opencode/bin via home.sessionPath above (currently 1.18.20).
-    # To use only the installer binary, set package = null and disable web (service requires a Nix package).
     package = pkgs.opencode;
     extraPackages = with pkgs; [ bun ];
     settings = {
       lsp = true;
+      small_model = "opencode/muse-spark-1.2-contributor-free";
       mcp = {
         "Chrome DevTools" = {
           type = "local";
@@ -273,9 +271,12 @@
     };
     web = {
       enable = true;
-      # extraArgs override server options; empty uses defaults (random port, 127.0.0.1).
-      # Example: [ "--hostname" "127.0.0.1" "--port" "4096" ]
-      extraArgs = [ ];
+      extraArgs = [
+        "--hostname"
+        "127.0.0.1"
+        "--port"
+        "4096"
+      ];
       # Password migrated from service.json to service.env (chmod 600) to avoid Nix store leak.
       environmentFile = "${config.xdg.configHome}/opencode/service.env";
     };
