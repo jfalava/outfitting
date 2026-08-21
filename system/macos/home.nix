@@ -10,12 +10,15 @@ let
   outfittingRepo =
     if repoFromEnvironment != "" then repoFromEnvironment else "/Users/jfalava/.config/outfitting/repo";
   audioOutputState = "${config.xdg.stateHome}/outfitting/audio-output-uid";
-  fallbackAudioOutputUid = "BuiltInSpeakerDevice";
-  deniedAudioOutputUids = [
-    "1E6DBC77-0000-0000-0122-010380462778" # LG ULTRAGEAR+
-    "3669B03C-0000-0000-0D1E-0104B53C2278" # MSI G27CQ4
+  # Outputs in priority order: the guard always promotes the highest entry
+  # that is currently available.
+  preferredAudioOutputUids = [
+    "2C-76-00-D3-DE-A4:output" # AirPods Pro
+    "AppleUSBAudioEngine:Topping:E30:1112000:1" # Topping E30
+    "BuiltInSpeakerDevice" # Mac mini Speakers
   ];
-  deniedAudioOutputPattern = lib.concatStringsSep "|" deniedAudioOutputUids;
+  fallbackAudioOutputUid = "BuiltInSpeakerDevice";
+  preferredAudioOutputPattern = lib.concatStringsSep "\n" preferredAudioOutputUids;
   audioOutputGuard = pkgs.writeShellApplication {
     name = "audio-output-guard";
     runtimeInputs = [
@@ -26,7 +29,7 @@ let
     text = ''
       state="${audioOutputState}"
       fallback="${fallbackAudioOutputUid}"
-      denied_pattern="${deniedAudioOutputPattern}"
+      preferred="${preferredAudioOutputPattern}"
       poll_interval=3
       wake_gap=5
       reconnect_attempts=15
@@ -47,10 +50,6 @@ let
         [ -n "$devices" ] \
           && printf '%s\n' "$devices" \
             | jq -e -s --arg uid "$1" 'any(.[]; .uid == $uid)' >/dev/null 2>&1
-      }
-
-      is_denied() {
-        [[ "$1" =~ ^($denied_pattern)$ ]]
       }
 
       read_preferred() {
@@ -86,26 +85,30 @@ let
         fi
       }
 
-      reconcile_output() {
-        local current
+      promote_preferred() {
+        local candidate current
         current="$(get_current_uid)"
-
-        if [ -z "$current" ]; then
-          use_fallback "no current output"
-        elif is_denied "$current"; then
-          use_fallback "blocked HDMI output $current"
-        elif ! is_available "$current"; then
-          use_fallback "current output disappeared"
-        else
-          save_preferred "$current"
-        fi
+        # UID list is newline-separated with no spaces, so word splitting is safe.
+        for candidate in $preferred; do
+          if is_available "$candidate"; then
+            if [ "$candidate" = "$current" ]; then
+              return 0
+            fi
+            if select_uid "$candidate"; then
+              save_preferred "$candidate"
+              log "selected preferred output $candidate"
+              return 0
+            fi
+          fi
+        done
+        return 1
       }
 
       restore_after_wake() {
         local attempt preferred
         preferred="$(read_preferred)"
 
-        if [ -z "$preferred" ] || is_denied "$preferred"; then
+        if [ -z "$preferred" ]; then
           use_fallback "no valid saved output after wake"
           return
         fi
@@ -138,17 +141,8 @@ let
       }
 
       initialize() {
-        local current
         mkdir -p "$(dirname "$state")"
-        current="$(get_current_uid)"
-
-        if [ -n "$current" ] && ! is_denied "$current" && is_available "$current"; then
-          save_preferred "$current"
-        elif [ -n "$(read_preferred)" ]; then
-          restore_after_wake
-        else
-          use_fallback "invalid output at guard startup"
-        fi
+        promote_preferred || use_fallback "no preferred output at guard startup"
       }
 
       initialize
@@ -162,7 +156,7 @@ let
         if [ "$elapsed" -ge "$wake_gap" ]; then
           restore_after_wake
         else
-          reconcile_output
+          promote_preferred || use_fallback "no preferred output available"
         fi
 
         last_tick="$(date +%s)"
@@ -190,10 +184,10 @@ in
     mkdir -p "${config.xdg.stateHome}/outfitting"
   '';
 
-  # CoreAudio exposes display audio devices whenever a monitor reconnects, but
-  # macOS has no declarative setting to remove those devices. Keep the selected
-  # non-display output by UID and immediately replace either monitor with the
-  # built-in speakers when the preferred device disappears.
+  # macOS has no declarative audio-output priority. The guard polls CoreAudio
+  # and always promotes the highest available UID from preferredAudioOutputUids
+  # (E30 first, built-in speakers second), so replugging the E30 takes over
+  # automatically and unplugging it falls back to the speakers.
   launchd.agents.restore-audio-output = {
     enable = true;
     config = {
