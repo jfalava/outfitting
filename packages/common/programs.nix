@@ -227,7 +227,7 @@
     extraPackages = with pkgs; [ bun ];
     settings = {
       lsp = true;
-      small_model = "opencode/muse-spark-1.2-contributor-free";
+      small_model = "opencode/nemotron-3.5-lightning-free";
       mcp = {
         "Chrome DevTools" = {
           type = "local";
