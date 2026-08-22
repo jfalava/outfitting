@@ -19,10 +19,10 @@
         "vitest": "4.1.11",
         "oxlint-tsgolint": "7.0.2001",
         "typescript": "7.0.2",
-        "wrangler": "4.122.0"
+        "wrangler": "4.125.0"
       },
       "backend": {
-        "hono": "4.13.1"
+        "hono": "4.13.3"
       }
     }
   },
@@ -31,8 +31,8 @@
     "format": "oxfmt"
   },
   "devDependencies": {
-    "@oxlint/plugins": "1.78.0",
-    "oxfmt": "^0.63.0"
+    "@oxlint/plugins": "1.79.0",
+    "oxfmt": "^0.64.0"
   },
   "packageManager": "bun@1.4.0"
 }
