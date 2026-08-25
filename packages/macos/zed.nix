@@ -35,6 +35,7 @@
       "oxc"
       "json5"
       "github-theme"
+      "tsgo"
       "mdx"
       "ini"
       "make"
@@ -342,6 +343,12 @@
         };
       };
       "languages" = {
+        "Astro" = {
+          "language_servers" = [
+            "astro-language-server"
+            "oxlint"
+          ];
+        };
         "CSS" = {
           "format_on_save" = "on";
           "prettier" = {
@@ -369,6 +376,17 @@
           ];
         };
         "JavaScript" = {
+          "language_servers" = [
+            "typescript-ls"
+            {
+              "name" = "vtsls";
+              "features" = {
+                "diagnostics" = false;
+              };
+            }
+            "oxlint"
+            "oxfmt"
+          ];
           "format_on_save" = "on";
           "prettier" = {
             "allowed" = false;
@@ -463,7 +481,15 @@
         };
         "TypeScript" = {
           "language_servers" = [
-            "vtsls"
+            "typescript-ls"
+            {
+              "name" = "vtsls";
+              "features" = {
+                "diagnostics" = false;
+              };
+            }
+            "oxlint"
+            "oxfmt"
           ];
           "format_on_save" = "on";
           "prettier" = {
@@ -478,6 +504,17 @@
           ];
         };
         "TSX" = {
+          "language_servers" = [
+            "typescript-ls"
+            {
+              "name" = "vtsls";
+              "features" = {
+                "diagnostics" = false;
+              };
+            }
+            "oxlint"
+            "oxfmt"
+          ];
           "format_on_save" = "on";
           "prettier" = {
             "allowed" = false;
