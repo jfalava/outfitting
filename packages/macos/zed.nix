@@ -271,6 +271,9 @@
       };
       "lsp" = {
         "vtsls" = {
+          "features" = {
+            "diagnostics" = false;
+          };
           "settings" = {
             "typescript" = {
               "updateImportsOnFileMove" = {
@@ -378,12 +381,7 @@
         "JavaScript" = {
           "language_servers" = [
             "typescript-ls"
-            {
-              "name" = "vtsls";
-              "features" = {
-                "diagnostics" = false;
-              };
-            }
+            "vtsls"
             "oxlint"
             "oxfmt"
           ];
@@ -482,12 +480,7 @@
         "TypeScript" = {
           "language_servers" = [
             "typescript-ls"
-            {
-              "name" = "vtsls";
-              "features" = {
-                "diagnostics" = false;
-              };
-            }
+            "vtsls"
             "oxlint"
             "oxfmt"
           ];
@@ -506,12 +499,7 @@
         "TSX" = {
           "language_servers" = [
             "typescript-ls"
-            {
-              "name" = "vtsls";
-              "features" = {
-                "diagnostics" = false;
-              };
-            }
+            "vtsls"
             "oxlint"
             "oxfmt"
           ];
