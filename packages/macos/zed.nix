@@ -35,7 +35,6 @@
       "oxc"
       "json5"
       "github-theme"
-      "tsgo"
       "mdx"
       "ini"
       "make"
@@ -464,7 +463,6 @@
         };
         "TypeScript" = {
           "language_servers" = [
-            "tsgo"
             "vtsls"
           ];
           "format_on_save" = "on";
