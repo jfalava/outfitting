@@ -270,24 +270,6 @@
         };
       };
       "lsp" = {
-        "vtsls" = {
-          "features" = {
-            "diagnostics" = false;
-          };
-          "settings" = {
-            "typescript" = {
-              "updateImportsOnFileMove" = {
-                "enabled" = "always";
-              };
-            };
-            "javascript" = {
-              "updateImportsOnFileMove" = {
-                "enabled" = "always";
-              };
-            };
-          };
-          "enable_lsp_tasks" = true;
-        };
         "oxfmt" = {
           "initialization_options" = {
             "settings" = {
@@ -381,7 +363,8 @@
         "JavaScript" = {
           "language_servers" = [
             "typescript-ls"
-            "vtsls"
+            "!vtsls"
+            "!typescript-language-server"
             "oxlint"
             "oxfmt"
           ];
@@ -480,7 +463,8 @@
         "TypeScript" = {
           "language_servers" = [
             "typescript-ls"
-            "vtsls"
+            "!vtsls"
+            "!typescript-language-server"
             "oxlint"
             "oxfmt"
           ];
@@ -499,7 +483,8 @@
         "TSX" = {
           "language_servers" = [
             "typescript-ls"
-            "vtsls"
+            "!vtsls"
+            "!typescript-language-server"
             "oxlint"
             "oxfmt"
           ];
