@@ -1,4 +1,4 @@
-{ ... }:
+{ config, lib, pkgs, ... }:
 
 {
   programs.zed-editor = {
@@ -247,13 +247,16 @@
         "light" = "One Light";
         "dark" = "Bearded Theme Arc";
       };
+      # The `syntax` keys are tree-sitter capture paths: doc comments are
+      # "comment.doc", not "comment_doc" (the underscore key silently matches
+      # nothing and the override is a no-op).
       "theme_overrides" = {
         "One Light" = {
           "syntax" = {
             "comment" = {
               "font_style" = "italic";
             };
-            "comment_doc" = {
+            "comment.doc" = {
               "font_style" = "italic";
             };
           };
@@ -263,7 +266,7 @@
             "comment" = {
               "font_style" = "italic";
             };
-            "comment_doc" = {
+            "comment.doc" = {
               "font_style" = "italic";
             };
           };
@@ -528,4 +531,34 @@
       };
     };
   };
+
+  # The settings file is mutable (`mutableUserSettings`): home-manager merges
+  # the declared settings into the existing file (`$dynamic * $static`), so keys
+  # that were written by hand in the past survive every rebuild. Some of those
+  # leftovers are invalid or no-ops in Zed's settings and get flagged:
+  # - `context_servers.<name>.type` (the stdio/http shapes have no `type` field)
+  # - `lsp.<name>.features` (`LspSettings` has no `features` field)
+  # - `theme_overrides.<theme>.syntax.comment_doc` (obsolete key; the capture
+  #   path is `comment.doc`, declared below)
+  # Strip them after the zed settings activation so the resulting file stays
+  # schema-clean, while leaving other manually-added keys untouched.
+  home.activation.zedSettingsSchemaCleanup = lib.hm.dag.entryAfter [
+    "zedSettingsActivation"
+  ] ''
+    settings="${config.xdg.configHome}/zed/settings.json"
+    if [ -f "$settings" ]; then
+      tmp="$(mktemp)"
+      ${pkgs.jq}/bin/jq \
+        'if (.context_servers? | type) == "object"
+           then .context_servers |= with_entries(.value |= (if type == "object" then del(.type) else . end))
+           else . end
+         | if (.theme_overrides? | type) == "object"
+             then .theme_overrides |= with_entries(.value |= (if (.syntax? | type) == "object" then .syntax |= del(.comment_doc) else . end))
+             else . end
+         | if (.lsp.vtsls? | type) == "object"
+             then .lsp.vtsls |= (if type == "object" then del(.features) else . end)
+             else . end' \
+        "$settings" > "$tmp" && mv "$tmp" "$settings" || rm -f "$tmp"
+    fi
+  '';
 }
