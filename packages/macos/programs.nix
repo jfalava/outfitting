@@ -1,4 +1,4 @@
-{ config, lib, ... }:
+{ config, lib, pkgs, ... }:
 
 let
   repoFromEnvironment = builtins.getEnv "OUTFITTING_REPO";
@@ -28,7 +28,50 @@ in
 
   home.sessionPath = [ "/Applications" ];
 
-  programs.twitch-tui.enable = true;
+  # twitch-tui reads its OAuth token from $TWT_TOKEN, which overrides the token
+  # key in config.toml. Home Manager owns config.toml (a read-only symlink into
+  # the Nix store), so the token lives in a user-editable, chmod-600 env file
+  # next to it that is never copied into the Nix store. The wrapper injects it
+  # so `twt` works regardless of the shell that launches it.
+  programs.twitch-tui = {
+    enable = true;
+    package = pkgs.writeShellApplication {
+      name = "twt";
+      runtimeInputs = [ pkgs.twitch-tui ];
+      text = ''
+        token_file="${config.xdg.configHome}/twt/token.env"
+        if [ -r "$token_file" ]; then
+          TWT_TOKEN="$(cat "$token_file")"
+          export TWT_TOKEN
+        else
+          printf '%s\n' "twitch-tui: missing $token_file" \
+            "Create it with: echo 'oauth:YOUR_TOKEN' > $token_file && chmod 600 $token_file" >&2
+        fi
+        exec "${pkgs.twitch-tui}/bin/twt" "$@"
+      '';
+    };
+    settings = {
+      twitch = {
+        username = "criccadamus";
+        channel = "criccadamus";
+        server = "irc.chat.twitch.tv";
+      };
+    };
+  };
+
+  # Create the token env file only if missing; never overwrite user edits.
+  home.activation.createTwitchTokenEnv = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    token_env="${config.xdg.configHome}/twt/token.env"
+    if [ ! -f "$token_env" ]; then
+      mkdir -p "$(dirname "$token_env")"
+      umask 177
+      cat > "$token_env" <<'EOF'
+oauth:REPLACE_WITH_YOUR_TWITCH_TOKEN
+EOF
+      chmod 600 "$token_env"
+      echo "twitch-tui: created $token_env — set TWT_TOKEN to your Twitch OAuth token."
+    fi
+  '';
 
   programs.zsh = {
     shellAliases = {
