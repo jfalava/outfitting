@@ -364,11 +364,16 @@
           ];
         };
         "JavaScript" = {
+          # oxlint 1.80 attaches a `help: Consider removing...` line and a
+          # related-information popup to every no-unused-vars diagnostic,
+          # which renders as two stacked boxes and duplicates the TS server's
+          # short diagnostic. Keep only the plain ts(6133) message: drop
+          # oxlint, keep tsgo (typescript-ls) for diagnostics and oxfmt for
+          # formatting.
           "language_servers" = [
             "typescript-ls"
             "!vtsls"
             "!typescript-language-server"
-            "oxlint"
             "oxfmt"
           ];
           "format_on_save" = "on";
@@ -464,11 +469,16 @@
           ];
         };
         "TypeScript" = {
+          # oxlint 1.80 attaches a `help: Consider removing...` line and a
+          # related-information popup to every no-unused-vars diagnostic,
+          # which renders as two stacked boxes and duplicates the TS server's
+          # short diagnostic. Keep only the plain ts(6133) message: drop
+          # oxlint, keep tsgo (typescript-ls) for diagnostics and oxfmt for
+          # formatting.
           "language_servers" = [
             "typescript-ls"
             "!vtsls"
             "!typescript-language-server"
-            "oxlint"
             "oxfmt"
           ];
           "format_on_save" = "on";
@@ -484,11 +494,16 @@
           ];
         };
         "TSX" = {
+          # oxlint 1.80 attaches a `help: Consider removing...` line and a
+          # related-information popup to every no-unused-vars diagnostic,
+          # which renders as two stacked boxes and duplicates the TS server's
+          # short diagnostic. Keep only the plain ts(6133) message: drop
+          # oxlint, keep tsgo (typescript-ls) for diagnostics and oxfmt for
+          # formatting.
           "language_servers" = [
             "typescript-ls"
             "!vtsls"
             "!typescript-language-server"
-            "oxlint"
             "oxfmt"
           ];
           "format_on_save" = "on";
