@@ -1,5 +1,55 @@
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
+let
+  # Shared formatter config: format-on-save via the oxfmt language server,
+  # with Zed's built-in prettier integration disabled so it can't compete.
+  oxfmtFormatter = {
+    "format_on_save" = "on";
+    "prettier" = {
+      "allowed" = false;
+    };
+    "formatter" = [
+      {
+        "language_server" = {
+          "name" = "oxfmt";
+        };
+      }
+    ];
+  };
+
+  # Languages that only need the shared oxfmt formatter block, with no
+  # language-server overrides.
+  oxfmtOnlyLanguages = [
+    "CSS"
+    "HTML"
+    "JSON"
+    "JSON5"
+    "JSONC"
+    "TOML"
+    "YAML"
+  ];
+
+  # oxlint 1.80 attaches a `help: Consider removing...` line and a related-
+  # information popup to every no-unused-vars diagnostic, which renders as
+  # two stacked boxes and duplicates the TS server's short diagnostic. Keep
+  # only the plain ts(6133) message: drop oxlint, keep tsgo (typescript-ls)
+  # for diagnostics and oxfmt for formatting.
+  tsLanguageServers = [
+    "typescript-ls"
+    "!vtsls"
+    "!typescript-language-server"
+    "oxfmt"
+  ];
+
+  tsLikeConfig = oxfmtFormatter // {
+    "language_servers" = tsLanguageServers;
+  };
+in
 {
   programs.zed-editor = {
     enable = true;
@@ -14,7 +64,6 @@
     extensions = [
       "html"
       "csv"
-      "toml"
       "git-firefly"
       "dockerfile"
       "sql"
@@ -50,6 +99,7 @@
         };
       };
       "diff_view_style" = "unified";
+
       "agent_servers" = {
         "github-copilot-cli" = {
           "favorite_config_option_values" = {
@@ -80,6 +130,7 @@
           "type" = "registry";
         };
       };
+
       "context_servers" = {
         "Chrome DevTools" = {
           "enabled" = true;
@@ -106,6 +157,7 @@
           "url" = "https://mcp.cloudflare.com/mcp";
         };
       };
+
       "language_models" = {
         "lmstudio" = {
           "api_url" = "http://localhost:1234/api/v0";
@@ -134,21 +186,27 @@
           };
         };
       };
+
       "show_edit_predictions" = false;
       "restore_on_startup" = "last_workspace";
       "when_closing_with_no_tabs" = "keep_window_open";
       "confirm_quit" = true;
+
       "telemetry" = {
         "diagnostics" = true;
         "metrics" = false;
       };
+
       "base_keymap" = "VSCode";
       "multi_cursor_modifier" = "alt";
+
       "minimap" = {
         "show" = "never";
       };
+
       "linked_edits" = true;
       "icon_theme" = "Bearded Icon Theme";
+
       "edit_predictions" = {
         "provider" = "copilot";
         "codestral" = {
@@ -160,17 +218,20 @@
           "proxy_no_verify" = null;
         };
       };
+
       "collaboration_panel" = {
         "button" = false;
         "dock" = "left";
         "default_width" = 240;
       };
+
       "outline_panel" = {
         "button" = false;
         "dock" = "left";
         "default_width" = 300;
         "git_status" = true;
       };
+
       "scrollbar" = {
         "show" = "auto";
         "cursors" = true;
@@ -184,13 +245,16 @@
           "vertical" = true;
         };
       };
+
       "soft_wrap" = "editor_width";
       "preferred_line_length" = 80;
       "show_wrap_guides" = true;
+
       "git_panel" = {
         "tree_view" = true;
         "dock" = "right";
       };
+
       "agent" = {
         "tool_permissions" = {
           "default" = "allow";
@@ -211,12 +275,14 @@
           "provider" = "copilot_chat";
         };
       };
+
       "project_panel" = {
         "dock" = "right";
         "hide_root" = true;
         "default_width" = 400;
         "auto_fold_dirs" = false;
       };
+
       "ui_font_size" = 19;
       "extend_comment_on_newline" = false;
       "ui_font_family" = "Atlassian Sans";
@@ -226,27 +292,34 @@
       "buffer_font_size" = 19;
       "buffer_font_family" = "Aptos Mono";
       "buffer_font_weight" = 400;
+
       "terminal" = {
         "dock" = "left";
         "font_family" = "VictorMono Nerd Font Propo";
         "font_size" = 17;
         "font_weight" = 500;
       };
+
       "horizontal_scroll_margin" = 1;
       "vertical_scroll_margin" = 1;
       "close_on_file_delete" = false;
+
       "session" = {
         "restore_unsaved_buffers" = true;
       };
+
       "restore_on_file_reopen" = true;
+
       "gutter" = {
         "min_line_number_digits" = 0;
       };
+
       "theme" = {
         "mode" = "system";
         "light" = "One Light";
         "dark" = "Bearded Theme Arc";
       };
+
       # The `syntax` keys are tree-sitter capture paths: doc comments are
       # "comment.doc", not "comment_doc" (the underscore key silently matches
       # nothing and the override is a no-op).
@@ -272,6 +345,7 @@
           };
         };
       };
+
       "lsp" = {
         "oxfmt" = {
           "initialization_options" = {
@@ -330,250 +404,76 @@
           };
         };
       };
-      "languages" = {
-        "Astro" = {
-          "language_servers" = [
-            "astro-language-server"
-            "oxlint"
-          ];
-        };
-        "CSS" = {
-          "format_on_save" = "on";
-          "prettier" = {
-            "allowed" = false;
+
+      "languages" =
+        # CSS, HTML, JSON, JSON5, JSONC, TOML, YAML all get the plain
+        # oxfmt-on-save treatment with no language-server overrides.
+        (lib.genAttrs oxfmtOnlyLanguages (_: oxfmtFormatter)) // {
+          "Astro" = {
+            "language_servers" = [
+              "astro-language-server"
+              "oxlint"
+            ];
           };
-          "formatter" = [
-            {
-              "language_server" = {
-                "name" = "oxfmt";
-              };
-            }
-          ];
-        };
-        "HTML" = {
-          "format_on_save" = "on";
-          "prettier" = {
-            "allowed" = false;
+
+          "Markdown" = oxfmtFormatter // {
+            "show_completions_on_input" = false;
           };
-          "formatter" = [
-            {
-              "language_server" = {
-                "name" = "oxfmt";
+
+          "MDX" = oxfmtFormatter;
+
+          # JavaScript/TypeScript/TSX share the same oxlint-vs-tsgo
+          # workaround (see tsLikeConfig above).
+          "JavaScript" = tsLikeConfig;
+          "TypeScript" = tsLikeConfig;
+          "TSX" = tsLikeConfig;
+
+          "Nix" = {
+            "format_on_save" = "on";
+            "formatter" = {
+              "external" = {
+                "command" = "nixfmt";
+                "arguments" = [
+                  "--filename"
+                  "{buffer_path}"
+                ];
               };
-            }
-          ];
-        };
-        "JavaScript" = {
-          # oxlint 1.80 attaches a `help: Consider removing...` line and a
-          # related-information popup to every no-unused-vars diagnostic,
-          # which renders as two stacked boxes and duplicates the TS server's
-          # short diagnostic. Keep only the plain ts(6133) message: drop
-          # oxlint, keep tsgo (typescript-ls) for diagnostics and oxfmt for
-          # formatting.
-          "language_servers" = [
-            "typescript-ls"
-            "!vtsls"
-            "!typescript-language-server"
-            "oxfmt"
-          ];
-          "format_on_save" = "on";
-          "prettier" = {
-            "allowed" = false;
-          };
-          "formatter" = [
-            {
-              "language_server" = {
-                "name" = "oxfmt";
-              };
-            }
-          ];
-        };
-        "JSON" = {
-          "format_on_save" = "on";
-          "prettier" = {
-            "allowed" = false;
-          };
-          "formatter" = [
-            {
-              "language_server" = {
-                "name" = "oxfmt";
-              };
-            }
-          ];
-        };
-        "JSON5" = {
-          "format_on_save" = "on";
-          "prettier" = {
-            "allowed" = false;
-          };
-          "formatter" = [
-            {
-              "language_server" = {
-                "name" = "oxfmt";
-              };
-            }
-          ];
-        };
-        "JSONC" = {
-          "show_edit_predictions" = false;
-          "format_on_save" = "on";
-          "prettier" = {
-            "allowed" = false;
-          };
-          "formatter" = [
-            {
-              "language_server" = {
-                "name" = "oxfmt";
-              };
-            }
-          ];
-        };
-        "Markdown" = {
-          "format_on_save" = "on";
-          "prettier" = {
-            "allowed" = false;
-          };
-          "formatter" = [
-            {
-              "language_server" = {
-                "name" = "oxfmt";
-              };
-            }
-          ];
-          "show_completions_on_input" = false;
-        };
-        "MDX" = {
-          "format_on_save" = "on";
-          "prettier" = {
-            "allowed" = false;
-          };
-          "formatter" = [
-            {
-              "language_server" = {
-                "name" = "oxfmt";
-              };
-            }
-          ];
-        };
-        "TOML" = {
-          "format_on_save" = "on";
-          "prettier" = {
-            "allowed" = false;
-          };
-          "formatter" = [
-            {
-              "language_server" = {
-                "name" = "oxfmt";
-              };
-            }
-          ];
-        };
-        "TypeScript" = {
-          # oxlint 1.80 attaches a `help: Consider removing...` line and a
-          # related-information popup to every no-unused-vars diagnostic,
-          # which renders as two stacked boxes and duplicates the TS server's
-          # short diagnostic. Keep only the plain ts(6133) message: drop
-          # oxlint, keep tsgo (typescript-ls) for diagnostics and oxfmt for
-          # formatting.
-          "language_servers" = [
-            "typescript-ls"
-            "!vtsls"
-            "!typescript-language-server"
-            "oxfmt"
-          ];
-          "format_on_save" = "on";
-          "prettier" = {
-            "allowed" = false;
-          };
-          "formatter" = [
-            {
-              "language_server" = {
-                "name" = "oxfmt";
-              };
-            }
-          ];
-        };
-        "TSX" = {
-          # oxlint 1.80 attaches a `help: Consider removing...` line and a
-          # related-information popup to every no-unused-vars diagnostic,
-          # which renders as two stacked boxes and duplicates the TS server's
-          # short diagnostic. Keep only the plain ts(6133) message: drop
-          # oxlint, keep tsgo (typescript-ls) for diagnostics and oxfmt for
-          # formatting.
-          "language_servers" = [
-            "typescript-ls"
-            "!vtsls"
-            "!typescript-language-server"
-            "oxfmt"
-          ];
-          "format_on_save" = "on";
-          "prettier" = {
-            "allowed" = false;
-          };
-          "formatter" = [
-            {
-              "language_server" = {
-                "name" = "oxfmt";
-              };
-            }
-          ];
-        };
-        "YAML" = {
-          "format_on_save" = "on";
-          "prettier" = {
-            "allowed" = false;
-          };
-          "formatter" = [
-            {
-              "language_server" = {
-                "name" = "oxfmt";
-              };
-            }
-          ];
-        };
-        "Nix" = {
-          "format_on_save" = "on";
-          "formatter" = {
-            "external" = {
-              "command" = "nixfmt";
-              "arguments" = [
-                "--filename"
-                "{buffer_path}"
-              ];
             };
           };
         };
-      };
     };
   };
 
   # The settings file is mutable (`mutableUserSettings`): home-manager merges
-  # the declared settings into the existing file (`$dynamic * $static`), so keys
-  # that were written by hand in the past survive every rebuild. Some of those
-  # leftovers are invalid or no-ops in Zed's settings and get flagged:
+  # the declared settings into the existing file (`$dynamic * $static`), so
+  # keys that were written by hand in the past survive every rebuild. Some of
+  # those leftovers are invalid or no-ops in Zed's settings and get flagged:
   # - `context_servers.<name>.type` (the stdio/http shapes have no `type` field)
   # - `lsp.<name>.features` (`LspSettings` has no `features` field)
   # - `theme_overrides.<theme>.syntax.comment_doc` (obsolete key; the capture
-  #   path is `comment.doc`, declared below)
+  #   path is `comment.doc`, declared above)
   # Strip them after the zed settings activation so the resulting file stays
   # schema-clean, while leaving other manually-added keys untouched.
-  home.activation.zedSettingsSchemaCleanup = lib.hm.dag.entryAfter [
-    "zedSettingsActivation"
-  ] ''
-    settings="${config.xdg.configHome}/zed/settings.json"
-    if [ -f "$settings" ]; then
-      tmp="$(mktemp)"
-      ${pkgs.jq}/bin/jq \
-        'if (.context_servers? | type) == "object"
-           then .context_servers |= with_entries(.value |= (if type == "object" then del(.type) else . end))
-           else . end
-         | if (.theme_overrides? | type) == "object"
-             then .theme_overrides |= with_entries(.value |= (if (.syntax? | type) == "object" then .syntax |= del(.comment_doc) else . end))
+  home.activation.zedSettingsSchemaCleanup =
+    lib.hm.dag.entryAfter
+      [
+        "zedSettingsActivation"
+      ]
+      ''
+        settings="${config.xdg.configHome}/zed/settings.json"
+        if [ -f "$settings" ]; then
+          tmp="$(mktemp)"
+          ${pkgs.jq}/bin/jq \
+            'if (.context_servers? | type) == "object"
+             then .context_servers |= with_entries(.value |= (if type == "object" then del(.type) else . end))
              else . end
-         | if (.lsp.vtsls? | type) == "object"
-             then .lsp.vtsls |= (if type == "object" then del(.features) else . end)
-             else . end' \
-        "$settings" > "$tmp" && mv "$tmp" "$settings" || rm -f "$tmp"
-    fi
-  '';
+             | if (.theme_overrides? | type) == "object"
+               then .theme_overrides |= with_entries(.value |= (if (.syntax? | type) == "object" then .syntax |= del(.comment_doc) else . end))
+               else . end
+             | if (.lsp.vtsls? | type) == "object"
+               then .lsp.vtsls |= (if type == "object" then del(.features) else . end)
+               else . end' \
+            "$settings" > "$tmp" && mv "$tmp" "$settings" || rm -f "$tmp"
+        fi
+      '';
 }
