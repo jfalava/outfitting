@@ -28,7 +28,7 @@
     "@cloudflare/nimbus-docs": "0.11.0",
     "@fontsource/google-sans-code": "5.3.0",
     "@iconify-json/ph": "1.2.2",
-    "astro": "7.2.4",
+    "astro": "7.2.9",
     "astro-icon": "1.2.0",
     "astro-og-canvas": "0.13.0",
     "canvaskit-wasm": "0.42.0",
@@ -39,8 +39,8 @@
     "@astrojs/check": "0.9.10",
     "@oxlint/plugins": "catalog:build",
     "@tailwindcss/vite": "4.3.3",
-    "@typescript-eslint/parser": "8.67.0",
-    "eslint": "10.9.0",
+    "@typescript-eslint/parser": "8.68.0",
+    "eslint": "10.9.1",
     "eslint-plugin-astro": "3.1.0",
     "oxlint": "catalog:build",
     "pagefind": "1.5.2",
@@ -48,6 +48,6 @@
     "prettier-plugin-astro": "0.14.1",
     "tailwindcss": "4.3.3",
     "typescript": "6.0.3",
-    "wrangler": "4.125.0"
+    "wrangler": "4.127.0"
   }
 }

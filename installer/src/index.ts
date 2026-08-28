@@ -4,6 +4,7 @@ import { ALLOWED_HOSTS } from "./constants";
 import fontsApp from "./fonts";
 import macosApp from "./macos";
 import type { InstallerEnv } from "./types";
+import nixosApp from "./nixos";
 import windowsApp from "./windows/index";
 import wslApp from "./wsl";
 
@@ -36,6 +37,9 @@ app.use("*", async (c) => {
   }
   if (host.includes("mac.jfa.dev")) {
     return macosApp.fetch(c.req.raw, c.env, c.executionCtx);
+  }
+  if (host.includes("nixos.jfa.dev")) {
+    return nixosApp.fetch(c.req.raw, c.env, c.executionCtx);
   }
 
   // This should never be reached

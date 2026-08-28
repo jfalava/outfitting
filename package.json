@@ -9,20 +9,20 @@
     ],
     "catalogs": {
       "types": {
-        "@types/node": "26.2.0"
+        "@types/node": "26.4.0"
       },
       "build": {
         "@types/bun": "1.4.0",
-        "@oxlint/plugins": "1.79.0",
-        "oxlint": "1.79.0",
-        "oxfmt": "0.64.0",
+        "@oxlint/plugins": "1.80.0",
+        "oxlint": "1.80.0",
+        "oxfmt": "0.65.0",
         "vitest": "4.1.11",
         "oxlint-tsgolint": "7.0.2001",
         "typescript": "7.0.2",
-        "wrangler": "4.125.0"
+        "wrangler": "4.127.0"
       },
       "backend": {
-        "hono": "4.13.3"
+        "hono": "4.13.5"
       }
     }
   },

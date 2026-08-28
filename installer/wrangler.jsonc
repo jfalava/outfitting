@@ -28,5 +28,9 @@
       "pattern": "mac.jfa.dev",
       "custom_domain": true,
     },
+    {
+      "pattern": "nixos.jfa.dev",
+      "custom_domain": true,
+    },
   ],
 }
