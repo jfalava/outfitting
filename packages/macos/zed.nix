@@ -39,12 +39,39 @@ let
   # two stacked boxes and duplicates the TS server's short diagnostic. Keep
   # only the plain ts(6133) message: drop oxlint, keep tsgo (typescript-ls)
   # for diagnostics and oxfmt for formatting.
+  # tailwindcss-language-server provides class completions, diagnostics, and
+  # color previews; it emits no TS diagnostics, so it can't duplicate tsgo's.
   tsLanguageServers = [
     "typescript-ls"
     "!vtsls"
     "!typescript-language-server"
+    "tailwindcss-language-server"
     "oxfmt"
   ];
+
+  # Zed's Astro extension doesn't auto-enable the Tailwind LSP: the server
+  # needs `includeLanguages` to map Astro to its HTML host mode and a
+  # classRegex to see Astro's `class`/`class:list` attributes, per
+  # https://zed.dev/docs/languages/astro.
+  astroLanguageServers = [
+    "astro-language-server"
+    "tailwindcss-language-server"
+    "oxlint"
+  ];
+
+  tailwindLspSettings = {
+    "includeLanguages" = {
+      "astro" = "html";
+    };
+    "experimental" = {
+      "classRegex" = [
+        "class=\"([^\"]*)\""
+        "class='([^']*)'"
+        "class:list=\"{([^}]*)}\""
+        "class:list='{([^}]*)}'"
+      ];
+    };
+  };
 
   tsLikeConfig = oxfmtFormatter // {
     "language_servers" = tsLanguageServers;
@@ -372,6 +399,9 @@ in
             };
           };
         };
+        "tailwindcss-language-server" = {
+          "settings" = tailwindLspSettings;
+        };
         "discord_presence" = {
           "initialization_options" = {
             "application_id" = "1263505205522337886";
@@ -410,10 +440,7 @@ in
         # oxfmt-on-save treatment with no language-server overrides.
         (lib.genAttrs oxfmtOnlyLanguages (_: oxfmtFormatter)) // {
           "Astro" = {
-            "language_servers" = [
-              "astro-language-server"
-              "oxlint"
-            ];
+            "language_servers" = astroLanguageServers;
           };
 
           "Markdown" = oxfmtFormatter // {
