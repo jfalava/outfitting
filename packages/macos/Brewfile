@@ -35,6 +35,7 @@ cask "cap"
 cask "raycast"
 cask "hermes-desktop"
 cask "vorssaint"
+cask "mac-mouse-fix"
 
 brew "cloudflared"
 brew "ffmpeg"
