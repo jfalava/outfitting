@@ -289,4 +289,26 @@
       echo "Backed up legacy opencode.jsonc to opencode.jsonc.migrated (Nix now manages opencode.json)"
     fi
   '';
+
+  # Tirith 0.3.3+ loads the user policy with O_NOFOLLOW (read_text_no_follow_capped)
+  # and refuses a symlinked final component as NotRegularFile. Home Manager's
+  # xdg.configFile always creates a symlink into the Nix store, so the check
+  # fails for the user-level policy at ~/.config/tirith/policy.yaml. Replace
+  # the symlink with a regular file containing the same content after the
+  # writeBoundary, so both the Nix and Homebrew tirith binaries can read it.
+  home.activation.fixTirithPolicy = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    for name in "policy.yaml" "policy.yml" "allowlist" "blocklist"; do
+      target="${config.xdg.configHome}/tirith/$name"
+      if [ -L "$target" ]; then
+        tmp="$target.tmp.$$"
+        if cat "$target" > "$tmp" 2>/dev/null; then
+          mv -f "$tmp" "$target"
+          chmod 600 "$target" 2>/dev/null || chmod 644 "$target"
+        else
+          rm -f "$tmp"
+          echo "tirith: warning: could not dereference $target" >&2
+        fi
+      fi
+    done
+  '';
 }
