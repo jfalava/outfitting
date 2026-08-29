@@ -38,6 +38,7 @@ cask "portkiller"
 cask "cap"
 cask "raycast"
 cask "hermes-desktop"
+cask "vorssaint"
 
 brew "cloudflared"
 brew "ffmpeg"
