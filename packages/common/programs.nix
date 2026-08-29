@@ -201,6 +201,11 @@
     };
   };
 
+  xdg.configFile = {
+    "tirith/allowlist".force = true;
+    "tirith/policy.yaml".force = true;
+  };
+
   programs.vim.enable = true;
 
   programs.zoxide = {
@@ -294,9 +299,11 @@
   # and refuses a symlinked final component as NotRegularFile. Home Manager's
   # xdg.configFile always creates a symlink into the Nix store, so the check
   # fails for the user-level policy at ~/.config/tirith/policy.yaml. Replace
-  # the symlink with a regular file containing the same content after the
-  # writeBoundary, so both the Nix and Homebrew tirith binaries can read it.
-  home.activation.fixTirithPolicy = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+  # the symlink with a regular file containing the same content after
+  # linkGeneration (not merely writeBoundary: both share that predecessor, and
+  # alphabetical DAG order would otherwise run this before the symlinks exist),
+  # so both the Nix and Homebrew tirith binaries can read it.
+  home.activation.fixTirithPolicy = lib.hm.dag.entryAfter [ "linkGeneration" ] ''
     for name in "policy.yaml" "policy.yml" "allowlist" "blocklist"; do
       target="${config.xdg.configHome}/tirith/$name"
       if [ -L "$target" ]; then
@@ -304,6 +311,9 @@
         if cat "$target" > "$tmp" 2>/dev/null; then
           mv -f "$tmp" "$target"
           chmod 600 "$target" 2>/dev/null || chmod 644 "$target"
+          # linkGeneration may have moved the previous regular file to
+          # $target.backup before recreating the symlink; drop that leftover.
+          rm -f "$target.backup"
         else
           rm -f "$tmp"
           echo "tirith: warning: could not dereference $target" >&2
