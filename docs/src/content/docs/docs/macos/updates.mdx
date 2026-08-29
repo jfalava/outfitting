@@ -44,7 +44,7 @@ For full maintenance, update-all also performs Nix-darwin upgrade, Nix garbage c
 update-all
 ~~~
 
-update-all requests sudo at the start. Its global Bun update requires both Bun and uv; Bun is skipped when it is not installed, while uv is required when global Bun packages are present.
+update-all requests sudo at the start. Each update stage runs independently, so a failed Nix, Homebrew, Bun, or inventory step is reported as a warning without preventing the remaining stages from running. The command only stops early when the initial sudo request fails. Its global Bun update requires both Bun and uv; Bun is skipped when it is not installed, while uv is required when global Bun packages are present.
 
 Capture only the current Homebrew state with:
 

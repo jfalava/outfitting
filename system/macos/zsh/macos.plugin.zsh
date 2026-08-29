@@ -554,32 +554,54 @@ outfit() {
 
 # Quick system update
 update-all() {
-     # Request elevation at the start
-     sudo -v || return 1
+    local -a failed_steps=()
 
-     echo ""
-     echo "❖ Updating Nix/Darwin"
-     hm-update || return 1
-     hm-clean || return 1
+    # Request elevation at the start
+    sudo -v || return 1
 
-     echo ""
-     echo "❖ Updating Homebrew Packages"
-     outfit-homebrew upgrade || return 1
+    echo ""
+    echo "❖ Updating Nix/Darwin"
+    if ! hm-update; then
+        failed_steps+=("Nix/Darwin update")
+        echo "Warning: Nix/Darwin update failed; continuing with remaining updates." >&2
+    fi
 
-     echo ""
-     echo "❖ Updating Global Bun Packages"
-     bun-update-global
+    if ! hm-clean; then
+        failed_steps+=("Nix garbage collection")
+        echo "Warning: Nix garbage collection failed; continuing with remaining updates." >&2
+    fi
 
-     echo ""
-     echo "❖ Storing Homebrew Inventory"
-     outfit-snapshot || {
-         echo "Updates succeeded, but the Homebrew inventory could not be stored."
-         return 1
-     }
+    echo ""
+    echo "❖ Updating Homebrew Packages"
+    if ! outfit-homebrew upgrade; then
+        failed_steps+=("Homebrew package update")
+        echo "Warning: Homebrew package update failed; continuing with remaining updates." >&2
+    fi
 
-     echo ""
-     echo "System updated successfully"
- }
+    echo ""
+    echo "❖ Updating Global Bun Packages"
+    if ! bun-update-global; then
+        failed_steps+=("Global Bun package update")
+        echo "Warning: Global Bun package update failed; continuing with remaining updates." >&2
+    fi
+
+    echo ""
+    echo "❖ Storing Homebrew Inventory"
+    if ! outfit-snapshot; then
+        failed_steps+=("Homebrew inventory storage")
+        echo "Warning: Homebrew inventory could not be stored." >&2
+    fi
+
+    echo ""
+    if (( ${#failed_steps[@]} > 0 )); then
+        echo "System update completed with warnings:"
+        printf '  - %s\n' "${failed_steps[@]}"
+        echo "Rerun the failed steps manually after fixing the reported errors."
+    else
+        echo "System updated successfully"
+    fi
+    return 0
+}
 
 # Update everything except Nix packages (useful for profile-only changes)
 update-all-no-nix() {
