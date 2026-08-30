@@ -9,4 +9,5 @@ with pkgs;
   rustic
   llama-cpp
   switchaudio-osx
+  qbittorrent # GUI: Qt-based desktop client (macOS has display server). For headless see qbittorrent-nox on server/WSL
 ]

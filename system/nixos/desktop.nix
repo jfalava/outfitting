@@ -23,5 +23,6 @@
   environment.systemPackages = with pkgs; [
     firefox
     vscode
+    qbittorrent # GUI: requires X/Wayland via services.xserver/desktopManager
   ];
 }
