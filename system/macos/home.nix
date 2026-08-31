@@ -225,4 +225,41 @@ in
   # user, so F1–F12 are function keys instead of media shortcuts by default.
   targets.darwin.defaults.NSGlobalDomain."com.apple.keyboard.fnState" = true;
 
+  # Logitech G515 TKL (1133-50008) and its Lightspeed USB Receiver (1133-50495).
+  # Left cluster Mac positions: Win→Option, Alt→Command.
+  # AltGr: do not swap Right Option↔Command. The right-of-space key often
+  # emits Right Command (Mac firmware / tester shows ⌘); map that one-way to
+  # Right Option so AltGr character input works. Function (0xFF00000003) is
+  # not AltGr and is not remapped here — G515 Fn is firmware-side.
+  targets.darwin.currentHostDefaults.NSGlobalDomain = {
+    "com.apple.keyboard.modifiermapping.1133-50008-0" = [
+      {
+        HIDKeyboardModifierMappingSrc = 30064771299; # Left Command (Win)
+        HIDKeyboardModifierMappingDst = 30064771298; # Left Option
+      }
+      {
+        HIDKeyboardModifierMappingSrc = 30064771298; # Left Option (Alt)
+        HIDKeyboardModifierMappingDst = 30064771299; # Left Command
+      }
+      {
+        HIDKeyboardModifierMappingSrc = 30064771303; # Right Command
+        HIDKeyboardModifierMappingDst = 30064771302; # Right Option (AltGr)
+      }
+    ];
+    "com.apple.keyboard.modifiermapping.1133-50495-0" = [
+      {
+        HIDKeyboardModifierMappingSrc = 30064771299; # Left Command (Win)
+        HIDKeyboardModifierMappingDst = 30064771298; # Left Option
+      }
+      {
+        HIDKeyboardModifierMappingSrc = 30064771298; # Left Option (Alt)
+        HIDKeyboardModifierMappingDst = 30064771299; # Left Command
+      }
+      {
+        HIDKeyboardModifierMappingSrc = 30064771303; # Right Command
+        HIDKeyboardModifierMappingDst = 30064771302; # Right Option (AltGr)
+      }
+    ];
+  };
+
 }
