@@ -1,4 +1,8 @@
 ---
+/**
+ * Site header aligned to jfa.dev SiteHeader:
+ * full-bleed, bg-background, min-h-11, brand mark `/TITLE by JFA`.
+ */
 import { Icon } from "astro-icon/components";
 import { Button } from "./ui/button";
 import { LinkButton } from "./ui/link-button";
@@ -6,6 +10,7 @@ import { ThemeToggle } from "./ui/theme-toggle";
 import { SearchTrigger } from "./ui/search";
 import { config } from "virtual:nimbus/config";
 import { getSidebarSections } from "@cloudflare/nimbus-docs";
+import { withBase } from "../lib/urls";
 
 interface Props {
   /** Astro collection id for the current page, forwarded from DocsLayout. */
@@ -24,70 +29,114 @@ interface Props {
 // recipe reads it) but the base Header doesn't use it — leave it off the
 // destructure to avoid an unused-var warning.
 const { collection, showSidebar = true } = Astro.props;
+const homeHref = import.meta.env.BASE_URL;
+const brandTitle = config.title;
+const brandSubtitle = "Motives, Architecture, Tools and Documentation";
 
 // Normalize trailing slash so isActive matches sidebar hrefs.
 const currentSlug = Astro.url.pathname.replace(/\/$/, "") || "/";
-const sections = await getSidebarSections(currentSlug, { collection });
+const sections = (await getSidebarSections(currentSlug, { collection })).map(
+  (section) => ({
+    ...section,
+    href: withBase(section.href),
+  }),
+);
 const showSections = sections.length >= 2;
 ---
 
-<header class="sticky top-0 z-30 border-b border-border bg-card/80 backdrop-blur-lg">
-  <div class="mx-auto flex items-center justify-between h-14 px-4 lg:px-6">
-    <div class="flex items-center gap-3">
-      <a href="/" class="group">
-        <span class="font-semibold text-sm text-foreground group-hover:text-primary transition-colors">
-          {config.title}
+<header
+  class="site-header sticky top-0 z-30 shrink-0 border-b border-border bg-background"
+>
+  <div
+    class="flex min-h-11 items-center justify-between gap-4 px-2 sm:gap-6 sm:px-3 lg:gap-8 lg:px-4"
+  >
+    <div class="flex min-w-0 items-center gap-1">
+      <a
+        href={homeHref}
+        aria-label="Home"
+        class="inline-flex size-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+      >
+        <Icon name="ph:house" class="size-4" />
+      </a>
+
+      <a
+        href={homeHref}
+        aria-label={`${brandTitle} by JFA`}
+        class="group flex min-w-0 items-baseline gap-3 truncate no-underline lg:pr-4"
+      >
+        <span class="shrink-0 text-sm font-bold tracking-tight text-primary">
+          {brandTitle}
+          <span class="hidden pl-0.5 text-xs tracking-tight sm:inline"
+            >by JFA</span
+          >
+        </span>
+        <span class="hidden text-[11px] text-muted-foreground/75 sm:inline"
+          >/</span
+        >
+        <span
+          class="hidden truncate text-[11px] text-muted-foreground sm:inline"
+        >
+          {brandSubtitle}
         </span>
       </a>
 
-      {showSections && (
-        <nav aria-label="Sections" class="hidden md:flex items-center gap-1 ml-4 pl-4 border-l border-border h-6">
-          {sections.map((section) => (
-            <a
-              href={section.href}
-              aria-current={section.isActive ? "page" : undefined}
-              class:list={[
-                "px-2 py-1 rounded-md text-[0.8125rem] font-medium no-underline transition-colors",
-                section.isActive
-                  ? "text-foreground bg-accent"
-                  : "text-muted-foreground hover:text-foreground hover:bg-accent/60",
-              ]}
-            >
-              {section.label}
-            </a>
-          ))}
-        </nav>
-      )}
+      {
+        showSections && (
+          <nav
+            aria-label="Sections"
+            class="hidden md:flex items-center gap-1 ml-2 pl-3 border-l border-border h-6"
+          >
+            {sections.map((section) => (
+              <a
+                href={section.href}
+                aria-current={section.isActive ? "page" : undefined}
+                class:list={[
+                  "px-2 py-1 rounded-md text-[0.8125rem] font-medium no-underline transition-colors",
+                  section.isActive
+                    ? "text-foreground bg-accent"
+                    : "text-muted-foreground hover:text-foreground hover:bg-accent/60",
+                ]}
+              >
+                {section.label}
+              </a>
+            ))}
+          </nav>
+        )
+      }
     </div>
 
-    <div class="flex items-center gap-2">
+    <nav class="flex shrink-0 items-center gap-1" aria-label="Docs navigation">
       {config.search !== false && <SearchTrigger />}
-      {config.github && (
-        <LinkButton
-          href={config.github}
-          variant="minimal"
-          appearance="square"
-          size="sm"
-          aria-label="GitHub"
-          target="_blank"
-          rel="noopener"
-          class="text-muted-foreground"
-        >
-          <Icon name="ph:github-logo" class="w-4 h-4" />
-        </LinkButton>
-      )}
-      <ThemeToggle />
-      {showSidebar && (
-        <Button
-          variant="ghost"
-          appearance="square"
-          size="sm"
-          icon="ph:list"
-          aria-label="Open navigation"
-          data-menu-btn
-          class="lg:hidden text-muted-foreground"
-        />
-      )}
-    </div>
+      {
+        config.github && (
+          <LinkButton
+            href={config.github}
+            variant="minimal"
+            appearance="square"
+            size="sm"
+            aria-label="GitHub"
+            target="_blank"
+            rel="noopener"
+            class="text-muted-foreground"
+          >
+            <Icon name="ph:github-logo" class="w-4 h-4" />
+          </LinkButton>
+        )
+      }
+      <ThemeToggle class="size-9 text-muted-foreground hover:text-foreground" />
+      {
+        showSidebar && (
+          <Button
+            variant="ghost"
+            appearance="square"
+            size="sm"
+            icon="ph:list"
+            aria-label="Open navigation"
+            data-menu-btn
+            class="size-9 text-muted-foreground hover:text-foreground lg:hidden"
+          />
+        )
+      }
+    </nav>
   </div>
 </header>

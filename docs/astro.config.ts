@@ -42,6 +42,14 @@ export default defineConfig({
   // Tailwind v4 — replaces the PostCSS plugin, which doesn't build under
   // Astro 7's Vite 8 bundler).
   vite: {
+    // Bun hoists workspace packages into the repository-level store
+    // (node_modules/.bun). Allow Vite to serve those package assets, including
+    // @fontsource font files, when running the docs app from this directory.
+    server: {
+      fs: {
+        allow: [".."],
+      },
+    },
     plugins: [tailwindcss()],
   },
   // Hover-prefetch link targets so full-page navigations feel instant without
