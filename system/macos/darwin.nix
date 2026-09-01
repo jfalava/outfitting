@@ -76,6 +76,23 @@
     };
   };
 
+  # macOS can leave the Dock's hidden state stuck after a Dock restart, which
+  # reserves the bottom strip and prevents windows from being resized into it.
+  # Activation runs as root, so write the preference and restart Dock as the
+  # logged-in user. This is intentionally repeatable and only runs when Dock
+  # is active; a switch therefore also repairs the runtime state on demand.
+  system.activationScripts.postActivation.text = ''
+    dock_uid="$(/usr/bin/id -u jfalava 2>/dev/null || true)"
+    if [ -n "$dock_uid" ] \
+      && /usr/bin/pgrep -u "$dock_uid" -x Dock >/dev/null 2>&1; then
+      /usr/bin/sudo -u jfalava -H /usr/bin/defaults write com.apple.dock autohide -bool false
+      /usr/bin/killall -u jfalava Dock >/dev/null 2>&1 || true
+      /bin/sleep 1
+      /usr/bin/sudo -u jfalava -H /usr/bin/defaults write com.apple.dock autohide -bool true
+      /usr/bin/killall -u jfalava Dock >/dev/null 2>&1 || true
+    fi
+  '';
+
   # System services are now enabled automatically by nix-darwin
 
   # Security settings - updated for new nix-darwin
