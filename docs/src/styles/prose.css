@@ -67,6 +67,8 @@
   font-size: var(--nb-h1-size);
   font-weight: var(--nb-h1-weight);
   letter-spacing: var(--nb-h1-tracking);
+  line-height: var(--nb-h1-leading);
+  text-transform: var(--nb-h1-transform);
   margin-top: 0;
 }
 
@@ -74,6 +76,8 @@
   font-size: var(--nb-h2-size);
   font-weight: var(--nb-h2-weight);
   letter-spacing: var(--nb-h2-tracking);
+  line-height: var(--nb-h2-leading);
+  text-transform: var(--nb-h2-transform);
   margin-top: 2.5rem;
 }
 

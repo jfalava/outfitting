@@ -183,7 +183,7 @@ const hasPagination = Astro.slots.has("pagination");
                 ) : (
                   <Fragment>
                     <div class="flex items-center gap-3 flex-wrap mt-6">
-                      <h1 class="text-foreground mb-0 leading-tight [text-wrap:balance]" style={`font-size:var(--nb-h1-size);font-weight:var(--nb-h1-weight);letter-spacing:var(--nb-h1-tracking)`}>{title}</h1>
+                      <h1 class="text-foreground mb-0 text-balance" style={`font-size:var(--nb-h1-size);font-weight:var(--nb-h1-weight);letter-spacing:var(--nb-h1-tracking);line-height:var(--nb-h1-leading);text-transform:var(--nb-h1-transform)`}>{title}</h1>
                       {draft && <Badge text="Draft" variant="warning" size="medium" />}
                     </div>
                     {description && (
