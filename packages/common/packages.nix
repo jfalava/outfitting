@@ -12,8 +12,6 @@ with pkgs;
   neovim
   p7zip
   pnpm
-  ranger
   shellcheck
   tree
-  zellij
 ]
