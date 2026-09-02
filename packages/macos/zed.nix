@@ -99,8 +99,6 @@ in
       "terraform"
       "astro"
       "nix"
-      "opencode"
-      "basher"
       "powershell"
       "deno"
       "discord-presence"
@@ -129,13 +127,6 @@ in
 
       "agent_servers" = {
         "github-copilot-cli" = {
-          "favorite_config_option_values" = {
-            "model" = [
-              "gpt-5.3-codex"
-              "claude-sonnet-5"
-              "mai-code-1-flash-picker"
-            ];
-          };
           "default_config_options" = {
             "allow_all" = "on";
             "model" = "claude-sonnet-5";
@@ -144,7 +135,7 @@ in
         };
         "codex-acp" = {
           "default_config_options" = {
-            "reasoning_effort" = "low";
+            "reasoning_effort" = "high";
             "model" = "gpt-5.6-sol";
           };
           "type" = "registry";
@@ -152,7 +143,6 @@ in
         "opencode" = {
           "default_config_options" = {
             "effort" = "medium";
-            "model" = "opencode/nemotron-3-ultra-free";
           };
           "type" = "registry";
         };
@@ -182,35 +172,6 @@ in
         "Cloudflare" = {
           "enabled" = true;
           "url" = "https://mcp.cloudflare.com/mcp";
-        };
-      };
-
-      "language_models" = {
-        "lmstudio" = {
-          "api_url" = "http://localhost:1234/api/v0";
-        };
-        "openai_compatible" = {
-          "mlx" = {
-            "api_url" = "http://localhost:8080/v1";
-            "available_models" = [
-              {
-                "name" = "mlx-community/Qwen3.6-35B-A3B-4bit";
-                "display_name" = "Qwen3.6-35B-A3B (MLX)";
-                "max_tokens" = 131072;
-                "max_output_tokens" = 65536;
-                "max_completion_tokens" = 65536;
-                "capabilities" = {
-                  "images" = false;
-                  "tools" = true;
-                  "parallel_tool_calls" = false;
-                  "prompt_cache_key" = false;
-                  "chat_completions" = true;
-                  "interleaved_reasoning" = false;
-                  "max_tokens_parameter" = true;
-                };
-              }
-            ];
-          };
         };
       };
 
