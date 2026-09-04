@@ -4,10 +4,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "check": "bun run lint --check",
+    "check": "bun run lint && bun run typecheck && bun run test",
     "format": "oxfmt",
     "lint": "oxlint",
-    "test": "bun test",
+    "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -16,9 +16,10 @@
   "devDependencies": {
     "@cloudflare/workers-types": "catalog:cloudflare",
     "@oxlint/plugins": "catalog:build",
-    "@types/bun": "catalog:build",
+    "oxfmt": "catalog:build",
     "oxlint": "catalog:build",
     "oxlint-tsgolint": "catalog:build",
-    "typescript": "catalog:build"
+    "typescript": "catalog:build",
+    "vitest": "catalog:build"
   }
 }

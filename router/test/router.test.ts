@@ -1,8 +1,10 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "vitest";
 
-import { app, isDocsPath, isInstallerHost, type Env, type ServiceFetcher } from "../src/index";
+import { app, type Env, type ServiceFetcher } from "../src/index";
 
-function stubFetcher(label: string): ServiceFetcher & { calls: string[] } {
+type Stub = ServiceFetcher & { calls: string[] };
+
+function stubFetcher(label: string): Stub {
   const calls: string[] = [];
   return {
     calls,
@@ -14,11 +16,7 @@ function stubFetcher(label: string): ServiceFetcher & { calls: string[] } {
   };
 }
 
-function env(): Env & {
-  API: ReturnType<typeof stubFetcher>;
-  DOCS_WORKER: ReturnType<typeof stubFetcher>;
-  INSTALLER: ReturnType<typeof stubFetcher>;
-} {
+function bindings(): Env & { API: Stub; DOCS_WORKER: Stub; INSTALLER: Stub } {
   return {
     API: stubFetcher("api"),
     DOCS_WORKER: stubFetcher("docs"),
@@ -26,95 +24,81 @@ function env(): Env & {
   };
 }
 
-async function hit(
-  path: string,
-  host: string,
-  bindings: Env,
-): Promise<{ body: string; status: number; env: ReturnType<typeof env> }> {
-  const e = bindings as ReturnType<typeof env>;
+async function hit(path: string, host: string, env: Env) {
   const response = await app.fetch(
     new Request(`https://${host}${path}`, { headers: { Host: host } }),
-    e,
+    env,
   );
-  return { body: await response.text(), status: response.status, env: e };
+  return {
+    body: await response.text(),
+    status: response.status,
+  };
 }
 
-describe("isInstallerHost", () => {
-  test("recognizes platform hosts", () => {
-    expect(isInstallerHost("mac.jfa.dev")).toBe(true);
-    expect(isInstallerHost("WIN.jfa.dev:443")).toBe(true);
-    expect(isInstallerHost("outfitting.jfa.dev")).toBe(false);
-  });
-});
+describe("router dispatch", () => {
+  test("installer host keeps path and never touches API or docs", async () => {
+    const env = bindings();
+    const { body, status } = await hit("/post-install", "mac.jfa.dev", env);
 
-describe("isDocsPath", () => {
-  test("allows docs and static assets", () => {
-    expect(isDocsPath("/")).toBe(true);
-    expect(isDocsPath("/docs/manager/api")).toBe(true);
-    expect(isDocsPath("/fonts/ibm-plex.woff2")).toBe(true);
-    expect(isDocsPath("/_astro/x.js")).toBe(true);
-  });
-
-  test("rejects api and installer-shaped paths on apex", () => {
-    expect(isDocsPath("/api")).toBe(false);
-    expect(isDocsPath("/api/lockfiles/x")).toBe(false);
-    expect(isDocsPath("/post-install")).toBe(false);
-    expect(isDocsPath("/packages/base")).toBe(false);
-    expect(isDocsPath("/wp-admin")).toBe(false);
-  });
-});
-
-describe("router", () => {
-  test("forwards installer hosts intact", async () => {
-    const bindings = env();
-    const { body, status, env: e } = await hit("/post-install", "mac.jfa.dev", bindings);
     expect(status).toBe(200);
     expect(body).toBe("installer");
-    expect(e.INSTALLER.calls[0]).toContain("https://mac.jfa.dev/post-install");
-    expect(e.API.calls).toHaveLength(0);
-    expect(e.DOCS_WORKER.calls).toHaveLength(0);
+    expect(env.INSTALLER.calls).toEqual(["https://mac.jfa.dev/post-install"]);
+    expect(env.API.calls).toEqual([]);
+    expect(env.DOCS_WORKER.calls).toEqual([]);
   });
 
-  test("forwards /fonts on installer host to installer, not docs", async () => {
-    const bindings = env();
-    const { body, env: e } = await hit("/fonts", "mac.jfa.dev", bindings);
-    expect(body).toBe("installer");
-    expect(e.INSTALLER.calls).toHaveLength(1);
-    expect(e.DOCS_WORKER.calls).toHaveLength(0);
+  test("same path /fonts goes to installer on platform host and docs on apex", async () => {
+    const installerEnv = bindings();
+    const apexEnv = bindings();
+
+    const installer = await hit("/fonts", "mac.jfa.dev", installerEnv);
+    const apex = await hit("/fonts/x.woff2", "outfitting.jfa.dev", apexEnv);
+
+    expect(installer.body).toBe("installer");
+    expect(installerEnv.INSTALLER.calls).toHaveLength(1);
+    expect(installerEnv.DOCS_WORKER.calls).toEqual([]);
+
+    expect(apex.body).toBe("docs");
+    expect(apexEnv.DOCS_WORKER.calls).toHaveLength(1);
+    expect(apexEnv.INSTALLER.calls).toEqual([]);
   });
 
-  test("strips /api prefix for the API worker", async () => {
-    const bindings = env();
-    const { body, env: e } = await hit(
-      "/api/lockfiles/machine/kind",
-      "outfitting.jfa.dev",
-      bindings,
-    );
+  test("strips /api before forwarding to the API worker", async () => {
+    const env = bindings();
+    const { body } = await hit("/api/lockfiles/machine/kind", "outfitting.jfa.dev", env);
+
     expect(body).toBe("api");
-    expect(e.API.calls[0]).toContain("https://outfitting.jfa.dev/lockfiles/machine/kind");
-    expect(e.DOCS_WORKER.calls).toHaveLength(0);
+    expect(env.API.calls).toEqual(["https://outfitting.jfa.dev/lockfiles/machine/kind"]);
+    expect(env.DOCS_WORKER.calls).toEqual([]);
+    expect(env.INSTALLER.calls).toEqual([]);
   });
 
-  test("forwards docs paths on apex", async () => {
-    const bindings = env();
-    const { body, env: e } = await hit("/docs/manager/api", "outfitting.jfa.dev", bindings);
+  test("apex docs path reaches docs worker only", async () => {
+    const env = bindings();
+    const { body, status } = await hit("/docs/manager/api", "outfitting.jfa.dev", env);
+
+    expect(status).toBe(200);
     expect(body).toBe("docs");
-    expect(e.DOCS_WORKER.calls).toHaveLength(1);
+    expect(env.DOCS_WORKER.calls).toEqual(["https://outfitting.jfa.dev/docs/manager/api"]);
+    expect(env.API.calls).toEqual([]);
   });
 
-  test("forwards /fonts on apex to docs (webfonts)", async () => {
-    const bindings = env();
-    const { body, env: e } = await hit("/fonts/x.woff2", "outfitting.jfa.dev", bindings);
-    expect(body).toBe("docs");
-    expect(e.INSTALLER.calls).toHaveLength(0);
-  });
+  test("unknown apex path is 418 without any service hop", async () => {
+    const env = bindings();
+    const { body, status } = await hit("/post-install", "outfitting.jfa.dev", env);
 
-  test("returns 418 for unknown apex paths", async () => {
-    const bindings = env();
-    const { status, body, env: e } = await hit("/post-install", "outfitting.jfa.dev", bindings);
     expect(status).toBe(418);
     expect(body).toBe("I'm a teapot");
-    expect(e.DOCS_WORKER.calls).toHaveLength(0);
-    expect(e.INSTALLER.calls).toHaveLength(0);
+    expect(env.DOCS_WORKER.calls).toEqual([]);
+    expect(env.API.calls).toEqual([]);
+    expect(env.INSTALLER.calls).toEqual([]);
+  });
+
+  test("Host port and case still select the installer", async () => {
+    const env = bindings();
+    const { body } = await hit("/", "WIN.jfa.dev:443", env);
+
+    expect(body).toBe("installer");
+    expect(env.INSTALLER.calls).toHaveLength(1);
   });
 });

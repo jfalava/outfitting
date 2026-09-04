@@ -43,7 +43,7 @@
   "scripts": {
     "build": "bun run ci:build",
     "check:global": "bun run --filter @outfitting/api --filter @outfitting/cli --filter @outfitting/docs --filter @outfitting/iac check",
-    "ci:build": "bun run --filter @outfitting/iac ci:build",
+    "ci:build": "bun run lint:global && bun run --filter @outfitting/iac ci:build",
     "ci:deploy": "bun run --filter @outfitting/iac ci:deploy",
     "deploy": "bun run --filter @outfitting/iac deploy",
     "destroy": "bun run --filter @outfitting/iac destroy",
@@ -58,6 +58,7 @@
   },
   "devDependencies": {
     "@oxlint/plugins": "catalog:build",
-    "oxfmt": "catalog:build"
+    "oxfmt": "catalog:build",
+    "oxlint": "catalog:build"
   }
 }

@@ -7,6 +7,7 @@
       "devDependencies": {
         "@oxlint/plugins": "catalog:build",
         "oxfmt": "catalog:build",
+        "oxlint": "catalog:build",
       },
     },
     "api": {
@@ -88,7 +89,9 @@
       },
       "devDependencies": {
         "@cloudflare/workers-types": "catalog:cloudflare",
+        "@oxlint/plugins": "catalog:build",
         "@types/node": "catalog:types",
+        "oxfmt": "catalog:build",
         "oxlint": "catalog:build",
         "oxlint-tsgolint": "catalog:build",
         "typescript": "catalog:build",
@@ -118,10 +121,11 @@
       "devDependencies": {
         "@cloudflare/workers-types": "catalog:cloudflare",
         "@oxlint/plugins": "catalog:build",
-        "@types/bun": "catalog:build",
+        "oxfmt": "catalog:build",
         "oxlint": "catalog:build",
         "oxlint-tsgolint": "catalog:build",
         "typescript": "catalog:build",
+        "vitest": "catalog:build",
       },
     },
   },
