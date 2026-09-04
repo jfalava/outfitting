@@ -1,6 +1,5 @@
 {
   "name": "@outfitting/installer",
-  "version": "0.15.0",
   "private": true,
   "type": "module",
   "scripts": {
