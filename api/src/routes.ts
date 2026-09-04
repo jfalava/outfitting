@@ -1,6 +1,15 @@
 import type { Hono } from "hono";
 
 import {
+  ErrorBody,
+  HistoryResponse,
+  KindsResponse,
+  PushResponse,
+  StalePushBody,
+} from "@outfitting/contract";
+
+import { jsonEncoded } from "@/http";
+import {
   deleteLockfileVersion,
   lockfileKey,
   parseIfMatch,
@@ -30,7 +39,9 @@ export function registerLockfileRoutes(app: Hono<AppEnv>): void {
     try {
       parentHash = parseIfMatch(c.req.header("If-Match"));
     } catch (error) {
-      return c.json(
+      return jsonEncoded(
+        c,
+        ErrorBody,
         {
           error: error instanceof Error ? error.message : "Invalid If-Match header.",
         },
@@ -50,7 +61,9 @@ export function registerLockfileRoutes(app: Hono<AppEnv>): void {
       size,
     });
     if (result.status === "stale") {
-      return c.json(
+      return jsonEncoded(
+        c,
+        StalePushBody,
         {
           error: "Remote lockfile changed since it was pulled.",
           current_hash: result.currentHash,
@@ -59,7 +72,7 @@ export function registerLockfileRoutes(app: Hono<AppEnv>): void {
       );
     }
 
-    return c.json({ hash, size });
+    return jsonEncoded(c, PushResponse, { hash, size });
   });
 
   app.get("/lockfiles/:machine/:kind/history", async (c) => {
@@ -77,7 +90,7 @@ export function registerLockfileRoutes(app: Hono<AppEnv>): void {
       .bind(machine, kind)
       .all<LockfileRow>();
 
-    return c.json(results);
+    return jsonEncoded(c, HistoryResponse, results);
   });
 
   app.get("/lockfiles/:machine/:kind", async (c) => {
@@ -95,7 +108,7 @@ export function registerLockfileRoutes(app: Hono<AppEnv>): void {
       .first<LockfileRow>();
 
     if (!latest) {
-      return c.json({ error: "Lockfile not found" }, 404);
+      return jsonEncoded(c, ErrorBody, { error: "Lockfile not found" }, 404);
     }
 
     const content = await c.env.LOCKFILES.get(
@@ -111,7 +124,7 @@ export function registerLockfileRoutes(app: Hono<AppEnv>): void {
           hash: latest.hash,
         }),
       );
-      return c.json({ error: "Lockfile blob is unavailable" }, 500);
+      return jsonEncoded(c, ErrorBody, { error: "Lockfile blob is unavailable" }, 500);
     }
 
     return c.body(content, 200, {
@@ -131,21 +144,30 @@ export function registerLockfileRoutes(app: Hono<AppEnv>): void {
       .bind(machine)
       .all<KindRow>();
 
-    return c.json(results.map(({ kind }) => kind));
+    return jsonEncoded(
+      c,
+      KindsResponse,
+      results.map(({ kind }) => kind),
+    );
   });
 
   app.delete("/lockfiles/:machine/:kind/:hash", async (c) => {
     const { hash, kind, machine } = c.req.param();
     if (!SHA256_PATTERN.test(hash)) {
-      return c.json({ error: "Invalid SHA-256 hash" }, 400);
+      return jsonEncoded(c, ErrorBody, { error: "Invalid SHA-256 hash" }, 400);
     }
 
     const result = await deleteLockfileVersion(c.env, machine, kind, hash);
     if (result === "current") {
-      return c.json({ error: "Cannot delete the current lockfile version" }, 409);
+      return jsonEncoded(
+        c,
+        ErrorBody,
+        { error: "Cannot delete the current lockfile version" },
+        409,
+      );
     }
     if (result === "not-found") {
-      return c.json({ error: "Lockfile version not found" }, 404);
+      return jsonEncoded(c, ErrorBody, { error: "Lockfile version not found" }, 404);
     }
 
     return c.body(null, 204);

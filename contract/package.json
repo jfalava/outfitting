@@ -1,23 +1,28 @@
 {
-  "name": "@outfitting/installer",
+  "name": "@outfitting/contract",
   "version": "0.15.0",
   "private": true,
   "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
   "scripts": {
-    "check": "oxlint --fix",
+    "check": "bun run lint --fix",
     "format": "oxfmt",
     "lint": "oxlint",
+    "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "hono": "catalog:backend"
+    "effect": "catalog:effect"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "catalog:cloudflare",
     "@oxlint/plugins": "catalog:build",
+    "@types/node": "catalog:types",
     "oxfmt": "catalog:build",
     "oxlint": "catalog:build",
     "oxlint-tsgolint": "catalog:build",
-    "typescript": "catalog:build"
+    "typescript": "catalog:build",
+    "vitest": "catalog:build"
   }
 }

@@ -1,10 +1,7 @@
-import { Option, Schema } from "effect";
+import { decodeResponse, ErrorBody, isJsonValue } from "@outfitting/contract";
 
 import { apiToken, baseUrl } from "@/lockfiles/keychain";
 import type { CliRequestInit } from "@/lockfiles/types";
-
-const ErrorResponseSchema = Schema.Struct({ error: Schema.String });
-const decodeErrorResponse = Schema.decodeUnknownOption(ErrorResponseSchema);
 
 async function endpoint(parts: ReadonlyArray<string>): Promise<string> {
   return `${await baseUrl()}/${parts.map(encodeURIComponent).join("/")}`;
@@ -30,9 +27,12 @@ export async function request(
   const contentType = response.headers.get("Content-Type") ?? "";
   let detail = response.statusText;
   if (contentType.includes("application/json")) {
-    const body = decodeErrorResponse(await response.json());
-    if (Option.isSome(body)) {
-      detail = body.value.error;
+    const raw: unknown = await response.json();
+    if (isJsonValue(raw)) {
+      const body = decodeResponse(ErrorBody, raw, "error");
+      if (body) {
+        detail = body.error;
+      }
     }
   } else {
     detail = (await response.text()) || detail;

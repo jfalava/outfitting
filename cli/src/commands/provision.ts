@@ -146,7 +146,9 @@ export const provisionCommand = Command.make(
   {
     config: Flag.string("config").pipe(
       Flag.optional,
-      Flag.withDescription("Path to outfitting.deploy.json (see iac/outfitting.deploy.example.json)."),
+      Flag.withDescription(
+        "Path to outfitting.deploy.json (see iac/outfitting.deploy.example.json).",
+      ),
     ),
     domain: Flag.string("domain").pipe(
       Flag.optional,
@@ -281,9 +283,7 @@ export const provisionCommand = Command.make(
       }
 
       yield* Effect.sync(() => printProvisioned(apiBaseUrl, resolved));
-      yield* Console.log(
-        ui.muted("Next: outfitting-manager lockfiles list <machine>"),
-      );
+      yield* Console.log(ui.muted("Next: outfitting-manager lockfiles list <machine>"));
     }),
 ).pipe(
   Command.withDescription(

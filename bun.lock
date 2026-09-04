@@ -14,6 +14,8 @@
       "name": "@outfitting/api",
       "version": "0.14.0",
       "dependencies": {
+        "@outfitting/contract": "workspace:*",
+        "effect": "catalog:effect",
         "hono": "catalog:backend",
       },
       "devDependencies": {
@@ -35,12 +37,29 @@
       },
       "dependencies": {
         "@effect/platform-bun": "4.0.0-rc.112",
+        "@outfitting/contract": "workspace:*",
         "effect": "4.0.0-rc.112",
         "picocolors": "1.1.1",
       },
       "devDependencies": {
         "@oxlint/plugins": "catalog:build",
         "bun-types": "catalog:build",
+        "oxfmt": "catalog:build",
+        "oxlint": "catalog:build",
+        "oxlint-tsgolint": "catalog:build",
+        "typescript": "catalog:build",
+        "vitest": "catalog:build",
+      },
+    },
+    "contract": {
+      "name": "@outfitting/contract",
+      "version": "0.14.0",
+      "dependencies": {
+        "effect": "catalog:effect",
+      },
+      "devDependencies": {
+        "@oxlint/plugins": "catalog:build",
+        "@types/node": "catalog:types",
         "oxfmt": "catalog:build",
         "oxlint": "catalog:build",
         "oxlint-tsgolint": "catalog:build",
@@ -610,6 +629,8 @@
     "@outfitting/api": ["@outfitting/api@workspace:api"],
 
     "@outfitting/cli": ["@outfitting/cli@workspace:cli"],
+
+    "@outfitting/contract": ["@outfitting/contract@workspace:contract"],
 
     "@outfitting/docs": ["@outfitting/docs@workspace:docs"],
 

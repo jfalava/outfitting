@@ -1,9 +1,10 @@
+import { decodeResponse, isJsonValue, PushResponse } from "@outfitting/contract";
 import { Console, Effect } from "effect";
 
 import { tryPromise, toError } from "@/lockfiles/effect";
 import { isGitTrackedFile, normalizeSha256 } from "@/lockfiles/files";
 import { request } from "@/lockfiles/request";
-import type { PushLockfileOptions, PushResult } from "@/lockfiles/types";
+import type { PushLockfileOptions } from "@/lockfiles/types";
 import { ui } from "@/ui";
 
 export const pushLockfile = ({
@@ -49,7 +50,17 @@ export const pushLockfile = ({
         headers,
       }),
     );
-    const result = yield* tryPromise(() => response.json() as Promise<PushResult>);
+    const result = yield* tryPromise(async () => {
+      const raw: unknown = await response.json();
+      if (!isJsonValue(raw)) {
+        throw new Error("Worker returned an invalid push response.");
+      }
+      const decoded = decodeResponse(PushResponse, raw, "push");
+      if (decoded === undefined) {
+        throw new Error("Worker returned an invalid push response.");
+      }
+      return decoded;
+    });
 
     yield* Console.log(
       ui.success(

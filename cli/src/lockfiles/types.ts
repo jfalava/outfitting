@@ -1,12 +1,3 @@
-export interface PushResult {
-  hash: string;
-  size: number;
-}
-
-export interface HistoryEntry extends PushResult {
-  created_at: string;
-}
-
 export interface PushLockfileOptions {
   machine: string;
   kind: string;

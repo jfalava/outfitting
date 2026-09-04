@@ -1,14 +1,24 @@
+import { decodeResponse, HistoryResponse, isJsonValue } from "@outfitting/contract";
 import { Console, Effect } from "effect";
 
 import { tryPromise } from "@/lockfiles/effect";
 import { request } from "@/lockfiles/request";
-import type { HistoryEntry } from "@/lockfiles/types";
 import { ui } from "@/ui";
 
 export const historyLockfiles = (machine: string, kind: string) =>
   Effect.gen(function* () {
     const response = yield* tryPromise(() => request(["lockfiles", machine, kind, "history"]));
-    const entries = (yield* tryPromise(() => response.json())) as HistoryEntry[];
+    const entries = yield* tryPromise(async () => {
+      const raw: unknown = await response.json();
+      if (!isJsonValue(raw)) {
+        throw new Error("Worker returned an invalid history response.");
+      }
+      const decoded = decodeResponse(HistoryResponse, raw, "history");
+      if (decoded === undefined) {
+        throw new Error("Worker returned an invalid history response.");
+      }
+      return decoded;
+    });
 
     if (entries.length === 0) {
       yield* Console.log(ui.muted(`No history for ${machine}/${kind}.`));

@@ -1,7 +1,9 @@
 import { timingSafeEqual } from "node:crypto";
 
+import { ErrorBody } from "@outfitting/contract";
 import { Hono } from "hono";
 
+import { jsonEncoded } from "@/http";
 import { registerLockfileRoutes, type AppEnv } from "@/routes";
 
 const app = new Hono<AppEnv>();
@@ -23,7 +25,7 @@ app.use("*", async (c, next) => {
   const authorization = c.req.header("Authorization");
 
   if (!token || !tokensMatch(authorization, token)) {
-    return c.json({ error: "Unauthorized" }, 401);
+    return jsonEncoded(c, ErrorBody, { error: "Unauthorized" }, 401);
   }
 
   return next();
@@ -31,7 +33,7 @@ app.use("*", async (c, next) => {
 
 registerLockfileRoutes(app);
 
-app.notFound((c) => c.json({ error: "Not found" }, 404));
+app.notFound((c) => jsonEncoded(c, ErrorBody, { error: "Not found" }, 404));
 
 app.onError((error, c) => {
   console.error(
@@ -40,7 +42,7 @@ app.onError((error, c) => {
       error: error.message,
     }),
   );
-  return c.json({ error: "Internal server error" }, 500);
+  return jsonEncoded(c, ErrorBody, { error: "Internal server error" }, 500);
 });
 
 export {

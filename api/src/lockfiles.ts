@@ -1,3 +1,5 @@
+import { SHA256_HEX_PATTERN } from "@outfitting/contract";
+
 interface HeadRow {
   hash: string;
 }
@@ -19,7 +21,7 @@ type PromotionResult = { status: "ok" } | { currentHash: string | null; status: 
 
 type DeleteLockfileResult = "current" | "deleted" | "not-found";
 
-export const SHA256_PATTERN = /^[0-9a-f]{64}$/;
+export const SHA256_PATTERN = SHA256_HEX_PATTERN;
 
 export const PROMOTE_HISTORY_SQL = `INSERT INTO lockfile_promotions
   (machine, kind, hash, parent_hash)

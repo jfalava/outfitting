@@ -1,6 +1,16 @@
+import { decodeResponse, ErrorBody, isJsonValue } from "@outfitting/contract";
 import { describe, expect, test } from "vitest";
 
 import { app, lockfileKey, parseIfMatch, sha256 } from "@/index";
+
+async function jsonBody(response: Response) {
+  const raw: unknown = await response.json();
+  expect(isJsonValue(raw)).toBe(true);
+  if (!isJsonValue(raw)) {
+    throw new Error("expected JSON body");
+  }
+  return raw;
+}
 
 describe("lockfile helpers", () => {
   test("builds the specified content-addressed KV key", () => {
@@ -36,6 +46,9 @@ describe("authentication", () => {
   test("rejects a missing bearer token", async () => {
     const response = await app.request("http://worker.test/lockfiles/jfalava%3Ax64-wsl", {}, env);
     expect(response.status).toBe(401);
+    expect(decodeResponse(ErrorBody, await jsonBody(response), "auth")).toEqual({
+      error: "Unauthorized",
+    });
   });
 
   test("rejects a wrong bearer token", async () => {
@@ -45,6 +58,9 @@ describe("authentication", () => {
       env,
     );
     expect(response.status).toBe(401);
+    expect(decodeResponse(ErrorBody, await jsonBody(response), "auth")).toEqual({
+      error: "Unauthorized",
+    });
   });
 
   test("accepts the configured bearer token", async () => {
@@ -54,5 +70,8 @@ describe("authentication", () => {
       env,
     );
     expect(response.status).toBe(404);
+    expect(decodeResponse(ErrorBody, await jsonBody(response), "not-found")).toEqual({
+      error: "Not found",
+    });
   });
 });
