@@ -30,9 +30,9 @@
     "@fontsource/ibm-plex-sans": "5.3.0",
     "@fontsource/zilla-slab": "5.3.0",
     "@iconify-json/ph": "1.2.2",
-    "astro": "7.2.9",
+    "astro": "7.2.10",
     "astro-icon": "1.2.0",
-    "astro-og-canvas": "0.13.0",
+    "astro-og-canvas": "0.13.1",
     "canvaskit-wasm": "0.42.0",
     "clsx": "2.1.1",
     "tailwind-merge": "3.6.0"
@@ -41,7 +41,7 @@
     "@astrojs/check": "0.9.10",
     "@oxlint/plugins": "catalog:build",
     "@tailwindcss/vite": "4.3.3",
-    "@typescript-eslint/parser": "8.68.0",
+    "@typescript-eslint/parser": "8.69.0",
     "eslint": "10.9.1",
     "eslint-plugin-astro": "3.1.0",
     "oxlint": "catalog:build",
@@ -50,6 +50,6 @@
     "prettier-plugin-astro": "0.14.1",
     "tailwindcss": "4.3.3",
     "typescript": "6.0.3",
-    "wrangler": "4.127.0"
+    "wrangler": "4.128.0"
   }
 }
