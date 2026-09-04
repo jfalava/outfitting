@@ -1,7 +1,9 @@
 {
   "extends": ["../.oxlintrc.json"],
   "plugins": ["react"],
-  "jsPlugins": [{ "name": "anti-slop", "specifier": "../tools/oxlint/anti-slop/index.ts" }],
+  "jsPlugins": [
+    { "name": "anti-slop", "specifier": "../tools/oxlint/anti-slop/index.ts" }
+  ],
   "env": {
     "browser": true,
     "es2024": true

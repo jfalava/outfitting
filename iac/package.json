@@ -3,6 +3,9 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "build": "bun run typecheck && bash ../docs/scripts/build-cf.sh",
+    "check": "oxlint --fix",
+    "ci:build": "bun run build",
     "ci:deploy": "alchemy deploy --yes --adopt",
     "deploy": "alchemy deploy",
     "destroy": "alchemy destroy",

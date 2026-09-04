@@ -4,8 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "check": "tsc --noEmit && oxlint --fix",
-    "fix": "bun run lint --fix && bun run format",
+    "check": "oxlint --fix",
     "format": "oxfmt",
     "lint": "oxlint",
     "typecheck": "tsc --noEmit"

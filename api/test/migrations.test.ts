@@ -25,7 +25,14 @@ const promotionArguments = (hash: string, parent: string | null) => [
   parent,
 ];
 
-const deletionArguments = (hash: string) => ["machine", "nix", hash, "machine", "nix", hash];
+const deletionArguments = (hash: string) => [
+  "machine",
+  "nix",
+  hash,
+  "machine",
+  "nix",
+  hash,
+];
 
 describe("lockfile head migration", () => {
   test("advances from the expected parent and ignores a stale parent", () => {
@@ -42,7 +49,13 @@ describe("lockfile head migration", () => {
     const advance = database.prepare(ADVANCE_HEAD_SQL);
     insertLock.run("machine", "nix", firstHash, 1);
     promote.run(...promotionArguments(firstHash, null));
-    advance.run(...promotionArguments(firstHash, null).slice(0, 3), null, "machine", "nix", null);
+    advance.run(
+      ...promotionArguments(firstHash, null).slice(0, 3),
+      null,
+      "machine",
+      "nix",
+      null,
+    );
     insertLock.run("machine", "nix", secondHash, 1);
     promote.run(...promotionArguments(secondHash, firstHash));
     advance.run(
@@ -57,24 +70,42 @@ describe("lockfile head migration", () => {
       "SELECT hash FROM lockfile_heads WHERE machine = ? AND kind = ?",
     );
     expect(getHead.get("machine", "nix")).toEqual({ hash: secondHash });
-    expect(promote.run(...promotionArguments(firstHash, firstHash)).changes).toBe(0);
     expect(
-      advance.run("machine", "nix", firstHash, firstHash, "machine", "nix", firstHash).changes,
+      promote.run(...promotionArguments(firstHash, firstHash)).changes,
+    ).toBe(0);
+    expect(
+      advance.run(
+        "machine",
+        "nix",
+        firstHash,
+        firstHash,
+        "machine",
+        "nix",
+        firstHash,
+      ).changes,
     ).toBe(0);
     expect(getHead.get("machine", "nix")).toEqual({ hash: secondHash });
 
     const deletePromotions = database.prepare(DELETE_PROMOTIONS_SQL);
     const deleteLockfile = database.prepare(DELETE_LOCKFILE_SQL);
 
-    expect(deletePromotions.run(...deletionArguments(secondHash)).changes).toBe(0);
-    expect(deleteLockfile.run(...deletionArguments(secondHash)).changes).toBe(0);
+    expect(deletePromotions.run(...deletionArguments(secondHash)).changes).toBe(
+      0,
+    );
+    expect(deleteLockfile.run(...deletionArguments(secondHash)).changes).toBe(
+      0,
+    );
     expect(getHead.get("machine", "nix")).toEqual({ hash: secondHash });
 
-    expect(deletePromotions.run(...deletionArguments(firstHash)).changes).toBe(1);
+    expect(deletePromotions.run(...deletionArguments(firstHash)).changes).toBe(
+      1,
+    );
     expect(deleteLockfile.run(...deletionArguments(firstHash)).changes).toBe(1);
     expect(
       database
-        .prepare("SELECT id FROM lockfiles WHERE machine = ? AND kind = ? AND hash = ?")
+        .prepare(
+          "SELECT id FROM lockfiles WHERE machine = ? AND kind = ? AND hash = ?",
+        )
         .get("machine", "nix", firstHash),
     ).toBeUndefined();
 

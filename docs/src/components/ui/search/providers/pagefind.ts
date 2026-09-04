@@ -1,4 +1,7 @@
-import type { SearchProvider, SearchResult } from "@cloudflare/nimbus-docs/types";
+import type {
+  SearchProvider,
+  SearchResult,
+} from "@cloudflare/nimbus-docs/types";
 import { config } from "virtual:nimbus/config";
 
 interface PagefindSubResult {
@@ -18,12 +21,16 @@ interface PagefindSearchResponse {
 }
 
 interface PagefindFilters {
-  [key: string]: string | string[] | { none?: string | string[]; any?: string | string[] };
+  [key: string]:
+    string | string[] | { none?: string | string[]; any?: string | string[] };
 }
 
 interface PagefindApi {
   init(): Promise<void>;
-  search(query: string, options?: { filters?: PagefindFilters }): Promise<PagefindSearchResponse>;
+  search(
+    query: string,
+    options?: { filters?: PagefindFilters },
+  ): Promise<PagefindSearchResponse>;
 }
 
 let pagefind: PagefindApi | undefined;
@@ -46,16 +53,23 @@ let pagefind: PagefindApi | undefined;
  * every keystroke.
  */
 const defaultFilters: PagefindFilters | undefined =
-  config.versions && config.versions.deprecated && config.versions.deprecated.length > 0
+  config.versions &&
+  config.versions.deprecated &&
+  config.versions.deprecated.length > 0
     ? { status: { none: "deprecated" } }
     : undefined;
 
 export const provider: SearchProvider = {
   async init() {
     if (pagefind) return;
-    const baseUrl = new URL(import.meta.env.BASE_URL ?? "/", window.location.origin);
+    const baseUrl = new URL(
+      import.meta.env.BASE_URL ?? "/",
+      window.location.origin,
+    );
     const pagefindUrl = new URL("pagefind/pagefind.js", baseUrl);
-    pagefind = (await import(/* @vite-ignore */ pagefindUrl.href)) as PagefindApi;
+    pagefind = (await import(
+      /* @vite-ignore */ pagefindUrl.href
+    )) as PagefindApi;
     await pagefind.init();
   },
 
@@ -67,13 +81,17 @@ export const provider: SearchProvider = {
       query,
       defaultFilters ? { filters: defaultFilters } : undefined,
     );
-    const results = await Promise.all(search.results.slice(0, 10).map((result) => result.data()));
+    const results = await Promise.all(
+      search.results.slice(0, 10).map((result) => result.data()),
+    );
     return results.map((result): SearchResult => ({
       title: result.meta?.title ?? "Untitled",
       url: result.url,
       snippet: result.excerpt,
       subResults: result.sub_results
-        ?.filter((sub): sub is Required<PagefindSubResult> => Boolean(sub.title && sub.url))
+        ?.filter((sub): sub is Required<PagefindSubResult> =>
+          Boolean(sub.title && sub.url),
+        )
         .map((sub) => ({ title: sub.title, url: sub.url })),
     }));
   },

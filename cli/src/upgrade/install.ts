@@ -4,12 +4,16 @@ import { chmod, rename, writeFile } from "node:fs/promises";
 import { extractZipBinary } from "@/upgrade/archive";
 import type { CliRelease } from "@/upgrade/release";
 
-const quotePowerShellLiteral = (value: string): string => `'${value.replaceAll("'", "''")}'`;
+const quotePowerShellLiteral = (value: string): string =>
+  `'${value.replaceAll("'", "''")}'`;
 const DOWNLOAD_TIMEOUT_MS = 60_000;
 const DOWNLOAD_ATTEMPTS = 3;
 const RETRY_DELAYS_MS = [250, 500] as const;
 
-type Fetcher = (input: string | URL | Request, init?: RequestInit) => Promise<Response>;
+type Fetcher = (
+  input: string | URL | Request,
+  init?: RequestInit,
+) => Promise<Response>;
 
 class DownloadError extends Error {
   constructor(
@@ -21,11 +25,16 @@ class DownloadError extends Error {
 }
 
 function errorMessage(cause: unknown): string {
-  return cause instanceof Error && cause.message ? cause.message : String(cause);
+  return cause instanceof Error && cause.message
+    ? cause.message
+    : String(cause);
 }
 
 function isRetryableNetworkError(cause: unknown): boolean {
-  return cause instanceof Error && /connection|fetch|network|socket|timeout/i.test(cause.message);
+  return (
+    cause instanceof Error &&
+    /connection|fetch|network|socket|timeout/i.test(cause.message)
+  );
 }
 
 function waitForRetry(attempt: number): Promise<void> {
@@ -33,7 +42,11 @@ function waitForRetry(attempt: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, delay));
 }
 
-async function downloadAttempt(url: string, label: string, fetcher: Fetcher): Promise<Uint8Array> {
+async function downloadAttempt(
+  url: string,
+  label: string,
+  fetcher: Fetcher,
+): Promise<Uint8Array> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), DOWNLOAD_TIMEOUT_MS);
   try {
@@ -45,18 +58,26 @@ async function downloadAttempt(url: string, label: string, fetcher: Fetcher): Pr
     if (!response.ok) {
       throw new DownloadError(
         `${label} failed with HTTP ${response.status}: ${url}`,
-        response.status === 408 || response.status === 429 || response.status >= 500,
+        response.status === 408 ||
+          response.status === 429 ||
+          response.status >= 500,
       );
     }
     return new Uint8Array(await response.arrayBuffer());
   } catch (cause) {
     if (controller.signal.aborted) {
-      throw new DownloadError(`${label} timed out after ${DOWNLOAD_TIMEOUT_MS}ms.`, true);
+      throw new DownloadError(
+        `${label} timed out after ${DOWNLOAD_TIMEOUT_MS}ms.`,
+        true,
+      );
     }
     if (cause instanceof DownloadError) {
       throw cause;
     }
-    throw new DownloadError(`${label}: ${errorMessage(cause)}`, isRetryableNetworkError(cause));
+    throw new DownloadError(
+      `${label}: ${errorMessage(cause)}`,
+      isRetryableNetworkError(cause),
+    );
   } finally {
     clearTimeout(timer);
   }
@@ -73,7 +94,10 @@ export async function downloadBytes(
       return await downloadAttempt(url, label, fetcher);
     } catch (cause) {
       lastError = cause;
-      if (!(cause instanceof DownloadError && cause.retryable) || attempt === DOWNLOAD_ATTEMPTS) {
+      if (
+        !(cause instanceof DownloadError && cause.retryable) ||
+        attempt === DOWNLOAD_ATTEMPTS
+      ) {
         throw cause;
       }
       await waitForRetry(attempt);
@@ -90,24 +114,45 @@ export function checksumFromFile(contents: string): string {
   return checksum.toLowerCase();
 }
 
-function scheduleWindowsReplacement(temporaryPath: string, targetPath: string): void {
+function scheduleWindowsReplacement(
+  temporaryPath: string,
+  targetPath: string,
+): void {
   const script = [
     `Wait-Process -Id ${process.pid}`,
     `Move-Item -LiteralPath ${quotePowerShellLiteral(temporaryPath)} -Destination ${quotePowerShellLiteral(targetPath)} -Force`,
   ].join("; ");
   const child = spawn(
     "powershell.exe",
-    ["-NoLogo", "-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", script],
+    [
+      "-NoLogo",
+      "-NoProfile",
+      "-NonInteractive",
+      "-WindowStyle",
+      "Hidden",
+      "-Command",
+      script,
+    ],
     { detached: true, stdio: "ignore", windowsHide: true },
   );
   child.unref();
 }
 
-export async function installRelease(release: CliRelease, targetPath: string): Promise<void> {
+export async function installRelease(
+  release: CliRelease,
+  targetPath: string,
+): Promise<void> {
   const assetBytes = await downloadBytes(release.assetUrl, "Release asset");
-  const checksumBytes = await downloadBytes(release.checksumUrl, "Release checksum");
-  const expectedChecksum = checksumFromFile(new TextDecoder().decode(checksumBytes));
-  const actualChecksum = new Bun.CryptoHasher("sha256").update(assetBytes).digest("hex");
+  const checksumBytes = await downloadBytes(
+    release.checksumUrl,
+    "Release checksum",
+  );
+  const expectedChecksum = checksumFromFile(
+    new TextDecoder().decode(checksumBytes),
+  );
+  const actualChecksum = new Bun.CryptoHasher("sha256")
+    .update(assetBytes)
+    .digest("hex");
   if (actualChecksum !== expectedChecksum) {
     throw new Error(
       `Downloaded release asset checksum mismatch (expected ${expectedChecksum}, received ${actualChecksum}).`,
@@ -115,7 +160,9 @@ export async function installRelease(release: CliRelease, targetPath: string): P
   }
 
   const bytes =
-    release.format === "zip" ? extractZipBinary(assetBytes, release.executableName) : assetBytes;
+    release.format === "zip"
+      ? extractZipBinary(assetBytes, release.executableName)
+      : assetBytes;
 
   const temporaryPath = `${targetPath}.upgrade-${process.pid}`;
   await writeFile(temporaryPath, bytes, { mode: 0o755 });
@@ -132,10 +179,13 @@ export async function installRelease(release: CliRelease, targetPath: string): P
   // Newer Bun versions produce unsigned binaries that are killed on first keychain access, causing silent outfit failures.
   if (process.platform === "darwin") {
     try {
-      const proc = Bun.spawn(["codesign", "--force", "--sign", "-", targetPath], {
-        stdout: "ignore",
-        stderr: "ignore",
-      });
+      const proc = Bun.spawn(
+        ["codesign", "--force", "--sign", "-", targetPath],
+        {
+          stdout: "ignore",
+          stderr: "ignore",
+        },
+      );
       await proc.exited;
       if (proc.exitCode !== 0) {
         console.warn(

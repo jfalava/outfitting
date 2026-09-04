@@ -21,9 +21,13 @@ const ASSETS = {
   },
 } as const;
 
-const normalizePath = (path: string): string => path.replaceAll("\\", "/").toLowerCase();
+const normalizePath = (path: string): string =>
+  path.replaceAll("\\", "/").toLowerCase();
 
-export function assetNameFor(platform = process.platform, arch = process.arch): string {
+export function assetNameFor(
+  platform = process.platform,
+  arch = process.arch,
+): string {
   const names = ASSETS[`${platform}:${arch}` as keyof typeof ASSETS];
   if (!names) {
     throw new Error(`Self-update is not supported on ${platform}/${arch}.`);
@@ -31,7 +35,10 @@ export function assetNameFor(platform = process.platform, arch = process.arch): 
   return names.archive;
 }
 
-export function executableNameFor(platform = process.platform, arch = process.arch): string {
+export function executableNameFor(
+  platform = process.platform,
+  arch = process.arch,
+): string {
   const names = ASSETS[`${platform}:${arch}` as keyof typeof ASSETS];
   if (!names) {
     throw new Error(`Self-update is not supported on ${platform}/${arch}.`);
@@ -39,7 +46,10 @@ export function executableNameFor(platform = process.platform, arch = process.ar
   return names.executable;
 }
 
-export function executablePath(main = Bun.main, execPath = process.execPath): string {
+export function executablePath(
+  main = Bun.main,
+  execPath = process.execPath,
+): string {
   const normalizedMain = normalizePath(main);
   const isCompiledBinary = normalizedMain.startsWith("/$bunfs/");
   if (!isCompiledBinary && normalizedMain !== normalizePath(execPath)) {

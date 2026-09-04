@@ -39,7 +39,9 @@ export async function baseUrl(): Promise<string> {
     return normalizeWorkerUrl(stored);
   }
 
-  const value = prompt("Lockfiles Worker URL (stored in your OS keychain):")?.trim();
+  const value = prompt(
+    "Lockfiles Worker URL (stored in your OS keychain):",
+  )?.trim();
   if (!value) {
     throw new Error("A Worker URL is required.");
   }
@@ -49,7 +51,9 @@ export async function baseUrl(): Promise<string> {
 
 export async function promptAndStoreApiToken(): Promise<string> {
   const token =
-    (await maskedPrompt("Lockfiles API token (stored in your OS keychain): "))?.trim() ?? null;
+    (
+      await maskedPrompt("Lockfiles API token (stored in your OS keychain): ")
+    )?.trim() ?? null;
   if (!token) {
     throw new Error("An API token is required.");
   }

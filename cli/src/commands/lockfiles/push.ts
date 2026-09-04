@@ -14,7 +14,9 @@ export const pushCommand = Command.make(
     ),
     ifMatch: Flag.string("if-match").pipe(
       Flag.optional,
-      Flag.withDescription("Only promote when the current hash matches this SHA-256."),
+      Flag.withDescription(
+        "Only promote when the current hash matches this SHA-256.",
+      ),
     ),
   },
   ({ machine, kind, path, ifMatch }) =>

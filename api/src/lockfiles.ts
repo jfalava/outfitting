@@ -15,7 +15,9 @@ interface PromotionInput {
   size: number;
 }
 
-type PromotionResult = { status: "ok" } | { currentHash: string | null; status: "stale" };
+type PromotionResult =
+  | { status: "ok" }
+  | { currentHash: string | null; status: "stale" };
 
 type DeleteLockfileResult = "current" | "deleted" | "not-found";
 
@@ -55,13 +57,19 @@ WHERE machine = ? AND kind = ? AND hash = ?
      WHERE machine = ? AND kind = ? AND hash = ?
   )`;
 
-export function lockfileKey(machine: string, kind: string, hash: string): string {
+export function lockfileKey(
+  machine: string,
+  kind: string,
+  hash: string,
+): string {
   return `lockfile:${machine}:${kind}:${hash}`;
 }
 
 export async function sha256(content: ArrayBuffer): Promise<string> {
   const digest = await crypto.subtle.digest("SHA-256", content);
-  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+  return Array.from(new Uint8Array(digest), (byte) =>
+    byte.toString(16).padStart(2, "0"),
+  ).join("");
 }
 
 export function parseIfMatch(value: string | undefined): string | undefined {
@@ -77,7 +85,11 @@ export function parseIfMatch(value: string | undefined): string | undefined {
   return match[1];
 }
 
-async function currentHead(env: Env, machine: string, kind: string): Promise<string | null> {
+async function currentHead(
+  env: Env,
+  machine: string,
+  kind: string,
+): Promise<string | null> {
   const current = await env.DB.prepare(
     `SELECT hash
        FROM lockfile_heads
@@ -113,7 +125,15 @@ export async function storeAndPromote(
       kind,
       parent,
     ),
-    env.DB.prepare(ADVANCE_HEAD_SQL).bind(machine, kind, hash, parent, machine, kind, parent),
+    env.DB.prepare(ADVANCE_HEAD_SQL).bind(
+      machine,
+      kind,
+      hash,
+      parent,
+      machine,
+      kind,
+      parent,
+    ),
   ]);
   if (results[1]?.meta.changes === 1) {
     return { status: "ok" };
@@ -144,8 +164,22 @@ export async function deleteLockfileVersion(
   }
 
   const results = await env.DB.batch([
-    env.DB.prepare(DELETE_PROMOTIONS_SQL).bind(machine, kind, hash, machine, kind, hash),
-    env.DB.prepare(DELETE_LOCKFILE_SQL).bind(machine, kind, hash, machine, kind, hash),
+    env.DB.prepare(DELETE_PROMOTIONS_SQL).bind(
+      machine,
+      kind,
+      hash,
+      machine,
+      kind,
+      hash,
+    ),
+    env.DB.prepare(DELETE_LOCKFILE_SQL).bind(
+      machine,
+      kind,
+      hash,
+      machine,
+      kind,
+      hash,
+    ),
   ]);
   if (results[1]?.meta.changes === 0) {
     return "current";

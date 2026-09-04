@@ -31,7 +31,10 @@ export function registerLockfileRoutes(app: Hono<AppEnv>): void {
       parentHash = parseIfMatch(c.req.header("If-Match"));
     } catch (error) {
       return c.json(
-        { error: error instanceof Error ? error.message : "Invalid If-Match header." },
+        {
+          error:
+            error instanceof Error ? error.message : "Invalid If-Match header.",
+        },
         400,
       );
     }
@@ -140,7 +143,10 @@ export function registerLockfileRoutes(app: Hono<AppEnv>): void {
 
     const result = await deleteLockfileVersion(c.env, machine, kind, hash);
     if (result === "current") {
-      return c.json({ error: "Cannot delete the current lockfile version" }, 409);
+      return c.json(
+        { error: "Cannot delete the current lockfile version" },
+        409,
+      );
     }
     if (result === "not-found") {
       return c.json({ error: "Lockfile version not found" }, 404);

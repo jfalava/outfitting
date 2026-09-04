@@ -39,12 +39,12 @@ CI=1 bun run deploy -- --yes --adopt
 
 ## Routing
 
-| Host | Paths | Backend |
-| ---- | ----- | ------- |
-| `outfitting.jfa.dev` | `/api/*` | API worker (prefix stripped) |
-| `outfitting.jfa.dev` | docs allowlist (`/`, `/docs/*`, assets, …) | Docs worker |
-| `outfitting.jfa.dev` | anything else | `418` |
-| `mac/win/wsl/nixos.jfa.dev` | all | Installer worker |
+| Host                        | Paths                                      | Backend                      |
+| --------------------------- | ------------------------------------------ | ---------------------------- |
+| `outfitting.jfa.dev`        | `/api/*`                                   | API worker (prefix stripped) |
+| `outfitting.jfa.dev`        | docs allowlist (`/`, `/docs/*`, assets, …) | Docs worker                  |
+| `outfitting.jfa.dev`        | anything else                              | `418`                        |
+| `mac/win/wsl/nixos.jfa.dev` | all                                        | Installer worker             |
 
 Installer paths such as `/fonts` and `/post-install` only exist on the platform hosts, so they never collide with docs webfonts or documentation under `/docs/...` on the apex.
 

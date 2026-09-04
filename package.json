@@ -41,13 +41,20 @@
   },
   "type": "module",
   "scripts": {
+    "build": "bun run ci:build",
+    "check:global": "bun run --filter @outfitting/api --filter @outfitting/cli --filter @outfitting/docs --filter @outfitting/iac check",
+    "ci:build": "bun run --filter @outfitting/iac ci:build",
+    "ci:deploy": "bun run --filter @outfitting/iac ci:deploy",
+    "deploy": "bun run --filter @outfitting/iac deploy",
+    "destroy": "bun run --filter @outfitting/iac destroy",
     "format": "oxfmt",
-    "plan": "bun run --cwd iac plan",
-    "deploy": "bun run --cwd iac deploy",
-    "destroy": "bun run --cwd iac destroy",
-    "test:router": "bun run --cwd router test",
-    "test:api": "bun run --cwd api test",
-    "test:cli": "bun run --cwd cli test"
+    "format:global": "bun run --filter @outfitting/api --filter @outfitting/cli --filter @outfitting/docs --filter @outfitting/iac format",
+    "lint:global": "bun run --filter @outfitting/api --filter @outfitting/cli --filter @outfitting/docs --filter @outfitting/iac lint",
+    "plan": "bun run --filter @outfitting/iac plan",
+    "test:api": "bun run --filter @outfitting/api test",
+    "test:cli": "bun run --filter @outfitting/cli test",
+    "test:router": "bun run --filter @outfitting/router test",
+    "typecheck:global": "bun run --filter @outfitting/api --filter @outfitting/cli --filter @outfitting/docs --filter @outfitting/iac typecheck"
   },
   "devDependencies": {
     "@oxlint/plugins": "catalog:build",

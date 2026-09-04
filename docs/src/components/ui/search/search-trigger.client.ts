@@ -3,7 +3,9 @@
 import { mount } from "@cloudflare/nimbus-docs/client";
 
 mount("[data-search-trigger]", (btn) => {
-  const nav = navigator as Navigator & { userAgentData?: { platform?: string } };
+  const nav = navigator as Navigator & {
+    userAgentData?: { platform?: string };
+  };
   const platform = nav.userAgentData?.platform ?? "";
   const isMac = platform
     ? /mac/i.test(platform)

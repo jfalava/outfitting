@@ -11,7 +11,7 @@ The installer stores the repository path in `%USERPROFILE%\.config\outfitting\re
 
 Pull the latest repository changes using the configured path:
 
-~~~powershell
+```powershell
 $repoPathFile = Join-Path $HOME ".config\outfitting\repo-path"
 $repoPath = if ($env:OUTFITTING_REPO) {
     $env:OUTFITTING_REPO
@@ -23,19 +23,19 @@ $repoPath = if ($env:OUTFITTING_REPO) {
 Set-Location $repoPath
 git pull
 
-~~~
+```
 
 The PowerShell profile entry points remain symbolic links to the repository-owned profile, so pulling updates the linked source directly. Open a new PowerShell session after pulling, or reload the profile in the current session:
 
-~~~powershell
+```powershell
 . $PROFILE
-~~~
+```
 
 The profile also provides the reload alias:
 
-~~~powershell
+```powershell
 reload
-~~~
+```
 
 ## Packages and inventories
 
@@ -49,9 +49,9 @@ Update-All performs these operations:
 
 Run it from a session with the repository-owned profile loaded:
 
-~~~powershell
+```powershell
 Update-All
-~~~
+```
 
 Each inventory or lockfile upload uses `outfitting-manager` only when an application with that name is available on `PATH`. If it is unavailable, that upload is skipped with a warning; the package update work continues. A failure in the WinGet, Scoop, or PowerShell update steps still causes `Update-All` to fail.
 
@@ -59,6 +59,6 @@ Each inventory or lockfile upload uses `outfitting-manager` only when an applica
 
 Re-run the [post-install steps](/docs/windows/post-install/), including optional downloading and extracting of the Cloudflare Access-protected licensed fonts to `%USERPROFILE%\Downloads\fonts`:
 
-~~~powershell
+```powershell
 irm win.jfa.dev/post-install | iex
-~~~
+```

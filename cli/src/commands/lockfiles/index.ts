@@ -1,6 +1,9 @@
 import { Command } from "effect/unstable/cli";
 
-import { configureTokenCommand, configureWorkerCommand } from "@/commands/lockfiles/configure";
+import {
+  configureTokenCommand,
+  configureWorkerCommand,
+} from "@/commands/lockfiles/configure";
 import { historyCommand } from "@/commands/lockfiles/history";
 import { listCommand } from "@/commands/lockfiles/list";
 import { pullCommand } from "@/commands/lockfiles/pull";

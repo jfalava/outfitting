@@ -92,14 +92,16 @@
   font-weight: var(--nb-h4-weight);
 }
 
-.docs-content :where(h1:not([class]), h2:not([class]), h3:not([class]), h4:not([class])) {
+.docs-content
+  :where(h1:not([class]), h2:not([class]), h3:not([class]), h4:not([class])) {
   scroll-margin-top: 5rem;
 }
 
 /* Typographic wrapping — balance multi-line headings (no orphan words),
    pretty-wrap body copy (no single-word last lines). Progressive
    enhancement; unsupported browsers ignore both. */
-.docs-content :where(h1:not([class]), h2:not([class]), h3:not([class]), h4:not([class])) {
+.docs-content
+  :where(h1:not([class]), h2:not([class]), h3:not([class]), h4:not([class])) {
   text-wrap: balance;
 }
 
@@ -116,7 +118,9 @@
   color: var(--nb-muted-foreground);
   text-decoration: none;
   opacity: 0;
-  transition: opacity 0.15s, color 0.15s;
+  transition:
+    opacity 0.15s,
+    color 0.15s;
 }
 
 .docs-content :where(h2[id], h3[id], h4[id]):hover .heading-anchor,
@@ -207,7 +211,8 @@
   white-space: nowrap;
 }
 
-.docs-content :where(tbody:not([class]) tr:not([class]):last-child td:not([class])) {
+.docs-content
+  :where(tbody:not([class]) tr:not([class]):last-child td:not([class])) {
   border-bottom: none;
 }
 
@@ -215,16 +220,28 @@
    `border-collapse: separate` leaves square cell backgrounds (the muted
    thead fill in particular) that would otherwise poke past the rounded
    table border. */
-.docs-content :where(thead:not([class]) tr:not([class]):first-child th:not([class]):first-child) {
+.docs-content
+  :where(
+    thead:not([class]) tr:not([class]):first-child th:not([class]):first-child
+  ) {
   border-top-left-radius: 0.75rem;
 }
-.docs-content :where(thead:not([class]) tr:not([class]):first-child th:not([class]):last-child) {
+.docs-content
+  :where(
+    thead:not([class]) tr:not([class]):first-child th:not([class]):last-child
+  ) {
   border-top-right-radius: 0.75rem;
 }
-.docs-content :where(tbody:not([class]) tr:not([class]):last-child td:not([class]):first-child) {
+.docs-content
+  :where(
+    tbody:not([class]) tr:not([class]):last-child td:not([class]):first-child
+  ) {
   border-bottom-left-radius: 0.75rem;
 }
-.docs-content :where(tbody:not([class]) tr:not([class]):last-child td:not([class]):last-child) {
+.docs-content
+  :where(
+    tbody:not([class]) tr:not([class]):last-child td:not([class]):last-child
+  ) {
   border-bottom-right-radius: 0.75rem;
 }
 
@@ -296,7 +313,10 @@
   user-select: none;
 }
 
-.docs-content :where(details:not([class]):not(.file-tree *) > summary)::-webkit-details-marker {
+.docs-content
+  :where(
+    details:not([class]):not(.file-tree *) > summary
+  )::-webkit-details-marker {
   display: none;
 }
 
@@ -312,7 +332,8 @@
   transition: transform 0.2s cubic-bezier(0.32, 0.72, 0, 1);
 }
 
-.docs-content :where(details[open]:not([class]):not(.file-tree *) > summary)::after {
+.docs-content
+  :where(details[open]:not([class]):not(.file-tree *) > summary)::after {
   transform: rotate(45deg) translateY(-0.125em);
 }
 

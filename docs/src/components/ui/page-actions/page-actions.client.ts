@@ -1,10 +1,18 @@
 import { mount } from "@cloudflare/nimbus-docs/client";
 
 function initPageActions(root: HTMLElement): () => void {
-  const copyBtn = root.querySelector<HTMLButtonElement>("[data-nb-page-actions-copy]");
-  const copyIcon = root.querySelector<SVGElement>("[data-nb-page-actions-copy-icon]");
-  const checkIcon = root.querySelector<SVGElement>("[data-nb-page-actions-check-icon]");
-  const label = root.querySelector<HTMLSpanElement>("[data-nb-page-actions-label]");
+  const copyBtn = root.querySelector<HTMLButtonElement>(
+    "[data-nb-page-actions-copy]",
+  );
+  const copyIcon = root.querySelector<SVGElement>(
+    "[data-nb-page-actions-copy-icon]",
+  );
+  const checkIcon = root.querySelector<SVGElement>(
+    "[data-nb-page-actions-check-icon]",
+  );
+  const label = root.querySelector<HTMLSpanElement>(
+    "[data-nb-page-actions-label]",
+  );
   const mdUrl = root.dataset.mdUrl;
 
   if (!copyBtn || !mdUrl) return () => {};

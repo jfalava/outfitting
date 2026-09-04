@@ -4,8 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "check": "bun run lint && oxfmt --check",
-    "fix": "bun run lint --fix && bun run format",
+    "check": "bun run lint --fix",
     "format": "oxfmt",
     "lint": "oxlint",
     "test": "vitest run",

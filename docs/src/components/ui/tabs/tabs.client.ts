@@ -11,7 +11,9 @@ function initTabContainer(container: HTMLElement): () => void {
   const id = `nb-tabs-${counter++}`;
   const syncKey = container.dataset.nbSyncKey;
   const tablist = container.querySelector<HTMLElement>("[role=tablist]");
-  const indicator = container.querySelector<HTMLElement>("[data-nb-tabs-indicator]");
+  const indicator = container.querySelector<HTMLElement>(
+    "[data-nb-tabs-indicator]",
+  );
 
   // Scope to this container so a nested <Tabs>'s triggers don't flip the
   // parent into manual mode (or vice-versa), independent of mount order.
@@ -65,8 +67,9 @@ function initTabContainer(container: HTMLElement): () => void {
     // scrollIntoView, which would also scroll the page vertically).
     onActivate: (index) => {
       if (!tablist) return;
-      const trigger =
-        tablist.querySelectorAll<HTMLElement>("[data-nb-tabs-trigger]")[index];
+      const trigger = tablist.querySelectorAll<HTMLElement>(
+        "[data-nb-tabs-trigger]",
+      )[index];
       if (!trigger) return;
       const left = trigger.offsetLeft;
       const right = left + trigger.offsetWidth;
@@ -86,12 +89,16 @@ function initTabContainer(container: HTMLElement): () => void {
     )
       .filter((t) => t.closest("[data-nb-tabs]") === container)
       .map((t) => (t.textContent ?? "").trim());
-    const dupes = [...new Set(labels.filter((l, i) => labels.indexOf(l) !== i))];
+    const dupes = [
+      ...new Set(labels.filter((l, i) => labels.indexOf(l) !== i)),
+    ];
     if (dupes.length) {
       console.warn(
         `[nimbus] <Tabs syncKey="${syncKey}"> has duplicate tab labels (${dupes
           .map((d) => `"${d}"`)
-          .join(", ")}). Sync is keyed by label, so a duplicate activates the ` +
+          .join(
+            ", ",
+          )}). Sync is keyed by label, so a duplicate activates the ` +
           `first match. Give each tab a unique label.`,
       );
     }
@@ -101,7 +108,9 @@ function initTabContainer(container: HTMLElement): () => void {
     instance.destroy();
     // Remove synthesized triggers so re-mount doesn't double up.
     if (synthesize && tablist) {
-      tablist.querySelectorAll("[data-nb-tabs-trigger]").forEach((b) => b.remove());
+      tablist
+        .querySelectorAll("[data-nb-tabs-trigger]")
+        .forEach((b) => b.remove());
     }
   };
 }

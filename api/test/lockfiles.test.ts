@@ -34,7 +34,11 @@ describe("authentication", () => {
   const env = partialEnv as Env;
 
   test("rejects a missing bearer token", async () => {
-    const response = await app.request("http://worker.test/lockfiles/jfalava%3Ax64-wsl", {}, env);
+    const response = await app.request(
+      "http://worker.test/lockfiles/jfalava%3Ax64-wsl",
+      {},
+      env,
+    );
     expect(response.status).toBe(401);
   });
 

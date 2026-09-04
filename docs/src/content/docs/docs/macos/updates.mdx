@@ -9,22 +9,22 @@ sidebar:
 
 The installer stores the checkout path in `$HOME/.config/outfitting/repo-path` and protects that file with mode 600. Pull the latest repository changes from the configured checkout:
 
-~~~bash
+```bash
 repo_path="$(cat "$HOME/.config/outfitting/repo-path")"
 git -C "$repo_path" pull --ff-only
-~~~
+```
 
 Apply updated Nix-darwin/Home Manager configuration and repair its symlinks:
 
-~~~bash
+```bash
 hm-sync
-~~~
+```
 
 Apply the committed Homebrew manifest, remove unlisted casks, and store the observed Homebrew inventory:
 
-~~~bash
+```bash
 outfit sync
-~~~
+```
 
 If you only need to pull repository changes without applying Nix packages, use `update-all-no-nix`. It pulls the configured checkout with `git pull --ff-only` and leaves activation for a later outfit switch.
 
@@ -32,29 +32,29 @@ If you only need to pull repository changes without applying Nix packages, use `
 
 Use outfit upgrade for the normal combined upgrade:
 
-~~~bash
+```bash
 outfit upgrade
-~~~
+```
 
 This updates the remote Nix flake lock, builds and activates nix-darwin, upgrades Homebrew formulae and casks, removes unlisted casks, and stores the observed Homebrew inventory. It requires outfitting-manager and sudo. If the Nix upgrade is interrupted after activation, the recovery checkpoint is retained; run outfit recover before starting another upgrade.
 
 For full maintenance, update-all also performs Nix-darwin upgrade, Nix garbage collection, Homebrew upgrades, global Bun package updates, and Homebrew inventory storage:
 
-~~~bash
+```bash
 update-all
-~~~
+```
 
 update-all requests sudo at the start. Each update stage runs independently, so a failed Nix, Homebrew, Bun, or inventory step is reported as a warning without preventing the remaining stages from running. The command only stops early when the initial sudo request fails. Its global Bun update requires both Bun and uv; Bun is skipped when it is not installed, while uv is required when global Bun packages are present.
 
 Capture only the current Homebrew state with:
 
-~~~bash
+```bash
 outfit snapshot
-~~~
+```
 
 ## Individual operations
 
-~~~bash
+```bash
 # Nix-darwin configuration only
 hm-update
 
@@ -69,7 +69,7 @@ hm-clean
 
 # Update global Bun packages manually
 bun-update-global
-~~~
+```
 
 Use the Zsh profile functions after opening a new shell or reloading the profile. The outfit commands use the canonical `jfalava:aarch64-darwin/nix` lock and do not create a repository `flake.lock`.
 
@@ -77,6 +77,6 @@ Use the Zsh profile functions after opening a new shell or reloading the profile
 
 Run the [post-install steps](/docs/macos/post-install/) to install public fonts and licensed fonts system-wide:
 
-~~~bash
+```bash
 curl -L mac.jfa.dev/post-install | bash
-~~~
+```

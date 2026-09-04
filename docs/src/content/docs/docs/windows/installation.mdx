@@ -13,17 +13,17 @@ sidebar:
 - Run the main installer from an elevated PowerShell session. OpenSSH, its firewall rule, and machine-level registry tweaks need elevation to complete.
 - If PowerShell blocks the command, run:
 
-~~~powershell
+```powershell
 Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process
-~~~
+```
 
 - WinGet and Microsoft Store package installations must use an explicit profile. There is no default profile.
 
 ## View Available Profiles
 
-~~~powershell
+```powershell
 irm win.jfa.dev | iex
-~~~
+```
 
 ## WinGet Package Installation
 
@@ -31,7 +31,7 @@ The main installer downloads the selected WinGet package list and installs each 
 
 Use elevated PowerShell for the full installer:
 
-~~~powershell
+```powershell
 # Single profile
 irm win.jfa.dev/base | iex
 irm win.jfa.dev/dev | iex
@@ -39,7 +39,7 @@ irm win.jfa.dev/dev | iex
 # Multiple profiles combined
 irm win.jfa.dev/base+dev+gaming | iex
 irm win.jfa.dev/dev+gaming+qol | iex
-~~~
+```
 
 Available WinGet profiles:
 
@@ -65,14 +65,14 @@ The profile links use Windows symbolic links. Enable Windows Developer Mode or r
 
 Microsoft Store packages require the /msstore/ prefix in the URL.
 
-~~~powershell
+```powershell
 # Single profile
 irm win.jfa.dev/msstore/msstore-base | iex
 
 # Multiple profiles combined
 irm win.jfa.dev/msstore/msstore-base+msstore-gaming | iex
 irm win.jfa.dev/msstore/msstore-base+msstore-gaming+msstore-qol | iex
-~~~
+```
 
 Available Microsoft Store profiles:
 
@@ -84,17 +84,17 @@ Available Microsoft Store profiles:
 
 Correct format:
 
-~~~powershell
+```powershell
 irm win.jfa.dev/msstore/<profile>+<profile> | iex
-~~~
+```
 
 ## Outfitting manager
 
 The main Windows installer downloads the latest Windows x64 outfitting-manager release and its SHA-256 checksum to:
 
-~~~text
+```text
 %USERPROFILE%\.local\bin\outfitting-manager.exe
-~~~
+```
 
 The separate [post-install script](/docs/windows/post-install/) silently performs the same checksum-verified download as a best-effort fallback when the executable is missing. It suppresses manager download errors and does not block its other tasks. The manager is a release binary; these scripts do not create a manager symlink or build it from the repository.
 
@@ -102,9 +102,9 @@ The separate [post-install script](/docs/windows/post-install/) silently perform
 
 Requires Bun installed first:
 
-~~~powershell
+```powershell
 irm win.jfa.dev/bun | iex
-~~~
+```
 
 ## Scoop inventory
 
@@ -116,9 +116,9 @@ Run `Save-OutfittingScoopInventory` to capture state without reconciling first.
 
 Runs only the registry tweak installer (no WinGet or Microsoft Store packages).
 
-~~~powershell
+```powershell
 irm win.jfa.dev/registry | iex
-~~~
+```
 
 ## Post-install
 
