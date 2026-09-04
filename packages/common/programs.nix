@@ -269,7 +269,7 @@
         };
         "Machine Memory" = {
           type = "remote";
-          url = "https://machine-memory-api.jfalava.workers.dev/mcp";
+          url = "https://machine-memory.jfa.dev/mcp";
           oauth = { };
         };
       };
