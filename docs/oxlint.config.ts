@@ -2,9 +2,15 @@ import { defineConfig } from "oxlint";
 
 import { antiSlopJsPlugins, antiSlopRules } from "../oxlint.config.ts";
 
-// Docs are Astro + MDX, so they deliberately skip the strict application
-// base (type-aware built-ins) and lint only the vendored anti-slop rules.
+// Docs: oxlint covers TypeScript only. Astro templates are linted by ESLint
+// (eslint-plugin-astro) via lint:astro.
 export default defineConfig({
   jsPlugins: antiSlopJsPlugins(".."),
   rules: antiSlopRules,
+  ignorePatterns: [
+    "**/*.astro",
+    "**/*.md",
+    "**/*.mdx",
+    "**/*.css",
+  ],
 });
