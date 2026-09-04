@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# Fast wake path: PATH + bun presence only. No installs.
+set -euo pipefail
+
+export PATH="${HOME}/.bun/bin:${PATH}"
+
+if ! command -v bun >/dev/null 2>&1; then
+  printf '[resume] bun missing from PATH; re-run .agents/setup\n' >&2
+  exit 1
+fi
+
+printf '[resume] bun %s ready\n' "$(bun --version)"

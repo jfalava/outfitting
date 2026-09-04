@@ -13,22 +13,24 @@ KV holds content-addressed blobs; D1 holds searchable metadata. See [storage](/d
 
 ## Deploy
 
-Infrastructure lives in `iac/` (Alchemy). From the repository root:
+Infrastructure lives in `iac/` (Alchemy). Names default to `outfitting-*` and are overridable — see [Provision](/docs/manager/provision).
 
 ```bash
 bun install
 cp iac/.env.example iac/.env   # set OUTFITTING_LOCKFILES_TOKEN if provisioning
 CI=1 bun run deploy -- --yes --adopt
+
+# Or: bun run cli/index.ts provision [--no-docs] [--api-name outfitting-api-dev] …
 ```
 
-That stack owns:
+Default stack owns:
 
 - `outfitting-api` (private) — this worker
-- `outfitting-docs` + static assets (private)
+- `outfitting-docs` + static assets (private; omit with `--no-docs`)
 - `outfitting-installer` (private)
-- `outfitting-router` — sole public entry on `outfitting.jfa.dev` and the installer hosts
+- `outfitting-router` — sole public entry on the configured domain and installer hosts
 
-Existing D1 (`outfitting-lockfiles`), KV, R2, and the Secrets Store secret are adopted. Configure the CLI base URL as `https://outfitting.jfa.dev/api` — see [manager CLI](/docs/manager/cli#configure-lockfile-storage).
+Existing D1 (`outfitting-lockfiles`), KV, R2, and the Secrets Store secret are adopted when those names match. Configure the CLI base URL as `https://<router-domain>/api` — see [manager CLI](/docs/manager/cli#configure-lockfile-storage).
 
 ## HTTP API
 

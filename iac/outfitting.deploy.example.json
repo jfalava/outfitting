@@ -1,0 +1,16 @@
+{
+  "domain": "outfitting.example.com",
+  "docs": false,
+  "stackName": "Outfitting",
+  "kv": "outfitting-lockfiles",
+  "database": "outfitting-lockfiles",
+  "privateFonts": "outfitting-private-fonts",
+  "installerHosts": ["win.example.com", "wsl.example.com", "mac.example.com", "nixos.example.com"],
+  "workers": {
+    "router": "outfitting-router",
+    "api": "outfitting-api",
+    "docs": "outfitting-docs",
+    "docsAssets": "outfitting-docs-assets",
+    "installer": "outfitting-installer"
+  }
+}

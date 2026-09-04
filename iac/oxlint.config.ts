@@ -10,5 +10,5 @@ export default defineConfig({
   globals: {
     Bun: "readonly",
   },
-  ignorePatterns: [...agentIgnores, "*.d.ts", "**/*.d.ts"],
+  ignorePatterns: [...agentIgnores, "*.d.ts", "**/*.d.ts", "test/**"],
 });

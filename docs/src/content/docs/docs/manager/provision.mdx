@@ -1,0 +1,104 @@
+---
+title: Provision
+description: Deploy a named Outfitting stack with optional docs skip.
+sidebar:
+  order: 4
+---
+
+Any Cloudflare account can stand up an Outfitting edge stack. Resource names default to `outfitting-*` and are overridable so multiple environments (or forks) do not collide.
+
+## Quick start
+
+From the monorepo root (Bun workspaces already installed):
+
+```bash
+# Skip docs, custom worker names, store lockfiles credentials in the OS keychain
+bun run cli/index.ts provision --no-docs \
+  --api-name outfitting-api-dev \
+  --router-name outfitting-router-dev \
+  --stack-name OutfittingDev
+```
+
+Equivalent without the CLI (env + Alchemy):
+
+```bash
+export OUTFITTING_DEPLOY_DOCS=0
+export OUTFITTING_API_NAME=outfitting-api-dev
+export OUTFITTING_ROUTER_NAME=outfitting-router-dev
+export OUTFITTING_STACK_NAME=OutfittingDev
+CI=1 bun run deploy -- --yes --adopt
+```
+
+## Config file
+
+Copy the example and edit. The file is gitignored when named `outfitting.deploy.json` at the repo root or beside `iac/alchemy.run.ts`.
+
+```bash
+cp iac/outfitting.deploy.example.json outfitting.deploy.json
+bun run cli/index.ts provision --config ./outfitting.deploy.json
+```
+
+Example shape:
+
+```json
+{
+  "domain": "outfitting.example.com",
+  "docs": false,
+  "stackName": "Outfitting",
+  "kv": "outfitting-lockfiles",
+  "database": "outfitting-lockfiles",
+  "privateFonts": "outfitting-private-fonts",
+  "installerHosts": ["win.example.com", "wsl.example.com", "mac.example.com", "nixos.example.com"],
+  "workers": {
+    "router": "outfitting-router",
+    "api": "outfitting-api",
+    "docs": "outfitting-docs",
+    "docsAssets": "outfitting-docs-assets",
+    "installer": "outfitting-installer"
+  }
+}
+```
+
+## Precedence
+
+For every field: **CLI flags → environment → config file → defaults**.
+
+| Concern | Flag | Env | Default |
+| --- | --- | --- | --- |
+| Stack name | `--stack-name` | `OUTFITTING_STACK_NAME` | `Outfitting` |
+| API worker | `--api-name` | `OUTFITTING_API_NAME` | `outfitting-api` |
+| Router worker | `--router-name` | `OUTFITTING_ROUTER_NAME` | `outfitting-router` |
+| Docs worker | `--docs-name` | `OUTFITTING_DOCS_NAME` | `outfitting-docs` |
+| Docs on/off | `--docs` / `--no-docs` | `OUTFITTING_DEPLOY_DOCS` | on |
+| Apex domain | `--domain` | `OUTFITTING_DOMAIN` | `outfitting.jfa.dev` |
+| Installer hosts | `--installer-hosts` | `OUTFITTING_INSTALLER_HOSTS` | `win/wsl/mac/nixos.jfa.dev` |
+| Config path | `--config` | `OUTFITTING_DEPLOY_CONFIG` | `outfitting.deploy.json` if present |
+
+`OUTFITTING_DEPLOY_DOCS` accepts `1/true/yes/on` or `0/false/no/off`.
+
+## Skip docs
+
+When docs are off:
+
+- Alchemy does not create the docs StaticSite or docs worker.
+- The router has no `DOCS_WORKER` binding.
+- Docs allowlist paths return HTTP 404; unknown apex paths still return 418.
+- CI `bun run ci:build` still builds docs for the default production pipeline; local `iac` `build` respects `OUTFITTING_DEPLOY_DOCS`.
+
+## What gets deployed
+
+Always (with defaults):
+
+- `outfitting-api` — private lockfiles API (D1 + KV + Secrets Store token)
+- `outfitting-installer` — platform install hosts
+- `outfitting-router` — sole public entry (`domain` + installer host aliases, or `workers.dev` when domain is cleared)
+
+Optional:
+
+- `outfitting-docs-assets` + `outfitting-docs` — only when docs are enabled
+
+Alchemy resource **IDs** (state keys such as `OutfittingApi`) stay stable across renames; only the Cloudflare-facing `name` props change with config.
+
+## Credentials
+
+`provision` generates an `OUTFITTING_LOCKFILES_TOKEN` when neither `--token` nor the env var is set, injects it into the deploy, and stores the API base URL (`https://<router>/api`) plus token under the `outfitting-lockfiles` OS keychain service (same entries as `lockfiles configure-worker` / `configure-token`). Pass `--skip-configure` to leave the keychain alone.

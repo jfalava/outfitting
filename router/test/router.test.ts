@@ -16,12 +16,19 @@ function stubFetcher(label: string): Stub {
   };
 }
 
-function bindings(): Env & { API: Stub; DOCS_WORKER: Stub; INSTALLER: Stub } {
-  return {
+function bindings(options?: { docs?: boolean }): Env & {
+  API: Stub;
+  DOCS_WORKER?: Stub;
+  INSTALLER: Stub;
+} {
+  const env: Env & { API: Stub; DOCS_WORKER?: Stub; INSTALLER: Stub } = {
     API: stubFetcher("api"),
-    DOCS_WORKER: stubFetcher("docs"),
     INSTALLER: stubFetcher("installer"),
   };
+  if (options?.docs !== false) {
+    env.DOCS_WORKER = stubFetcher("docs");
+  }
+  return env;
 }
 
 async function hit(path: string, host: string, env: Env) {
@@ -44,7 +51,7 @@ describe("router dispatch", () => {
     expect(body).toBe("installer");
     expect(env.INSTALLER.calls).toEqual(["https://mac.jfa.dev/post-install"]);
     expect(env.API.calls).toEqual([]);
-    expect(env.DOCS_WORKER.calls).toEqual([]);
+    expect(env.DOCS_WORKER?.calls ?? []).toEqual([]);
   });
 
   test("same path /fonts goes to installer on platform host and docs on apex", async () => {
@@ -56,56 +63,50 @@ describe("router dispatch", () => {
 
     expect(installer.body).toBe("installer");
     expect(installerEnv.INSTALLER.calls).toHaveLength(1);
-    expect(installerEnv.DOCS_WORKER.calls).toEqual([]);
+    expect(installerEnv.DOCS_WORKER?.calls ?? []).toEqual([]);
 
     expect(apex.body).toBe("docs");
-    expect(apexEnv.DOCS_WORKER.calls).toHaveLength(1);
+    expect(apexEnv.DOCS_WORKER?.calls).toHaveLength(1);
     expect(apexEnv.INSTALLER.calls).toEqual([]);
   });
 
   test("strips /api before forwarding to the API worker", async () => {
     const env = bindings();
-    const { body } = await hit(
-      "/api/lockfiles/machine/kind",
-      "outfitting.jfa.dev",
-      env,
-    );
+    const { body } = await hit("/api/lockfiles/machine/kind", "outfitting.jfa.dev", env);
 
     expect(body).toBe("api");
-    expect(env.API.calls).toEqual([
-      "https://outfitting.jfa.dev/lockfiles/machine/kind",
-    ]);
-    expect(env.DOCS_WORKER.calls).toEqual([]);
+    expect(env.API.calls).toEqual(["https://outfitting.jfa.dev/lockfiles/machine/kind"]);
+    expect(env.DOCS_WORKER?.calls ?? []).toEqual([]);
     expect(env.INSTALLER.calls).toEqual([]);
   });
 
   test("apex docs path reaches docs worker only", async () => {
     const env = bindings();
-    const { body, status } = await hit(
-      "/docs/manager/api",
-      "outfitting.jfa.dev",
-      env,
-    );
+    const { body, status } = await hit("/docs/manager/api", "outfitting.jfa.dev", env);
 
     expect(status).toBe(200);
     expect(body).toBe("docs");
-    expect(env.DOCS_WORKER.calls).toEqual([
-      "https://outfitting.jfa.dev/docs/manager/api",
-    ]);
+    expect(env.DOCS_WORKER?.calls).toEqual(["https://outfitting.jfa.dev/docs/manager/api"]);
     expect(env.API.calls).toEqual([]);
+  });
+
+  test("docs path returns 404 when docs worker is unbound", async () => {
+    const env = bindings({ docs: false });
+    const { body, status } = await hit("/docs/manager/api", "outfitting.jfa.dev", env);
+
+    expect(status).toBe(404);
+    expect(body).toContain("Not found");
+    expect(env.API.calls).toEqual([]);
+    expect(env.INSTALLER.calls).toEqual([]);
   });
 
   test("unknown apex path is 418 without any service hop", async () => {
     const env = bindings();
-    const { body, status } = await hit(
-      "/post-install",
-      "outfitting.jfa.dev",
-      env,
-    );
+    const { body, status } = await hit("/post-install", "outfitting.jfa.dev", env);
 
     expect(status).toBe(418);
     expect(body).toBe("I'm a teapot");
-    expect(env.DOCS_WORKER.calls).toEqual([]);
+    expect(env.DOCS_WORKER?.calls ?? []).toEqual([]);
     expect(env.API.calls).toEqual([]);
     expect(env.INSTALLER.calls).toEqual([]);
   });

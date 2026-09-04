@@ -17,12 +17,13 @@ The CLI remains independent of the API package at runtime. Features that do not 
 ## Repository layout
 
 ```text
+.agents/     # Amp orb lifecycle: setup (toolchain + bun install) + resume
 api/         # Hono API worker (lockfile storage), D1 migrations, KV
-cli/         # Portable local executable
-docs/        # Astro site + thin docs worker
+cli/         # Portable local executable (lockfiles, provision, upgrade)
+docs/        # Astro site + thin docs worker (optional at deploy time)
 installer/   # Platform install scripts (mac/win/wsl/nixos hosts)
-router/      # Edge router (host + path dispatch)
-iac/         # Alchemy stack (Cloudflare.state, adopt existing resources)
+router/      # Edge router (host + path dispatch; optional DOCS_WORKER)
+iac/         # Alchemy stack + deploy-config (dynamic outfitting-* names)
 ```
 
 Install monorepo dependencies from the repository root:
@@ -31,18 +32,26 @@ Install monorepo dependencies from the repository root:
 bun install
 ```
 
-Deploy from the root (remote-first):
+Deploy from the root (remote-first), or use the manager provision command for named stacks and optional docs skip:
 
 ```bash
+# Production-shaped defaults (outfitting-* names, docs on)
 CI=1 bun run deploy -- --yes --adopt
+
+# Or provision with dynamic names / skip docs
+bun run cli/index.ts provision --no-docs \
+  --api-name outfitting-api-dev \
+  --router-name outfitting-router-dev
 ```
+
+See [Provision](/docs/manager/provision) for config file, env, and flag precedence.
 
 ## Routing
 
 | Host                        | Paths                                      | Backend                      |
 | --------------------------- | ------------------------------------------ | ---------------------------- |
 | `outfitting.jfa.dev`        | `/api/*`                                   | API worker (prefix stripped) |
-| `outfitting.jfa.dev`        | docs allowlist (`/`, `/docs/*`, assets, …) | Docs worker                  |
+| `outfitting.jfa.dev`        | docs allowlist (`/`, `/docs/*`, assets, …) | Docs worker (404 if skipped) |
 | `outfitting.jfa.dev`        | anything else                              | `418`                        |
 | `mac/win/wsl/nixos.jfa.dev` | all                                        | Installer worker             |
 

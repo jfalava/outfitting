@@ -7,7 +7,8 @@ export type ServiceFetcher = {
 
 export interface Env {
   API: ServiceFetcher;
-  DOCS_WORKER: ServiceFetcher;
+  /** Absent when provision/deploy skips docs (`docs: false` / `--no-docs`). */
+  DOCS_WORKER?: ServiceFetcher;
   INSTALLER: ServiceFetcher;
 }
 
@@ -21,7 +22,7 @@ const INSTALLER_HOSTS = new Set([
 ]);
 
 const forwardStripped =
-  (prefix: string, binding: keyof Env): Handler<App> =>
+  (prefix: string, binding: "API"): Handler<App> =>
   async (c) => {
     const url = new URL(c.req.raw.url);
     url.pathname = url.pathname.slice(prefix.length) || "/";
@@ -87,7 +88,11 @@ const forwardDocs: Handler<App> = async (c) => {
   if (!isDocsPath(pathname)) {
     return c.text("I'm a teapot", 418);
   }
-  return c.env.DOCS_WORKER.fetch(c.req.raw);
+  const docs = c.env.DOCS_WORKER;
+  if (docs === undefined) {
+    return c.json({ error: "Not found" }, 404);
+  }
+  return docs.fetch(c.req.raw);
 };
 
 const app = new Hono<App>();

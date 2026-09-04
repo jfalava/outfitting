@@ -5,7 +5,7 @@ sidebar:
   order: 2
 ---
 
-The `outfitting-manager` executable is the local entry point for Outfitting maintenance tools. It stores generated state that is not committed to Git, such as the canonical macOS flake lock and package-manager inventories.
+The `outfitting-manager` executable is the local entry point for Outfitting maintenance tools. It also runs `provision` to deploy a named Alchemy stack (optional docs skip). It stores generated state that is not committed to Git, such as the canonical macOS flake lock and package-manager inventories.
 
 - Push state to the [API Worker](/docs/manager/api).
 - Restore, list, and inspect stored state on another machine.
@@ -28,6 +28,19 @@ Run the CLI directly from the repository without building or linking it:
 ```bash
 bun run cli/index.ts --help
 ```
+
+
+
+## Provision infrastructure
+
+Deploy or re-deploy the edge stack from a machine that already has monorepo dependencies and Cloudflare credentials:
+
+```bash
+bun run cli/index.ts provision --help
+bun run cli/index.ts provision --no-docs --api-name outfitting-api-dev
+```
+
+Full field list and config file: [Provision](/docs/manager/provision).
 
 ## Update the CLI
 

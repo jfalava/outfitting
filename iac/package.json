@@ -3,9 +3,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "bun run typecheck && bash ../docs/scripts/build-cf.sh",
+    "build": "bun run typecheck && if [ \"${OUTFITTING_DEPLOY_DOCS:-1}\" != \"0\" ] && [ \"${OUTFITTING_DEPLOY_DOCS:-1}\" != \"false\" ]; then bash ../docs/scripts/build-cf.sh; else echo 'skipping docs build (OUTFITTING_DEPLOY_DOCS off)'; fi",
     "check": "oxlint --fix",
-    "ci:build": "bun run build",
+    "ci:build": "bun run typecheck && bash ../docs/scripts/build-cf.sh",
     "ci:deploy": "alchemy deploy --yes --adopt",
     "deploy": "alchemy deploy",
     "destroy": "alchemy destroy",
@@ -13,7 +13,8 @@
     "format": "oxfmt",
     "lint": "oxlint",
     "plan": "alchemy plan",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "bun test test"
   },
   "dependencies": {
     "@effect/platform-bun": "catalog:effect",

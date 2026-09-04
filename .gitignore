@@ -25,3 +25,7 @@ node_modules/
 # Alchemy
 .alchemy/
 iac/.env
+
+# Amp orbs
+.amp/portals/*
+outfitting.deploy.json

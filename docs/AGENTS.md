@@ -85,7 +85,7 @@ End with `Summary: N errors, N warnings.`
 - **Registry hygiene** — every `src/components/ui/<slug>/` is either MDX-registered or imported in `src/`; transitive deps (`lib/cn.ts`, etc.) exist.
 - **AI surface** — `<AgentDirective />` renders in `BaseLayout.astro`; doc `<head>` has `<link rel="alternate" type="text/markdown" ...>`.
 - **Search** — `data-pagefind-body` is on the docs main wrapper; after `pnpm build`, `dist/pagefind/` exists with ≥1 indexed page.
-- **Cloudflare** — docs ship as a StaticSite behind `outfitting-router` (`iac/alchemy.run.ts`); build via `docs/scripts/build-cf.sh`.
+- **Cloudflare** — docs ship as an optional StaticSite behind `outfitting-router` (`iac/alchemy.run.ts`, skip with `docs: false` / `--no-docs`); build via `docs/scripts/build-cf.sh`.
 
 ## Don't
 

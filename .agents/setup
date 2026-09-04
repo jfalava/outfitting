@@ -1,0 +1,83 @@
+#!/usr/bin/env bash
+# Idempotent orb bootstrap: toolchain + monorepo lockfile install.
+# Fresh orbs snapshot after this; warm/stale snapshots re-run it cheaply.
+set -euo pipefail
+
+log() {
+  printf '[setup] %s\n' "$*"
+}
+
+time_step() {
+  local label="$1"
+  shift
+  local start end
+  start="$(date +%s)"
+  log "start: ${label}"
+  "$@"
+  end="$(date +%s)"
+  log "done: ${label} ($((end - start))s)"
+}
+
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$repo_root"
+
+export PATH="${HOME}/.bun/bin:${PATH}"
+
+# Orbs are Debian 12. Skip apt on developer machines without dpkg/apt-get.
+if command -v apt-get >/dev/null 2>&1 && command -v dpkg >/dev/null 2>&1; then
+  need_apt=()
+  for pkg in curl ca-certificates unzip git; do
+    if ! dpkg -s "$pkg" >/dev/null 2>&1; then
+      need_apt+=("$pkg")
+    fi
+  done
+
+  if ((${#need_apt[@]} > 0)); then
+    time_step "apt-get update" sudo apt-get update -qq
+    time_step "apt-get install ${need_apt[*]}" sudo apt-get install -y -qq "${need_apt[@]}"
+  else
+    log "system packages already present"
+  fi
+else
+  log "non-apt host; skipping system package install"
+fi
+
+if ! command -v bun >/dev/null 2>&1; then
+  time_step "install bun" bash -c 'curl -fsSL https://bun.sh/install | bash'
+  export PATH="${HOME}/.bun/bin:${PATH}"
+fi
+
+if ! command -v bun >/dev/null 2>&1; then
+  log "bun not on PATH after install"
+  exit 1
+fi
+
+log "bun $(bun --version)"
+
+# Login shells (Amp + supervised services) need ~/.bun/bin.
+profile_marker="# outfitting bun path"
+if [[ -f "${HOME}/.bash_profile" ]] && grep -Fqx "$profile_marker" "${HOME}/.bash_profile" 2>/dev/null; then
+  log "bash_profile already exports bun"
+else
+  {
+    printf '\n%s\n' "$profile_marker"
+    printf 'export PATH="$HOME/.bun/bin:$PATH"\n'
+  } >>"${HOME}/.bash_profile"
+  log "appended bun PATH to ~/.bash_profile"
+fi
+
+time_step "bun install --frozen-lockfile" bun install --frozen-lockfile
+
+agents_dir="${HOME}/.config/amp"
+mkdir -p "$agents_dir"
+cat >"${agents_dir}/AGENTS.md" <<'AGENTS'
+# Outfitting orb notes
+
+- Toolchain: Bun (see `bun --version`). Root install: `bun install --frozen-lockfile`.
+- Workspaces: `api`, `cli`, `docs`, `iac`, `installer`, `router`.
+- Checks: `bun run lint:global`, `bun run typecheck:global`, `bun run test:api`, `bun run test:cli`, `bun run test:router`.
+- Deploy / provision: see `iac/README.md` and `outfitting-manager provision --help`.
+- Do not put Cloudflare tokens or lockfile API secrets in setup; use `iac/.env` or the CLI keychain at runtime.
+AGENTS
+
+log "setup complete"
