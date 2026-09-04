@@ -21,3 +21,7 @@ result-*
 # Monorepo
 node_modules/
 .wrangler/
+
+# Alchemy
+.alchemy/
+iac/.env

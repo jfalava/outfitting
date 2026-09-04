@@ -2,9 +2,12 @@
   "name": "@outfitting/monorepo",
   "workspaces": {
     "packages": [
-      "installer",
+      "api",
+      "cli",
       "docs",
-      "manager/*"
+      "iac",
+      "installer",
+      "router"
     ],
     "catalogs": {
       "types": {
@@ -22,12 +25,29 @@
       },
       "backend": {
         "hono": "4.13.5"
+      },
+      "cloudflare": {
+        "@cloudflare/workers-types": "5.20260831.1"
+      },
+      "effect": {
+        "effect": "4.0.0-rc.112",
+        "@effect/platform-bun": "4.0.0-rc.112",
+        "@effect/platform-node": "4.0.0-rc.112"
+      },
+      "iac": {
+        "alchemy": "2.0.0-beta.76"
       }
     }
   },
   "type": "module",
   "scripts": {
-    "format": "oxfmt"
+    "format": "oxfmt",
+    "plan": "bun run --cwd iac plan",
+    "deploy": "bun run --cwd iac deploy",
+    "destroy": "bun run --cwd iac destroy",
+    "test:router": "bun run --cwd router test",
+    "test:api": "bun run --cwd api test",
+    "test:cli": "bun run --cwd cli test"
   },
   "devDependencies": {
     "@oxlint/plugins": "catalog:build",

@@ -7,7 +7,7 @@ sidebar:
 
 The `outfitting-manager` executable is the local entry point for Outfitting maintenance tools. It stores generated state that is not committed to Git, such as the canonical macOS flake lock and package-manager inventories.
 
-- Push state to the [Lockfiles Worker](/docs/manager/lockfiles-worker).
+- Push state to the [API Worker](/docs/manager/api).
 - Restore, list, and inspect stored state on another machine.
 - Update the executable with `upgrade`.
 
@@ -15,7 +15,7 @@ It accepts any machine and kind. Files tracked by Git are refused because commit
 
 ## Build and run
 
-From `manager/cli`:
+From `cli`:
 
 ```bash
 bun run build
@@ -26,7 +26,7 @@ ln -sfn "$PWD/dist/outfitting-manager" ~/.local/bin/outfitting-manager
 Run the CLI directly from the repository without building or linking it:
 
 ```bash
-bun run manager/cli/index.ts --help
+bun run cli/index.ts --help
 ```
 
 ## Update the CLI
@@ -53,7 +53,7 @@ The self-updater sets the executable bit on replacements automatically. It also 
 
 ## Configure lockfile storage
 
-Point the CLI at your deployed Worker. See the [worker docs](/docs/manager/lockfiles-worker) for deployment, and [credentials](/docs/manager/architecture#credentials) for where configuration is stored.
+Point the CLI at your deployed Worker. See the [worker docs](/docs/manager/api) for deployment, and [credentials](/docs/manager/architecture#credentials) for where configuration is stored.
 
 ```bash
 outfitting-manager lockfiles configure-worker "https://url-to-your-worker"

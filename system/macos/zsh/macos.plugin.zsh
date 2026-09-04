@@ -97,7 +97,7 @@ outfit-require-manager() {
     fi
 
     echo "Error: outfitting-manager is not installed or not in PATH."
-    echo "Build manager/cli and link its binary into ~/.local/bin."
+    echo "Build cli and link its binary into ~/.local/bin."
     return 1
 }
 

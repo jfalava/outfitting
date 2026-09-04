@@ -1,0 +1,27 @@
+{
+  "name": "@outfitting/iac",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "ci:deploy": "alchemy deploy --yes --adopt",
+    "deploy": "alchemy deploy",
+    "destroy": "alchemy destroy",
+    "dev": "alchemy dev",
+    "lint": "oxlint",
+    "plan": "alchemy plan",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@effect/platform-bun": "catalog:effect",
+    "@effect/platform-node": "catalog:effect",
+    "alchemy": "catalog:iac",
+    "effect": "catalog:effect"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "catalog:cloudflare",
+    "@types/node": "catalog:types",
+    "oxlint": "catalog:build",
+    "oxlint-tsgolint": "catalog:build",
+    "typescript": "catalog:build"
+  }
+}

@@ -44,16 +44,16 @@ jobs:
         shell: bash
         run: |
           TAG="${GITHUB_REF_NAME#cli-v}"
-          sed -i.bak "s/\"version\": \".*\"/\"version\": \"${TAG}\"/" manager/cli/package.json
-          rm -f manager/cli/package.json.bak
+          sed -i.bak "s/\"version\": \".*\"/\"version\": \"${TAG}\"/" cli/package.json
+          rm -f cli/package.json.bak
 
       - name: Build target
-        run: bun build --compile --target=${{ matrix.target }} manager/cli/index.ts --outfile manager/cli/${{ matrix.outfile }}
+        run: bun build --compile --target=${{ matrix.target }} cli/index.ts --outfile cli/${{ matrix.outfile }}
 
       - name: Create archive and checksums
         shell: bash
         run: |
-          cd manager/cli/dist
+          cd cli/dist
           BINARY="$(basename "${{ matrix.outfile }}")"
           ARCHIVE="${BINARY}.zip"
           chmod 755 "${BINARY}"
@@ -75,10 +75,10 @@ jobs:
         with:
           name: ${{ matrix.artifact_name }}
           path: |
-            manager/cli/${{ matrix.outfile }}
-            manager/cli/${{ matrix.outfile }}.sha256
-            manager/cli/${{ matrix.outfile }}.zip
-            manager/cli/${{ matrix.outfile }}.zip.sha256
+            cli/${{ matrix.outfile }}
+            cli/${{ matrix.outfile }}.sha256
+            cli/${{ matrix.outfile }}.zip
+            cli/${{ matrix.outfile }}.zip.sha256
 
   release:
     needs: build

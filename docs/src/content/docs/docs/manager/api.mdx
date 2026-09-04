@@ -1,58 +1,40 @@
 ---
-title: Lockfiles Worker
-description: Deploy the Worker that stores generated machine-local state.
+title: API Worker
+description: Deploy the edge API that stores generated machine-local state.
 sidebar:
   order: 3
 ---
 
-The lockfiles package contains the Cloudflare Worker used by `outfitting-manager`. It stores generated state that is not committed to Git, so it can be restored after rebuilding or replacing a machine.
+The `api` package is the Cloudflare Worker used by `outfitting-manager`. It stores generated state that is not committed to Git, so it can be restored after rebuilding or replacing a machine.
+
+Public URL (via the edge router): `https://outfitting.jfa.dev/api`.
 
 KV holds content-addressed blobs; D1 holds searchable metadata. See [storage](/docs/manager/architecture#storage) for the storage model.
 
-## Cloudflare setup
+## Deploy
 
-Install the monorepo dependencies and authenticate Wrangler:
+Infrastructure lives in `iac/` (Alchemy). From the repository root:
 
 ```bash
 bun install
-cd manager/lockfiles
-bunx wrangler login
+cp iac/.env.example iac/.env   # set OUTFITTING_LOCKFILES_TOKEN if provisioning
+CI=1 bun run deploy -- --yes --adopt
 ```
 
-Create the D1 database and KV namespace:
+That stack owns:
 
-```bash
-bunx wrangler d1 create outfitting-lockfiles --location=weur
-bunx wrangler kv namespace create outfitting-lockfiles
-```
+- `outfitting-api` (private) — this worker
+- `outfitting-docs` + static assets (private)
+- `outfitting-installer` (private)
+- `outfitting-router` — sole public entry on `outfitting.jfa.dev` and the installer hosts
 
-Copy the returned D1 `database_id` and KV namespace `id` into `wrangler.jsonc`. The Worker uses the bindings `DB` and `LOCKFILES`; these are intentionally separate from the installer Worker's bindings.
-
-Set the shared bearer token as a Worker secret:
-
-```bash
-bunx wrangler secret put OUTFITTING_LOCKFILES_TOKEN
-```
-
-Apply the schema and deploy:
-
-```bash
-bun run migrate:remote
-bun run deploy
-```
-
-`wrangler deploy` prints the Worker URL. Configure it in the [manager CLI](/docs/manager/cli#configure-lockfile-storage).
-
-For local Worker development, apply the migration locally before starting the development server:
-
-```bash
-bun run migrate:local
-bun run dev
-```
+Existing D1 (`outfitting-lockfiles`), KV, R2, and the Secrets Store secret are adopted. Configure the CLI base URL as `https://outfitting.jfa.dev/api` — see [manager CLI](/docs/manager/cli#configure-lockfile-storage).
 
 ## HTTP API
 
 Every request requires `Authorization: Bearer <OUTFITTING_LOCKFILES_TOKEN>`.
+
+Paths below are relative to the API worker. Through the router they are prefixed with `/api` (the router strips that prefix before forwarding).
 
 | Method   | Route                               | Result                                                |
 | -------- | ----------------------------------- | ----------------------------------------------------- |
@@ -61,6 +43,8 @@ Every request requires `Authorization: Bearer <OUTFITTING_LOCKFILES_TOKEN>`.
 | `GET`    | `/lockfiles/:machine/:kind/history` | Returns `{ hash, size, created_at }[]`, newest first  |
 | `GET`    | `/lockfiles/:machine`               | Returns a sorted JSON array of tracked kinds          |
 | `DELETE` | `/lockfiles/:machine/:kind/:hash`   | Deletes one D1 row                                    |
+
+Public equivalents: `https://outfitting.jfa.dev/api/lockfiles/...`.
 
 `PUT` accepts an optional standard `If-Match: "<sha256>"` header. The D1 promotion and head update are atomic; a stale expected hash returns HTTP 412 without advancing the head. Deleting the current head returns HTTP 409.
 

@@ -1,13 +1,12 @@
 {
-  "name": "@outfitting/installer",
+  "name": "@outfitting/router",
   "version": "0.13.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "check": "tsc --noEmit && oxlint --fix",
-    "fix": "bun run lint --fix && bun run format",
-    "format": "oxfmt",
+    "check": "bun run lint && bun run typecheck && bun run test",
     "lint": "oxlint",
+    "test": "bun test",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -16,7 +15,7 @@
   "devDependencies": {
     "@cloudflare/workers-types": "catalog:cloudflare",
     "@oxlint/plugins": "catalog:build",
-    "oxfmt": "catalog:build",
+    "@types/bun": "catalog:build",
     "oxlint": "catalog:build",
     "oxlint-tsgolint": "catalog:build",
     "typescript": "catalog:build"

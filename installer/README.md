@@ -97,7 +97,7 @@ bun run check
 bun run deploy
 ```
 
-Routes and domain mapping are configured in `wrangler.jsonc`.
+Routes and domains are owned by the edge router in `router/` and provisioned from `iac/` (Alchemy).
 
 ## Implementation Notes
 

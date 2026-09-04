@@ -1,18 +1,13 @@
 {
-  "name": "@outfitting/lockfiles",
-  "version": "0.12.1",
+  "name": "@outfitting/api",
+  "version": "0.13.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "cf-typegen": "wrangler types",
     "check": "bun run lint && oxfmt --check",
-    "deploy": "bun run lint && wrangler deploy",
-    "dev": "bun run cf-typegen && wrangler dev",
     "fix": "bun run lint --fix && bun run format",
     "format": "oxfmt",
     "lint": "oxlint",
-    "migrate:local": "wrangler d1 migrations apply outfitting-lockfiles --local",
-    "migrate:remote": "wrangler d1 migrations apply outfitting-lockfiles --remote",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
@@ -20,13 +15,13 @@
     "hono": "catalog:backend"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "catalog:cloudflare",
     "@oxlint/plugins": "catalog:build",
     "@types/node": "catalog:types",
     "oxfmt": "catalog:build",
     "oxlint": "catalog:build",
     "oxlint-tsgolint": "catalog:build",
     "typescript": "catalog:build",
-    "vitest": "catalog:build",
-    "wrangler": "catalog:build"
+    "vitest": "catalog:build"
   }
 }

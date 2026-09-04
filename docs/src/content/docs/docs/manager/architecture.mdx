@@ -1,34 +1,56 @@
 ---
 title: Architecture
-description: Manager packages, storage, credentials, and local development.
+description: Manager packages, storage, credentials, and deployment.
 sidebar:
   order: 1
 ---
 
-Manager has two packages:
+Manager spans three root packages plus shared edge routing:
 
 - [Manager CLI](/docs/manager/cli) is the portable `outfitting-manager` executable.
-- [Lockfiles Worker](/docs/manager/lockfiles-worker) is the Cloudflare Worker used by the CLI to store generated, machine-local state.
+- [API Worker](/docs/manager/api) stores generated, machine-local lock state.
+- `router/` is the sole public Worker on `outfitting.jfa.dev` (and the installer hosts).
+- `iac/` is the Alchemy stack that deploys everything remote-first.
 
-The CLI remains independent of the Worker package at runtime. Features that do not need a backend can be added to the executable without deploying or importing a manager service.
+The CLI remains independent of the API package at runtime. Features that do not need a backend can be added to the executable without deploying a service.
 
-## Local development
+## Repository layout
 
 ```text
-manager/
-├── cli/        # Portable local executable
-└── lockfiles/  # Cloudflare Worker, D1 migrations, and KV storage
+api/         # Hono API worker (lockfile storage), D1 migrations, KV
+cli/         # Portable local executable
+docs/        # Astro site + thin docs worker
+installer/   # Platform install scripts (mac/win/wsl/nixos hosts)
+router/      # Edge router (host + path dispatch)
+iac/         # Alchemy stack (Cloudflare.state, adopt existing resources)
 ```
 
-Install the monorepo dependencies from the repository root before working on either package:
+Install monorepo dependencies from the repository root:
 
 ```bash
 bun install
 ```
 
+Deploy from the root (remote-first):
+
+```bash
+CI=1 bun run deploy -- --yes --adopt
+```
+
+## Routing
+
+| Host | Paths | Backend |
+| ---- | ----- | ------- |
+| `outfitting.jfa.dev` | `/api/*` | API worker (prefix stripped) |
+| `outfitting.jfa.dev` | docs allowlist (`/`, `/docs/*`, assets, …) | Docs worker |
+| `outfitting.jfa.dev` | anything else | `418` |
+| `mac/win/wsl/nixos.jfa.dev` | all | Installer worker |
+
+Installer paths such as `/fonts` and `/post-install` only exist on the platform hosts, so they never collide with docs webfonts or documentation under `/docs/...` on the apex.
+
 ## Storage
 
-The Worker keeps the content of each lockfile in KV as a content-addressed blob, keyed by `lockfile:{machine}:{kind}:{sha256-of-content}`. D1 stores the searchable machine, kind, hash, size, and creation-time metadata.
+The API worker keeps lockfile content in KV as a content-addressed blob, keyed by `lockfile:{machine}:{kind}:{sha256-of-content}`. D1 stores the searchable machine, kind, hash, size, and creation-time metadata.
 
 Versions are append-only and uploads are idempotent:
 
@@ -38,6 +60,6 @@ Versions are append-only and uploads are idempotent:
 
 ## Credentials
 
-The CLI stores the configured Worker URL with `Bun.secrets` using service `outfitting-lockfiles` and name `worker-url`. The bearer token is stored under the same service with name `api-token`.
+The CLI stores the configured API base URL with `Bun.secrets` using service `outfitting-lockfiles` and name `worker-url`. Use `https://outfitting.jfa.dev/api`. The bearer token is stored under the same service with name `api-token`.
 
 The token is never echoed after it is entered or saved. `Bun.secrets` uses Keychain on macOS, Secret Service on Linux, and Credential Manager on Windows. It is appropriate here as personal credential storage, but it is not a hard boundary between programs running as the same user.

@@ -1,12 +1,11 @@
 {
   "name": "@outfitting/docs",
-  "version": "0.12.1",
+  "version": "0.13.0",
   "private": true,
   "type": "module",
   "scripts": {
     "build": "astro build",
     "check": "bun typecheck && bun lint",
-    "deploy": "wrangler deploy",
     "dev": "astro dev",
     "format": "prettier --write src",
     "format:check": "prettier --check src",
@@ -18,10 +17,7 @@
     "lint:docs:fix": "nimbus-docs lint --fix",
     "lint:oxlint": "oxlint src",
     "lint:oxlint:fix": "oxlint src --fix",
-    "predeploy": "astro check && astro build",
-    "prepreview:cf": "astro build",
     "preview": "astro preview",
-    "preview:cf": "wrangler dev",
     "typecheck": "astro check"
   },
   "dependencies": {
@@ -49,7 +45,6 @@
     "prettier": "3.9.6",
     "prettier-plugin-astro": "0.14.1",
     "tailwindcss": "4.3.3",
-    "typescript": "6.0.3",
-    "wrangler": "4.128.0"
+    "typescript": "6.0.3"
   }
 }
