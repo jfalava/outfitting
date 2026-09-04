@@ -29,5 +29,6 @@ export default defineConfig({
     // Docs stay on Prettier (Astro).
     "docs/**",
     "result/**",
+    "tools/**",
   ],
 });

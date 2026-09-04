@@ -1,9 +1,7 @@
 {
   "compilerOptions": {
     "target": "ES2024",
-    "lib": [
-      "ES2024"
-    ],
+    "lib": ["ES2024"],
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "noEmit": true,
@@ -12,13 +10,7 @@
     "isolatedModules": true,
     "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
-    "types": [
-      "@cloudflare/workers-types",
-      "node"
-    ]
+    "types": ["@cloudflare/workers-types", "node"]
   },
-  "include": [
-    "alchemy.run.ts",
-    "src/**/*.ts"
-  ]
+  "include": ["alchemy.run.ts", "src/**/*.ts"]
 }

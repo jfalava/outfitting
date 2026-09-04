@@ -13,8 +13,8 @@
     "format": "oxfmt",
     "lint": "oxlint",
     "plan": "alchemy plan",
-    "typecheck": "tsc --noEmit",
-    "test": "bun test test"
+    "test": "bun test test",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@effect/platform-bun": "catalog:effect",

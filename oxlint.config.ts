@@ -129,15 +129,7 @@ export default defineConfig({
     typeAware: true,
     typeCheck: true,
   },
-  plugins: [
-    "eslint",
-    "react",
-    "typescript",
-    "unicorn",
-    "oxc",
-    "import",
-    "promise",
-  ],
+  plugins: ["eslint", "react", "typescript", "unicorn", "oxc", "import", "promise"],
   categories: {
     correctness: "error",
     suspicious: "warn",
@@ -151,4 +143,5 @@ export default defineConfig({
     ...builtinRules,
     ...antiSlopRules,
   },
+  ignorePatterns: ["tools/**"],
 });

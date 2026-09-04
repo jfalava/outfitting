@@ -27,18 +27,18 @@ Copy the example and edit:
 cp iac/outfitting.deploy.example.json outfitting.deploy.json
 ```
 
-| Field / env                         | Default                   | Notes                                      |
-| ----------------------------------- | ------------------------- | ------------------------------------------ |
-| `stackName` / `OUTFITTING_STACK_NAME` | `Outfitting`            | Alchemy stack id                           |
-| `workers.router` / `OUTFITTING_ROUTER_NAME` | `outfitting-router` | Public edge worker                   |
-| `workers.api` / `OUTFITTING_API_NAME` | `outfitting-api`        | Lockfiles API                              |
-| `workers.docs` / `OUTFITTING_DOCS_NAME` | `outfitting-docs`     | Omitted entirely when docs are skipped     |
-| `workers.installer` / `OUTFITTING_INSTALLER_NAME` | `outfitting-installer` | Platform install hosts          |
-| `database` / `OUTFITTING_DB_NAME`   | `outfitting-lockfiles`    | D1                                         |
-| `kv` / `OUTFITTING_KV_TITLE`        | `outfitting-lockfiles`    | KV title                                   |
-| `domain` / `OUTFITTING_DOMAIN`      | `outfitting.jfa.dev`      | Empty string / unset via env clears domain |
-| `docs` / `OUTFITTING_DEPLOY_DOCS`   | `true`                    | `false` / `0` / `--no-docs` skips docs     |
-| `installerHosts` / `OUTFITTING_INSTALLER_HOSTS` | `win/wsl/mac/nixos.jfa.dev` | Comma-separated aliases        |
+| Field / env                                       | Default                     | Notes                                      |
+| ------------------------------------------------- | --------------------------- | ------------------------------------------ |
+| `stackName` / `OUTFITTING_STACK_NAME`             | `Outfitting`                | Alchemy stack id                           |
+| `workers.router` / `OUTFITTING_ROUTER_NAME`       | `outfitting-router`         | Public edge worker                         |
+| `workers.api` / `OUTFITTING_API_NAME`             | `outfitting-api`            | Lockfiles API                              |
+| `workers.docs` / `OUTFITTING_DOCS_NAME`           | `outfitting-docs`           | Omitted entirely when docs are skipped     |
+| `workers.installer` / `OUTFITTING_INSTALLER_NAME` | `outfitting-installer`      | Platform install hosts                     |
+| `database` / `OUTFITTING_DB_NAME`                 | `outfitting-lockfiles`      | D1                                         |
+| `kv` / `OUTFITTING_KV_TITLE`                      | `outfitting-lockfiles`      | KV title                                   |
+| `domain` / `OUTFITTING_DOMAIN`                    | `outfitting.jfa.dev`        | Empty string / unset via env clears domain |
+| `docs` / `OUTFITTING_DEPLOY_DOCS`                 | `true`                      | `false` / `0` / `--no-docs` skips docs     |
+| `installerHosts` / `OUTFITTING_INSTALLER_HOSTS`   | `win/wsl/mac/nixos.jfa.dev` | Comma-separated aliases                    |
 
 Provision via the manager CLI (recommended):
 

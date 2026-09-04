@@ -14,12 +14,7 @@ export interface Env {
 
 type App = { Bindings: Env };
 
-const INSTALLER_HOSTS = new Set([
-  "win.jfa.dev",
-  "wsl.jfa.dev",
-  "mac.jfa.dev",
-  "nixos.jfa.dev",
-]);
+const INSTALLER_HOSTS = new Set(["win.jfa.dev", "wsl.jfa.dev", "mac.jfa.dev", "nixos.jfa.dev"]);
 
 const forwardStripped =
   (prefix: string, binding: "API"): Handler<App> =>
@@ -55,14 +50,7 @@ const DOCS_EXACT_PATHS = new Set([
   "/sitemap-index.xml",
 ]);
 
-const DOCS_PREFIXES = [
-  "/docs",
-  "/og",
-  "/_astro",
-  "/_nimbus",
-  "/pagefind",
-  "/fonts",
-] as const;
+const DOCS_PREFIXES = ["/docs", "/og", "/_astro", "/_nimbus", "/pagefind", "/fonts"] as const;
 
 export function isDocsPath(pathname: string): boolean {
   if (DOCS_EXACT_PATHS.has(pathname)) {

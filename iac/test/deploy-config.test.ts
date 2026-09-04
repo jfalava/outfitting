@@ -3,11 +3,7 @@ import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import {
-  DEFAULT_DEPLOY_CONFIG,
-  deployConfigToEnv,
-  loadDeployConfig,
-} from "../src/deploy-config";
+import { DEFAULT_DEPLOY_CONFIG, deployConfigToEnv, loadDeployConfig } from "../src/deploy-config";
 
 const ENV_KEYS = [
   "OUTFITTING_STACK_NAME",

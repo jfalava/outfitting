@@ -141,9 +141,7 @@ export default Alchemy.Stack(
       INSTALLER: installer,
     };
     const routerEnv =
-      docsWorker === undefined
-        ? routerEnvBase
-        : { ...routerEnvBase, DOCS_WORKER: docsWorker };
+      docsWorker === undefined ? routerEnvBase : { ...routerEnvBase, DOCS_WORKER: docsWorker };
 
     const routerBase = {
       name: routerName,
