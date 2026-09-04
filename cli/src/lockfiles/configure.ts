@@ -7,8 +7,7 @@ import { ui } from "@/ui";
 export const configureWorker = (requestedUrl?: string) =>
   Effect.gen(function* () {
     const value =
-      requestedUrl ??
-      prompt("Lockfiles Worker URL (stored in your OS keychain):")?.trim();
+      requestedUrl ?? prompt("Lockfiles Worker URL (stored in your OS keychain):")?.trim();
     if (!value) {
       return yield* Effect.fail(new Error("A Worker URL is required."));
     }

@@ -16,9 +16,7 @@ import {
 } from "@/upgrade";
 
 function appendBytes(parts: ReadonlyArray<Uint8Array>): Uint8Array {
-  const result = new Uint8Array(
-    parts.reduce((total, part) => total + part.length, 0),
-  );
+  const result = new Uint8Array(parts.reduce((total, part) => total + part.length, 0));
   let offset = 0;
   for (const part of parts) {
     result.set(part, offset);
@@ -66,10 +64,7 @@ function makeZip(fileName: string, contents: string): Uint8Array {
 describe("upgrade command helpers", () => {
   test("silently normalizes the misspelled command alias", () => {
     expect(normalizeCommandAlias(["ugprade"])).toEqual(["upgrade"]);
-    expect(normalizeCommandAlias(["ugprade", "--help"])).toEqual([
-      "upgrade",
-      "--help",
-    ]);
+    expect(normalizeCommandAlias(["ugprade", "--help"])).toEqual(["upgrade", "--help"]);
     expect(normalizeCommandAlias(["upgrade"])).toEqual(["upgrade"]);
   });
 
@@ -81,25 +76,17 @@ describe("upgrade command helpers", () => {
   });
 
   test("maps supported release assets", () => {
-    expect(assetNameFor("darwin", "arm64")).toBe(
-      "outfitting-manager-darwin-arm64.zip",
-    );
-    expect(executableNameFor("darwin", "arm64")).toBe(
-      "outfitting-manager-darwin-arm64",
-    );
-    expect(assetNameFor("win32", "x64")).toBe(
-      "outfitting-manager-windows-x64.exe.zip",
-    );
+    expect(assetNameFor("darwin", "arm64")).toBe("outfitting-manager-darwin-arm64.zip");
+    expect(executableNameFor("darwin", "arm64")).toBe("outfitting-manager-darwin-arm64");
+    expect(assetNameFor("win32", "x64")).toBe("outfitting-manager-windows-x64.exe.zip");
     expect(() => assetNameFor("win32", "arm64")).toThrow("not supported");
   });
 
   test("only accepts the compiled executable as its replacement target", () => {
-    expect(
-      executablePath("/opt/outfitting-manager", "/opt/outfitting-manager"),
-    ).toBe("/opt/outfitting-manager");
-    expect(() => executablePath("/repo/index.ts", "/usr/bin/bun")).toThrow(
-      "compiled",
+    expect(executablePath("/opt/outfitting-manager", "/opt/outfitting-manager")).toBe(
+      "/opt/outfitting-manager",
     );
+    expect(() => executablePath("/repo/index.ts", "/usr/bin/bun")).toThrow("compiled");
     expect(
       executablePath(
         "/$bunfs/root/outfitting-manager",
@@ -109,24 +96,19 @@ describe("upgrade command helpers", () => {
   });
 
   test("parses release checksum files", () => {
-    expect(
-      checksumFromFile(`${"A".repeat(64)}  outfitting-manager-linux-x64\n`),
-    ).toBe("a".repeat(64));
+    expect(checksumFromFile(`${"A".repeat(64)}  outfitting-manager-linux-x64\n`)).toBe(
+      "a".repeat(64),
+    );
     expect(() => checksumFromFile("not-a-checksum")).toThrow("invalid");
   });
 
   test("extracts the expected executable from a deflated ZIP archive", () => {
-    const archive = makeZip(
-      "outfitting-manager-darwin-arm64",
-      "Mach-O test binary",
-    );
+    const archive = makeZip("outfitting-manager-darwin-arm64", "Mach-O test binary");
 
-    expect(
-      extractZipBinary(archive, "outfitting-manager-darwin-arm64"),
-    ).toEqual(new TextEncoder().encode("Mach-O test binary"));
-    expect(() => extractZipBinary(archive, "unexpected-name")).toThrow(
-      "does not contain",
+    expect(extractZipBinary(archive, "outfitting-manager-darwin-arm64")).toEqual(
+      new TextEncoder().encode("Mach-O test binary"),
     );
+    expect(() => extractZipBinary(archive, "unexpected-name")).toThrow("does not contain");
   });
 
   test("retries transient download failures", async () => {

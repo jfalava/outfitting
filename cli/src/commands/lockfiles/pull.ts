@@ -11,9 +11,7 @@ export const pullCommand = Command.make(
     kind: kindArgument,
     outPath: Argument.string("out-path").pipe(
       Argument.optional,
-      Argument.withDescription(
-        "Destination path; inferred for known kinds when omitted.",
-      ),
+      Argument.withDescription("Destination path; inferred for known kinds when omitted."),
     ),
   },
   ({ machine, kind, outPath }) =>

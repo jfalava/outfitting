@@ -6,10 +6,7 @@ import { registerLockfileRoutes, type AppEnv } from "@/routes";
 
 const app = new Hono<AppEnv>();
 
-function tokensMatch(
-  authorization: string | undefined,
-  token: string,
-): boolean {
+function tokensMatch(authorization: string | undefined, token: string): boolean {
   const prefix = "Bearer ";
   if (!authorization?.startsWith(prefix)) {
     return false;
@@ -18,10 +15,7 @@ function tokensMatch(
   const encoder = new TextEncoder();
   const supplied = encoder.encode(authorization.slice(prefix.length));
   const expected = encoder.encode(token);
-  return (
-    supplied.byteLength === expected.byteLength &&
-    timingSafeEqual(supplied, expected)
-  );
+  return supplied.byteLength === expected.byteLength && timingSafeEqual(supplied, expected);
 }
 
 app.use("*", async (c, next) => {

@@ -21,25 +21,17 @@ describe("lockfiles command helpers", () => {
   test("infers common lockfile names", () => {
     expect(inferOutputPath("nix")).toBe("flake.lock");
     expect(inferOutputPath("bun")).toBe("bun.lock");
-    expect(inferOutputPath("bun-global-inventory")).toBe(
-      "bun-global-inventory.json",
-    );
-    expect(inferOutputPath("homebrew-inventory")).toBe(
-      "homebrew-inventory.txt",
-    );
+    expect(inferOutputPath("bun-global-inventory")).toBe("bun-global-inventory.json");
+    expect(inferOutputPath("homebrew-inventory")).toBe("homebrew-inventory.txt");
     expect(inferOutputPath("npm")).toBe("package-lock.json");
-    expect(inferOutputPath("powershell-inventory")).toBe(
-      "powershell-inventory.json",
-    );
+    expect(inferOutputPath("powershell-inventory")).toBe("powershell-inventory.json");
     expect(inferOutputPath("scoop-inventory")).toBe("scoop-inventory.json");
     expect(inferOutputPath("winget")).toBe("winget.json");
     expect(inferOutputPath("custom-kind")).toBeUndefined();
   });
 
   test("distinguishes repository-owned lockfiles from external lock state", async () => {
-    const repository = await mkdtemp(
-      join(tmpdir(), "outfitting-lockfiles-test-"),
-    );
+    const repository = await mkdtemp(join(tmpdir(), "outfitting-lockfiles-test-"));
     const trackedPath = join(repository, "tracked.lock");
     const untrackedPath = join(repository, "untracked.lock");
 
@@ -59,21 +51,15 @@ describe("lockfiles command helpers", () => {
             outPath: trackedPath,
           }),
         ),
-      ).rejects.toThrow(
-        `Refusing to overwrite Git-tracked file: ${trackedPath}`,
-      );
+      ).rejects.toThrow(`Refusing to overwrite Git-tracked file: ${trackedPath}`);
     } finally {
       await rm(repository, { force: true, recursive: true });
     }
   });
 
   test("normalizes Worker URLs", () => {
-    expect(normalizeWorkerUrl("https://example.workers.dev/")).toBe(
-      "https://example.workers.dev",
-    );
-    expect(() => normalizeWorkerUrl("not a URL")).toThrow(
-      "Worker URL must be a valid URL.",
-    );
+    expect(normalizeWorkerUrl("https://example.workers.dev/")).toBe("https://example.workers.dev");
+    expect(() => normalizeWorkerUrl("not a URL")).toThrow("Worker URL must be a valid URL.");
     expect(() => normalizeWorkerUrl("file:///tmp/worker")).toThrow(
       "Worker URL must use HTTP or HTTPS.",
     );

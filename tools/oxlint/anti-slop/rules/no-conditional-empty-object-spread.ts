@@ -23,8 +23,11 @@ function isEmptyObjectExpression(node: ESTree.Expression): boolean {
   return node.type === "ObjectExpression" && node.properties.length === 0;
 }
 
-function singleObjectProperty(node: ESTree.Expression): ESTree.ObjectProperty | null {
-  if (node.type !== "ObjectExpression" || node.properties.length !== 1) return null;
+function singleObjectProperty(
+  node: ESTree.Expression,
+): ESTree.ObjectProperty | null {
+  if (node.type !== "ObjectExpression" || node.properties.length !== 1)
+    return null;
 
   const [property] = node.properties;
   if (
@@ -46,25 +49,35 @@ function conditionalEmptyObjectSpread(
   if (conditional.type !== "ConditionalExpression") return null;
 
   if (isEmptyObjectExpression(conditional.consequent)) {
-    return { conditional, property: singleObjectProperty(conditional.alternate) };
+    return {
+      conditional,
+      property: singleObjectProperty(conditional.alternate),
+    };
   }
 
   if (isEmptyObjectExpression(conditional.alternate)) {
-    return { conditional, property: singleObjectProperty(conditional.consequent) };
+    return {
+      conditional,
+      property: singleObjectProperty(conditional.consequent),
+    };
   }
 
   return null;
 }
 
-function undefinedCheckedExpression(test: ESTree.Expression): UndefinedCheckedExpression | null {
+function undefinedCheckedExpression(
+  test: ESTree.Expression,
+): UndefinedCheckedExpression | null {
   const binary = unwrapParentheses(test);
   if (binary.type !== "BinaryExpression") return null;
   if (binary.operator !== "===" && binary.operator !== "!==") return null;
 
   const left = unwrapParentheses(binary.left);
   const right = unwrapParentheses(binary.right);
-  const leftIsUndefined = left.type === "Identifier" && left.name === "undefined";
-  const rightIsUndefined = right.type === "Identifier" && right.name === "undefined";
+  const leftIsUndefined =
+    left.type === "Identifier" && left.name === "undefined";
+  const rightIsUndefined =
+    right.type === "Identifier" && right.name === "undefined";
   if (leftIsUndefined === rightIsUndefined) return null;
 
   return {
@@ -85,7 +98,8 @@ function canAutofixConditionalEmptyObjectSpread(
   if (propertyIsConsequent !== checked.isDefinedWhenTrue) return false;
 
   return (
-    sourceCode.getText(unwrapParentheses(checked.expression)) === sourceCode.getText(property.value)
+    sourceCode.getText(unwrapParentheses(checked.expression)) ===
+    sourceCode.getText(property.value)
   );
 }
 
@@ -114,12 +128,17 @@ export const noConditionalEmptyObjectSpreadRule = defineRule({
         const { conditional, property } = match;
         if (
           property !== null &&
-          canAutofixConditionalEmptyObjectSpread(context.sourceCode, conditional, property)
+          canAutofixConditionalEmptyObjectSpread(
+            context.sourceCode,
+            conditional,
+            property,
+          )
         ) {
           context.report({
             node,
             messageId: "avoid",
-            fix: (fixer) => fixer.replaceText(node, context.sourceCode.getText(property)),
+            fix: (fixer) =>
+              fixer.replaceText(node, context.sourceCode.getText(property)),
           });
           return;
         }

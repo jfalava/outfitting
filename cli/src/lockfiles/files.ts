@@ -50,9 +50,7 @@ function isOutputPathKind(value: string): value is OutputPathKind {
 
 export function inferOutputPath(kind: string): string | undefined {
   const normalizedKind = kind.toLowerCase();
-  return isOutputPathKind(normalizedKind)
-    ? OUTPUT_PATHS[normalizedKind]
-    : undefined;
+  return isOutputPathKind(normalizedKind) ? OUTPUT_PATHS[normalizedKind] : undefined;
 }
 
 export async function isGitTrackedFile(path: string): Promise<boolean> {
@@ -80,21 +78,12 @@ export async function isGitTrackedFile(path: string): Promise<boolean> {
   }
 
   if (!root) {
-    throw new Error(
-      `Git returned an empty repository root for: ${absolutePath}`,
-    );
+    throw new Error(`Git returned an empty repository root for: ${absolutePath}`);
   }
 
   const repositoryPath = relative(root, absolutePath);
   try {
-    await execFileAsync("git", [
-      "-C",
-      root,
-      "ls-files",
-      "--error-unmatch",
-      "--",
-      repositoryPath,
-    ]);
+    await execFileAsync("git", ["-C", root, "ls-files", "--error-unmatch", "--", repositoryPath]);
     return true;
   } catch (cause) {
     if (isUntrackedPath(cause)) {

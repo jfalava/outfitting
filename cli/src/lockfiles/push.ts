@@ -49,9 +49,7 @@ export const pushLockfile = ({
         headers,
       }),
     );
-    const result = yield* tryPromise(
-      () => response.json() as Promise<PushResult>,
-    );
+    const result = yield* tryPromise(() => response.json() as Promise<PushResult>);
 
     yield* Console.log(
       ui.success(

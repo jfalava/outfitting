@@ -29,12 +29,7 @@ function readUint32(view: DataView, offset: number): number {
   return view.getUint32(offset, true);
 }
 
-function ensureRange(
-  offset: number,
-  size: number,
-  length: number,
-  message: string,
-): void {
+function ensureRange(offset: number, size: number, length: number, message: string): void {
   if (offset < 0 || size < 0 || offset + size > length) {
     throw new Error(message);
   }
@@ -45,10 +40,7 @@ function findDirectory(archive: Uint8Array, view: DataView): ZipDirectory {
     throw new Error("Downloaded release is not a valid ZIP archive.");
   }
 
-  const searchStart = Math.max(
-    0,
-    archive.length - END_RECORD_SIZE - MAX_COMMENT_SIZE,
-  );
+  const searchStart = Math.max(0, archive.length - END_RECORD_SIZE - MAX_COMMENT_SIZE);
   const lastRecordOffset = archive.length - END_RECORD_SIZE;
   let recordOffset = -1;
   for (let offset = lastRecordOffset; offset >= searchStart; offset -= 1) {
@@ -74,17 +66,8 @@ function findDirectory(archive: Uint8Array, view: DataView): ZipDirectory {
   return { entryCount, offset: directoryOffset, end: directoryEnd };
 }
 
-function readEntry(
-  archive: Uint8Array,
-  view: DataView,
-  offset: number,
-): ZipEntry {
-  ensureRange(
-    offset,
-    46,
-    archive.length,
-    "Downloaded release has an invalid ZIP entry.",
-  );
+function readEntry(archive: Uint8Array, view: DataView, offset: number): ZipEntry {
+  ensureRange(offset, 46, archive.length, "Downloaded release has an invalid ZIP entry.");
   if (readUint32(view, offset) !== CENTRAL_ENTRY) {
     throw new Error("Downloaded release has an invalid ZIP entry.");
   }
@@ -93,8 +76,7 @@ function readEntry(
   const extraFieldLength = readUint16(view, offset + 30);
   const commentLength = readUint16(view, offset + 32);
   const fileNameOffset = offset + 46;
-  const nextOffset =
-    fileNameOffset + fileNameLength + extraFieldLength + commentLength;
+  const nextOffset = fileNameOffset + fileNameLength + extraFieldLength + commentLength;
   ensureRange(
     fileNameOffset,
     fileNameLength + extraFieldLength + commentLength,
@@ -113,11 +95,7 @@ function readEntry(
   };
 }
 
-function extractEntry(
-  archive: Uint8Array,
-  view: DataView,
-  entry: ZipEntry,
-): Uint8Array {
+function extractEntry(archive: Uint8Array, view: DataView, entry: ZipEntry): Uint8Array {
   ensureRange(
     entry.localFileOffset,
     30,
@@ -130,18 +108,14 @@ function extractEntry(
 
   const fileNameLength = readUint16(view, entry.localFileOffset + 26);
   const extraFieldLength = readUint16(view, entry.localFileOffset + 28);
-  const dataOffset =
-    entry.localFileOffset + 30 + fileNameLength + extraFieldLength;
+  const dataOffset = entry.localFileOffset + 30 + fileNameLength + extraFieldLength;
   ensureRange(
     dataOffset,
     entry.compressedSize,
     archive.length,
     "Downloaded release has a truncated executable entry.",
   );
-  const compressed = archive.subarray(
-    dataOffset,
-    dataOffset + entry.compressedSize,
-  );
+  const compressed = archive.subarray(dataOffset, dataOffset + entry.compressedSize);
   const binary =
     entry.compressionMethod === 0
       ? compressed
@@ -154,30 +128,17 @@ function extractEntry(
     );
   }
   if (binary.byteLength !== entry.uncompressedSize) {
-    throw new Error(
-      "Downloaded release executable size does not match its ZIP entry.",
-    );
+    throw new Error("Downloaded release executable size does not match its ZIP entry.");
   }
   return binary;
 }
 
-export function extractZipBinary(
-  archive: Uint8Array,
-  expectedName: string,
-): Uint8Array {
-  const view = new DataView(
-    archive.buffer,
-    archive.byteOffset,
-    archive.byteLength,
-  );
+export function extractZipBinary(archive: Uint8Array, expectedName: string): Uint8Array {
+  const view = new DataView(archive.buffer, archive.byteOffset, archive.byteLength);
   const directory = findDirectory(archive, view);
   let offset = directory.offset;
 
-  for (
-    let index = 0;
-    index < directory.entryCount && offset < directory.end;
-    index += 1
-  ) {
+  for (let index = 0; index < directory.entryCount && offset < directory.end; index += 1) {
     const entry = readEntry(archive, view, offset);
     if (entry.name === expectedName) {
       return extractEntry(archive, view, entry);

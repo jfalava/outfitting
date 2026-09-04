@@ -20,11 +20,6 @@ const INSTALLER_HOSTS = new Set([
   "nixos.jfa.dev",
 ]);
 
-const forwardBinding =
-  (binding: keyof Env): Handler<App> =>
-  async (c) =>
-    c.env[binding].fetch(c.req.raw);
-
 const forwardStripped =
   (prefix: string, binding: keyof Env): Handler<App> =>
   async (c) => {

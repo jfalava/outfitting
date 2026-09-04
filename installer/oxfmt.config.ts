@@ -2,12 +2,10 @@ import { defineConfig } from "oxfmt";
 
 import { fmtBase } from "../oxfmt.config.ts";
 
+// Installer-only: wider lines + sorted imports for the Worker source tree.
 export default defineConfig({
   ...fmtBase,
   printWidth: 100,
-  experimentalSortPackageJson: {
-    sortScripts: true,
-  },
   experimentalSortImports: {
     order: "asc",
     newlinesBetween: true,
@@ -23,10 +21,4 @@ export default defineConfig({
       ["unknown"],
     ],
   },
-  ignorePatterns: [
-    "cloudflare-env.d.ts",
-    "worker-configuration.d.ts",
-    ".wrangler/",
-    "node_modules/",
-  ],
 });

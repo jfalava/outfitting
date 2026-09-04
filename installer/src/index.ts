@@ -3,8 +3,8 @@ import { Hono } from "hono";
 import { ALLOWED_HOSTS } from "./constants";
 import fontsApp from "./fonts";
 import macosApp from "./macos";
-import type { InstallerEnv } from "./types";
 import nixosApp from "./nixos";
+import type { InstallerEnv } from "./types";
 import windowsApp from "./windows/index";
 import wslApp from "./wsl";
 

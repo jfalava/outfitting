@@ -4,7 +4,13 @@ nerd.geistmono
 nerd.ibm-plex-mono
 nerd.zedmono
 nerd.victor-mono
+fontsource.pretendard
 google.google-sans
 google.google-sans-code
 google.google-sans-flex
-fontsource.pretendard
+google.inter
+google.inter-tight
+google.ibm-plex-sans
+google.ibm-plex-mono
+google.zilla-slab
+google.zilla-slab-highlight

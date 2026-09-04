@@ -65,27 +65,43 @@ describe("router dispatch", () => {
 
   test("strips /api before forwarding to the API worker", async () => {
     const env = bindings();
-    const { body } = await hit("/api/lockfiles/machine/kind", "outfitting.jfa.dev", env);
+    const { body } = await hit(
+      "/api/lockfiles/machine/kind",
+      "outfitting.jfa.dev",
+      env,
+    );
 
     expect(body).toBe("api");
-    expect(env.API.calls).toEqual(["https://outfitting.jfa.dev/lockfiles/machine/kind"]);
+    expect(env.API.calls).toEqual([
+      "https://outfitting.jfa.dev/lockfiles/machine/kind",
+    ]);
     expect(env.DOCS_WORKER.calls).toEqual([]);
     expect(env.INSTALLER.calls).toEqual([]);
   });
 
   test("apex docs path reaches docs worker only", async () => {
     const env = bindings();
-    const { body, status } = await hit("/docs/manager/api", "outfitting.jfa.dev", env);
+    const { body, status } = await hit(
+      "/docs/manager/api",
+      "outfitting.jfa.dev",
+      env,
+    );
 
     expect(status).toBe(200);
     expect(body).toBe("docs");
-    expect(env.DOCS_WORKER.calls).toEqual(["https://outfitting.jfa.dev/docs/manager/api"]);
+    expect(env.DOCS_WORKER.calls).toEqual([
+      "https://outfitting.jfa.dev/docs/manager/api",
+    ]);
     expect(env.API.calls).toEqual([]);
   });
 
   test("unknown apex path is 418 without any service hop", async () => {
     const env = bindings();
-    const { body, status } = await hit("/post-install", "outfitting.jfa.dev", env);
+    const { body, status } = await hit(
+      "/post-install",
+      "outfitting.jfa.dev",
+      env,
+    );
 
     expect(status).toBe(418);
     expect(body).toBe("I'm a teapot");
