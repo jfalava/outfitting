@@ -2,6 +2,7 @@
 minimumReleaseAge = 86400
 minimumReleaseAgeExcludes = [
   "@types/node",
+  "bun-types",
   "effect",
   "@effect/*",
   "@cloudflare/workers-types",

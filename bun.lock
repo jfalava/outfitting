@@ -12,7 +12,7 @@
     },
     "api": {
       "name": "@outfitting/api",
-      "version": "0.13.0",
+      "version": "0.14.0",
       "dependencies": {
         "hono": "catalog:backend",
       },
@@ -29,7 +29,7 @@
     },
     "cli": {
       "name": "@outfitting/cli",
-      "version": "0.13.0",
+      "version": "0.14.0",
       "bin": {
         "outfitting-manager": "index.ts",
       },
@@ -40,7 +40,7 @@
       },
       "devDependencies": {
         "@oxlint/plugins": "catalog:build",
-        "@types/bun": "catalog:build",
+        "bun-types": "catalog:build",
         "oxfmt": "catalog:build",
         "oxlint": "catalog:build",
         "oxlint-tsgolint": "catalog:build",
@@ -50,7 +50,7 @@
     },
     "docs": {
       "name": "@outfitting/docs",
-      "version": "0.13.0",
+      "version": "0.14.0",
       "dependencies": {
         "@cloudflare/nimbus-docs": "0.11.0",
         "@fontsource/google-sans-code": "5.3.0",
@@ -99,7 +99,7 @@
     },
     "installer": {
       "name": "@outfitting/installer",
-      "version": "0.13.0",
+      "version": "0.14.0",
       "dependencies": {
         "hono": "catalog:backend",
       },
@@ -114,7 +114,7 @@
     },
     "router": {
       "name": "@outfitting/router",
-      "version": "0.13.0",
+      "version": "0.14.0",
       "dependencies": {
         "hono": "catalog:backend",
       },
@@ -135,7 +135,7 @@
     },
     "build": {
       "@oxlint/plugins": "1.81.0",
-      "@types/bun": "1.4.0",
+      "bun-types": "1.4.1",
       "oxfmt": "0.66.0",
       "oxlint": "1.81.0",
       "oxlint-tsgolint": "7.0.2001",
@@ -855,8 +855,6 @@
 
     "@types/aws-lambda": ["@types/aws-lambda@8.10.163", "", {}, "sha512-+4zuoEB3S8RIhimtOFT7zAEk2SbpwrKjjGl9CyYnQR6k08uynxfauIIB0pDU1ssr05F8oyGiETwpn+8eXZMqPw=="],
 
-    "@types/bun": ["@types/bun@1.4.0", "", { "dependencies": { "bun-types": "1.4.0" } }, "sha512-K+lZULY23vRgK/CfTjFIV+tyifaNdSMlPh9j+6mQ/cLfpOznLyAuzgV/JQysyECpkBQLVMSyvjlr2fBUSA9wFQ=="],
-
     "@types/chai": ["@types/chai@5.2.3", "", { "dependencies": { "@types/deep-eql": "*", "assertion-error": "^2.0.1" } }, "sha512-Mw558oeA9fFbv65/y4mHtXDs9bPnFMZAL/jxdPFUpOHHIXX91mcgEHbS5Lahr+pwZFR8A7GQleRWeI6cGFC2UA=="],
 
     "@types/debug": ["@types/debug@4.1.13", "", { "dependencies": { "@types/ms": "*" } }, "sha512-KSVgmQmzMwPlmtljOomayoR89W4FynCAi3E8PPs7vmDVPe84hT+vGPKkJfThkmXs0x0jAaa9U8uW8bbfyS2fWw=="],
@@ -1045,7 +1043,7 @@
 
     "braces": ["braces@3.0.3", "", { "dependencies": { "fill-range": "^7.1.1" } }, "sha512-yQbXgO/OSZVD2IsiLlro+7Hf6Q18EJrKSEsdoMzKePKXct3gvD8oLcOQdIzGupr5Fj+EDe8gO/lxc1BzfMpxvA=="],
 
-    "bun-types": ["bun-types@1.4.0", "", { "dependencies": { "@types/node": "*" } }, "sha512-iIKw23BspnQQYd3prITOBxeUsxBHnwzX6YJfGMuNOZzeNcMmVqzIIVGRm1l69ogaPQmb4wB6BN8mA5bE9YuC5Q=="],
+    "bun-types": ["bun-types@1.4.1", "", { "dependencies": { "@types/node": "*" } }, "sha512-loKuVrAFZKfEv+JvWkHRS9GW5IqLuLRjVXN9p+vZvBN86O5hf/pBZQ5hSoyipsrMmWObZBDvWnlmKvjKTM0PdA=="],
 
     "canvaskit-wasm": ["canvaskit-wasm@0.42.0", "", { "dependencies": { "@webgpu/types": "0.1.21" } }, "sha512-N3ikotmzYwDVAcpQKDMptBT2P5pIEWS9ywdmrQA2awwaMF9cxKEFuxZZHv9ay1Em9kDjxDsPtwUzDm1uNj136g=="],
 
