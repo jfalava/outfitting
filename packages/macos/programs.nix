@@ -19,8 +19,8 @@ in
     enableZshIntegration = false;
 
     settings = {
-      "font-family" = "VictorMono Nerd Font Mono";
-      "font-style" = "bold";
+      "font-family" = "GoogleSansCode NFP";
+      "font-family-italic" = "Dank Mono";
       "font-size" = 16;
       theme = "light:tokyonight day,dark:tokyonight storm";
     };

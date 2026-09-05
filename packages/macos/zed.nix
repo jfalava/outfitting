@@ -278,7 +278,7 @@ in
       "auto_indent" = "none";
       "auto_indent_on_paste" = false;
       "buffer_font_size" = 19;
-      "buffer_font_family" = "Aptos Mono";
+      "buffer_font_family" = "Berkeley Mono Variable";
       "buffer_font_weight" = 400;
 
       "terminal" = {
