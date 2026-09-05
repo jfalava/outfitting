@@ -38,6 +38,7 @@ const OUTPUT_PATHS = {
   npm: "package-lock.json",
   "package-lock": "package-lock.json",
   "powershell-inventory": "powershell-inventory.json",
+  "private-fonts": "private-fonts-inventory.json",
   "scoop-inventory": "scoop-inventory.json",
   winget: "winget.json",
 } as const satisfies Readonly<Record<string, string>>;

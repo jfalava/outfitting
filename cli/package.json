@@ -22,10 +22,12 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "3.1127.0",
     "@effect/platform-bun": "4.0.0-rc.112",
     "@outfitting/contract": "workspace:*",
     "effect": "4.0.0-rc.112",
-    "picocolors": "1.1.1"
+    "picocolors": "1.1.1",
+    "tar-stream": "3.2.1"
   },
   "devDependencies": {
     "@oxlint/plugins": "catalog:build",

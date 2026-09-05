@@ -12,7 +12,7 @@ export interface PullLockfileOptions {
 }
 
 export interface CliRequestInit {
-  body?: ArrayBuffer;
+  body?: ArrayBuffer | Uint8Array;
   headers?: Record<string, string>;
   method?: "PUT";
   signal?: AbortSignal;
