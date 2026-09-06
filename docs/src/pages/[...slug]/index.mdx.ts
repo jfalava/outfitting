@@ -26,10 +26,7 @@ interface SlugProps {
 export async function getStaticPaths() {
   const indexed = await getIndexedEntries();
   return indexed
-    .filter(
-      (item) =>
-        item.collection === PRIMARY_COLLECTION && item.sourceUrl !== undefined,
-    )
+    .filter((item) => item.collection === PRIMARY_COLLECTION && item.sourceUrl !== undefined)
     .map((item) => ({
       // Same root-index shape as the `.md` twin: `entry.id === "index"`
       // emits at `/index.mdx`, everything else at `/<entry.id>/index.mdx`.
@@ -50,9 +47,7 @@ export async function GET({ props }: { props: SlugProps }) {
     "---",
     `title: ${JSON.stringify(title)}`,
     ...(description ? [`description: ${JSON.stringify(description)}`] : []),
-    ...(socialImage
-      ? [`image: ${JSON.stringify(new URL(socialImage, config.site).href)}`]
-      : []),
+    ...(socialImage ? [`image: ${JSON.stringify(new URL(socialImage, config.site).href)}`] : []),
     ...(version ? [`version: ${JSON.stringify(version)}`] : []),
     "---",
     "",

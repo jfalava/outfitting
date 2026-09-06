@@ -7,10 +7,5 @@ import { antiSlopJsPlugins, antiSlopRules } from "../oxlint.config.ts";
 export default defineConfig({
   jsPlugins: antiSlopJsPlugins(".."),
   rules: antiSlopRules,
-  ignorePatterns: [
-    "**/*.astro",
-    "**/*.md",
-    "**/*.mdx",
-    "**/*.css",
-  ],
+  ignorePatterns: ["**/*.astro", "**/*.md", "**/*.mdx", "**/*.css"],
 });

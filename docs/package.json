@@ -35,6 +35,7 @@
   },
   "devDependencies": {
     "@astrojs/check": "0.9.10",
+    "@astrojs/compiler": "4.0.0",
     "@oxlint/plugins": "catalog:build",
     "@tailwindcss/vite": "4.3.3",
     "@typescript-eslint/parser": "8.69.0",

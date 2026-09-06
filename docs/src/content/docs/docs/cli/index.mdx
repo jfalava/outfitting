@@ -1,0 +1,31 @@
+---
+title: CLI
+sidebar:
+  order: 1
+  label: Overview
+---
+
+`outfitting-manager` is the portable local executable for Outfitting. It stores and restores generated machine-local state that is not committed to Git, publishes private fonts, upgrades itself, and can provision the Alchemy stack.
+
+## In this section
+
+- [Provision](/docs/cli/provision) — deploy a named Alchemy stack with optional docs skip.
+- [Upgrade](/docs/cli/upgrade) — check for and install the latest release.
+- [Lockfiles](/docs/cli/lockfiles) — send, restore, and inspect generated machine-local state.
+- [Fonts](/docs/cli/fonts) — publish and remove licensed private fonts.
+
+## When it is installed
+
+Platform installers download a checksum-verified GitHub release. They do not build the binary from the repository.
+
+- [Windows](/docs/windows): the [installer](/docs/windows/installation/) writes `outfitting-manager.exe` to `%USERPROFILE%\.local\bin`. The [post-install script](/docs/windows/post-install/) retries that download only when the file is missing.
+- [Windows Subsystem for Linux](/docs/wsl): the [installer](/docs/wsl/installation/) does not install `outfitting-manager`.
+- [macOS](/docs/macos): the [installer](/docs/macos/installation/) writes `outfitting-manager` to `$HOME/.local/bin` on Apple Silicon, then uses it to pull the canonical Nix lock.
+
+Once the binary is on `PATH`, `outfitting-manager upgrade` replaces it with the latest release.
+
+Run the CLI once it is on `PATH`:
+
+```bash
+outfitting-manager --help
+```

@@ -1,0 +1,38 @@
+---
+title: Dotfiles and machine state
+description: What lands on machines and how installers and sync commands reconcile it.
+sidebar:
+  order: 6
+---
+
+Desired state lives in the repo; observed state is pushed to the API worker. Platform install and maintenance pages cover the steps — this page maps the pieces.
+
+## Dotfiles
+
+- `dotfiles/Microsoft.PowerShell_profile.ps1` — Windows shell: `PATH`, `Update-All` (WinGet upgrade, `Sync-OutfittingScoop` against `scoop.txt`, Bun globals, PowerShell modules, `winget export` push), `Push-OutfittingLockfile`, and `Save-Outfitting{Scoop,BunGlobal,PowerShell}Inventory`.
+- `dotfiles/.gitconfig` — identity, SSH commit/tag signing.
+- `dotfiles/ssh.config` — GitHub SSH defaults.
+
+Installers symlink the profile entry points (Windows backs up existing profiles with a timestamp); Apple Silicon, WSL, and NixOS machines link the nix-darwin / Home Manager sources instead.
+
+## System definitions
+
+- `system/macos/` (`darwin.nix`, `home.nix`, `flake.nix`, `zsh/macos.plugin.zsh`) — `outfit sync|upgrade|snapshot|recover|build|switch|test|dry`, Homebrew reconcile, remote Nix lock pull/push, recovery checkpoint under XDG state.
+- `system/ubuntu-wsl/` (`base.nix`, `flake.nix`, `zsh/wsl.plugin.zsh`) — `hm-sync|switch|update`, `update-all`, `remote-update` from `wsl.jfa.dev`.
+- `system/nixos/` (`configuration.nix`, `desktop.nix`, `server.nix`, `home.nix`, `flake.nix`) — host roles.
+- `system/windows/registry/*.reg` — machine tweaks (Recall, Copilot, Ink, developer mode, menu delay).
+- `system/common/` (`zsh.nix`, `zsh/outfitting.plugin.zsh`) — shared shell setup.
+
+## Package manifests
+
+Committed desired state: `packages/macos/` (Brewfile, nix), `packages/windows/` (`base`, `dev`, `work`, `gaming`, `qol`, `network`, `scoop.txt`, `pwsh-modules.txt`, `msstore-*`), `packages/ubuntu-wsl/` (`apt.txt`, `packages.nix`), `packages/common/`, `packages/bun.txt`.
+
+## Fonts
+
+`fonts/fontget.txt` lists the 16 public FontGet entries installed by post-install. Licensed fonts ship separately as R2 `releases/fonts.tar.gz` — see [CLI fonts](/docs/cli/fonts) and [CLI](/docs/architecture/cli).
+
+## Install and reconcile
+
+Root `*-install-script.{sh,ps1}` files are served live from the installer hosts. They resolve the repo (`OUTFITTING_REPO`, then `~/.config/outfitting/repo-path`, then `~/.config/outfitting/repo`), clone when missing, symlink dotfiles, install manifests, and fetch the checksum-verified `outfitting-manager` release. Post-install adds Scoop buckets, public fonts, and the Access-gated private archive (checksum-verified before extraction).
+
+Day-to-day sync pushes observed inventories via [CLI lockfiles](/docs/cli/lockfiles): `winget` / `scoop-inventory` / `bun-global-inventory` / `powershell-inventory` (`jfalava:x64-windows`), `nix` + `homebrew-inventory` (`jfalava:aarch64-darwin`).

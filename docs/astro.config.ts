@@ -27,8 +27,8 @@ const nimbusConfig = defineNimbusConfig({
         items: [{ autogenerate: { directory: "docs/macos" } }],
       },
       {
-        label: "Fonts",
-        items: [{ autogenerate: { directory: "docs/fonts" } }],
+        label: "CLI",
+        items: [{ autogenerate: { directory: "docs/cli" } }],
       },
       "docs/repository-configuration",
       {

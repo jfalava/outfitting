@@ -2,19 +2,23 @@
 title: Provision
 description: Deploy a named Outfitting stack with optional docs skip.
 sidebar:
-  hidden: true
-  order: 4
+  order: 2
 ---
 
-Any Cloudflare account can stand up an Outfitting edge stack. Resource names default to `outfitting-*` and are overridable so multiple environments (or forks) do not collide.
+> Resource names default to `outfitting-*` and are overridable so multiple environments (or forks) do not collide.
 
 ## Quick start
 
-From the monorepo root (Bun workspaces already installed):
+1. [Clone the project](https://github.com/jfalava/outfitting),
+2. From the monorepo root:
+
+```sh
+bun install
+```
 
 ```bash
 # Skip docs, custom worker names, store lockfiles credentials in the OS keychain
-bun run cli/index.ts provision --no-docs \
+outfitting-manager provision --no-docs \
   --api-name outfitting-api-dev \
   --router-name outfitting-router-dev \
   --stack-name OutfittingDev
@@ -36,7 +40,7 @@ Copy the example and edit. The file is gitignored when named `outfitting.deploy.
 
 ```bash
 cp iac/outfitting.deploy.example.json outfitting.deploy.json
-bun run cli/index.ts provision --config ./outfitting.deploy.json
+outfitting-manager provision --config ./outfitting.deploy.json
 ```
 
 Example shape:
@@ -64,16 +68,16 @@ Example shape:
 
 For every field: **CLI flags → environment → config file → defaults**.
 
-| Concern | Flag | Env | Default |
-| --- | --- | --- | --- |
-| Stack name | `--stack-name` | `OUTFITTING_STACK_NAME` | `Outfitting` |
-| API worker | `--api-name` | `OUTFITTING_API_NAME` | `outfitting-api` |
-| Router worker | `--router-name` | `OUTFITTING_ROUTER_NAME` | `outfitting-router` |
-| Docs worker | `--docs-name` | `OUTFITTING_DOCS_NAME` | `outfitting-docs` |
-| Docs on/off | `--docs` / `--no-docs` | `OUTFITTING_DEPLOY_DOCS` | on |
-| Apex domain | `--domain` | `OUTFITTING_DOMAIN` | `outfitting.jfa.dev` |
-| Installer hosts | `--installer-hosts` | `OUTFITTING_INSTALLER_HOSTS` | `win/wsl/mac/nixos.jfa.dev` |
-| Config path | `--config` | `OUTFITTING_DEPLOY_CONFIG` | `outfitting.deploy.json` if present |
+| Concern         | Flag                   | Env                          | Default                             |
+| --------------- | ---------------------- | ---------------------------- | ----------------------------------- |
+| Stack name      | `--stack-name`         | `OUTFITTING_STACK_NAME`      | `Outfitting`                        |
+| API worker      | `--api-name`           | `OUTFITTING_API_NAME`        | `outfitting-api`                    |
+| Router worker   | `--router-name`        | `OUTFITTING_ROUTER_NAME`     | `outfitting-router`                 |
+| Docs worker     | `--docs-name`          | `OUTFITTING_DOCS_NAME`       | `outfitting-docs`                   |
+| Docs on/off     | `--docs` / `--no-docs` | `OUTFITTING_DEPLOY_DOCS`     | on                                  |
+| Apex domain     | `--domain`             | `OUTFITTING_DOMAIN`          | `outfitting.jfa.dev`                |
+| Installer hosts | `--installer-hosts`    | `OUTFITTING_INSTALLER_HOSTS` | `win/wsl/mac/nixos.jfa.dev`         |
+| Config path     | `--config`             | `OUTFITTING_DEPLOY_CONFIG`   | `outfitting.deploy.json` if present |
 
 `OUTFITTING_DEPLOY_DOCS` accepts `1/true/yes/on` or `0/false/no/off`.
 
@@ -102,4 +106,7 @@ Alchemy resource **IDs** (state keys such as `OutfittingApi`) stay stable across
 
 ## Credentials
 
-`provision` generates an `OUTFITTING_LOCKFILES_TOKEN` when neither `--token` nor the env var is set, injects it into the deploy, and stores the API base URL (`https://<router>/api`) plus token under the `outfitting-lockfiles` OS keychain service (same entries as `lockfiles configure-worker` / `configure-token`). Pass `--skip-configure` to leave the keychain alone.
+- `provision` generates an `OUTFITTING_LOCKFILES_TOKEN` when neither `--token` nor the env var is set.
+- It injects it into the deploy, and stores the API base URL (`https://<router>/api`) plus token under the `outfitting-lockfiles` OS keychain service (same entries as `lockfiles configure-worker` / `configure-token`).
+
+> Pass `--skip-configure` to leave the keychain alone.

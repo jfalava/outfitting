@@ -1,0 +1,94 @@
+---
+title: Lockfiles
+description: Send, restore, and inspect generated machine-local state.
+sidebar:
+  order: 4
+---
+
+The `lockfiles` command stores generated state that is not committed to Git, such as the canonical macOS flake lock and package-manager inventories.
+
+- Push state to the API worker behind the edge router.
+- Restore, list, and inspect stored state on another machine.
+- Update the executable with [Upgrade](/docs/cli/upgrade).
+
+It accepts any machine and kind. Files tracked by Git are refused because commits already preserve them.
+
+Public API URL (via the edge router): `https://worker-url/api`.
+
+## Configure lockfile storage
+
+Point the CLI at your deployed Worker. See [CLI architecture](/docs/architecture/cli#credentials) for where configuration is stored.
+
+```bash
+outfitting-manager lockfiles configure-worker "https://url-to-your-worker"
+```
+
+If it has not been configured, the first API call prompts for it and for the bearer token using masked input. Run `configure-worker` again whenever the Worker URL changes, and `configure-token` to set or replace the API token:
+
+```bash
+outfitting-manager lockfiles configure-token
+```
+
+## Push lock state
+
+```bash
+outfitting-manager lockfiles push machine-name:aarch64-darwin nix updated-flake.lock
+outfitting-manager lockfiles push machine-name:aarch64-darwin homebrew-inventory homebrew-inventory.txt
+outfitting-manager lockfiles push machine-name:x64-windows scoop-inventory scoop-inventory.json
+outfitting-manager lockfiles push machine-name:x64-windows winget winget.json
+```
+
+Protect a read-modify-write update by supplying the SHA-256 of the version that was pulled:
+
+```bash
+outfitting-manager lockfiles push machine-name:aarch64-darwin nix updated-flake.lock \
+  --if-match 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+```
+
+The Worker rejects the push with HTTP 412 if another client has advanced that machine and kind. Retrying content that is already current succeeds.
+
+## Pull and inspect lock state
+
+Pull the latest version:
+
+```bash
+outfitting-manager lockfiles pull machine-name:x64-wsl nix
+outfitting-manager lockfiles pull machine-name:x64-windows winget restored-winget.json
+```
+
+The default output filename is inferred for common kinds, including `nix`, `flake`, `bun`, `npm`, `package-lock`, `homebrew-inventory`, `homebrew`, `brew`, `brewfile`, `scoop-inventory`, and `winget`. Pass an explicit output path for any other free-form kind.
+
+List kinds and inspect history:
+
+```bash
+outfitting-manager lockfiles list machine-name:aarch64-darwin
+outfitting-manager lockfiles history machine-name:aarch64-darwin nix
+```
+
+Machine names are free-form. Automatic maintenance hooks use the repository's `username:platform` convention. The current Windows hook uses `machine-name:x64-windows`.
+
+## Worker API
+
+Every request requires `Authorization: Bearer OUTFITTING_LOCKFILES_TOKEN`.
+
+Paths below are relative to the API worker. Through the router they are prefixed with `/api` (the router strips that prefix before forwarding).
+
+| Method   | Route                               | Result                                                |
+| -------- | ----------------------------------- | ----------------------------------------------------- |
+| `PUT`    | `/lockfiles/:machine/:kind`         | Stores/promotes the body and returns `{ hash, size }` |
+| `GET`    | `/lockfiles/:machine/:kind`         | Returns the latest raw content as text                |
+| `GET`    | `/lockfiles/:machine/:kind/history` | Returns `{ hash, size, created_at }[]`, newest first  |
+| `GET`    | `/lockfiles/:machine`               | Returns a sorted JSON array of tracked kinds          |
+| `DELETE` | `/lockfiles/:machine/:kind/:hash`   | Deletes one D1 row                                    |
+
+Public equivalents: `https://worker-url/api/lockfiles/...`.
+
+`PUT` accepts an optional standard `If-Match: "sha256"` header. The D1 promotion and head update are atomic; a stale expected hash returns HTTP 412 without advancing the head. Deleting the current head returns HTTP 409.
+
+## Platform integrations
+
+- macOS uses the `nix` kind as its canonical remote flake lock. Rebuild commands pull it into a temporary path with Nix's `--reference-lock-file`; upgrades write to a temporary `--output-lock-file` and push the result after a successful switch using the pulled hash as a concurrency precondition. A durable recovery checkpoint remains under the XDG state directory until both activation and upload succeed; `outfit recover` resumes it.
+
+* Successful `outfit sync` and `outfit upgrade` operations automatically store the observed, versioned Homebrew state as `homebrew-inventory`. Kinds are free-form and require no schema migration.
+
+* Windows treats `packages/windows/scoop.txt` as the source of truth for directly installed Scoop packages, and every `Update-All` run reconciles against it. After a successful `Sync-OutfittingScoop`, the PowerShell profile writes a stable, sorted Scoop export without volatile timestamps and uploads it as `scoop-inventory` for `machine-name:x64-windows`. Run `Save-OutfittingScoopInventory` to capture current state without reconciling first.

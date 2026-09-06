@@ -52,9 +52,7 @@ export async function GET({ props }: { props: SlugProps }) {
     "---",
     `title: ${JSON.stringify(title)}`,
     ...(description ? [`description: ${JSON.stringify(description)}`] : []),
-    ...(socialImage
-      ? [`image: ${JSON.stringify(new URL(socialImage, config.site).href)}`]
-      : []),
+    ...(socialImage ? [`image: ${JSON.stringify(new URL(socialImage, config.site).href)}`] : []),
     ...(version ? [`version: ${JSON.stringify(version)}`] : []),
     "---",
     "",

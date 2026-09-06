@@ -1,6 +1,10 @@
 ---
 import DocsLayout from "../layouts/DocsLayout.astro";
-import { getBreadcrumbs, getPrevNext, getSidebar } from "@cloudflare/nimbus-docs";
+import {
+  getBreadcrumbs,
+  getPrevNext,
+  getSidebar,
+} from "@cloudflare/nimbus-docs";
 import { config } from "virtual:nimbus/config";
 
 const sidebar = await getSidebar("/", { collection: "docs" });
@@ -18,17 +22,23 @@ const prevNext = await getPrevNext("/", { sidebarTree: sidebar });
 >
   <h2 id="overview">Overview</h2>
   <p>
-    These docs explain how to install, configure, and maintain Outfitting across Windows, Windows Subsystem for Linux, and macOS. They cover platform setup, repository-managed configuration, package updates, private fonts, and the <code>outfitting-manager</code> tools for machine-local lockfile storage.
+    Install, configure, and maintain <span class="bold">Outfitting</span> across Windows,
+    WSL, and macOS.
+  </p>
+  <p>
+    They cover the <code>outfitting-manager</code> CLI, platform setup, repository-managed
+    configuration, package updates, and private fonts.
   </p>
 
   <h2 id="getting-started">Getting started</h2>
-  <p>Choose the installation guide for your platform:</p>
   <ul>
     <li><a href="/docs/windows">Windows installation</a></li>
     <li><a href="/docs/wsl">Windows Subsystem for Linux installation</a></li>
     <li><a href="/docs/macos">macOS installation</a></li>
+    <li><a href="/docs/cli">Command Line Interface</a></li>
   </ul>
   <p>
-    After installation, use the Updates page inside your platform's section to keep the configuration and packages current. The <a href="/docs/fonts">Fonts</a> section covers private font publishing. <a href="/docs/architecture">Architecture</a> covers packages, routing, and storage.
+    <a href="/docs/architecture">Architecture</a> covers the workers, CLI internals,
+    and machine state.
   </p>
 </DocsLayout>

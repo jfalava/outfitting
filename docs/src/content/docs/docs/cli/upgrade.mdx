@@ -1,0 +1,30 @@
+---
+title: Upgrade
+description: Check for and install the latest outfitting-manager release.
+sidebar:
+  order: 3
+---
+
+Upgrade to the latest version with:
+
+```bash
+outfitting-manager upgrade
+```
+
+The command checks the latest GitHub release for the current platform, compares it with the running binary, and exits when already up to date. Otherwise it downloads the release asset, verifies it against its SHA-256 checksum, replaces the current executable, and sets the executable bit on the replacement.
+
+## Troubleshooting
+
+If you downloaded a release binary in a browser, some OS like macOS saves it without the executable bit. Repair it before the first run:
+
+```bash
+chmod 755 ~/.local/bin/outfitting-manager
+```
+
+### macOS
+
+If macOS blocks the verified release with a quarantine warning, remove only the browser quarantine attribute from this downloaded binary and retry:
+
+```bash
+xattr -d com.apple.quarantine ~/.local/bin/outfitting-manager 2>/dev/null || true
+```

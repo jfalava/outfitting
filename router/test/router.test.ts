@@ -82,17 +82,17 @@ describe("router dispatch", () => {
 
   test("apex docs path reaches docs worker only", async () => {
     const env = bindings();
-    const { body, status } = await hit("/docs/manager/api", "outfitting.jfa.dev", env);
+    const { body, status } = await hit("/docs/cli/lockfiles", "outfitting.jfa.dev", env);
 
     expect(status).toBe(200);
     expect(body).toBe("docs");
-    expect(env.DOCS_WORKER?.calls).toEqual(["https://outfitting.jfa.dev/docs/manager/api"]);
+    expect(env.DOCS_WORKER?.calls).toEqual(["https://outfitting.jfa.dev/docs/cli/lockfiles"]);
     expect(env.API.calls).toEqual([]);
   });
 
   test("docs path returns 404 when docs worker is unbound", async () => {
     const env = bindings({ docs: false });
-    const { body, status } = await hit("/docs/manager/api", "outfitting.jfa.dev", env);
+    const { body, status } = await hit("/docs/cli/lockfiles", "outfitting.jfa.dev", env);
 
     expect(status).toBe(404);
     expect(body).toContain("Not found");

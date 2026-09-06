@@ -25,16 +25,14 @@ export const buttonBase =
   "group inline-flex w-max shrink-0 items-center justify-center rounded-lg font-medium whitespace-nowrap no-underline transition-all cursor-pointer select-none focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
 
 export const buttonVariantClasses = {
-  primary:
-    "bg-primary text-primary-foreground shadow-sm hover:bg-primary-hover hover:shadow",
+  primary: "bg-primary text-primary-foreground shadow-sm hover:bg-primary-hover hover:shadow",
   secondary:
     "bg-card text-foreground ring ring-border shadow-sm hover:bg-accent hover:ring-border-strong",
   ghost: "bg-transparent text-foreground shadow-none hover:bg-accent",
   destructive: "bg-danger text-white shadow-sm hover:bg-danger/90",
   "secondary-destructive":
     "bg-card text-danger ring ring-border shadow-sm hover:bg-accent hover:ring-danger/40",
-  outline:
-    "bg-transparent text-foreground ring ring-border hover:ring-border-strong",
+  outline: "bg-transparent text-foreground ring ring-border hover:ring-border-strong",
 } as const satisfies Record<ButtonVariant, string>;
 
 // Rectangular sizing (shape="base"). Radius comes from `buttonBase`.
@@ -77,10 +75,6 @@ export function buttonVariants({
   const dims =
     appearance === "base"
       ? buttonSizeText[size]
-      : cn(
-          buttonSizeCompact[size],
-          "p-0",
-          appearance === "circle" && "rounded-full",
-        );
+      : cn(buttonSizeCompact[size], "p-0", appearance === "circle" && "rounded-full");
   return cn(buttonBase, buttonVariantClasses[variant], dims);
 }

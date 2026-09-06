@@ -53,9 +53,7 @@ export async function GET({ props }: { props: SectionProps }) {
 
   for (const item of members) {
     const description = item.description ? ` — ${item.description}` : "";
-    lines.push(
-      `- [${item.title}](${new URL(item.markdownUrl, config.site).href})${description}`,
-    );
+    lines.push(`- [${item.title}](${new URL(item.markdownUrl, config.site).href})${description}`);
   }
 
   lines.push("");

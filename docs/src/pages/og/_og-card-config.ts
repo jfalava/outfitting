@@ -18,9 +18,7 @@ export const ogCardConfig = {
   ],
   border: { color: [39, 39, 42], width: 2, side: "inline-start" },
   padding: 96,
-  fonts: [
-    "./node_modules/@fontsource/ibm-plex-sans/files/ibm-plex-sans-latin-700-normal.woff",
-  ],
+  fonts: ["./node_modules/@fontsource/ibm-plex-sans/files/ibm-plex-sans-latin-700-normal.woff"],
   font: {
     title: {
       color: [250, 250, 250],
