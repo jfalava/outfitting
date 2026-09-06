@@ -1,8 +1,10 @@
 import { maskedPrompt } from "@/lockfiles/masked-prompt";
+import { envValue, inAmpOrb, storedSecret } from "@/secrets";
 
 const SECRET_SERVICE = "outfitting-lockfiles";
 const TOKEN_SECRET_NAME = "api-token";
 const URL_SECRET_NAME = "worker-url";
+const DEFAULT_WORKER_URL = "https://outfitting.jfa.dev/api";
 
 export function normalizeWorkerUrl(value: string): string {
   let parsed: URL;
@@ -30,10 +32,11 @@ export async function storeWorkerUrl(value: string): Promise<string> {
 }
 
 export async function baseUrl(): Promise<string> {
-  const stored = await Bun.secrets.get({
-    service: SECRET_SERVICE,
-    name: URL_SECRET_NAME,
-  });
+  if (inAmpOrb()) {
+    return normalizeWorkerUrl(envValue("OUTFITTING_LOCKFILES_URL") ?? DEFAULT_WORKER_URL);
+  }
+
+  const stored = await storedSecret(SECRET_SERVICE, URL_SECRET_NAME);
 
   if (stored) {
     return normalizeWorkerUrl(stored);
@@ -63,11 +66,16 @@ export async function promptAndStoreApiToken(): Promise<string> {
 }
 
 export async function apiToken(): Promise<string> {
+  if (inAmpOrb()) {
+    const fromEnv = envValue("OUTFITTING_LOCKFILES_TOKEN");
+    if (!fromEnv) {
+      throw new Error("OUTFITTING_LOCKFILES_TOKEN is required in an Amp orb.");
+    }
+    return fromEnv;
+  }
+
   // Bun.secrets is experimental and does not isolate credentials between scripts running as the same OS user. That is acceptable for this personal tool, but the keychain entry is not a hard security boundary.
-  const token = await Bun.secrets.get({
-    service: SECRET_SERVICE,
-    name: TOKEN_SECRET_NAME,
-  });
+  const token = await storedSecret(SECRET_SERVICE, TOKEN_SECRET_NAME);
 
   return token || promptAndStoreApiToken();
 }

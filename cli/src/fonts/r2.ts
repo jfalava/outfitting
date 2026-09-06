@@ -70,9 +70,18 @@ export async function createR2ObjectStore(): Promise<FontObjectStore> {
 }
 
 export async function loadRemoteArchive(store: FontObjectStore): Promise<FontArchive> {
-  const archive = await store.getArchive();
-  if (archive === undefined || archive.byteLength === 0) {
-    return emptyFontArchive();
+  return (await loadRemoteArchiveState(store)).archive;
+}
+
+export interface RemoteArchiveState {
+  readonly bytes: Uint8Array | undefined;
+  readonly archive: FontArchive;
+}
+
+export async function loadRemoteArchiveState(store: FontObjectStore): Promise<RemoteArchiveState> {
+  const bytes = await store.getArchive();
+  if (bytes === undefined || bytes.byteLength === 0) {
+    return { bytes: undefined, archive: emptyFontArchive() };
   }
-  return unpackFontArchive(archive);
+  return { bytes, archive: await unpackFontArchive(bytes) };
 }

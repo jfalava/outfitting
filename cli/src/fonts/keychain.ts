@@ -1,4 +1,5 @@
 import { maskedPrompt } from "@/lockfiles/masked-prompt";
+import { envValue, inAmpOrb, storedSecret } from "@/secrets";
 
 const SECRET_SERVICE = "outfitting-fonts";
 const ENDPOINT_SECRET_NAME = "r2-endpoint";
@@ -44,10 +45,15 @@ export async function storeR2Endpoint(value: string): Promise<string> {
 }
 
 export async function r2Endpoint(): Promise<string> {
-  const stored = await Bun.secrets.get({
-    service: SECRET_SERVICE,
-    name: ENDPOINT_SECRET_NAME,
-  });
+  if (inAmpOrb()) {
+    const fromEnv = envValue("OUTFITTING_S3_ENDPOINT");
+    if (!fromEnv) {
+      throw new Error("OUTFITTING_S3_ENDPOINT is required in an Amp orb.");
+    }
+    return normalizeR2Endpoint(fromEnv);
+  }
+
+  const stored = await storedSecret(SECRET_SERVICE, ENDPOINT_SECRET_NAME);
   if (stored) {
     return normalizeR2Endpoint(stored);
   }
@@ -93,13 +99,22 @@ export async function promptAndStoreR2Credentials(): Promise<void> {
 }
 
 async function storedCredential(name: string): Promise<string | null> {
-  return Bun.secrets.get({
-    service: SECRET_SERVICE,
-    name,
-  });
+  return storedSecret(SECRET_SERVICE, name);
 }
 
 export async function r2Credentials(): Promise<R2Credentials> {
+  if (inAmpOrb()) {
+    const endpoint = await r2Endpoint();
+    const accessKeyId = envValue("OUTFITTING_S3_ACCESS_KEY");
+    const secretAccessKey = envValue("OUTFITTING_S3_SECRET_KEY");
+    if (!accessKeyId || !secretAccessKey) {
+      throw new Error(
+        "OUTFITTING_S3_ACCESS_KEY and OUTFITTING_S3_SECRET_KEY are required in an Amp orb.",
+      );
+    }
+    return { endpoint, accessKeyId, secretAccessKey };
+  }
+
   const endpoint = await r2Endpoint();
   const accessKeyId = await storedCredential(ACCESS_KEY_SECRET_NAME);
   const secretAccessKey = await storedCredential(SECRET_KEY_SECRET_NAME);

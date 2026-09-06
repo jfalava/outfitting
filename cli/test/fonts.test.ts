@@ -14,6 +14,7 @@ import {
 import { archivePathFor, keepNamePath, readFontNames, slugifyName } from "@/fonts/names";
 import { collectIncomingFonts, planPublish, planRemove } from "@/fonts/plan";
 import { normalizeR2Endpoint } from "@/fonts/keychain";
+import { inventoriesEqual, inventoryFromFaces, quotedHash } from "@/fonts/inventory";
 
 function writeUint16(view: DataView, offset: number, value: number): void {
   view.setUint16(offset, value, false);
@@ -100,6 +101,39 @@ describe("fonts helpers", () => {
     );
     expect(() => normalizeR2Endpoint("not a url")).toThrow("HTTPS URL");
     expect(() => normalizeR2Endpoint("http://example.r2.cloudflarestorage.com")).toThrow("HTTPS");
+  });
+
+  test("accepts strong and weak SHA-256 ETags", () => {
+    const hash = "a".repeat(64);
+    expect(quotedHash(`"${hash}"`)).toBe(hash);
+    expect(quotedHash(`W/"${hash.toUpperCase()}"`)).toBe(hash);
+    expect(quotedHash(`W/"not-a-hash"`)).toBeUndefined();
+  });
+
+  test("compares private-fonts inventories by archive hash and faces", () => {
+    const hash = "a".repeat(64);
+    const faces = [
+      {
+        family: "IBM Plex Sans",
+        style: "Regular",
+        postscriptName: "IBMPlexSans-Regular",
+        path: "fonts/ibm-plex-sans/ibm-plex-sans-regular.otf",
+      },
+    ];
+    const left = inventoryFromFaces(faces, hash, 12);
+    const right = inventoryFromFaces(faces, hash, 12);
+    expect(inventoriesEqual(left, right)).toBe(true);
+    expect(inventoriesEqual(left, inventoryFromFaces(faces, "b".repeat(64), 12))).toBe(false);
+    expect(
+      inventoriesEqual(
+        left,
+        inventoryFromFaces(
+          [{ ...faces[0]!, style: "Bold", postscriptName: "IBMPlexSans-Bold" }],
+          hash,
+          12,
+        ),
+      ),
+    ).toBe(false);
   });
 
   test("reads family, style, and PostScript names from an OpenType name table", () => {

@@ -13,10 +13,13 @@ export {
   inventoryFromFaces,
   pullInventory,
   pushInventory,
+  quotedHash,
+  inventoriesEqual,
 } from "@/fonts/inventory";
 export { archivePathFor, keepNamePath, readFontNames, slugifyName } from "@/fonts/names";
 export { collectIncomingFonts, planPublish, planRemove } from "@/fonts/plan";
 export { applyFontPlan } from "@/fonts/publish";
 export { configureCredentials, configureEndpoint } from "@/fonts/configure";
 export { normalizeR2Endpoint } from "@/fonts/keychain";
-export { createR2ObjectStore, loadRemoteArchive } from "@/fonts/r2";
+export { createR2ObjectStore, loadRemoteArchive, loadRemoteArchiveState } from "@/fonts/r2";
+export { repopulateInventory, syncInventoryFromRemote } from "@/fonts/repopulate";

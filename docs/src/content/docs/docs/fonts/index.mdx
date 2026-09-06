@@ -54,6 +54,18 @@ outfitting-manager fonts list
 
 Output is a checksum and size, then a table of family, style, PostScript name, and path. If nothing has been published yet, it says so and exits.
 
+## `fonts repopulate`
+
+Rebuilds the lockfiles inventory from the live archive. Use this when `list` is stale after a publish that did not rewrite inventory.
+
+```bash
+outfitting-manager fonts repopulate --dry-run
+outfitting-manager fonts repopulate
+outfitting-manager fonts list --repopulate
+```
+
+`--dry-run` compares archive to inventory without writing. `list`, `publish`, and `remove` also accept `--repopulate`.
+
 ## `fonts publish`
 
 Adds OpenType files from a local directory. Hidden files, license/readme-style names, and unknown extensions are skipped. Paths come from each font's family and style unless you pass `--keep-names`.

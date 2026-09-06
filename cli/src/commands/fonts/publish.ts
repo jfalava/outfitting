@@ -3,7 +3,8 @@ import { Argument, Command, Flag } from "effect/unstable/cli";
 
 import { collectIncomingFonts, planPublish } from "@/fonts/plan";
 import { applyFontPlan } from "@/fonts/publish";
-import { createR2ObjectStore, loadRemoteArchive } from "@/fonts/r2";
+import { syncInventoryFromRemote } from "@/fonts/repopulate";
+import { createR2ObjectStore, loadRemoteArchiveState } from "@/fonts/r2";
 import { tryPromise } from "@/lockfiles/effect";
 
 export const publishCommand = Command.make(
@@ -32,13 +33,20 @@ export const publishCommand = Command.make(
       Flag.withDefault(false),
       Flag.withDescription("Allow reserved system families such as Helvetica or Arial."),
     ),
+    repopulate: Flag.boolean("repopulate").pipe(
+      Flag.withDefault(false),
+      Flag.withDescription("Rebuild the lockfiles inventory from the live R2 archive first."),
+    ),
   },
-  ({ directory, dryRun, yes, replace, keepNames, allowSystemNames }) =>
+  ({ directory, dryRun, yes, replace, keepNames, allowSystemNames, repopulate }) =>
     Effect.gen(function* () {
       const incoming = yield* tryPromise(() => collectIncomingFonts(directory));
       const store = yield* tryPromise(() => createR2ObjectStore());
-      const archive = yield* tryPromise(() => loadRemoteArchive(store));
-      const plan = planPublish(archive, incoming, { replace, keepNames, allowSystemNames });
+      const remote = yield* tryPromise(() => loadRemoteArchiveState(store));
+      if (repopulate) {
+        yield* syncInventoryFromRemote(remote, dryRun);
+      }
+      const plan = planPublish(remote.archive, incoming, { replace, keepNames, allowSystemNames });
       yield* applyFontPlan(plan, dryRun, yes, store);
     }),
 ).pipe(Command.withDescription("Merge local OpenType fonts into the private R2 archive."));

@@ -73,6 +73,8 @@ The private archive is a validated `fonts/` tree packed with `tar-stream` as `re
 
 `publish` and `remove` download the live archive over the S3 API, pack a new tree, upload archive then checksum, and rewrite that inventory with an `If-Match` on the previous hash. Paths default to `fonts/<family-slug>/<family-slug>-<style-slug>.<ext>` from OpenType names.
 
+`fonts repopulate` (and `--repopulate` on `list` / `publish` / `remove`) rebuilds that inventory from the live R2 archive without changing the archive. Matching inventory is left alone.
+
 Operator usage is in [Fonts](/docs/fonts).
 
 ## Credentials
@@ -82,3 +84,5 @@ The CLI stores the configured API base URL with `Bun.secrets` using service `out
 The token is never echoed after it is entered or saved. `Bun.secrets` uses Keychain on macOS, Secret Service on Linux, and Credential Manager on Windows. It is appropriate here as personal credential storage, but it is not a hard boundary between programs running as the same user.
 
 R2 font credentials use the same keychain helper under service `outfitting-fonts` (`r2-endpoint`, `r2-access-key-id`, `r2-secret-access-key`). A bare 32-character Cloudflare account ID is accepted and stored as `https://<accountid>.r2.cloudflarestorage.com`. The first `publish` or `remove` prompts if those entries are missing.
+
+When `AMP_ORB=1`, Amp orbs have no Secret Service, so the CLI skips the keychain and reads project secrets from the environment instead: `OUTFITTING_LOCKFILES_TOKEN` (required), optional `OUTFITTING_LOCKFILES_URL` (defaults to `https://outfitting.jfa.dev/api`), and for fonts `OUTFITTING_S3_ENDPOINT`, `OUTFITTING_S3_ACCESS_KEY`, and `OUTFITTING_S3_SECRET_KEY`. Missing required values fail instead of prompting.

@@ -3,7 +3,8 @@ import { Argument, Command, Flag } from "effect/unstable/cli";
 
 import { planRemove } from "@/fonts/plan";
 import { applyFontPlan } from "@/fonts/publish";
-import { createR2ObjectStore, loadRemoteArchive } from "@/fonts/r2";
+import { syncInventoryFromRemote } from "@/fonts/repopulate";
+import { createR2ObjectStore, loadRemoteArchiveState } from "@/fonts/r2";
 import { tryPromise } from "@/lockfiles/effect";
 
 export const removeCommand = Command.make(
@@ -25,12 +26,19 @@ export const removeCommand = Command.make(
       Flag.withDefault(false),
       Flag.withDescription("Skip the confirmation prompt."),
     ),
+    repopulate: Flag.boolean("repopulate").pipe(
+      Flag.withDefault(false),
+      Flag.withDescription("Rebuild the lockfiles inventory from the live R2 archive first."),
+    ),
   },
-  ({ names, family, dryRun, yes }) =>
+  ({ names, family, dryRun, yes, repopulate }) =>
     Effect.gen(function* () {
       const store = yield* tryPromise(() => createR2ObjectStore());
-      const archive = yield* tryPromise(() => loadRemoteArchive(store));
-      const plan = planRemove(archive, names, family);
+      const remote = yield* tryPromise(() => loadRemoteArchiveState(store));
+      if (repopulate) {
+        yield* syncInventoryFromRemote(remote, dryRun);
+      }
+      const plan = planRemove(remote.archive, names, family);
       yield* applyFontPlan(plan, dryRun, yes, store);
     }),
 ).pipe(Command.withDescription("Remove faces from the private R2 font archive."));

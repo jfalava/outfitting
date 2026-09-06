@@ -4,6 +4,7 @@ import { configureCredentialsCommand, configureEndpointCommand } from "@/command
 import { listCommand } from "@/commands/fonts/list";
 import { publishCommand } from "@/commands/fonts/publish";
 import { removeCommand } from "@/commands/fonts/remove";
+import { repopulateCommand } from "@/commands/fonts/repopulate";
 
 export const fontsCommand = Command.make("fonts").pipe(
   Command.withDescription("Inventory, publish, and remove private fonts stored in R2."),
@@ -11,6 +12,7 @@ export const fontsCommand = Command.make("fonts").pipe(
     configureEndpointCommand,
     configureCredentialsCommand,
     listCommand,
+    repopulateCommand,
     publishCommand,
     removeCommand,
   ]),

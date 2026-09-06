@@ -34,8 +34,8 @@ export interface InventorySnapshot {
   readonly hash: string;
 }
 
-function quotedHash(etag: string | null): string | undefined {
-  const match = etag?.match(/^"([0-9a-f]{64})"$/i);
+export function quotedHash(etag: string | null): string | undefined {
+  const match = etag?.match(/^(?:W\/)?"([0-9a-f]{64})"$/i);
   return match?.[1]?.toLowerCase();
 }
 
@@ -65,6 +65,31 @@ export function inventoryFromFaces(
 export function encodeInventory(inventory: PrivateFontsInventory): Uint8Array {
   const encoded = encodeResponse(InventorySchema, inventory);
   return new TextEncoder().encode(`${JSON.stringify(encoded, null, 2)}\n`);
+}
+
+export function inventoriesEqual(
+  left: PrivateFontsInventory,
+  right: PrivateFontsInventory,
+): boolean {
+  if (
+    left.format !== right.format ||
+    left.archive.key !== right.archive.key ||
+    left.archive.sha256 !== right.archive.sha256 ||
+    left.archive.size !== right.archive.size ||
+    left.faces.length !== right.faces.length
+  ) {
+    return false;
+  }
+  return left.faces.every((face, index) => {
+    const other = right.faces[index];
+    return (
+      other !== undefined &&
+      face.family === other.family &&
+      face.style === other.style &&
+      face.postscriptName === other.postscriptName &&
+      face.path === other.path
+    );
+  });
 }
 
 export async function pullInventory(): Promise<InventorySnapshot | undefined> {
