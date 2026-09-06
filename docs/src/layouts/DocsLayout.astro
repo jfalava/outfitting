@@ -95,7 +95,7 @@ const hasPagination = Astro.slots.has("pagination");
                   <Sidebar items={sidebar} persist />
                 </nav>
               )}
-              <div class="pointer-events-none sticky bottom-0 h-8 bg-gradient-to-t from-base to-transparent" />
+              <div class="pointer-events-none sticky bottom-0 h-8 bg-linear-to-t from-base to-transparent" />
             </aside>
           )}
 
@@ -187,11 +187,11 @@ const hasPagination = Astro.slots.has("pagination");
                       {draft && <Badge text="Draft" variant="warning" size="medium" />}
                     </div>
                     {description && (
-                      <p class="text-[0.9375rem] sm:text-[1.0625rem] text-muted-foreground leading-relaxed mt-2 mb-2 [text-wrap:pretty]">{description}</p>
+                      <p class="text-[0.9375rem] sm:text-[1.0625rem] text-muted-foreground leading-relaxed mt-2 mb-2 text-pretty">{description}</p>
                     )}
                     <PageActions markdownUrl={markdownUrl} lastUpdated={lastUpdated} class={description ? undefined : "mt-3"} />
                     {headings !== false && headings.length > 0 && (
-                      <div class="border-border bg-background/95 supports-[backdrop-filter]:bg-background/80 sticky top-14 z-20 -mx-4 mt-3 border-y px-4 py-2 backdrop-blur lg:-mx-6 lg:px-6 xl:hidden">
+                      <div class="border-border bg-background/95 supports-backdrop-filter:bg-background/80 sticky top-14 z-20 -mx-4 mt-3 border-y px-4 py-2 backdrop-blur lg:-mx-6 lg:px-6 xl:hidden">
                         <MobileTOC headings={headings} />
                       </div>
                     )}
@@ -245,11 +245,11 @@ const hasPagination = Astro.slots.has("pagination");
     <dialog
       data-mobile-sidebar
       data-state="closed"
-      class="group fixed inset-0 m-0 h-full w-full max-h-full max-w-full border-0 bg-transparent p-0 [&::backdrop]:bg-transparent"
+      class="group fixed inset-0 m-0 h-full w-full max-h-full max-w-full border-0 bg-transparent p-0 backdrop:bg-transparent"
       aria-label="Site navigation"
     >
       <div data-mobile-sidebar-panel class="h-full w-(--nb-sidebar-width) max-w-[85vw] -translate-x-full overflow-y-auto overscroll-contain border-r border-border bg-card transition-transform duration-250 ease-out group-data-[state=open]:translate-x-0 motion-reduce:transition-none">
-        <div class="sticky top-0 z-[1] flex items-center justify-between border-b border-border bg-card px-4 py-3">
+        <div class="sticky top-0 z-1 flex items-center justify-between border-b border-border bg-card px-4 py-3">
           <span class="font-semibold text-sm text-foreground">Navigation</span>
           <button data-close-sidebar class="flex items-center justify-center w-8 h-8 rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors" aria-label="Close sidebar">
             <Icon name="ph:x" class="w-5 h-5" />
