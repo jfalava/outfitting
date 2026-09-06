@@ -2,7 +2,7 @@
   "name": "@outfitting/api",
   "version": "0.17.0",
   "private": true,
-  "type": "modul7",
+  "type": "module",
   "scripts": {
     "check": "bun run lint --fix",
     "format": "oxfmt",
