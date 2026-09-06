@@ -6,7 +6,7 @@ import { tableScroll } from "@cloudflare/nimbus-docs/markdown";
 
 const nimbusConfig = defineNimbusConfig({
   site: "https://outfitting.jfa.dev",
-  title: "Outfitting",
+  title: "Outfitting by JFA",
   description:
     "Automated setup scripts, dotfiles, and Cloudflare Workers for provisioning development environments.",
   locale: "en",
