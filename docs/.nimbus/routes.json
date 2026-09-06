@@ -5,6 +5,8 @@
     "/",
     "/404",
     "/docs",
+    "/docs/architecture",
+    "/docs/fonts",
     "/docs/macos",
     "/docs/macos/installation",
     "/docs/macos/post-install",

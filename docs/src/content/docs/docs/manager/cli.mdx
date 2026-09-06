@@ -2,6 +2,7 @@
 title: Manager CLI
 description: Send, restore, and inspect generated machine-local state.
 sidebar:
+  hidden: true
   order: 2
 ---
 
@@ -115,22 +116,6 @@ outfitting-manager lockfiles history jfalava:aarch64-darwin nix
 ```
 
 Machine names are free-form. Automatic maintenance hooks use the repository's `username:platform` convention. The current Windows hook uses `jfalava:x64-windows`.
-
-## Publish private fonts
-
-Operator machines with R2 S3 credentials can inventory and rewrite the private font archive (`releases/fonts.tar.gz` plus its checksum sidecar). `list` reads only the lockfiles inventory and never touches R2. `publish` and `remove` download the live archive over the S3 API, pack a validated `fonts/` tree with `tar-stream`, upload archive then checksum, and rewrite `outfitting/private-fonts`.
-
-```bash
-outfitting-manager fonts configure-endpoint
-outfitting-manager fonts configure-credentials
-outfitting-manager fonts list
-outfitting-manager fonts publish ~/Downloads/ibm-plex-sans --dry-run
-outfitting-manager fonts publish ~/Downloads/ibm-plex-sans --yes
-outfitting-manager fonts remove ibm-plex-sans --family --dry-run
-outfitting-manager fonts remove ibm-plex-sans --family --yes
-```
-
-R2 S3 credentials use the OS keychain via `Bun.secrets`, same as the lockfiles Worker URL and API token. `configure-endpoint` stores `https://<accountid>.r2.cloudflarestorage.com` (a bare account ID is accepted). `configure-credentials` stores the access key ID and secret. The first `publish` or `remove` prompts if those entries are missing. The bucket name comes from deploy config (`outfitting-private-fonts` by default). Public FontGet lists stay unrelated; installers never read the inventory.
 
 ## Platform integrations
 

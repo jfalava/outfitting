@@ -1,0 +1,79 @@
+---
+title: Fonts
+description: Publish and remove licensed private fonts, then install them from platform post-install scripts.
+sidebar:
+  order: 1
+  label: Overview
+---
+
+Public fonts come from the FontGet list in the repository. Licensed fonts are published with `outfitting-manager fonts` and installed later by the platform post-install scripts.
+
+## What this achieves
+
+You keep one private font set that machines can install. `list` shows what is published. `publish` and `remove` change that set. After a successful publish, identities covered by the font license can install from [macOS post-install](/docs/macos/post-install/) or extract from [Windows post-install](/docs/windows/post-install/).
+
+## Prerequisites
+
+`outfitting-manager` must already be on `PATH`. If this machine has not been configured yet:
+
+```bash
+outfitting-manager lockfiles configure-worker
+outfitting-manager lockfiles configure-token
+```
+
+`publish` and `remove` also need storage credentials. The commands below save them on this machine; the first publish or remove prompts if they are missing.
+
+Incoming files must be OpenType (`.otf`, `.ttf`, or `.ttc`). Reserved system families such as Helvetica and Arial are refused unless you pass `--allow-system-names`. You cannot remove the last remaining font.
+
+## `fonts configure-endpoint`
+
+Saves the storage endpoint, or a Cloudflare account ID, on this machine.
+
+```bash
+outfitting-manager fonts configure-endpoint
+outfitting-manager fonts configure-endpoint "<accountid-or-https-endpoint>"
+```
+
+Run this again when the endpoint changes.
+
+## `fonts configure-credentials`
+
+Asks for the access key ID and secret. The secret is hidden as you type and is never printed.
+
+```bash
+outfitting-manager fonts configure-credentials
+```
+
+## `fonts list`
+
+Shows the private fonts that are currently published.
+
+```bash
+outfitting-manager fonts list
+```
+
+Output is a checksum and size, then a table of family, style, PostScript name, and path. If nothing has been published yet, it says so and exits.
+
+## `fonts publish`
+
+Adds OpenType files from a local directory. Hidden files, license/readme-style names, and unknown extensions are skipped. Paths come from each font's family and style unless you pass `--keep-names`.
+
+```bash
+outfitting-manager fonts publish ~/Downloads/ibm-plex-sans --dry-run
+outfitting-manager fonts publish ~/Downloads/ibm-plex-sans --yes
+```
+
+`--dry-run` prints the planned table (`added`, `replaced`, `unchanged`) without changing anything. Without `--yes`, you must confirm before upload.
+
+`--replace` overwrites an existing path. `--keep-names` keeps sanitized source filenames instead of family/style paths. `--allow-system-names` allows reserved system families. Duplicate paths, PostScript names, or family/style pairs fail unless `--replace` covers the path.
+
+## `fonts remove`
+
+Removes matching fonts. Arguments are family names, paths, or PostScript names. `--family` treats each argument as a whole family.
+
+```bash
+outfitting-manager fonts remove ibm-plex-sans --family --dry-run
+outfitting-manager fonts remove ibm-plex-sans --family --yes
+```
+
+Unknown names fail. Removing the last remaining font is refused. `--dry-run` and `--yes` behave as they do for publish.

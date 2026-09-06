@@ -1,26 +1,28 @@
 ---
 title: Architecture
-description: Manager packages, storage, credentials, and deployment.
+description: Outfitting packages, routing, storage, credentials, and deployment.
 sidebar:
-  hidden: true
   order: 1
+  label: Overview
 ---
 
-Manager spans three root packages plus shared edge routing:
+Outfitting spans three root packages plus shared edge routing:
 
-- [Manager CLI](/docs/manager/cli) is the portable `outfitting-manager` executable.
-- [API Worker](/docs/manager/api) stores generated, machine-local lock state.
-- `router/` is the sole public Worker on `outfitting.jfa.dev` (and the installer hosts).
+- `cli/` is the portable `outfitting-manager` executable.
+- `api/` stores generated, machine-local lock state.
+- `router/` is the sole public Worker on `outfitting.jfa.dev` and the installer hosts.
 - `iac/` is the Alchemy stack that deploys everything remote-first.
 
 The CLI remains independent of the API package at runtime. Features that do not need a backend can be added to the executable without deploying a service.
+
+Manager CLI, API, and provision pages remain at their existing URLs while that section is hidden from the sidebar.
 
 ## Repository layout
 
 ```text
 .agents/     # Amp orb lifecycle: setup (toolchain + bun install) + resume
 api/         # Hono API worker (lockfile storage), D1 migrations, KV
-cli/         # Portable local executable (lockfiles, provision, upgrade)
+cli/         # Portable local executable (lockfiles, fonts, provision, upgrade)
 docs/        # Astro site + thin docs worker (optional at deploy time)
 installer/   # Platform install scripts (mac/win/wsl/nixos hosts)
 router/      # Edge router (host + path dispatch; optional DOCS_WORKER)
@@ -49,14 +51,9 @@ See [Provision](/docs/manager/provision) for config file, env, and flag preceden
 
 ## Routing
 
-| Host                        | Paths                                      | Backend                      |
-| --------------------------- | ------------------------------------------ | ---------------------------- |
-| `outfitting.jfa.dev`        | `/api/*`                                   | API worker (prefix stripped) |
-| `outfitting.jfa.dev`        | docs allowlist (`/`, `/docs/*`, assets, …) | Docs worker (404 if skipped) |
-| `outfitting.jfa.dev`        | anything else                              | `418`                        |
-| `mac/win/wsl/nixos.jfa.dev` | all                                        | Installer worker             |
+On `outfitting.jfa.dev`, `/api/*` goes to the API worker with the prefix stripped. Docs allowlist paths (`/`, `/docs/*`, assets, and related prefixes) go to the docs worker, or 404 when docs are skipped. Anything else on the apex returns `418`.
 
-Installer paths such as `/fonts` and `/post-install` only exist on the platform hosts, so they never collide with docs webfonts or documentation under `/docs/...` on the apex.
+`mac.jfa.dev`, `win.jfa.dev`, `wsl.jfa.dev`, and `nixos.jfa.dev` send every path to the installer worker. Installer paths such as `/fonts` and `/post-install` only exist on those hosts, so they never collide with docs webfonts or documentation under `/docs/...` on the apex.
 
 ## Storage
 
@@ -68,8 +65,20 @@ Versions are append-only and uploads are idempotent:
 - `PUT` accepts an optional standard `If-Match: "<sha256>"` header. The D1 promotion and head update are atomic; a stale expected hash returns HTTP 412 without advancing the head. The KV object may already exist because blobs are content-addressed and safe to reuse. Deleting the current head returns HTTP 409.
 - Deleting a historical version removes its D1 metadata. The content-addressed KV blob is deliberately retained because KV and D1 cannot share a transaction, and deleting it after the metadata transaction could race with a concurrent promotion.
 
+## Private fonts
+
+Public FontGet entries stay in the repository list and are unrelated to the private archive. Installers never read the private-fonts inventory; they fetch `releases/fonts.tar.gz` and its checksum sidecar from `mac.jfa.dev` or `win.jfa.dev` after Cloudflare Access.
+
+The private archive is a validated `fonts/` tree packed with `tar-stream` as `releases/fonts.tar.gz`, with `releases/fonts.tar.gz.sha256` beside it in the `outfitting-private-fonts` R2 bucket (overridable in deploy config). Face metadata is stored as lockfile kind `outfitting/private-fonts` so `fonts list` can show the current inventory without touching R2.
+
+`publish` and `remove` download the live archive over the S3 API, pack a new tree, upload archive then checksum, and rewrite that inventory with an `If-Match` on the previous hash. Paths default to `fonts/<family-slug>/<family-slug>-<style-slug>.<ext>` from OpenType names.
+
+Operator usage is in [Fonts](/docs/fonts).
+
 ## Credentials
 
 The CLI stores the configured API base URL with `Bun.secrets` using service `outfitting-lockfiles` and name `worker-url`. Use `https://outfitting.jfa.dev/api`. The bearer token is stored under the same service with name `api-token`.
 
 The token is never echoed after it is entered or saved. `Bun.secrets` uses Keychain on macOS, Secret Service on Linux, and Credential Manager on Windows. It is appropriate here as personal credential storage, but it is not a hard boundary between programs running as the same user.
+
+R2 font credentials use the same keychain helper under service `outfitting-fonts` (`r2-endpoint`, `r2-access-key-id`, `r2-secret-access-key`). A bare 32-character Cloudflare account ID is accepted and stored as `https://<accountid>.r2.cloudflarestorage.com`. The first `publish` or `remove` prompts if those entries are missing.

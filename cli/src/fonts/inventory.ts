@@ -95,7 +95,8 @@ export async function pushInventory(
   inventory: PrivateFontsInventory,
   ifMatch: string | undefined,
 ): Promise<void> {
-  const headers: Record<string, string> = {
+  type RequestHeaders = Record<string, string>;
+  const headers: RequestHeaders = {
     "Content-Type": "text/plain; charset=utf-8",
   };
   if (ifMatch !== undefined) {

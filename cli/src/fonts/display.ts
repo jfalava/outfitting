@@ -6,12 +6,12 @@ import type { FontFace } from "@/fonts/names";
 import type { FaceChange, PlannedFace } from "@/fonts/plan";
 import { ui } from "@/ui";
 
-const CHANGE_LABEL: Record<FaceChange, string> = {
+const CHANGE_LABEL = {
   added: "added",
   replaced: "replaced",
   removed: "removed",
   unchanged: "unchanged",
-};
+} as const satisfies Record<FaceChange, string>;
 
 function changeColor(change: FaceChange, label: string): string {
   if (change === "added") {

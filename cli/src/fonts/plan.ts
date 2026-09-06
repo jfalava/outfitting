@@ -29,6 +29,11 @@ export interface IncomingFont {
   readonly bytes: Uint8Array;
 }
 
+interface IncomingFace {
+  readonly file: ArchiveFile;
+  readonly face: FontFace;
+}
+
 export interface PublishOptions {
   readonly replace: boolean;
   readonly keepNames: boolean;
@@ -95,7 +100,7 @@ export async function collectIncomingFonts(directory: string): Promise<IncomingF
 function incomingFace(
   incoming: IncomingFont,
   keepNames: boolean,
-): { file: ArchiveFile; face: FontFace } {
+): IncomingFace {
   const names = readFontNames(incoming.bytes, incoming.sourcePath);
   const extension = fontExtension(incoming.relativePath);
   if (extension === undefined) {

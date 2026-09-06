@@ -26,11 +26,14 @@ const nimbusConfig = defineNimbusConfig({
         label: "macOS",
         items: [{ autogenerate: { directory: "docs/macos" } }],
       },
+      {
+        label: "Fonts",
+        items: [{ autogenerate: { directory: "docs/fonts" } }],
+      },
       "docs/repository-configuration",
       {
-        label: "Manager",
-        items: [{ autogenerate: { directory: "docs/manager" } }],
-        landing: "/docs/manager",
+        label: "Architecture",
+        items: [{ autogenerate: { directory: "docs/architecture" } }],
       },
     ],
   },
