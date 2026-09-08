@@ -73,7 +73,6 @@
       "name": "@outfitting/docs",
       "version": "0.18.0",
       "dependencies": {
-        "@astrojs/compiler": "^4.0.0",
         "@cloudflare/nimbus-docs": "0.11.0",
         "@fontsource/google-sans-code": "5.3.0",
         "@fontsource/ibm-plex-sans": "5.3.0",
@@ -88,6 +87,7 @@
       },
       "devDependencies": {
         "@astrojs/check": "0.9.10",
+        "@astrojs/compiler": "4.0.0",
         "@oxlint/plugins": "catalog:build",
         "@tailwindcss/vite": "4.3.3",
         "@typescript-eslint/parser": "8.69.0",
