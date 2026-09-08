@@ -29,3 +29,4 @@ iac/.env
 # Amp orbs
 .amp/portals/*
 outfitting.deploy.json
+dist/
