@@ -21,7 +21,6 @@ type GitHubAsset = Schema.Schema.Type<typeof GitHubAssetSchema>;
 interface SelectedReleaseAsset {
   asset: GitHubAsset;
   checksum: GitHubAsset;
-  format: "binary" | "zip";
 }
 
 const ReleaseListSchema = Schema.Array(Schema.Unknown);
@@ -32,7 +31,6 @@ export interface CliRelease {
   version: string;
   assetUrl: string;
   checksumUrl: string;
-  format: "binary" | "zip";
   executableName: string;
 }
 
@@ -43,26 +41,16 @@ function selectReleaseAsset(
   assetName: string,
 ): SelectedReleaseAsset | undefined {
   const archive = release.assets.find((asset) => asset.name === assetName);
-  if (archive) {
-    const checksum = release.assets.find((asset) => asset.name === `${archive.name}.sha256`);
-    if (checksum) {
-      return { asset: archive, checksum, format: "zip" };
-    }
-  }
-
-  if (!assetName.endsWith(".zip")) {
+  if (!archive) {
     return undefined;
   }
-  const legacyName = assetName.slice(0, -4);
-  const legacyBinary = release.assets.find((asset) => asset.name === legacyName);
-  const legacyChecksum = release.assets.find((asset) => asset.name === `${legacyName}.sha256`);
-  return legacyBinary && legacyChecksum
-    ? { asset: legacyBinary, checksum: legacyChecksum, format: "binary" }
-    : undefined;
+  const checksum = release.assets.find((asset) => asset.name === `${archive.name}.sha256`);
+  return checksum ? { asset: archive, checksum } : undefined;
 }
 
 export async function latestCliRelease(
   assetName: string,
+  executableName: string,
   fetcher: Fetcher = fetch,
 ): Promise<CliRelease> {
   const response = await fetcher(RELEASES_URL, {
@@ -111,7 +99,6 @@ export async function latestCliRelease(
     version: release.tag_name.slice("cli-v".length),
     assetUrl: selected.asset.browser_download_url,
     checksumUrl: selected.checksum.browser_download_url,
-    format: selected.format,
-    executableName: assetName.endsWith(".zip") ? assetName.slice(0, -4) : assetName,
+    executableName,
   };
 }

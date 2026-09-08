@@ -21,7 +21,8 @@ winget --info
 $wingetPackagesUrl = "https://win.jfa.dev/packages/base"
 $wingetPackagesFile = "$env:TEMP\winget.txt"
 $outfittingManagerReleaseUrl = "https://github.com/jfalava/outfitting/releases/latest/download"
-$outfittingManagerAsset = "outfitting-manager-windows-x64.exe"
+$outfittingManagerAsset = "outfitting-manager-windows-x64.zip"
+$outfittingManagerEntry = "outfitting-manager.exe"
 $outfittingManagerInstallPath = "$env:USERPROFILE\.local\bin\outfitting-manager.exe"
 $outfittingRepoUrl = "https://github.com/jfalava/outfitting.git"
 $outfittingRepoConfigPath = "$env:USERPROFILE\.config\outfitting\repo-path"
@@ -152,30 +153,43 @@ function Initialize-OutfittingRepo {
 
 function Install-OutfittingManager {
     $installDirectory = Split-Path -Parent $outfittingManagerInstallPath
-    $temporaryBinary = Join-Path $env:TEMP "$outfittingManagerAsset.download"
+    $temporaryArchive = Join-Path $env:TEMP "$outfittingManagerAsset.download"
     $temporaryChecksum = Join-Path $env:TEMP "$outfittingManagerAsset.sha256"
+    $temporaryExtractDirectory = Join-Path $env:TEMP "outfitting-manager-extract"
 
     try {
         Write-Host "❖ Downloading outfitting-manager..." -ForegroundColor Cyan
-        Invoke-WebRequest -Uri "$outfittingManagerReleaseUrl/$outfittingManagerAsset" -OutFile $temporaryBinary
+        Invoke-WebRequest -Uri "$outfittingManagerReleaseUrl/$outfittingManagerAsset" -OutFile $temporaryArchive
         Invoke-WebRequest -Uri "$outfittingManagerReleaseUrl/$outfittingManagerAsset.sha256" -OutFile $temporaryChecksum
 
         $expectedChecksum = ((Get-Content -LiteralPath $temporaryChecksum -Raw).Trim() -split "\s+")[0]
-        $actualChecksum = (Get-FileHash -LiteralPath $temporaryBinary -Algorithm SHA256).Hash
+        $actualChecksum = (Get-FileHash -LiteralPath $temporaryArchive -Algorithm SHA256).Hash
         if ($actualChecksum -ne $expectedChecksum) {
             throw "Checksum mismatch for $outfittingManagerAsset."
         }
 
+        if (Test-Path -LiteralPath $temporaryExtractDirectory) {
+            Remove-Item -LiteralPath $temporaryExtractDirectory -Recurse -Force -ErrorAction Stop
+        }
+        New-Item -Path $temporaryExtractDirectory -ItemType Directory -Force | Out-Null
+        Expand-Archive -LiteralPath $temporaryArchive -DestinationPath $temporaryExtractDirectory -Force
+
+        $extractedBinary = Join-Path $temporaryExtractDirectory $outfittingManagerEntry
+        if (-not (Test-Path -LiteralPath $extractedBinary -PathType Leaf)) {
+            throw "Archive does not contain $outfittingManagerEntry."
+        }
+
         New-Item -Path $installDirectory -ItemType Directory -Force | Out-Null
-        Move-Item -LiteralPath $temporaryBinary -Destination $outfittingManagerInstallPath -Force
+        Move-Item -LiteralPath $extractedBinary -Destination $outfittingManagerInstallPath -Force
         Write-Host "❖ Installed outfitting-manager: $outfittingManagerInstallPath" -ForegroundColor Green
     } catch {
         $script:hasErrors = $true
         Write-Host "❖ Failed to install outfitting-manager:" -ForegroundColor Red
         Write-Host "  - $_" -ForegroundColor Red
     } finally {
-        Remove-Item -LiteralPath $temporaryBinary -Force -ErrorAction SilentlyContinue
+        Remove-Item -LiteralPath $temporaryArchive -Force -ErrorAction SilentlyContinue
         Remove-Item -LiteralPath $temporaryChecksum -Force -ErrorAction SilentlyContinue
+        Remove-Item -LiteralPath $temporaryExtractDirectory -Recurse -Force -ErrorAction SilentlyContinue
     }
 }
 ############################################

@@ -11,11 +11,13 @@ Upgrade to the latest version with:
 outfitting-manager upgrade
 ```
 
-The command checks the latest GitHub release for the current platform, compares it with the running binary, and exits when already up to date. Otherwise it downloads the release asset, verifies it against its SHA-256 checksum, replaces the current executable, and sets the executable bit on the replacement.
+The command checks the latest GitHub release for the current platform, compares it with the running binary, and exits when already up to date. Otherwise it downloads the platform zip and its `.sha256` sidecar, verifies the archive checksum, extracts the `outfitting-manager` binary (or `outfitting-manager.exe` on Windows), replaces the current executable, and sets the executable bit on the replacement.
+
+Each release publishes one zip per platform. The archive name includes the platform (`outfitting-manager-linux-x64.zip`, `outfitting-manager-darwin-arm64.zip`, `outfitting-manager-windows-x64.zip`); the binary inside is always named `outfitting-manager` (with `.exe` on Windows).
 
 ## Troubleshooting
 
-If you downloaded a release binary in a browser, some OS like macOS saves it without the executable bit. Repair it before the first run:
+If you extracted a release zip in a browser, some OS like macOS saves the binary without the executable bit. Repair it before the first run:
 
 ```bash
 chmod 755 ~/.local/bin/outfitting-manager

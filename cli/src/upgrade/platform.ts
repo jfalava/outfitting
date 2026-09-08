@@ -1,23 +1,23 @@
 const ASSETS = {
   "darwin:arm64": {
     archive: "outfitting-manager-darwin-arm64.zip",
-    executable: "outfitting-manager-darwin-arm64",
+    executable: "outfitting-manager",
   },
   "darwin:x64": {
     archive: "outfitting-manager-darwin-x64.zip",
-    executable: "outfitting-manager-darwin-x64",
+    executable: "outfitting-manager",
   },
   "linux:arm64": {
     archive: "outfitting-manager-linux-arm64.zip",
-    executable: "outfitting-manager-linux-arm64",
+    executable: "outfitting-manager",
   },
   "linux:x64": {
     archive: "outfitting-manager-linux-x64.zip",
-    executable: "outfitting-manager-linux-x64",
+    executable: "outfitting-manager",
   },
   "win32:x64": {
-    archive: "outfitting-manager-windows-x64.exe.zip",
-    executable: "outfitting-manager-windows-x64.exe",
+    archive: "outfitting-manager-windows-x64.zip",
+    executable: "outfitting-manager.exe",
   },
 } as const;
 

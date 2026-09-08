@@ -8,7 +8,8 @@ $ErrorActionPreference = "Stop"
 
 ######################### Outfitting manager
 $outfittingManagerReleaseUrl = "https://github.com/jfalava/outfitting/releases/latest/download"
-$outfittingManagerAsset = "outfitting-manager-windows-x64.exe"
+$outfittingManagerAsset = "outfitting-manager-windows-x64.zip"
+$outfittingManagerEntry = "outfitting-manager.exe"
 $outfittingManagerInstallPath = "$env:USERPROFILE\.local\bin\outfitting-manager.exe"
 
 function Install-OutfittingManagerQuietly {
@@ -17,26 +18,39 @@ function Install-OutfittingManagerQuietly {
     }
 
     $installDirectory = Split-Path -Parent $outfittingManagerInstallPath
-    $temporaryBinary = Join-Path $env:TEMP "$outfittingManagerAsset.post-install.download"
+    $temporaryArchive = Join-Path $env:TEMP "$outfittingManagerAsset.post-install.download"
     $temporaryChecksum = Join-Path $env:TEMP "$outfittingManagerAsset.post-install.sha256"
+    $temporaryExtractDirectory = Join-Path $env:TEMP "outfitting-manager-post-install-extract"
 
     try {
-        Invoke-WebRequest -Uri "$outfittingManagerReleaseUrl/$outfittingManagerAsset" -OutFile $temporaryBinary -ErrorAction Stop
+        Invoke-WebRequest -Uri "$outfittingManagerReleaseUrl/$outfittingManagerAsset" -OutFile $temporaryArchive -ErrorAction Stop
         Invoke-WebRequest -Uri "$outfittingManagerReleaseUrl/$outfittingManagerAsset.sha256" -OutFile $temporaryChecksum -ErrorAction Stop
 
         $expectedChecksum = ((Get-Content -LiteralPath $temporaryChecksum -Raw -ErrorAction Stop).Trim() -split "\s+")[0]
-        $actualChecksum = (Get-FileHash -LiteralPath $temporaryBinary -Algorithm SHA256 -ErrorAction Stop).Hash
+        $actualChecksum = (Get-FileHash -LiteralPath $temporaryArchive -Algorithm SHA256 -ErrorAction Stop).Hash
         if ($actualChecksum -ne $expectedChecksum) {
             return
         }
 
+        if (Test-Path -LiteralPath $temporaryExtractDirectory) {
+            Remove-Item -LiteralPath $temporaryExtractDirectory -Recurse -Force -ErrorAction Stop
+        }
+        New-Item -Path $temporaryExtractDirectory -ItemType Directory -Force -ErrorAction Stop | Out-Null
+        Expand-Archive -LiteralPath $temporaryArchive -DestinationPath $temporaryExtractDirectory -Force
+
+        $extractedBinary = Join-Path $temporaryExtractDirectory $outfittingManagerEntry
+        if (-not (Test-Path -LiteralPath $extractedBinary -PathType Leaf)) {
+            return
+        }
+
         New-Item -Path $installDirectory -ItemType Directory -Force -ErrorAction Stop | Out-Null
-        Move-Item -LiteralPath $temporaryBinary -Destination $outfittingManagerInstallPath -Force -ErrorAction Stop
+        Move-Item -LiteralPath $extractedBinary -Destination $outfittingManagerInstallPath -Force -ErrorAction Stop
     } catch {
         # The post-install script is best-effort for outfitting-manager.
     } finally {
-        Remove-Item -LiteralPath $temporaryBinary -Force -ErrorAction SilentlyContinue
+        Remove-Item -LiteralPath $temporaryArchive -Force -ErrorAction SilentlyContinue
         Remove-Item -LiteralPath $temporaryChecksum -Force -ErrorAction SilentlyContinue
+        Remove-Item -LiteralPath $temporaryExtractDirectory -Recurse -Force -ErrorAction SilentlyContinue
     }
 }
 

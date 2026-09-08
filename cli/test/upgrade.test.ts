@@ -77,8 +77,9 @@ describe("upgrade command helpers", () => {
 
   test("maps supported release assets", () => {
     expect(assetNameFor("darwin", "arm64")).toBe("outfitting-manager-darwin-arm64.zip");
-    expect(executableNameFor("darwin", "arm64")).toBe("outfitting-manager-darwin-arm64");
-    expect(assetNameFor("win32", "x64")).toBe("outfitting-manager-windows-x64.exe.zip");
+    expect(executableNameFor("darwin", "arm64")).toBe("outfitting-manager");
+    expect(assetNameFor("win32", "x64")).toBe("outfitting-manager-windows-x64.zip");
+    expect(executableNameFor("win32", "x64")).toBe("outfitting-manager.exe");
     expect(() => assetNameFor("win32", "arm64")).toThrow("not supported");
   });
 
@@ -96,16 +97,16 @@ describe("upgrade command helpers", () => {
   });
 
   test("parses release checksum files", () => {
-    expect(checksumFromFile(`${"A".repeat(64)}  outfitting-manager-linux-x64\n`)).toBe(
+    expect(checksumFromFile(`${"A".repeat(64)}  outfitting-manager-linux-x64.zip\n`)).toBe(
       "a".repeat(64),
     );
     expect(() => checksumFromFile("not-a-checksum")).toThrow("invalid");
   });
 
   test("extracts the expected executable from a deflated ZIP archive", () => {
-    const archive = makeZip("outfitting-manager-darwin-arm64", "Mach-O test binary");
+    const archive = makeZip("outfitting-manager", "Mach-O test binary");
 
-    expect(extractZipBinary(archive, "outfitting-manager-darwin-arm64")).toEqual(
+    expect(extractZipBinary(archive, "outfitting-manager")).toEqual(
       new TextEncoder().encode("Mach-O test binary"),
     );
     expect(() => extractZipBinary(archive, "unexpected-name")).toThrow("does not contain");
@@ -127,7 +128,7 @@ describe("upgrade command helpers", () => {
     expect(attempts).toBe(3);
   });
 
-  test("selects a stable CLI release and its assets", async () => {
+  test("selects a stable CLI release and its zip assets", async () => {
     const asset = "outfitting-manager-linux-x64.zip";
     const fetcher = async () =>
       new Response(
@@ -145,14 +146,6 @@ describe("upgrade command helpers", () => {
             tag_name: "cli-v0.3.0",
             assets: [
               {
-                name: "outfitting-manager-linux-x64",
-                browser_download_url: "https://example.test/legacy",
-              },
-              {
-                name: "outfitting-manager-linux-x64.sha256",
-                browser_download_url: "https://example.test/legacy-checksum",
-              },
-              {
                 name: asset,
                 browser_download_url: "https://example.test/archive",
               },
@@ -165,16 +158,15 @@ describe("upgrade command helpers", () => {
         ]),
       );
 
-    await expect(latestCliRelease(asset, fetcher)).resolves.toEqual({
+    await expect(latestCliRelease(asset, "outfitting-manager", fetcher)).resolves.toEqual({
       version: "0.3.0",
       assetUrl: "https://example.test/archive",
       checksumUrl: "https://example.test/archive-checksum",
-      format: "zip",
-      executableName: "outfitting-manager-linux-x64",
+      executableName: "outfitting-manager",
     });
   });
 
-  test("falls back to legacy raw assets for older releases", async () => {
+  test("rejects releases that only have bare binaries", async () => {
     const fetcher = async () =>
       new Response(
         JSON.stringify([
@@ -197,12 +189,7 @@ describe("upgrade command helpers", () => {
       );
 
     await expect(
-      latestCliRelease("outfitting-manager-linux-x64.zip", fetcher),
-    ).resolves.toMatchObject({
-      assetUrl: "https://example.test/binary",
-      checksumUrl: "https://example.test/checksum",
-      format: "binary",
-      executableName: "outfitting-manager-linux-x64",
-    });
+      latestCliRelease("outfitting-manager-linux-x64.zip", "outfitting-manager", fetcher),
+    ).rejects.toThrow("does not contain outfitting-manager-linux-x64.zip");
   });
 });

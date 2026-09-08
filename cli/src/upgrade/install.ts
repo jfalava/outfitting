@@ -114,8 +114,7 @@ export async function installRelease(release: CliRelease, targetPath: string): P
     );
   }
 
-  const bytes =
-    release.format === "zip" ? extractZipBinary(assetBytes, release.executableName) : assetBytes;
+  const bytes = extractZipBinary(assetBytes, release.executableName);
 
   const temporaryPath = `${targetPath}.upgrade-${process.pid}`;
   await writeFile(temporaryPath, bytes, { mode: 0o755 });

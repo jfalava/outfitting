@@ -16,7 +16,7 @@ sidebar:
 
 ## When it is installed
 
-Platform installers download a checksum-verified GitHub release. They do not build the binary from the repository.
+Platform installers download a checksum-verified GitHub release zip, extract the platform binary named `outfitting-manager` (or `outfitting-manager.exe` on Windows), and install it. They do not build the binary from the repository.
 
 - [Windows](/docs/windows): the [installer](/docs/windows/installation/) writes `outfitting-manager.exe` to `%USERPROFILE%\.local\bin`. The [post-install script](/docs/windows/post-install/) retries that download only when the file is missing.
 - [Windows Subsystem for Linux](/docs/wsl): the [installer](/docs/wsl/installation/) does not install `outfitting-manager`.

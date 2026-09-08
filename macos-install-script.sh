@@ -164,47 +164,57 @@ install_outfitting_manager() {
         return 0
     fi
 
-    local arch asset release_base install_dir temp_dir
+    local arch asset entry release_base install_dir temp_dir
     arch=$(uname -m)
     if [[ "$arch" != "arm64" ]]; then
         error "No outfitting-manager release binary is available for macOS architecture: $arch"
         return 1
     fi
 
-    asset="outfitting-manager-darwin-arm64"
+    asset="outfitting-manager-darwin-arm64.zip"
+    entry="outfitting-manager"
     release_base="https://github.com/jfalava/outfitting/releases/latest/download"
     install_dir="$HOME/.local/bin"
     temp_dir=$(mktemp -d "${TMPDIR:-/tmp}/outfitting-manager.XXXXXX")
 
     info "Installing the latest outfitting-manager release..."
+    cleanup_temp() {
+        rm -rf "$temp_dir"
+    }
     if ! curl -fL "$release_base/$asset" -o "$temp_dir/$asset"; then
         error "Failed to download outfitting-manager"
-        rmdir "$temp_dir"
+        cleanup_temp
         return 1
     fi
     if ! curl -fL "$release_base/$asset.sha256" -o "$temp_dir/$asset.sha256"; then
         error "Failed to download outfitting-manager checksum"
-        rm -f "$temp_dir/$asset"
-        rmdir "$temp_dir"
+        cleanup_temp
         return 1
     fi
     if ! (cd "$temp_dir" && shasum -a 256 -c "$asset.sha256"); then
         error "outfitting-manager checksum verification failed"
-        rm -f "$temp_dir/$asset" "$temp_dir/$asset.sha256"
-        rmdir "$temp_dir"
+        cleanup_temp
+        return 1
+    fi
+    if ! unzip -qo "$temp_dir/$asset" -d "$temp_dir"; then
+        error "Failed to extract outfitting-manager archive"
+        cleanup_temp
+        return 1
+    fi
+    if [[ ! -f "$temp_dir/$entry" ]]; then
+        error "outfitting-manager archive does not contain $entry"
+        cleanup_temp
         return 1
     fi
 
     if ! mkdir -p "$install_dir"; then
         error "Failed to create outfitting-manager install directory: $install_dir"
-        rm -f "$temp_dir/$asset" "$temp_dir/$asset.sha256"
-        rmdir "$temp_dir"
+        cleanup_temp
         return 1
     fi
-    if ! install -m 755 "$temp_dir/$asset" "$install_dir/outfitting-manager"; then
+    if ! install -m 755 "$temp_dir/$entry" "$install_dir/outfitting-manager"; then
         error "Failed to install outfitting-manager to $install_dir"
-        rm -f "$temp_dir/$asset" "$temp_dir/$asset.sha256"
-        rmdir "$temp_dir"
+        cleanup_temp
         return 1
     fi
     # Ad-hoc sign so the binary can access the macOS keychain (Bun.secrets) without being killed (exit 137).
@@ -214,8 +224,7 @@ install_outfitting_manager() {
             warning "codesign failed for outfitting-manager — it may be killed on keychain access (exit 137). Run 'codesign --force --sign - $install_dir/outfitting-manager' manually."
         fi
     fi
-    rm -f "$temp_dir/$asset" "$temp_dir/$asset.sha256"
-    rmdir "$temp_dir"
+    cleanup_temp
     export PATH="$install_dir:$PATH"
 
     success "outfitting-manager installed"

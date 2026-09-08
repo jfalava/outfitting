@@ -3,7 +3,7 @@ import { Console, Effect } from "effect";
 import { toError, tryPromise } from "@/lockfiles/effect";
 import { ui } from "@/ui";
 import { installRelease } from "@/upgrade/install";
-import { assetNameFor, executablePath } from "@/upgrade/platform";
+import { assetNameFor, executableNameFor, executablePath } from "@/upgrade/platform";
 import { latestCliRelease } from "@/upgrade/release";
 import { isNewerVersion } from "@/upgrade/version";
 
@@ -21,7 +21,8 @@ export const upgrade = (currentVersion: string) =>
       catch: toError,
     });
     const assetName = yield* Effect.try({ try: assetNameFor, catch: toError });
-    const release = yield* tryPromise(() => latestCliRelease(assetName));
+    const executableName = yield* Effect.try({ try: executableNameFor, catch: toError });
+    const release = yield* tryPromise(() => latestCliRelease(assetName, executableName));
 
     if (!isNewerVersion(release.version, currentVersion)) {
       yield* Console.log(ui.success(`outfitting-manager ${currentVersion} is already up to date.`));

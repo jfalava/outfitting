@@ -54,7 +54,7 @@ The installer also:
 
 - Installs the `PSReadLine PowerShell` module for the current user.
 - Resolves the repository from `OUTFITTING_REPO`, then `%USERPROFILE%\.config\outfitting\repo-path`, then `%USERPROFILE%\.config\outfitting\repo`. It validates an existing Git checkout or clones the repository when it is missing, then persists the resolved path to repo-path.
-- Downloads the latest Windows x64 outfitting-manager release and its .sha256 file, verifies the SHA-256 checksum, and installs the binary under `%USERPROFILE%\.local\bin`.
+- Downloads the latest Windows x64 outfitting-manager zip and its `.sha256` file, verifies the archive checksum, extracts `outfitting-manager.exe`, and installs it under `%USERPROFILE%\.local\bin`.
 - Installs OpenSSH Server when it is missing, starts `sshd`, configures automatic startup, and creates the inbound TCP port 22 firewall rule.
 - Links the PowerShell, VS Code PowerShell, and Windows PowerShell profile entry points to `dotfiles/Microsoft.PowerShell_profile.ps1`. Existing profiles are backed up with a timestamp before replacement.
 - Discovers .reg files under [system/windows/registry](https://github.com/jfalava/outfitting/tree/main/system/windows/registry) and interactively offers to import them. The default choice is all discovered tweaks; choose N to skip them.
@@ -90,7 +90,7 @@ irm win.jfa.dev/msstore/<profile>+<profile> | iex
 
 ## Outfitting manager
 
-The main Windows installer downloads the latest Windows x64 outfitting-manager release and its SHA-256 checksum to:
+The main Windows installer downloads the latest Windows x64 outfitting-manager zip, verifies its SHA-256 checksum, extracts `outfitting-manager.exe`, and installs it to:
 
 ```text
 %USERPROFILE%\.local\bin\outfitting-manager.exe
