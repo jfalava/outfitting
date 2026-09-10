@@ -27,6 +27,24 @@ $env:PNPM_HOME = "$env:LOCALAPPDATA\Microsoft\WinGet\Links\"
 if (Get-Module -ListAvailable -Name PSReadLine) {
     Import-Module PSReadLine -ErrorAction Stop
     Set-PSReadLineOption -HistorySaveStyle SaveIncrementally -MaximumHistoryCount 10000
+
+    if ($env:SECRETS -eq "0") {
+        # Session opt-out: save nothing and disable history-based prediction so
+        # autocomplete cannot reveal anything (old or new).
+        Set-PSReadLineOption -HistorySaveStyle SaveNothing -PredictionSource None
+    }
+
+    # Never save lines that look like they contain secrets, or that were
+    # deliberately hidden with a leading space (like zsh's ignoreSpace). The
+    # command stays in the current session but is not written to the
+    # HistorySavePath file.
+    $secretHistoryPattern = '(?i)([A-Za-z0-9_]*(token|secret|password|passwd|api[_-]?key|access[_-]?key|private[_-]?key|credentials?)[A-Za-z0-9_]*\s*[=:]|(--(token|password|passwd|secret|secret[-_]access[-_]key|client[-_]secret|api[_-]?key|access[_-]?token|passphrase)(=|\s))|authorization\s*:)'
+    Set-PSReadLineOption -AddToHistoryHandler {
+        param([string]$line)
+        if ($env:SECRETS -eq "0") { return $false }
+        if ($line -match '^\s' -or $line -match $secretHistoryPattern) { return $false }
+        return $true
+    }
 }
 
 #############################################

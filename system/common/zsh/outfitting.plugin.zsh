@@ -527,6 +527,34 @@ PY
     fi
 }
 
+# ---- Secret History Filter ----
+# Lines containing secrets are never written to the history file. The command
+# still stays in the current session's in-memory history, but HISTFILE (and
+# therefore shared sessions and future shells) never sees it.
+# Prefer this over retyping: prefix with a space for one-off secrets
+# (HISTORY_IGNORE / ignoreSpace already handles that).
+#
+# SECRETS=0 (exported) disables history saving entirely for the session:
+# return 2 keeps the line out of both HISTFILE and the in-memory history list,
+# so autocomplete/autosuggestions cannot reveal it either.
+#
+# Scrub existing history with: bun tools/shell-history/scrub.ts (see --help).
+# Returns 1 to tell zsh not to save the line to HISTFILE.
+zshaddhistory() {
+    local line="$1"
+    [[ "${SECRETS:-}" == "0" ]] && return 2
+    if print -r -- "$line" | grep -qiE \
+        '[A-Za-z0-9_]*(token|secret|password|passwd|api[_-]?key|access[_-]?key|private[_-]?key|credentials?)[A-Za-z0-9_]*[[:space:]]*[=:]|--(token|password|passwd|secret|secret[-_]access[-_]key|client[-_]secret|api[_-]?key|access[_-]?token|passphrase)(=|[[:space:]])|authorization[[:space:]]*:' 2>/dev/null
+    then
+        return 1
+    fi
+    return 0
+}
+
+# Don't autosuggest lines that look like they contain secrets (zsh-autosuggestions).
+# Deliberately broad: suppressing a benign suggestion beats revealing a secret.
+ZSH_AUTOSUGGEST_HISTORY_IGNORE='(#i)*(token|secret|password|passwd|api[-_]key|access[-_]key|private[-_]key|credential)*'
+
 # ---- Tool Initialization ----
 # Nix - Try daemon first, then single-user profile
 if [ -e /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh ]; then
