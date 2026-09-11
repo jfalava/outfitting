@@ -54,5 +54,5 @@ export function confirmPlan(
   if (yes) {
     return Effect.succeed(true);
   }
-  return Prompt.confirm({ message, initial: false }).pipe(Effect.orDie);
+  return Prompt.Confirm({ message, initial: false }).pipe(Effect.orDie);
 }

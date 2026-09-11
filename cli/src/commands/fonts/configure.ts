@@ -6,7 +6,7 @@ import { configureCredentials, configureEndpoint } from "@/fonts/configure";
 export const configureEndpointCommand = Command.make(
   "configure-endpoint",
   {
-    endpoint: Argument.string("endpoint").pipe(
+    endpoint: Argument.String("endpoint").pipe(
       Argument.optional,
       Argument.withDescription("R2 S3 HTTPS endpoint or 32-character Cloudflare account ID."),
     ),

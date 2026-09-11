@@ -5,7 +5,7 @@ import { repopulateInventory } from "@/fonts/repopulate";
 export const repopulateCommand = Command.make(
   "repopulate",
   {
-    dryRun: Flag.boolean("dry-run").pipe(
+    dryRun: Flag.Boolean("dry-run").pipe(
       Flag.withDefault(false),
       Flag.withDescription("Compare R2 to the lockfiles inventory without writing."),
     ),

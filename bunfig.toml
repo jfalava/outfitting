@@ -2,8 +2,11 @@
 minimumReleaseAge = 86400
 minimumReleaseAgeExcludes = [
   "@types/node",
-  "bun-types",
   "effect",
-  "@effect/*",
+  "@effect/platform",
+  "@effect/platform-bun",
+  "@effect/platform-node",
+  "@effect/platform-node-shared",
   "@cloudflare/workers-types",
+  "alchemy",
 ]

@@ -10,23 +10,23 @@ import { tryPromise } from "@/lockfiles/effect";
 export const removeCommand = Command.make(
   "remove",
   {
-    names: Argument.string("name").pipe(
+    names: Argument.String("name").pipe(
       Argument.variadic({ min: 1 }),
       Argument.withDescription("Family slug, archive path, or PostScript name to drop."),
     ),
-    family: Flag.boolean("family").pipe(
+    family: Flag.Boolean("family").pipe(
       Flag.withDefault(false),
       Flag.withDescription("Treat each argument as a whole family to remove."),
     ),
-    dryRun: Flag.boolean("dry-run").pipe(
+    dryRun: Flag.Boolean("dry-run").pipe(
       Flag.withDefault(false),
       Flag.withDescription("Print the planned face table without writing R2 or lockfiles."),
     ),
-    yes: Flag.boolean("yes").pipe(
+    yes: Flag.Boolean("yes").pipe(
       Flag.withDefault(false),
       Flag.withDescription("Skip the confirmation prompt."),
     ),
-    repopulate: Flag.boolean("repopulate").pipe(
+    repopulate: Flag.Boolean("repopulate").pipe(
       Flag.withDefault(false),
       Flag.withDescription("Rebuild the lockfiles inventory from the live R2 archive first."),
     ),

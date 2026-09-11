@@ -144,71 +144,71 @@ function printProvisioned(apiBaseUrl: string, resolved: DeployConfig): void {
 export const provisionCommand = Command.make(
   "provision",
   {
-    config: Flag.string("config").pipe(
+    config: Flag.String("config").pipe(
       Flag.optional,
       Flag.withDescription(
         "Path to outfitting.deploy.json (see iac/outfitting.deploy.example.json).",
       ),
     ),
-    domain: Flag.string("domain").pipe(
+    domain: Flag.String("domain").pipe(
       Flag.optional,
       Flag.withDescription("Apex hostname for the router (empty string clears the default)."),
     ),
-    docs: Flag.boolean("docs").pipe(
+    docs: Flag.Boolean("docs").pipe(
       Flag.withDefault(false),
       Flag.withDescription("Force-deploy the docs StaticSite + docs worker."),
     ),
-    noDocs: Flag.boolean("no-docs").pipe(
+    noDocs: Flag.Boolean("no-docs").pipe(
       Flag.withDefault(false),
       Flag.withDescription("Skip docs StaticSite + docs worker entirely."),
     ),
-    stackName: Flag.string("stack-name").pipe(
+    stackName: Flag.String("stack-name").pipe(
       Flag.optional,
       Flag.withDescription("Alchemy stack name (default Outfitting)."),
     ),
-    apiName: Flag.string("api-name").pipe(
+    apiName: Flag.String("api-name").pipe(
       Flag.optional,
       Flag.withDescription("Cloudflare worker name for the API (default outfitting-api)."),
     ),
-    routerName: Flag.string("router-name").pipe(
+    routerName: Flag.String("router-name").pipe(
       Flag.optional,
       Flag.withDescription("Cloudflare worker name for the router (default outfitting-router)."),
     ),
-    docsName: Flag.string("docs-name").pipe(
+    docsName: Flag.String("docs-name").pipe(
       Flag.optional,
       Flag.withDescription("Cloudflare worker name for docs (default outfitting-docs)."),
     ),
-    docsAssetsName: Flag.string("docs-assets-name").pipe(
+    docsAssetsName: Flag.String("docs-assets-name").pipe(
       Flag.optional,
       Flag.withDescription("Docs StaticSite name (default outfitting-docs-assets)."),
     ),
-    installerName: Flag.string("installer-name").pipe(
+    installerName: Flag.String("installer-name").pipe(
       Flag.optional,
       Flag.withDescription("Cloudflare worker name for installer (default outfitting-installer)."),
     ),
-    databaseName: Flag.string("database-name").pipe(
+    databaseName: Flag.String("database-name").pipe(
       Flag.optional,
       Flag.withDescription("D1 database name (default outfitting-lockfiles)."),
     ),
-    kvTitle: Flag.string("kv-title").pipe(
+    kvTitle: Flag.String("kv-title").pipe(
       Flag.optional,
       Flag.withDescription("KV namespace title (default outfitting-lockfiles)."),
     ),
-    privateFonts: Flag.string("private-fonts").pipe(
+    privateFonts: Flag.String("private-fonts").pipe(
       Flag.optional,
       Flag.withDescription("R2 bucket name for private fonts."),
     ),
-    installerHosts: Flag.string("installer-hosts").pipe(
+    installerHosts: Flag.String("installer-hosts").pipe(
       Flag.optional,
       Flag.withDescription("Comma-separated installer host aliases on the router domain."),
     ),
-    token: Flag.string("token").pipe(
+    token: Flag.String("token").pipe(
       Flag.optional,
       Flag.withDescription(
         "OUTFITTING_LOCKFILES_TOKEN value. Defaults to env, else generates and stores one.",
       ),
     ),
-    skipConfigure: Flag.boolean("skip-configure").pipe(
+    skipConfigure: Flag.Boolean("skip-configure").pipe(
       Flag.withDefault(false),
       Flag.withDescription("Do not write lockfiles worker URL / token to the OS keychain."),
     ),
