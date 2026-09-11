@@ -6,7 +6,7 @@ import { configureToken, configureWorker } from "@/lockfiles";
 export const configureWorkerCommand = Command.make(
   "configure-worker",
   {
-    url: Argument.String("url").pipe(
+    url: Argument.string("url").pipe(
       Argument.optional,
       Argument.withDescription("HTTP(S) URL of the deployed lockfiles Worker."),
     ),

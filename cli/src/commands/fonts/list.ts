@@ -10,7 +10,7 @@ import { ui } from "@/ui";
 export const listCommand = Command.make(
   "list",
   {
-    repopulate: Flag.Boolean("repopulate").pipe(
+    repopulate: Flag.boolean("repopulate").pipe(
       Flag.withDefault(false),
       Flag.withDescription("Rebuild the lockfiles inventory from the live R2 archive first."),
     ),
