@@ -31,9 +31,9 @@
         "@cloudflare/workers-types": "5.20260911.1"
       },
       "effect": {
-        "effect": "4.0.0-rc.115",
-        "@effect/platform-bun": "4.0.0-rc.115",
-        "@effect/platform-node": "4.0.0-rc.115"
+        "effect": "4.0.0-rc.112",
+        "@effect/platform-bun": "4.0.0-rc.112",
+        "@effect/platform-node": "4.0.0-rc.112"
       },
       "iac": {
         "alchemy": "2.0.0-beta.77"
@@ -41,9 +41,6 @@
     }
   },
   "type": "module",
-  "overrides": {
-    "@effect/platform-node-shared": "4.0.0-rc.112"
-  },
   "scripts": {
     "build": "bun run ci:build",
     "check:global": "bun run --filter @outfitting/api --filter @outfitting/cli --filter @outfitting/contract --filter @outfitting/docs --filter @outfitting/iac check",
