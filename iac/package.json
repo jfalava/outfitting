@@ -17,11 +17,11 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@effect/platform-bun": "4.0.0-rc.112",
-    "@effect/platform-node": "4.0.0-rc.112",
-    "@effect/platform-node-shared": "4.0.0-rc.112",
+    "@effect/platform-bun": "catalog:effect",
+    "@effect/platform-node": "catalog:effect",
+    "@effect/platform-node-shared": "catalog:effect",
     "alchemy": "catalog:iac",
-    "effect": "4.0.0-rc.112"
+    "effect": "catalog:effect"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "catalog:cloudflare",

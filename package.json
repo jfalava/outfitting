@@ -33,7 +33,8 @@
       "effect": {
         "effect": "4.0.0-rc.112",
         "@effect/platform-bun": "4.0.0-rc.112",
-        "@effect/platform-node": "4.0.0-rc.112"
+        "@effect/platform-node": "4.0.0-rc.112",
+        "@effect/platform-node-shared": "4.0.0-rc.112"
       },
       "iac": {
         "alchemy": "2.0.0-beta.77"
