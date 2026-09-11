@@ -123,9 +123,9 @@ export async function r2Credentials(): Promise<R2Credentials> {
   }
   await promptAndStoreR2Credentials();
   const storedId = await storedCredential(ACCESS_KEY_SECRET_NAME);
-  const storedSecret = await storedCredential(SECRET_KEY_SECRET_NAME);
-  if (!storedId || !storedSecret) {
+  const storedSecretValue = await storedCredential(SECRET_KEY_SECRET_NAME);
+  if (!storedId || !storedSecretValue) {
     throw new Error("An R2 access key ID and secret access key are required.");
   }
-  return { endpoint, accessKeyId: storedId, secretAccessKey: storedSecret };
+  return { endpoint, accessKeyId: storedId, secretAccessKey: storedSecretValue };
 }

@@ -121,7 +121,7 @@ function pickName(records: ReadonlyArray<NamedString>, nameId: number): string |
   if (matches.length === 0) {
     return undefined;
   }
-  return [...matches].sort((left, right) => nameScore(right) - nameScore(left))[0]?.value;
+  return matches.toSorted((left, right) => nameScore(right) - nameScore(left))[0]?.value;
 }
 
 function parseNameTable(bytes: Uint8Array): FontNameRecord {

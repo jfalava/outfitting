@@ -197,10 +197,10 @@ export function planPublish(
 
   const plannedFaces = [...faces.values()]
     .map((face) => ({ ...face, change: changes.get(face.path) ?? "unchanged" }))
-    .sort((left, right) => left.path.localeCompare(right.path));
+    .toSorted((left, right) => left.path.localeCompare(right.path));
 
   return {
-    files: [...files.values()].sort((left, right) => left.path.localeCompare(right.path)),
+    files: [...files.values()].toSorted((left, right) => left.path.localeCompare(right.path)),
     faces: plannedFaces,
   };
 }
@@ -257,7 +257,7 @@ export function planRemove(
   }
 
   return {
-    files: remainingFiles.sort((left, right) => left.path.localeCompare(right.path)),
-    faces: remainingFaces.sort((left, right) => left.path.localeCompare(right.path)),
+    files: remainingFiles.toSorted((left, right) => left.path.localeCompare(right.path)),
+    faces: remainingFaces.toSorted((left, right) => left.path.localeCompare(right.path)),
   };
 }

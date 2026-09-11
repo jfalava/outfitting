@@ -62,7 +62,7 @@ function facesForFiles(files: ReadonlyArray<ArchiveFile>): FontFace[] {
       const names = readFontNames(file.bytes, file.path);
       return { ...names, path: file.path };
     })
-    .sort((left, right) => left.path.localeCompare(right.path));
+    .toSorted((left, right) => left.path.localeCompare(right.path));
 }
 
 export function emptyFontArchive(): FontArchive {
@@ -106,8 +106,8 @@ export async function unpackFontArchive(gzipped: Uint8Array): Promise<FontArchiv
   for await (const entry of extract) {
     await consumeEntry(entry.header, entry, files);
   }
-  files.sort((left, right) => left.path.localeCompare(right.path));
-  return { files, faces: facesForFiles(files) };
+  const sortedFiles = files.toSorted((left, right) => left.path.localeCompare(right.path));
+  return { files: sortedFiles, faces: facesForFiles(sortedFiles) };
 }
 
 export async function packFontArchive(files: ReadonlyArray<ArchiveFile>): Promise<Uint8Array> {
@@ -115,7 +115,7 @@ export async function packFontArchive(files: ReadonlyArray<ArchiveFile>): Promis
     throw new Error("archive did not contain any installable fonts");
   }
 
-  const sorted = [...files].sort((left, right) => left.path.localeCompare(right.path));
+  const sorted = files.toSorted((left, right) => left.path.localeCompare(right.path));
   for (const file of sorted) {
     assertSafeFontPath(file.path);
   }

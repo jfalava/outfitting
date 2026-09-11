@@ -58,7 +58,7 @@ export function inventoryFromFaces(
         postscriptName: face.postscriptName,
         path: face.path,
       }))
-      .sort((left, right) => left.path.localeCompare(right.path)),
+      .toSorted((left, right) => left.path.localeCompare(right.path)),
   };
 }
 
