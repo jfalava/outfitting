@@ -63,5 +63,8 @@
     "@oxlint/plugins": "catalog:build",
     "oxfmt": "catalog:build",
     "oxlint": "catalog:build"
+  },
+  "overrides": {
+    "@effect/platform-node-shared": "4.0.0-rc.112"
   }
 }
