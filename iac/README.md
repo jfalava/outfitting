@@ -6,14 +6,14 @@ Resource Cloudflare names default to `outfitting-*` and are overridable per depl
 
 ## Scripts
 
-| Script              | Purpose                                                                           |
-| ------------------- | --------------------------------------------------------------------------------- |
+| Script              | Purpose                                                                              |
+| ------------------- | ------------------------------------------------------------------------------------ |
 | `bun run ci:build`  | Typecheck `iac` + build docs (`bun run --cwd ../docs build`) for CI / Workers Builds |
-| `bun run ci:deploy` | `alchemy deploy --yes --adopt` (non-interactive remote deploy)                    |
-| `bun run deploy`    | Interactive Alchemy deploy                                                        |
-| `bun run plan`      | Alchemy plan                                                                      |
-| `bun run destroy`   | Tear down stack resources Alchemy owns                                            |
-| `bun run test`      | Deploy-config unit tests                                                          |
+| `bun run ci:deploy` | `alchemy deploy --yes --adopt` (non-interactive remote deploy)                       |
+| `bun run deploy`    | Interactive Alchemy deploy                                                           |
+| `bun run plan`      | Alchemy plan                                                                         |
+| `bun run destroy`   | Tear down stack resources Alchemy owns                                               |
+| `bun run test`      | Deploy-config unit tests                                                             |
 
 From the monorepo root the same entrypoints exist as `bun run ci:build` / `bun run ci:deploy` / `bun run deploy`.
 

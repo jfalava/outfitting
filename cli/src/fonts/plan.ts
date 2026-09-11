@@ -97,10 +97,7 @@ export async function collectIncomingFonts(directory: string): Promise<IncomingF
   return collected;
 }
 
-function incomingFace(
-  incoming: IncomingFont,
-  keepNames: boolean,
-): IncomingFace {
+function incomingFace(incoming: IncomingFont, keepNames: boolean): IncomingFace {
   const names = readFontNames(incoming.bytes, incoming.sourcePath);
   const extension = fontExtension(incoming.relativePath);
   if (extension === undefined) {

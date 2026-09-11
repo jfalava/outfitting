@@ -32,12 +32,10 @@
       },
       "effect": {
         "effect": "4.0.0-rc.112",
+        "@effect/tsgo": "0.45.0",
         "@effect/platform-bun": "4.0.0-rc.112",
         "@effect/platform-node": "4.0.0-rc.112",
         "@effect/platform-node-shared": "4.0.0-rc.112"
-      },
-      "iac": {
-        "alchemy": "2.0.0-beta.77"
       }
     }
   },
@@ -57,12 +55,16 @@
     "test:cli": "bun run --filter @outfitting/cli test",
     "test:contract": "bun run --filter @outfitting/contract test",
     "test:router": "bun run --filter @outfitting/router test",
-    "typecheck:global": "bun run --filter @outfitting/api --filter @outfitting/cli --filter @outfitting/contract --filter @outfitting/docs --filter @outfitting/iac typecheck"
+    "typecheck:global": "bun run --filter @outfitting/api --filter @outfitting/cli --filter @outfitting/contract --filter @outfitting/docs --filter @outfitting/iac typecheck",
+    "prepare": "effect-tsgo patch --typescript --oxlint"
   },
   "devDependencies": {
+    "@effect/tsgo": "catalog:effect",
     "@oxlint/plugins": "catalog:build",
     "oxfmt": "catalog:build",
-    "oxlint": "catalog:build"
+    "oxlint": "catalog:build",
+    "oxlint-tsgolint": "catalog:build",
+    "typescript": "catalog:build"
   },
   "overrides": {
     "@effect/platform-node-shared": "4.0.0-rc.112"

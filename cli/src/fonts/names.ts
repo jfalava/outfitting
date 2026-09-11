@@ -207,7 +207,9 @@ export function readFontNames(bytes: Uint8Array, sourcePath: string): FontNameRe
     }
   } catch (cause) {
     const detail = cause instanceof Error ? cause.message : String(cause);
-    throw new Error(`Unable to read OpenType names from ${sourcePath}: ${detail}`, { cause: cause });
+    throw new Error(`Unable to read OpenType names from ${sourcePath}: ${detail}`, {
+      cause: cause,
+    });
   }
   throw new Error(`Unsupported font sfnt tag in ${sourcePath}.`);
 }

@@ -2,9 +2,11 @@ import { defineConfig } from "oxfmt";
 
 import { fmtBase } from "../oxfmt.config.ts";
 
+const { sortImports: _, ...baseWithoutSort } = fmtBase;
+
 // Installer-only: wider lines + sorted imports for the Worker source tree.
 export default defineConfig({
-  ...fmtBase,
+  ...baseWithoutSort,
   printWidth: 100,
   experimentalSortImports: {
     order: "asc",

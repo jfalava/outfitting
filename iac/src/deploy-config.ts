@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { isAbsolute, join, resolve } from "node:path";
+
 import { Schema } from "effect";
 
 import { jsonObject, jsonString, type JsonObject, type JsonValue } from "./json";

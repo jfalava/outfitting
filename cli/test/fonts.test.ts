@@ -11,10 +11,10 @@ import {
   parseChecksumSidecar,
   unpackFontArchive,
 } from "@/fonts/archive";
+import { inventoriesEqual, inventoryFromFaces, quotedHash } from "@/fonts/inventory";
+import { normalizeR2Endpoint } from "@/fonts/keychain";
 import { archivePathFor, keepNamePath, readFontNames, slugifyName } from "@/fonts/names";
 import { collectIncomingFonts, planPublish, planRemove } from "@/fonts/plan";
-import { normalizeR2Endpoint } from "@/fonts/keychain";
-import { inventoriesEqual, inventoryFromFaces, quotedHash } from "@/fonts/inventory";
 
 function writeUint16(view: DataView, offset: number, value: number): void {
   view.setUint16(offset, value, false);

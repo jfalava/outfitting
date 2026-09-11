@@ -1,7 +1,6 @@
-import type { Context } from "hono";
-import { Schema } from "effect";
-
 import { encodeResponse } from "@outfitting/contract";
+import { Schema } from "effect";
+import type { Context } from "hono";
 
 type WorkerContext = Context<{ Bindings: Env }>;
 

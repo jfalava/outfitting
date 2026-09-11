@@ -3,8 +3,8 @@ import { Argument, Command, Flag } from "effect/unstable/cli";
 
 import { planRemove } from "@/fonts/plan";
 import { applyFontPlan } from "@/fonts/publish";
-import { syncInventoryFromRemote } from "@/fonts/repopulate";
 import { createR2ObjectStore, loadRemoteArchiveState } from "@/fonts/r2";
+import { syncInventoryFromRemote } from "@/fonts/repopulate";
 import { tryPromise } from "@/lockfiles/effect";
 
 export const removeCommand = Command.make(

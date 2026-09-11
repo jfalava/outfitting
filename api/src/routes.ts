@@ -1,5 +1,3 @@
-import type { Hono } from "hono";
-
 import {
   ErrorBody,
   HistoryResponse,
@@ -7,6 +5,7 @@ import {
   PushResponse,
   StalePushBody,
 } from "@outfitting/contract";
+import type { Hono } from "hono";
 
 import { jsonEncoded } from "@/http";
 import {

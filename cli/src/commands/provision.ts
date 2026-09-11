@@ -6,14 +6,15 @@ import { Console, Effect, Option } from "effect";
 import { Command, Flag } from "effect/unstable/cli";
 import pc from "picocolors";
 
+import { storeWorkerUrl } from "@/lockfiles/keychain";
+import { ui } from "@/ui";
+
 import {
   deployConfigToEnv,
   loadDeployConfig,
   type DeployConfig,
   type DeployOverrides,
 } from "../../../iac/src/deploy-config";
-import { storeWorkerUrl } from "@/lockfiles/keychain";
-import { ui } from "@/ui";
 
 function optionalFlag(value: Option.Option<string>): string | undefined {
   return Option.getOrUndefined(value);

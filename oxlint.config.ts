@@ -1,3 +1,4 @@
+import { recommended } from "@effect/tsgo/oxlint-presets";
 import { defineConfig, type DummyRuleMap } from "oxlint";
 
 // Oxlint rejects relative jsPlugins specifiers inside configs consumed via
@@ -125,6 +126,7 @@ const builtinRules: DummyRuleMap = {
 // the vendored anti-slop rules. Workspace configs spread this and add their
 // own jsPlugins registration and ignorePatterns.
 export default defineConfig({
+  extends: [recommended],
   options: {
     typeAware: true,
     typeCheck: true,
