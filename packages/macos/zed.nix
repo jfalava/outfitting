@@ -37,12 +37,15 @@ let
   # oxlint 1.80 attaches a `help: Consider removing...` line and a related-
   # information popup to every no-unused-vars diagnostic, which renders as
   # two stacked boxes and duplicates the TS server's short diagnostic. Keep
-  # only the plain ts(6133) message: drop oxlint, keep tsgo (typescript-ls)
-  # for diagnostics and oxfmt for formatting.
-  # tailwindcss-language-server provides class completions, diagnostics, and
-  # color previews; it emits no TS diagnostics, so it can't duplicate tsgo's.
+  # only the plain ts(6133) message: drop oxlint, keep effect-tsgo for
+  # diagnostics and oxfmt for formatting.
+  # effect-tsgo is the Effect-patched TypeScript-Go binary (Zed extension
+  # effect-language-service-tsgo). Disable stock typescript-ls/vtsls so they
+  # don't duplicate diagnostics. tailwindcss-language-server emits no TS
+  # diagnostics, so it can't duplicate effect-tsgo's.
   tsLanguageServers = [
-    "typescript-ls"
+    "effect-tsgo"
+    "!typescript-ls"
     "!vtsls"
     "!typescript-language-server"
     "tailwindcss-language-server"
@@ -109,7 +112,7 @@ in
       "oxc"
       "json5"
       "github-theme"
-      "tsgo"
+      "effect-language-service-tsgo"
       "mdx"
       "ini"
       "make"
@@ -410,7 +413,7 @@ in
 
           "MDX" = oxfmtFormatter;
 
-          # JavaScript/TypeScript/TSX share the same oxlint-vs-tsgo
+          # JavaScript/TypeScript/TSX share the same oxlint-vs-effect-tsgo
           # workaround (see tsLikeConfig above).
           "JavaScript" = tsLikeConfig;
           "TypeScript" = tsLikeConfig;
