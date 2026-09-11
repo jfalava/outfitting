@@ -41,6 +41,9 @@
     }
   },
   "type": "module",
+  "overrides": {
+    "@effect/platform-node-shared": "4.0.0-rc.112"
+  },
   "scripts": {
     "build": "bun run ci:build",
     "check:global": "bun run --filter @outfitting/api --filter @outfitting/cli --filter @outfitting/contract --filter @outfitting/docs --filter @outfitting/iac check",
