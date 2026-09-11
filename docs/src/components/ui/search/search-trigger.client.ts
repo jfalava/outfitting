@@ -13,7 +13,9 @@ mount("[data-search-trigger]", (btn) => {
   if (isMac) {
     btn.setAttribute("aria-keyshortcuts", "Meta+K");
     const key = btn.querySelector("[data-shortcut-key]");
-    if (key) key.textContent = "⌘";
+    if (key) {
+      key.textContent = "⌘";
+    }
   }
-  return () => {};
+  return () => undefined;
 });

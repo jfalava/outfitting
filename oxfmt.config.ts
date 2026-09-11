@@ -11,9 +11,9 @@ export const fmtBase: OxfmtConfig = {
   singleQuote: false,
   trailingComma: "all",
   insertFinalNewline: true,
-  experimentalSortPackageJson: {
-    sortScripts: true,
-  },
+  sortImports: true,
+  sortPackageJson: true,
+  sortTailwindcss: true,
 };
 
 export default defineConfig({

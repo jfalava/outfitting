@@ -15,11 +15,15 @@ function initSidebar(root: HTMLElement): () => void {
   const persist = root.hasAttribute("data-nb-sidebar-persist");
 
   const filterTeardown = initFilter(root);
-  if (filterTeardown) teardowns.push(filterTeardown);
+  if (filterTeardown) {
+    teardowns.push(filterTeardown);
+  }
 
   if (persist) {
     const persistTeardown = initPersistence(root);
-    if (persistTeardown) teardowns.push(persistTeardown);
+    if (persistTeardown) {
+      teardowns.push(persistTeardown);
+    }
   }
 
   return () => teardowns.forEach((t) => t());
@@ -37,7 +41,9 @@ function initFilter(root: HTMLElement): (() => void) | null {
     input ??
     root.parentElement?.querySelector<HTMLInputElement>("[data-nb-sidebar-filter-input]") ??
     null;
-  if (!inputElement) return null;
+  if (!inputElement) {
+    return null;
+  }
 
   function handleInput() {
     const query = inputElement!.value.trim().toLowerCase();
@@ -89,7 +95,9 @@ function applyFilter(root: HTMLElement, query: string): void {
 
   links.forEach((link) => {
     const text = link.textContent?.toLowerCase() ?? "";
-    if (!text.includes(query)) return;
+    if (!text.includes(query)) {
+      return;
+    }
     link.removeAttribute("data-nb-sidebar-hidden");
     revealAncestors(link, root);
   });
@@ -97,7 +105,9 @@ function applyFilter(root: HTMLElement, query: string): void {
   groups.forEach((group) => {
     const label = group.querySelector("[data-nb-sidebar-group-label]");
     const text = label?.textContent?.toLowerCase() ?? "";
-    if (!text.includes(query)) return;
+    if (!text.includes(query)) {
+      return;
+    }
     group.removeAttribute("data-nb-sidebar-hidden");
     openGroup(group);
     group
@@ -119,8 +129,12 @@ function revealAncestors(el: HTMLElement, scope: Element): void {
 
 function openGroup(group: HTMLElement): void {
   const trigger = group.querySelector<HTMLElement>("[data-nb-collapsible-trigger]");
-  if (!trigger) return;
-  if (trigger.getAttribute("data-nb-state") === "open") return;
+  if (!trigger) {
+    return;
+  }
+  if (trigger.getAttribute("data-nb-state") === "open") {
+    return;
+  }
   group.setAttribute("data-nb-opened-by-filter", "");
   trigger.click();
 }
@@ -160,7 +174,9 @@ function initPersistence(root: HTMLElement): (() => void) | null {
   });
 
   function handleVisibility() {
-    if (document.visibilityState === "hidden") save();
+    if (document.visibilityState === "hidden") {
+      save();
+    }
   }
   document.addEventListener("visibilitychange", handleVisibility);
   window.addEventListener("pagehide", save);
@@ -186,11 +202,15 @@ function initPersistence(root: HTMLElement): (() => void) | null {
 // ---------------------------------------------------------------------------
 
 (function bindFilterShortcut() {
-  if (document.documentElement.hasAttribute("data-nb-sidebar-shortcut-bound")) return;
+  if (document.documentElement.hasAttribute("data-nb-sidebar-shortcut-bound")) {
+    return;
+  }
   document.documentElement.setAttribute("data-nb-sidebar-shortcut-bound", "");
 
   document.addEventListener("keydown", (e) => {
-    if (e.key !== "/") return;
+    if (e.key !== "/") {
+      return;
+    }
     const active = document.activeElement as HTMLElement | null;
     if (
       active &&
@@ -201,7 +221,9 @@ function initPersistence(root: HTMLElement): (() => void) | null {
     const desktopInput = document.querySelector<HTMLInputElement>(
       "[data-nb-sidebar-persist] ~ * [data-nb-sidebar-filter-input], [data-nb-desktop-sidebar] [data-nb-sidebar-filter-input]",
     );
-    if (!desktopInput) return;
+    if (!desktopInput) {
+      return;
+    }
     e.preventDefault();
     desktopInput.focus();
   });

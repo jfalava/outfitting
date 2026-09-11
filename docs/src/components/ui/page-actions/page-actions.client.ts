@@ -7,12 +7,16 @@ function initPageActions(root: HTMLElement): () => void {
   const label = root.querySelector<HTMLSpanElement>("[data-nb-page-actions-label]");
   const mdUrl = root.dataset.mdUrl;
 
-  if (!copyBtn || !mdUrl) return () => {};
+  if (!copyBtn || !mdUrl) {
+    return () => undefined;
+  }
 
   let resetTimer: number | undefined;
 
   function showState(state: "copied" | "error") {
-    if (!copyIcon || !checkIcon || !label) return;
+    if (!copyIcon || !checkIcon || !label) {
+      return;
+    }
     if (state === "copied") {
       copyIcon.classList.add("hidden");
       checkIcon.classList.remove("hidden");
@@ -20,7 +24,9 @@ function initPageActions(root: HTMLElement): () => void {
     } else {
       label.textContent = "Couldn't copy";
     }
-    if (resetTimer) window.clearTimeout(resetTimer);
+    if (resetTimer) {
+      window.clearTimeout(resetTimer);
+    }
     resetTimer = window.setTimeout(() => {
       copyIcon.classList.remove("hidden");
       checkIcon.classList.add("hidden");
@@ -46,7 +52,9 @@ function initPageActions(root: HTMLElement): () => void {
   copyBtn.addEventListener("click", handleCopyPage);
 
   return () => {
-    if (resetTimer) window.clearTimeout(resetTimer);
+    if (resetTimer) {
+      window.clearTimeout(resetTimer);
+    }
     copyBtn.removeEventListener("click", handleCopyPage);
   };
 }

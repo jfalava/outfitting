@@ -1,6 +1,7 @@
 import { mount } from "@cloudflare/nimbus-docs/client";
 import type { SearchProvider, SearchResult } from "@cloudflare/nimbus-docs/types";
-import { provider } from "./providers/pagefind";
+
+import { provider as pagefindProvider } from "./providers/pagefind";
 
 export interface SearchConfig {
   input: HTMLInputElement;
@@ -16,7 +17,7 @@ export interface SearchInstance {
 }
 
 export function initSearch(config: SearchConfig): SearchInstance {
-  const { input, resultsContainer, emptyState, provider, onNavigate } = config;
+  const { input, resultsContainer, emptyState, provider: searchProvider, onNavigate } = config;
 
   let initialized = false;
   let activeIndex = -1;
@@ -45,11 +46,15 @@ export function initSearch(config: SearchConfig): SearchInstance {
         option.removeAttribute("data-highlighted");
       }
     });
-    if (activeIndex < 0) input.removeAttribute("aria-activedescendant");
+    if (activeIndex < 0) {
+      input.removeAttribute("aria-activedescendant");
+    }
   }
 
   function clearResults(): void {
-    for (const result of resultsContainer.querySelectorAll("[role='option']")) result.remove();
+    for (const result of resultsContainer.querySelectorAll("[role='option']")) {
+      result.remove();
+    }
     input.setAttribute("aria-expanded", "false");
     input.removeAttribute("aria-activedescendant");
   }
@@ -100,7 +105,9 @@ export function initSearch(config: SearchConfig): SearchInstance {
     }
 
     option.addEventListener("click", (event) => {
-      if ((event.target as Element | null)?.closest("a")) return;
+      if ((event.target as Element | null)?.closest("a")) {
+        return;
+      }
       link.click();
     });
 
@@ -108,9 +115,11 @@ export function initSearch(config: SearchConfig): SearchInstance {
   }
 
   async function ensureInitialized(): Promise<boolean> {
-    if (initialized) return true;
+    if (initialized) {
+      return true;
+    }
     try {
-      await provider.init?.();
+      await searchProvider.init?.();
       initialized = true;
       return true;
     } catch {
@@ -128,11 +137,15 @@ export function initSearch(config: SearchConfig): SearchInstance {
     emptyState.textContent = "Searching…";
     clearResults();
 
-    if (!(await ensureInitialized()) || signal.aborted) return;
+    if (!(await ensureInitialized()) || signal.aborted) {
+      return;
+    }
 
     try {
-      const results = await provider.search(query, { signal });
-      if (signal.aborted) return;
+      const results = await searchProvider.search(query, { signal });
+      if (signal.aborted) {
+        return;
+      }
 
       clearResults();
       activeIndex = -1;
@@ -145,9 +158,13 @@ export function initSearch(config: SearchConfig): SearchInstance {
 
       emptyState.style.display = "none";
       input.setAttribute("aria-expanded", "true");
-      for (const result of results) resultsContainer.appendChild(buildResult(result));
+      for (const result of results) {
+        resultsContainer.appendChild(buildResult(result));
+      }
     } catch {
-      if (signal.aborted) return;
+      if (signal.aborted) {
+        return;
+      }
       clearResults();
       emptyState.style.display = "";
       emptyState.textContent = "Search is temporarily unavailable.";
@@ -155,7 +172,9 @@ export function initSearch(config: SearchConfig): SearchInstance {
   }
 
   function handleInput(): void {
-    if (debounceTimer) clearTimeout(debounceTimer);
+    if (debounceTimer) {
+      clearTimeout(debounceTimer);
+    }
     debounceTimer = setTimeout(() => {
       const query = input.value.trim();
       if (!query) {
@@ -195,7 +214,9 @@ export function initSearch(config: SearchConfig): SearchInstance {
   return {
     async reset() {
       activeController?.abort();
-      if (debounceTimer) clearTimeout(debounceTimer);
+      if (debounceTimer) {
+        clearTimeout(debounceTimer);
+      }
       input.value = "";
       input.focus();
       activeIndex = -1;
@@ -206,7 +227,9 @@ export function initSearch(config: SearchConfig): SearchInstance {
     },
     destroy() {
       activeController?.abort();
-      if (debounceTimer) clearTimeout(debounceTimer);
+      if (debounceTimer) {
+        clearTimeout(debounceTimer);
+      }
       input.removeEventListener("input", handleInput);
       input.closest("dialog")?.removeEventListener("keydown", handleKeydown);
     },
@@ -220,7 +243,7 @@ export function initSearch(config: SearchConfig): SearchInstance {
 // ---------------------------------------------------------------------------
 
 type SearchDialogElement = HTMLDialogElement & {
-  __openSearchDialog?: () => void;
+  openSearchDialog?: () => void;
 };
 
 function primaryDialog(): SearchDialogElement | null {
@@ -236,22 +259,33 @@ function primaryDialog(): SearchDialogElement | null {
 let globalsBound = false;
 
 function bindGlobals() {
-  if (globalsBound) return;
+  if (globalsBound) {
+    return;
+  }
   globalsBound = true;
 
   document.addEventListener("click", (event) => {
     const trigger = (event.target as Element | null)?.closest("[data-search-trigger]");
-    if (!trigger) return;
-    primaryDialog()?.__openSearchDialog?.();
+    if (!trigger) {
+      return;
+    }
+    primaryDialog()?.openSearchDialog?.();
   });
 
   document.addEventListener("keydown", (event) => {
-    if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== "k") return;
+    if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== "k") {
+      return;
+    }
     const dialog = primaryDialog();
-    if (!dialog) return;
+    if (!dialog) {
+      return;
+    }
     event.preventDefault();
-    if (dialog.open) dialog.close();
-    else dialog.__openSearchDialog?.();
+    if (dialog.open) {
+      dialog.close();
+    } else {
+      dialog.openSearchDialog?.();
+    }
   });
 }
 
@@ -265,18 +299,22 @@ mount("[data-search-dialog]", (root) => {
   const input = dialog.querySelector<HTMLInputElement>("[data-search-input]");
   const resultsContainer = dialog.querySelector<HTMLElement>("[data-search-results]");
   const emptyState = dialog.querySelector<HTMLElement>("[data-search-empty]");
-  if (!input || !resultsContainer || !emptyState) return () => {};
+  if (!input || !resultsContainer || !emptyState) {
+    return () => undefined;
+  }
 
   const search = initSearch({
     input,
     resultsContainer,
     emptyState,
-    provider,
+    provider: pagefindProvider,
     onNavigate: () => dialog.close(),
   });
 
-  dialog.__openSearchDialog = () => {
-    if (!dialog.open) dialog.showModal();
+  dialog.openSearchDialog = () => {
+    if (!dialog.open) {
+      dialog.showModal();
+    }
     void search.reset();
   };
 

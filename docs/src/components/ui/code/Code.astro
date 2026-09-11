@@ -10,7 +10,8 @@ import { defaultCodeTransformers } from "@cloudflare/nimbus-docs";
 
 type Props = Parameters<typeof AstroCode>[0];
 const rawProps = Astro.props as Props;
-const usesNimbusDefaultThemes = !("theme" in rawProps) && !("themes" in rawProps);
+const usesNimbusDefaultThemes =
+  !("theme" in rawProps) && !("themes" in rawProps);
 const themed = usesNimbusDefaultThemes
   ? {
       ...rawProps,

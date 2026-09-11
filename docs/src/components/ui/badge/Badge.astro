@@ -5,31 +5,45 @@ import type { HTMLAttributes } from "astro/types";
 interface Props extends HTMLAttributes<"span"> {
   /** Badge text. When omitted, slotted children render instead. */
   text?: string;
-  variant?: "default" | "info" | "note" | "success" | "tip" | "warning" | "caution" | "danger";
+  variant?:
+    | "default"
+    | "info"
+    | "note"
+    | "success"
+    | "tip"
+    | "warning"
+    | "caution"
+    | "danger";
   size?: "small" | "medium" | "large";
 }
 
 type BadgeVariant = NonNullable<Props["variant"]>;
 type BadgeSize = NonNullable<Props["size"]>;
 
-const { text, variant = "default", size = "small", class: className, ...attrs } = Astro.props;
+const {
+  text,
+  variant = "default",
+  size = "small",
+  class: className,
+  ...attrs
+} = Astro.props;
 
 // note→info, tip→success, caution→warning: variant aliases
 const variantClass = {
   default: "bg-accent text-muted-foreground",
-  info:    "bg-info-muted text-info",
-  note:    "bg-info-muted text-info",
+  info: "bg-info-muted text-info",
+  note: "bg-info-muted text-info",
   success: "bg-success-muted text-success",
-  tip:     "bg-success-muted text-success",
+  tip: "bg-success-muted text-success",
   warning: "bg-warning-muted text-warning",
   caution: "bg-warning-muted text-warning",
-  danger:  "bg-danger-muted text-danger",
+  danger: "bg-danger-muted text-danger",
 } satisfies Record<BadgeVariant, string>;
 
 const sizeClass = {
-  small:  "px-2 py-0.5 text-xs",
+  small: "px-2 py-0.5 text-xs",
   medium: "px-2.5 py-0.5 text-[0.8125rem]",
-  large:  "px-3 py-1 text-sm",
+  large: "px-3 py-1 text-sm",
 } satisfies Record<BadgeSize, string>;
 ---
 

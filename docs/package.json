@@ -5,9 +5,9 @@
   "type": "module",
   "scripts": {
     "build": "astro build",
-    "check": "bun typecheck && bun lint",
+    "check": "bun typecheck && bun lint:fix",
     "dev": "astro dev",
-    "format": "prettier --write src",
+    "format": "prettier --write src && oxfmt",
     "format:check": "prettier --check src",
     "lint": "bun run lint:oxlint && bun run lint:astro && bun run lint:docs",
     "lint:astro": "eslint \"src/**/*.astro\"",
@@ -42,9 +42,11 @@
     "eslint": "10.10.0",
     "eslint-plugin-astro": "3.1.0",
     "oxlint": "catalog:build",
+    "oxlint-tsgolint": "catalog:build",
     "pagefind": "1.5.2",
     "prettier": "3.9.6",
     "prettier-plugin-astro": "1.0.0",
+    "satteri": "0.10.5",
     "tailwindcss": "4.3.3",
     "typescript": "6.0.3"
   }

@@ -8,24 +8,24 @@ import { mount } from "@cloudflare/nimbus-docs/client";
 
 declare global {
   interface Window {
-    __nbApplyTheme?: () => void;
+    nbApplyTheme?: () => void;
   }
 }
 
-function initThemeToggle(button: HTMLElement): () => void {
-  function handleClick() {
-    const isDark = document.documentElement.getAttribute("data-mode") === "dark";
-    try {
-      localStorage.setItem("ui-mode", isDark ? "light" : "dark");
-    } catch {
-      // Ignore storage errors (private mode / restricted contexts).
-    }
-    window.__nbApplyTheme?.();
+function handleThemeClick() {
+  const isDark = document.documentElement.getAttribute("data-mode") === "dark";
+  try {
+    localStorage.setItem("ui-mode", isDark ? "light" : "dark");
+  } catch {
+    // Ignore storage errors (private mode / restricted contexts).
   }
+  window.nbApplyTheme?.();
+}
 
-  window.__nbApplyTheme?.();
-  button.addEventListener("click", handleClick);
-  return () => button.removeEventListener("click", handleClick);
+function initThemeToggle(button: HTMLElement): () => void {
+  window.nbApplyTheme?.();
+  button.addEventListener("click", handleThemeClick);
+  return () => button.removeEventListener("click", handleThemeClick);
 }
 
 mount("[data-nb-theme-toggle]", initThemeToggle);

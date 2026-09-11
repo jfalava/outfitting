@@ -44,12 +44,8 @@ const sections = (await getSidebarSections(currentSlug, { collection })).map(
 const showSections = sections.length >= 2;
 ---
 
-<header
-  class="site-header sticky top-0 z-30 shrink-0 border-b border-border bg-background"
->
-  <div
-    class="flex min-h-11 items-center justify-between gap-4 px-2 sm:gap-6 sm:px-3 lg:gap-8 lg:px-4"
-  >
+<header class="site-header sticky top-0 z-30 shrink-0 border-b border-border bg-background">
+  <div class="flex min-h-11 items-center justify-between gap-4 px-2 sm:gap-6 sm:px-3 lg:gap-8 lg:px-4">
     <div class="flex min-w-0 items-center gap-1">
       <a
         href={homeHref}
@@ -59,73 +55,65 @@ const showSections = sections.length >= 2;
         <span class="shrink-0 text-sm font-bold tracking-tight text-primary">
           {brandTitle}
         </span>
-        <span class="hidden text-[11px] text-muted-foreground/75 sm:inline"
-          >/</span
-        >
-        <span
-          class="hidden truncate text-[11px] text-muted-foreground sm:inline"
-        >
+        <span class="hidden text-[11px] text-muted-foreground/75 sm:inline">
+          /
+        </span>
+        <span class="hidden truncate text-[11px] text-muted-foreground sm:inline">
           {brandSubtitle}
         </span>
       </a>
 
-      {
-        showSections && (
-          <nav
-            aria-label="Sections"
-            class="hidden md:flex items-center gap-1 ml-2 pl-3 border-l border-border h-6"
-          >
-            {sections.map((section) => (
-              <a
-                href={section.href}
-                aria-current={section.isActive ? "page" : undefined}
-                class:list={[
-                  "px-2 py-1 rounded-md text-[0.8125rem] font-medium no-underline transition-colors",
-                  section.isActive
-                    ? "text-foreground bg-accent"
-                    : "text-muted-foreground hover:text-foreground hover:bg-accent/60",
-                ]}
-              >
-                {section.label}
-              </a>
-            ))}
-          </nav>
-        )
-      }
+      {showSections && (
+        <nav
+          aria-label="Sections"
+          class="hidden md:flex items-center gap-1 ml-2 pl-3 border-l border-border h-6"
+        >
+          {sections.map((section) => (
+            <a
+              href={section.href}
+              aria-current={section.isActive ? "page" : undefined}
+              class:list={[
+                "px-2 py-1 rounded-md text-[0.8125rem] font-medium no-underline transition-colors",
+                section.isActive
+                  ? "text-foreground bg-accent"
+                  : "text-muted-foreground hover:text-foreground hover:bg-accent/60",
+              ]}
+            >
+              {section.label}
+            </a>
+          ))}
+        </nav>
+      )}
     </div>
 
     <nav class="flex shrink-0 items-center gap-1" aria-label="Docs navigation">
       {config.search !== false && <SearchTrigger />}
-      {
-        config.github && (
-          <LinkButton
-            href={config.github}
-            variant="minimal"
-            appearance="square"
-            size="sm"
-            aria-label="GitHub"
-            target="_blank"
-            rel="noopener"
-            class="text-muted-foreground"
-          >
-            <Icon name="ph:github-logo" class="w-4 h-4" />
-          </LinkButton>
-        )
-      }
+      {config.github && (
+        <LinkButton
+          href={config.github}
+          variant="minimal"
+          appearance="square"
+          size="sm"
+          aria-label="GitHub"
+          target="_blank"
+          rel="noopener"
+          class="text-muted-foreground"
+        >
+          <Icon name="ph:github-logo" class="w-4 h-4" />
+        </LinkButton>
+      )}
       <ThemeToggle class="size-9 text-muted-foreground hover:text-foreground" />
-      {
-        showSidebar && (
-          <Button
-            variant="ghost"
-            appearance="square"
-            size="sm"
-            icon="ph:list"
-            aria-label="Open navigation"
-            data-menu-btn
-            class="size-9 text-muted-foreground hover:text-foreground lg:hidden"
-          />
-        )
-      }
+      {showSidebar && (
+        <Button
+          variant="ghost"
+          appearance="square"
+          size="sm"
+          icon="ph:list"
+          aria-label="Open navigation"
+          data-menu-btn
+          class="size-9 text-muted-foreground hover:text-foreground lg:hidden"
+        />
+      )}
     </nav>
   </div>
 </header>

@@ -117,7 +117,7 @@ export default Alchemy.Stack(
           const docsAssets = yield* Cloudflare.Website.StaticSite("OutfittingDocsAssets", {
             name: docsAssetsName,
             cwd: "../docs",
-            command: "bash ./scripts/build-cf.sh",
+            command: "bun run build",
             outdir: "dist",
             workersDev: false,
             compatibility,

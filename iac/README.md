@@ -8,7 +8,7 @@ Resource Cloudflare names default to `outfitting-*` and are overridable per depl
 
 | Script              | Purpose                                                                           |
 | ------------------- | --------------------------------------------------------------------------------- |
-| `bun run ci:build`  | Typecheck `iac` + build docs (`docs/scripts/build-cf.sh`) for CI / Workers Builds |
+| `bun run ci:build`  | Typecheck `iac` + build docs (`bun run --cwd ../docs build`) for CI / Workers Builds |
 | `bun run ci:deploy` | `alchemy deploy --yes --adopt` (non-interactive remote deploy)                    |
 | `bun run deploy`    | Interactive Alchemy deploy                                                        |
 | `bun run plan`      | Alchemy plan                                                                      |

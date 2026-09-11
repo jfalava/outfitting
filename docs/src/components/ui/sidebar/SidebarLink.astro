@@ -11,7 +11,14 @@ interface Props extends HTMLAttributes<"a"> {
   badge?: SidebarBadge;
 }
 
-const { label, href, isCurrent, badge, class: className, ...attrs } = Astro.props;
+const {
+  label,
+  href,
+  isCurrent,
+  badge,
+  class: className,
+  ...attrs
+} = Astro.props;
 ---
 
 <a

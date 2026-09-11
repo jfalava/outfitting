@@ -20,7 +20,8 @@ const { entry, Content, headings } = await getDocsPageProps(Astro);
 
 const currentSlug = Astro.url.pathname.replace(/\/$/, "") || "/";
 
-const { sidebar: sidebarOn, tableOfContents: tocOn } = await getRouteFlags(entry);
+const { sidebar: sidebarOn, tableOfContents: tocOn } =
+  await getRouteFlags(entry);
 
 const sidebar = sidebarOn
   ? await getSidebar(currentSlug, { collection: entry.collection })
@@ -31,17 +32,21 @@ const prevNext = await getPrevNext(currentSlug, {
 });
 // Pass `collection` so versioned pages (docs-<v>) get version-prefixed
 // breadcrumb hrefs — parity with the getSidebar call above.
-const breadcrumbs = await getBreadcrumbs(currentSlug, { collection: entry.collection });
+const breadcrumbs = await getBreadcrumbs(currentSlug, {
+  collection: entry.collection,
+});
 const editUrl = await getEditUrl(entry);
 // Frontmatter wins; git is the fallback.
-const lastUpdated = entry.data.lastUpdated ?? await getLastUpdated(entry);
+const lastUpdated = entry.data.lastUpdated ?? (await getLastUpdated(entry));
 // `tocOn` already implies `tableOfContents !== false`, but TS can't carry
 // that boolean narrowing to the value here — re-check it so `getTOC` only
 // ever sees its options object (or undefined), never `false`.
 const tocConfig = entry.data.tableOfContents;
 const toc = tocOn && tocConfig !== false ? getTOC(headings, tocConfig) : false;
 const markdownPath = `/${entry.id}/index.md`;
-const markdownUrl = Astro.site ? new URL(markdownPath, Astro.site).href : markdownPath;
+const markdownUrl = Astro.site
+  ? new URL(markdownPath, Astro.site).href
+  : markdownPath;
 const socialImage = entry.data.socialImage ?? `/og/${entry.id}.png`;
 ---
 

@@ -64,9 +64,13 @@ function initTabContainer(container: HTMLElement): () => void {
     // render off-screen with no affordance. scrollLeft directly (not
     // scrollIntoView, which would also scroll the page vertically).
     onActivate: (index) => {
-      if (!tablist) return;
+      if (!tablist) {
+        return;
+      }
       const trigger = tablist.querySelectorAll<HTMLElement>("[data-nb-tabs-trigger]")[index];
-      if (!trigger) return;
+      if (!trigger) {
+        return;
+      }
       const left = trigger.offsetLeft;
       const right = left + trigger.offsetWidth;
       if (left < tablist.scrollLeft) {

@@ -17,7 +17,11 @@
 import { Icon } from "astro-icon/components";
 import { cn } from "@/lib/cn";
 import type { HTMLAttributes } from "astro/types";
-import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
+import {
+  Collapsible,
+  CollapsibleTrigger,
+  CollapsibleContent,
+} from "@/components/ui/collapsible";
 import SidebarLink from "./SidebarLink.astro";
 import { Badge } from "@/components/ui/badge";
 import type { SidebarItem, SidebarBadge } from "@cloudflare/nimbus-docs/types";
@@ -61,14 +65,18 @@ function hasActiveDescendant(items: SidebarItem[]): boolean {
 }
 
 const hasActive = Boolean(indexIsCurrent) || hasActiveDescendant(items);
-const isOpen = Boolean(hasActive || collapsed === false || collapsed === undefined);
+const isOpen = Boolean(
+  hasActive || collapsed === false || collapsed === undefined,
+);
 
 // Shared classes for the row that holds the label + caret in both
 // rendering modes (landing-as-link vs. label-as-trigger).
 const rowClass = cn(
   "group/expander flex min-h-[2rem] items-center rounded-lg px-3 py-1 text-[0.8125rem] no-underline transition-colors duration-150 focus-visible:outline-offset-[-2px]",
   "hover:bg-accent hover:text-foreground",
-  hasActive ? "font-semibold text-foreground" : "font-medium text-muted-foreground",
+  hasActive
+    ? "font-semibold text-foreground"
+    : "font-medium text-muted-foreground",
 );
 // Chevron icon classes. Rotation is driven by an explicit CSS rule in
 // `<style is:global>` at the bottom of this file.
@@ -104,7 +112,9 @@ const caretClass =
         )}
       >
         <span class="flex items-center gap-2 flex-1 min-w-0">
-          {icon && <Icon name={icon} class="shrink-0 h-4 w-4 text-muted-foreground" />}
+          {icon && (
+            <Icon name={icon} class="shrink-0 h-4 w-4 text-muted-foreground" />
+          )}
           <span class="break-words">{label}</span>
           {badge &&
             (typeof badge === "string" ? (
@@ -135,7 +145,12 @@ const caretClass =
         aria-expanded={isOpen ? "true" : "false"}
         aria-label={`Toggle ${label} section`}
       >
-        <Icon name="ph:caret-right" class={caretClass} data-nb-caret is:inline />
+        <Icon
+          name="ph:caret-right"
+          class={caretClass}
+          data-nb-caret
+          is:inline
+        />
       </CollapsibleTrigger>
     </div>
   ) : (
@@ -146,7 +161,9 @@ const caretClass =
       aria-expanded={isOpen ? "true" : "false"}
     >
       <span class="flex items-center gap-2 flex-1 min-w-0">
-        {icon && <Icon name={icon} class="shrink-0 h-4 w-4 text-muted-foreground" />}
+        {icon && (
+          <Icon name={icon} class="shrink-0 h-4 w-4 text-muted-foreground" />
+        )}
         <span class="break-words">{label}</span>
         {badge &&
           (typeof badge === "string" ? (
@@ -175,9 +192,20 @@ const caretClass =
               indexIsExternal={item.indexIsExternal}
             />
           ) : item.type === "external" ? (
-            <SidebarLink label={item.label} href={item.href} badge={item.badge} target="_blank" rel="noopener" />
+            <SidebarLink
+              label={item.label}
+              href={item.href}
+              badge={item.badge}
+              target="_blank"
+              rel="noopener"
+            />
           ) : (
-            <SidebarLink label={item.label} href={item.href} isCurrent={item.isCurrent} badge={item.badge} />
+            <SidebarLink
+              label={item.label}
+              href={item.href}
+              isCurrent={item.isCurrent}
+              badge={item.badge}
+            />
           )}
         </li>
       ))}

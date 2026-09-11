@@ -19,10 +19,26 @@ interface AsideConfig {
 const { type = "note", title, class: className, ...attrs } = Astro.props;
 
 const config = {
-  note:    { label: "Note",    color: "var(--nb-info)",    tint: "var(--nb-info-muted)" },
-  tip:     { label: "Tip",     color: "var(--nb-success)", tint: "var(--nb-success-muted)" },
-  caution: { label: "Caution", color: "var(--nb-warning)", tint: "var(--nb-warning-muted)" },
-  danger:  { label: "Danger",  color: "var(--nb-danger)",  tint: "var(--nb-danger-muted)" },
+  note: {
+    label: "Note",
+    color: "var(--nb-info)",
+    tint: "var(--nb-info-muted)",
+  },
+  tip: {
+    label: "Tip",
+    color: "var(--nb-success)",
+    tint: "var(--nb-success-muted)",
+  },
+  caution: {
+    label: "Caution",
+    color: "var(--nb-warning)",
+    tint: "var(--nb-warning-muted)",
+  },
+  danger: {
+    label: "Danger",
+    color: "var(--nb-danger)",
+    tint: "var(--nb-danger-muted)",
+  },
 } satisfies Record<AsideType, AsideConfig>;
 
 const c = config[type] ?? config.note;
@@ -32,7 +48,10 @@ const displayTitle = title ?? c.label;
 <aside
   role="note"
   aria-label={displayTitle}
-  class={cn("aside-card flex items-start gap-3 rounded-lg px-4 py-3 my-4", className)}
+  class={cn(
+    "aside-card flex items-start gap-3 rounded-lg px-4 py-3 my-4",
+    className,
+  )}
   style={`--_c: ${c.color}; --_t: ${c.tint};`}
   {...attrs}
 >
@@ -40,7 +59,9 @@ const displayTitle = title ?? c.label;
     {type === "note" && <Icon name="ph:info" class="w-[1em] h-[1em]" />}
     {type === "tip" && <Icon name="ph:lightbulb" class="w-[1em] h-[1em]" />}
     {type === "caution" && <Icon name="ph:warning" class="w-[1em] h-[1em]" />}
-    {type === "danger" && <Icon name="ph:warning-circle" class="w-[1em] h-[1em]" />}
+    {type === "danger" && (
+      <Icon name="ph:warning-circle" class="w-[1em] h-[1em]" />
+    )}
   </span>
   <div class="flex min-w-0 flex-1 flex-col gap-0.5">
     <p class="m-0 text-base font-semibold leading-snug">{displayTitle}</p>
@@ -57,13 +78,26 @@ const displayTitle = title ?? c.label;
   }
 
   /* Icon + title stay in semantic color; body text stays readable */
-  .aside-card > :global(:first-child) { color: var(--_c); }
-  .aside-card > :global(:last-child) > :global(:first-child) { color: var(--_c); }
-  .aside-card-body { color: var(--nb-foreground); }
+  .aside-card > :global(:first-child) {
+    color: var(--_c);
+  }
+  .aside-card > :global(:last-child) > :global(:first-child) {
+    color: var(--_c);
+  }
+  .aside-card-body {
+    color: var(--nb-foreground);
+  }
 
-  .aside-card-body :global(p) { margin: 0; }
-  .aside-card-body :global(p + p) { margin-top: 0.375rem; }
-  .aside-card-body :global(a) { text-decoration: underline; text-underline-offset: 2px; }
+  .aside-card-body :global(p) {
+    margin: 0;
+  }
+  .aside-card-body :global(p + p) {
+    margin-top: 0.375rem;
+  }
+  .aside-card-body :global(a) {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
 
   /* Inline code only — exclude code inside Expressive Code pre blocks */
   .aside-card-body :global(code:not(:where(pre *))) {
@@ -74,7 +108,10 @@ const displayTitle = title ?? c.label;
     border-radius: 0.25rem;
     padding: 0.0625rem 0.3125rem;
   }
-  .aside-card-body :global(strong) { font-weight: 600; color: inherit; }
+  .aside-card-body :global(strong) {
+    font-weight: 600;
+    color: inherit;
+  }
 
   /* Shiki code blocks inside Asides */
   .aside-card-body :global(.astro-code) {

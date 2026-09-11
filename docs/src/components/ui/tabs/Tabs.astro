@@ -19,12 +19,7 @@ interface Props extends HTMLAttributes<"div"> {
 const { syncKey, class: className, ...attrs } = Astro.props;
 ---
 
-<div
-  data-nb-tabs
-  data-nb-sync-key={syncKey}
-  class={cn(className)}
-  {...attrs}
->
+<div data-nb-tabs data-nb-sync-key={syncKey} class={cn(className)} {...attrs}>
   <TabsList />
   <div class="mt-3">
     <slot />

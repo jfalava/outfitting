@@ -11,12 +11,7 @@ interface Props extends HTMLAttributes<"button"> {}
 const { class: className, ...attrs } = Astro.props;
 ---
 
-<button
-  data-dialog-close
-  type="button"
-  class={cn(className)}
-  {...attrs}
->
+<button data-dialog-close type="button" class={cn(className)} {...attrs}>
   <slot />
 </button>
 

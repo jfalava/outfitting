@@ -1,5 +1,6 @@
 import { generateOpenGraphImage } from "astro-og-canvas";
 import { config } from "virtual:nimbus/config";
+
 import { ogCardConfig } from "./og/_og-card-config";
 
 export const prerender = true;

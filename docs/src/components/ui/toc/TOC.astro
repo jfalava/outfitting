@@ -36,7 +36,8 @@ const { headings, class: className, ...attrs } = Astro.props;
       <ul class="flex list-none flex-col m-0 p-0">
         {headings.map((h, i) => {
           const prevDepth = i > 0 ? headings[i - 1].depth : h.depth;
-          const nextDepth = i < headings.length - 1 ? headings[i + 1].depth : h.depth;
+          const nextDepth =
+            i < headings.length - 1 ? headings[i + 1].depth : h.depth;
           const indent = h.depth - 2;
           const goingDeeper = h.depth > prevDepth;
           const goingShallower = nextDepth < h.depth;
@@ -55,7 +56,10 @@ const { headings, class: className, ...attrs } = Astro.props;
                   stroke-width="2"
                   overflow="visible"
                 >
-                  <path d="M 0 0 C 0 0.5, 1 0.5, 1 1" vector-effect="non-scaling-stroke" />
+                  <path
+                    d="M 0 0 C 0 0.5, 1 0.5, 1 1"
+                    vector-effect="non-scaling-stroke"
+                  />
                 </svg>
               )}
               <a
@@ -79,7 +83,10 @@ const { headings, class: className, ...attrs } = Astro.props;
                   stroke-width="2"
                   overflow="visible"
                 >
-                  <path d="M 1 0 C 1 0.5, 0 0.5, 0 1" vector-effect="non-scaling-stroke" />
+                  <path
+                    d="M 1 0 C 1 0.5, 0 0.5, 0 1"
+                    vector-effect="non-scaling-stroke"
+                  />
                 </svg>
               )}
             </li>

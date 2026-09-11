@@ -9,17 +9,17 @@ sidebar:
 ## Overview
 
 - [API worker](/docs/architecture/api) — Hono + D1 + KV lockfile storage behind a Bearer gate.
-- [Router worker](/docs/architecture/router) — sole public entry; host dispatch, `/api` strip, docs allowlist, `418`/`404`.
-- [Installer worker](/docs/architecture/installer) — stateless proxy for install scripts and the private font archive.
-- [CLI](/docs/architecture/cli) — local `outfitting-manager` internals: keychain, provision, upgrade, wire contract.
+- Router worker — sole public entry; host dispatch, `/api` strip, docs allowlist, `418`/`404`.
+- Installer worker — stateless proxy for install scripts and the private font archive.
+- [CLI](/docs/cli) — local `outfitting-manager` internals: keychain, provision, upgrade, wire contract.
 - [Dotfiles and machine state](/docs/architecture/dotfiles) — what lands on machines and how it is reconciled.
 
 The docs site itself is an optional static asset behind the router (`docs/src/worker.ts` forwards to `DOCS_ASSETS`). When a stack is provisioned with docs skipped, the router has no `DOCS_WORKER` binding and docs paths return `404`.
 
 ## Request flows
 
-- Lockfile push: CLI → `https://<router>/api/lockfiles/:machine/:kind` → router strips `/api` → API worker verifies Bearer token, writes KV blob + D1 metadata. See [API worker](/docs/architecture/api) and [CLI](/docs/architecture/cli).
+- Lockfile push: CLI → `https://<router>/api/lockfiles/:machine/:kind` → router strips `/api` → API worker verifies Bearer token, writes KV blob + D1 metadata. See [API worker](/docs/architecture/api) and [CLI lockfiles](/docs/cli/lockfiles).
 
-- Fresh machine: `irm win.jfa.dev | iex` (or `curl mac.jfa.dev/post-install | bash`) → installer worker fetches the script live from GitHub `main` (or serves `releases/fonts.tar.gz` from R2 after Cloudflare Access) → script clones the repo, symlinks dotfiles, installs manifests. See [Installer worker](/docs/architecture/installer) and [Dotfiles](/docs/architecture/dotfiles).
+- Fresh machine: `irm win.jfa.dev | iex` (or `curl mac.jfa.dev/post-install | bash`) → installer worker fetches the script live from GitHub `main` (or serves `releases/fonts.tar.gz` from R2 after Cloudflare Access) → script clones the repo, symlinks dotfiles, installs manifests. See [Dotfiles](/docs/architecture/dotfiles).
 
-- Font publish: `outfitting-manager fonts publish` packs a new `fonts.tar.gz`, uploads archive then checksum to R2, and rewrites the `outfitting/private-fonts` inventory through the API worker with an `If-Match` precondition. Operator steps are in [CLI fonts](/docs/cli/fonts); R2 mechanics are in [CLI](/docs/architecture/cli).
+- Font publish: `outfitting-manager fonts publish` packs a new `fonts.tar.gz`, uploads archive then checksum to R2, and rewrites the `outfitting/private-fonts` inventory through the API worker with an `If-Match` precondition. Operator steps and R2 mechanics are in [CLI fonts](/docs/cli/fonts).

@@ -45,11 +45,22 @@ const hash = sidebarHash(items);
         </li>
       ) : item.type === "external" ? (
         <li>
-          <SidebarLink label={item.label} href={item.href} badge={item.badge} target="_blank" rel="noopener" />
+          <SidebarLink
+            label={item.label}
+            href={item.href}
+            badge={item.badge}
+            target="_blank"
+            rel="noopener"
+          />
         </li>
       ) : (
         <li>
-          <SidebarLink label={item.label} href={item.href} isCurrent={item.isCurrent} badge={item.badge} />
+          <SidebarLink
+            label={item.label}
+            href={item.href}
+            isCurrent={item.isCurrent}
+            badge={item.badge}
+          />
         </li>
       ),
     )}
@@ -61,5 +72,7 @@ const hash = sidebarHash(items);
 </script>
 
 <style is:global>
-  [data-nb-sidebar-hidden] { display: none; }
+  [data-nb-sidebar-hidden] {
+    display: none;
+  }
 </style>

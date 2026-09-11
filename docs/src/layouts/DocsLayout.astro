@@ -16,11 +16,34 @@ import { Pagination } from "@/components/ui/pagination";
 import { PageActions } from "@/components/ui/page-actions";
 import { Badge } from "@/components/ui/badge";
 import type { DocsPageProps } from "@cloudflare/nimbus-docs/types";
-import { getVersionStatus, getVersionAlternates } from "@cloudflare/nimbus-docs";
+import {
+  getVersionStatus,
+  getVersionAlternates,
+} from "@cloudflare/nimbus-docs";
 
 type Props = DocsPageProps & { audience?: "human" };
 
-const { title, description, sidebar, headings, breadcrumbs, prevNext, mode = "doc", banner, head = [], searchable, noindex, markdownUrl, socialImage, lastUpdated, editUrl, draft, audience, collection, entryId } = Astro.props;
+const {
+  title,
+  description,
+  sidebar,
+  headings,
+  breadcrumbs,
+  prevNext,
+  mode = "doc",
+  banner,
+  head = [],
+  searchable,
+  noindex,
+  markdownUrl,
+  socialImage,
+  lastUpdated,
+  editUrl,
+  draft,
+  audience,
+  collection,
+  entryId,
+} = Astro.props;
 
 // `searchable` derives from `noindex` when omitted: a non-crawlable page is
 // by default not in the site search either. Explicit `searchable: true`
@@ -36,9 +59,10 @@ const showSidebar = sidebar !== false;
 // Versioning: per-page status drives Pagefind faceting, deprecation
 // banner, and the data-pagefind-ignore exclusion for hidden versions.
 const versionStatus = collection ? await getVersionStatus(collection) : null;
-const versionAlternates = collection && entryId
-  ? await getVersionAlternates(collection, entryId)
-  : null;
+const versionAlternates =
+  collection && entryId
+    ? await getVersionAlternates(collection, entryId)
+    : null;
 const currentSiblingUrl = versionAlternates?.canonical?.url ?? null;
 
 // Page-body attribute resolution:
@@ -74,9 +98,27 @@ const hasContentFooter = Astro.slots.has("content-footer");
 const hasPagination = Astro.slots.has("pagination");
 ---
 
-<BaseLayout title={title} description={description} noindex={noindex || draft} markdownUrl={markdownUrl} socialImage={socialImage} lastUpdated={lastUpdated} head={head} collection={collection} entryId={entryId}>
+<BaseLayout
+  title={title}
+  description={description}
+  noindex={noindex || draft}
+  markdownUrl={markdownUrl}
+  socialImage={socialImage}
+  lastUpdated={lastUpdated}
+  head={head}
+  collection={collection}
+  entryId={entryId}
+>
   <div class="flex flex-col min-h-screen">
-    {hasHeader ? <slot name="header" /> : <Header collection={collection} entryId={entryId} showSidebar={showSidebar} />}
+    {hasHeader ? (
+      <slot name="header" />
+    ) : (
+      <Header
+        collection={collection}
+        entryId={entryId}
+        showSidebar={showSidebar}
+      />
+    )}
 
     {isCustom ? (
       <main id="main-content" class="flex-1">
@@ -86,7 +128,11 @@ const hasPagination = Astro.slots.has("pagination");
       <div class="flex-1 mx-auto w-full">
         <div class="flex">
           {showSidebar && (
-            <aside id="desktop-sidebar" data-nb-desktop-sidebar class="hidden lg:flex w-(--nb-sidebar-width) shrink-0 border-r border-border bg-background sticky top-14 h-[calc(100vh-3.5rem)] flex-col overflow-y-auto overscroll-contain relative">
+            <aside
+              id="desktop-sidebar"
+              data-nb-desktop-sidebar
+              class="hidden lg:flex w-(--nb-sidebar-width) shrink-0 border-r border-border bg-background sticky top-14 h-[calc(100vh-3.5rem)] flex-col overflow-y-auto overscroll-contain relative"
+            >
               {hasSidebar ? (
                 <slot name="sidebar" />
               ) : (
@@ -103,65 +149,75 @@ const hasPagination = Astro.slots.has("pagination");
               disclosure module loads so collapsed/scrolled state survives nav.
               Only emit when the sidebar is rendered; otherwise the script is
               dead code (the `desktop-sidebar` element doesn't exist). */}
-          {showSidebar && (
-          <script is:inline aria-hidden="true">
-          (function () {
-            try {
-              if (!matchMedia("(min-width: 64rem)").matches) return;
-              const sidebar = document.getElementById("desktop-sidebar");
-              if (!sidebar) return;
-              const content = sidebar.querySelector("[data-nb-sidebar]");
-              if (!content) return;
+          {showSidebar && <script is:inline aria-hidden="true">
+            (function () {
+              try {
+                if (!matchMedia("(min-width: 64rem)").matches) return;
+                const sidebar = document.getElementById("desktop-sidebar");
+                if (!sidebar) return;
+                const content = sidebar.querySelector("[data-nb-sidebar]");
+                if (!content) return;
 
-              function setGroupOpen(group, open) {
-                group.setAttribute("data-nb-default-open", open ? "true" : "false");
-                const trigger = group.querySelector("[data-nb-collapsible-trigger]");
-                const panel = group.querySelector("[data-nb-collapsible-content]");
-                const state = open ? "open" : "closed";
-                if (trigger) {
-                  trigger.setAttribute("data-nb-state", state);
-                  trigger.setAttribute("aria-expanded", String(open));
+                function setGroupOpen(group, open) {
+                  group.setAttribute(
+                    "data-nb-default-open",
+                    open ? "true" : "false",
+                  );
+                  const trigger = group.querySelector(
+                    "[data-nb-collapsible-trigger]",
+                  );
+                  const panel = group.querySelector(
+                    "[data-nb-collapsible-content]",
+                  );
+                  const state = open ? "open" : "closed";
+                  if (trigger) {
+                    trigger.setAttribute("data-nb-state", state);
+                    trigger.setAttribute("aria-expanded", String(open));
+                  }
+                  if (panel) panel.setAttribute("data-nb-state", state);
                 }
-                if (panel) panel.setAttribute("data-nb-state", state);
-              }
 
-              const raw = sessionStorage.getItem("sidebar-state");
-              let state;
-              if (raw) {
-                state = JSON.parse(raw);
-                if (state && content.dataset.nbSidebarHash === state.hash) {
-                  const groups = content.querySelectorAll("[data-nb-sidebar-group]");
-                  for (let i = 0; i < groups.length; i++) {
-                    const open = state?.open?.[i];
-                    if (open === true || open === false) {
-                      setGroupOpen(groups[i], open);
+                const raw = sessionStorage.getItem("sidebar-state");
+                let state;
+                if (raw) {
+                  state = JSON.parse(raw);
+                  if (state && content.dataset.nbSidebarHash === state.hash) {
+                    const groups = content.querySelectorAll(
+                      "[data-nb-sidebar-group]",
+                    );
+                    for (let i = 0; i < groups.length; i++) {
+                      const open = state?.open?.[i];
+                      if (open === true || open === false) {
+                        setGroupOpen(groups[i], open);
+                      }
                     }
                   }
                 }
-              }
 
-              // Active page's group must always be open, regardless of stored state
-              const active = sidebar.querySelector("[aria-current='page']");
-              if (active) {
-                let d = active.closest("[data-nb-sidebar-group]");
-                while (d) {
-                  setGroupOpen(d, true);
-                  d = d.parentElement && d.parentElement.closest("[data-nb-sidebar-group]");
+                // Active page's group must always be open, regardless of stored state
+                const active = sidebar.querySelector("[aria-current='page']");
+                if (active) {
+                  let d = active.closest("[data-nb-sidebar-group]");
+                  while (d) {
+                    setGroupOpen(d, true);
+                    d =
+                      d.parentElement &&
+                      d.parentElement.closest("[data-nb-sidebar-group]");
+                  }
                 }
-              }
 
-              // Restore scroll or center active item
-              if (raw && state && state.scroll) {
-                sidebar.scrollTop = state.scroll;
-              } else if (active) {
-                const sr = sidebar.getBoundingClientRect();
-                const ar = active.getBoundingClientRect();
-                sidebar.scrollTop += ar.top - sr.top - sr.height / 2 + ar.height / 2;
-              }
-            } catch (_) {}
-          })();
-          </script>
-          )}
+                // Restore scroll or center active item
+                if (raw && state && state.scroll) {
+                  sidebar.scrollTop = state.scroll;
+                } else if (active) {
+                  const sr = sidebar.getBoundingClientRect();
+                  const ar = active.getBoundingClientRect();
+                  sidebar.scrollTop +=
+                    ar.top - sr.top - sr.height / 2 + ar.height / 2;
+                }
+              } catch (_) {}
+            })();
+          </script>}
 
           <main id="main-content" class="flex-1 min-w-0">
             <div class="mx-auto max-w-(--nb-content-max) px-4 lg:px-6 pt-6 pb-12">
@@ -175,7 +231,13 @@ const hasPagination = Astro.slots.has("pagination");
                   }
                 />
               )}
-              {banner && <Banner content={banner.content} variant={banner.type} dismissible={banner.dismissible} />}
+              {banner && (
+                <Banner
+                  content={banner.content}
+                  variant={banner.type}
+                  dismissible={banner.dismissible}
+                />
+              )}
               <Breadcrumbs items={breadcrumbs} class="pb-2" />
               <div {...pagefindAttrs}>
                 {hasPageTitle ? (
@@ -183,30 +245,55 @@ const hasPagination = Astro.slots.has("pagination");
                 ) : (
                   <Fragment>
                     <div class="flex items-center gap-3 flex-wrap mt-6">
-                      <h1 class="text-foreground mb-0 text-balance" style={`font-size:var(--nb-h1-size);font-weight:var(--nb-h1-weight);letter-spacing:var(--nb-h1-tracking);line-height:var(--nb-h1-leading);text-transform:var(--nb-h1-transform)`}>{title}</h1>
-                      {draft && <Badge text="Draft" variant="warning" size="medium" />}
+                      <h1
+                        class="text-foreground mb-0 text-balance"
+                        style={`font-size:var(--nb-h1-size);font-weight:var(--nb-h1-weight);letter-spacing:var(--nb-h1-tracking);line-height:var(--nb-h1-leading);text-transform:var(--nb-h1-transform)`}
+                      >
+                        {title}
+                      </h1>
+                      {draft && (
+                        <Badge text="Draft" variant="warning" size="medium" />
+                      )}
                     </div>
                     {description && (
-                      <p class="text-[0.9375rem] sm:text-[1.0625rem] text-muted-foreground leading-relaxed mt-2 mb-2 text-pretty">{description}</p>
+                      <p class="text-[0.9375rem] sm:text-[1.0625rem] text-muted-foreground leading-relaxed mt-2 mb-2 text-pretty">
+                        {description}
+                      </p>
                     )}
-                    <PageActions markdownUrl={markdownUrl} lastUpdated={lastUpdated} class={description ? undefined : "mt-3"} />
+                    <PageActions
+                      markdownUrl={markdownUrl}
+                      lastUpdated={lastUpdated}
+                      class={description ? undefined : "mt-3"}
+                    />
                     {headings !== false && headings.length > 0 && (
                       <div class="border-border bg-background/95 supports-backdrop-filter:bg-background/80 sticky top-14 z-20 -mx-4 mt-3 border-y px-4 py-2 backdrop-blur lg:-mx-6 lg:px-6 xl:hidden">
                         <MobileTOC headings={headings} />
                       </div>
                     )}
-                    {(markdownUrl || audience === "human") && (
-                      audience === "human" ? (
-                        <div class="mt-3 mb-6 flex items-center gap-3" role="none">
+                    {(markdownUrl || audience === "human") &&
+                      (audience === "human" ? (
+                        <div
+                          class="mt-3 mb-6 flex items-center gap-3"
+                          role="none"
+                        >
                           <div class="h-px flex-1 bg-border"></div>
-                          <Badge text="For humans" variant="success" size="small" class="font-mono uppercase border border-success/15" />
+                          <Badge
+                            text="For humans"
+                            variant="success"
+                            size="small"
+                            class="font-mono uppercase border border-success/15"
+                          />
                           <div class="h-px flex-1 bg-border"></div>
                         </div>
                       ) : (
-                        <div class="mt-3 mb-6 h-px w-full bg-border" role="none" />
-                      )
+                        <div
+                          class="mt-3 mb-6 h-px w-full bg-border"
+                          role="none"
+                        />
+                      ))}
+                    {!description && !markdownUrl && audience !== "human" && (
+                      <div class="mb-4" />
                     )}
-                    {!description && !markdownUrl && audience !== "human" && <div class="mb-4" />}
                   </Fragment>
                 )}
                 <article class="docs-content max-w-none">
@@ -214,21 +301,35 @@ const hasPagination = Astro.slots.has("pagination");
                 </article>
                 {hasContentFooter ? (
                   <slot name="content-footer" />
-                ) : editUrl && (
-                  <div class="mt-8 mb-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                    <a href={editUrl} class="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors no-underline" target="_blank" rel="noopener">
-                      <Icon name="ph:pencil-simple" class="w-3.5 h-3.5" />
-                      Edit this page
-                    </a>
-                  </div>
+                ) : (
+                  editUrl && (
+                    <div class="mt-8 mb-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                      <a
+                        href={editUrl}
+                        class="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors no-underline"
+                        target="_blank"
+                        rel="noopener"
+                      >
+                        <Icon name="ph:pencil-simple" class="w-3.5 h-3.5" />
+                        Edit this page
+                      </a>
+                    </div>
+                  )
                 )}
               </div>
-              {hasPagination ? <slot name="pagination" /> : <Pagination prevNext={prevNext} />}
+              {hasPagination ? (
+                <slot name="pagination" />
+              ) : (
+                <Pagination prevNext={prevNext} />
+              )}
             </div>
           </main>
 
           {headings !== false && (hasToc || headings.length > 0) && (
-            <aside data-nb-toc-scroll-host class="hidden xl:block w-(--nb-toc-width) shrink-0 sticky top-14 h-[calc(100vh-3.5rem)] overflow-y-auto">
+            <aside
+              data-nb-toc-scroll-host
+              class="hidden xl:block w-(--nb-toc-width) shrink-0 sticky top-14 h-[calc(100vh-3.5rem)] overflow-y-auto"
+            >
               <div class="pt-6 pb-8 pl-8 pr-6">
                 {hasToc ? <slot name="toc" /> : <TOC headings={headings} />}
               </div>
@@ -237,7 +338,6 @@ const hasPagination = Astro.slots.has("pagination");
         </div>
       </div>
     )}
-
   </div>
 
   {showSidebar && (
@@ -248,15 +348,24 @@ const hasPagination = Astro.slots.has("pagination");
       class="group fixed inset-0 m-0 h-full w-full max-h-full max-w-full border-0 bg-transparent p-0 backdrop:bg-transparent"
       aria-label="Site navigation"
     >
-      <div data-mobile-sidebar-panel class="h-full w-(--nb-sidebar-width) max-w-[85vw] -translate-x-full overflow-y-auto overscroll-contain border-r border-border bg-card transition-transform duration-250 ease-out group-data-[state=open]:translate-x-0 motion-reduce:transition-none">
+      <div
+        data-mobile-sidebar-panel
+        class="h-full w-(--nb-sidebar-width) max-w-[85vw] -translate-x-full overflow-y-auto overscroll-contain border-r border-border bg-card transition-transform duration-250 ease-out group-data-[state=open]:translate-x-0 motion-reduce:transition-none"
+      >
         <div class="sticky top-0 z-1 flex items-center justify-between border-b border-border bg-card px-4 py-3">
           <span class="font-semibold text-sm text-foreground">Navigation</span>
-          <button data-close-sidebar class="flex items-center justify-center w-8 h-8 rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors" aria-label="Close sidebar">
+          <button
+            data-close-sidebar
+            class="flex items-center justify-center w-8 h-8 rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+            aria-label="Close sidebar"
+          >
             <Icon name="ph:x" class="w-5 h-5" />
           </button>
         </div>
         <nav class="px-4 pb-8 pt-5">
-          {hasSidebar ? <slot name="sidebar" /> : (
+          {hasSidebar ? (
+            <slot name="sidebar" />
+          ) : (
             <Fragment>
               <SidebarFilter />
               <Sidebar items={sidebar} />
@@ -268,7 +377,11 @@ const hasPagination = Astro.slots.has("pagination");
   )}
 
   <script>
-    import { mount, lockScroll, unlockScroll } from "@cloudflare/nimbus-docs/client";
+    import {
+      mount,
+      lockScroll,
+      unlockScroll,
+    } from "@cloudflare/nimbus-docs/client";
 
     const CLOSE_DURATION_MS = 250;
 
@@ -315,29 +428,42 @@ const hasPagination = Astro.slots.has("pagination");
 
       menuBtn.addEventListener("click", openSidebar, { signal });
 
-      dialog.addEventListener("cancel", (event) => {
-        event.preventDefault();
-        closeSidebar();
-      }, { signal });
+      dialog.addEventListener(
+        "cancel",
+        (event) => {
+          event.preventDefault();
+          closeSidebar();
+        },
+        { signal },
+      );
 
       // Fires for Escape, close button, and backdrop click.
-      dialog.addEventListener("close", () => {
-        if (closeTimer) {
-          clearTimeout(closeTimer);
-          closeTimer = undefined;
-        }
+      dialog.addEventListener(
+        "close",
+        () => {
+          if (closeTimer) {
+            clearTimeout(closeTimer);
+            closeTimer = undefined;
+          }
 
-        dialog.dataset.state = "closed";
-        unlockScroll();
-        menuBtn.focus();
-      }, { signal });
+          dialog.dataset.state = "closed";
+          unlockScroll();
+          menuBtn.focus();
+        },
+        { signal },
+      );
 
-      dialog.querySelector("[data-close-sidebar]")
+      dialog
+        .querySelector("[data-close-sidebar]")
         ?.addEventListener("click", closeSidebar, { signal });
 
-      dialog.addEventListener("click", (e) => {
-        if (e.target === dialog) closeSidebar();
-      }, { signal });
+      dialog.addEventListener(
+        "click",
+        (e) => {
+          if (e.target === dialog) closeSidebar();
+        },
+        { signal },
+      );
 
       return () => {
         controller.abort();
@@ -347,5 +473,4 @@ const hasPagination = Astro.slots.has("pagination");
       };
     });
   </script>
-
 </BaseLayout>
