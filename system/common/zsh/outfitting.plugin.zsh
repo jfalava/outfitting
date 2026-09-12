@@ -440,91 +440,12 @@ fi
 
 # Update all global Bun packages
 bun-update-global() {
-    if ! command -v bun >/dev/null; then
-        echo "Bun not installed, skipping..."
-        return 0
-    fi
-
-    echo ""
-    echo "Updating global Bun packages..."
-
-    local packages
-    local pm_ls_output pm_ls_status
-    pm_ls_output=$(bun pm ls -g 2>&1)
-    pm_ls_status=$?
-    if [ $pm_ls_status -ne 0 ]; then
-        echo "Error: bun pm ls -g failed"
-        echo "$pm_ls_output"
-        return $pm_ls_status
-    fi
-
-    packages=$(echo "$pm_ls_output" | sed -n '2,$s/^[^a-zA-Z@]*//p')
-
-    if [ -z "$packages" ]; then
-        echo "No global Bun packages found"
-        return 0
-    fi
-
-    echo "Found global packages:"
-    echo "$packages"
-    echo ""
-
-    if ! command -v uv >/dev/null; then
-        echo "uv not installed, cannot query registry"
+    # Ported to outfitting-manager (native registry fetch; no Python/uv).
+    if ! command -v outfitting-manager >/dev/null 2>&1; then
+        echo "Error: outfitting-manager is not installed or not in PATH."
         return 1
     fi
-
-    local updated=0
-    local failed=0
-    while IFS= read -r pkg; do
-        pkg=$(echo "$pkg" | tr -d ' ')
-        if [ -z "$pkg" ]; then
-            continue
-        fi
-
-        local installed_version name latest_version
-        installed_version="${pkg##*@}"
-        name="${pkg%@$installed_version}"
-        if [ -z "$name" ] || [ -z "$installed_version" ] || [ "$name@$installed_version" != "$pkg" ]; then
-            echo "Skipping unrecognized entry: $pkg"
-            continue
-        fi
-
-        echo -n "Checking $name (installed $installed_version)... "
-        latest_version=$(uv -q run --no-project python - "$name" <<'PY'
-import json, sys, urllib.request, urllib.parse
-pkg = sys.argv[1]
-url = "https://registry.npmjs.org/" + urllib.parse.quote(pkg, safe="@/")
-with urllib.request.urlopen(url) as r:
-    data = json.load(r)
-print(data.get("dist-tags", {}).get("latest", ""))
-PY
-        )
-        if [ -z "$latest_version" ]; then
-            echo "failed to fetch latest"
-            ((failed++))
-            continue
-        fi
-
-        if [ "$latest_version" = "$installed_version" ]; then
-            echo "up to date"
-            continue
-        fi
-
-        echo "updating to $latest_version"
-        if bun add -g "$name@$latest_version"; then
-            echo "✓"
-            ((updated++))
-        else
-            echo "failed"
-            ((failed++))
-        fi
-    done <<< "$packages"
-
-    echo "Updated $updated global Bun package(s)"
-    if [ $failed -ne 0 ]; then
-        echo "Failed $failed package(s)"
-    fi
+    outfitting-manager update bun
 }
 
 # ---- Secret History Filter ----
