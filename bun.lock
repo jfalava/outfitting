@@ -15,7 +15,7 @@
     },
     "api": {
       "name": "@outfitting/api",
-      "version": "0.18.1",
+      "version": "0.19.0",
       "dependencies": {
         "@outfitting/contract": "workspace:*",
         "effect": "catalog:effect",
@@ -34,7 +34,7 @@
     },
     "cli": {
       "name": "@outfitting/cli",
-      "version": "0.18.1",
+      "version": "0.19.0",
       "bin": {
         "outfitting-manager": "index.ts",
       },
@@ -58,7 +58,7 @@
     },
     "contract": {
       "name": "@outfitting/contract",
-      "version": "0.18.1",
+      "version": "0.19.0",
       "dependencies": {
         "effect": "catalog:effect",
       },
@@ -74,7 +74,7 @@
     },
     "docs": {
       "name": "@outfitting/docs",
-      "version": "0.18.1",
+      "version": "0.19.0",
       "dependencies": {
         "@cloudflare/nimbus-docs": "0.13.1",
         "@fontsource/google-sans-code": "5.3.0",
@@ -112,7 +112,7 @@
         "@effect/platform-bun": "catalog:effect",
         "@effect/platform-node": "catalog:effect",
         "@effect/platform-node-shared": "catalog:effect",
-        "alchemy": "catalog:iac",
+        "alchemy": "2.0.0-beta.77",
         "effect": "catalog:effect",
       },
       "devDependencies": {
@@ -181,9 +181,6 @@
       "@effect/platform-node-shared": "4.0.0-rc.112",
       "@effect/tsgo": "0.45.0",
       "effect": "4.0.0-rc.112",
-    },
-    "iac": {
-      "alchemy": "2.0.0-beta.77",
     },
     "types": {
       "@types/node": "22.20.2",
