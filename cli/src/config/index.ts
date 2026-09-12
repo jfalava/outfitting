@@ -10,7 +10,11 @@ export {
 } from "@/config/paths";
 export {
   physicalPath,
+  readRepoPathFile,
   resolveOutfittingRepo,
+  tryResolveOutfittingRepo,
+  validateOutfittingRepo,
+  writeRepoPath,
   type OutfittingRepo,
 } from "@/config/repo";
 export {

@@ -4,8 +4,7 @@ import { Command, Flag } from "effect/unstable/cli";
 import { runSetup } from "@/setup/run";
 
 /**
- * Materialize the outfitting state root (layout + optional config).
- * Manifest fetch/cache is available via the fetch module; fuller hooks land later.
+ * Materialize the outfitting state root: config, repo-path, manifests, nix symlinks.
  */
 export const setupCommand = Command.make(
   "setup",
@@ -24,15 +23,32 @@ export const setupCommand = Command.make(
       Flag.optional,
       Flag.withDescription("Git ref for manifests (default: main)."),
     ),
+    repo: Flag.string("repo").pipe(
+      Flag.optional,
+      Flag.withDescription(
+        "Monorepo path to store in ~/.config/outfitting/repo-path (replaces set_outfitting_repo).",
+      ),
+    ),
+    noFetch: Flag.boolean("no-fetch").pipe(
+      Flag.withDefault(false),
+      Flag.withDescription("Skip prefetching Brewfile / bun.txt into the state root."),
+    ),
+    skipSymlinks: Flag.boolean("skip-symlinks").pipe(
+      Flag.withDefault(false),
+      Flag.withDescription("Do not ensure nix-darwin / home-manager symlinks."),
+    ),
   },
-  ({ machineId, manifestBaseUrl, manifestRef }) =>
+  ({ machineId, manifestBaseUrl, manifestRef, repo, noFetch, skipSymlinks }) =>
     runSetup({
       machineId: Option.getOrUndefined(machineId),
       manifestBaseUrl: Option.getOrUndefined(manifestBaseUrl),
       manifestRef: Option.getOrUndefined(manifestRef),
+      repo: Option.getOrUndefined(repo),
+      fetchManifests: !noFetch,
+      skipSymlinks,
     }),
 ).pipe(
   Command.withDescription(
-    "Materialize the outfitting state root (manifests cache, config) without cloning the monorepo.",
+    "Materialize the outfitting state root (config, repo-path, manifests, nix symlinks) without cloning the monorepo.",
   ),
 );

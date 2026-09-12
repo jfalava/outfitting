@@ -87,7 +87,9 @@ describe("macos CLI scaffold (process)", () => {
     const text = `${stdout}\n${stderr}`;
     expect(code).not.toBe(0);
     expect(text).not.toMatch(/not implemented yet/i);
-    expect(text).toMatch(/missing system\/macos\/flake\.nix|not configured|not installed/i);
+    expect(text).toMatch(
+      /missing system\/macos\/flake\.nix|does not exist|not configured|not installed/i,
+    );
   });
 
   test("update scoop is a foreign hint stub", async () => {
@@ -103,9 +105,12 @@ describe("macos CLI scaffold (process)", () => {
     const { join } = await import("node:path");
     const root = await mkdtemp(join(tmpdir(), "outfitting-setup-cli-"));
     try {
-      const { code, stdout, stderr } = await runCliWithEnv(["setup"], {
-        OUTFITTING_STATE_ROOT: root,
-      });
+      const { code, stdout, stderr } = await runCliWithEnv(
+        ["setup", "--no-fetch", "--skip-symlinks"],
+        {
+          OUTFITTING_STATE_ROOT: root,
+        },
+      );
       expect(code).toBe(0);
       expect(`${stdout}\n${stderr}`).toMatch(/State root ready/i);
     } finally {
