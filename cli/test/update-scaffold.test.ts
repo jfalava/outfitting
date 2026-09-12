@@ -70,10 +70,14 @@ describe("macos CLI scaffold (process)", () => {
     expect(text).toMatch(/update/i);
   });
 
-  test("update bun is registered but not implemented", async () => {
+  test("update bun is registered (runs or fails on missing bun)", async () => {
     const { code, stdout, stderr } = await runCli(["update", "bun"]);
-    expect(code).not.toBe(0);
-    expect(`${stdout}\n${stderr}`).toMatch(/not implemented yet/i);
+    const text = `${stdout}\n${stderr}`;
+    // Either bun is present and the updater runs, or it hard-fails if missing.
+    expect(text).not.toMatch(/not implemented yet/i);
+    if (code !== 0) {
+      expect(text).toMatch(/Bun is not installed|failure/i);
+    }
   });
 
   test("update nix switch is registered but not implemented", async () => {
