@@ -8,7 +8,7 @@ import { pushCommand } from "@/commands/lockfiles/push";
 
 export const lockfilesCommand = Command.make("lockfiles").pipe(
   Command.withDescription(
-    "Push, pull, and inspect lockfile snapshots stored by the lockfiles Worker.",
+    "Alias for `sync`: push, pull, and inspect lockfile snapshots stored by the lockfiles Worker.",
   ),
   Command.withSubcommands([
     configureWorkerCommand,

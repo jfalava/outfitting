@@ -1,9 +1,5 @@
 #!/usr/bin/env bun
 
-/**
- * Dev / default entry. Darwin compile targets use index.macos.ts.
- * Linux/Windows still compile this file until their platform entries land.
- */
 import { BunRuntime, BunServices } from "@effect/platform-bun";
 import { Effect } from "effect";
 import { CliError, Command } from "effect/unstable/cli";
