@@ -48,8 +48,8 @@ export function platformLabel(platform: HostPlatform | "all"): string {
     case "all":
       return "all platforms";
     default: {
-      const _exhaustive: never = platform;
-      return _exhaustive;
+      const exhaustive: never = platform;
+      return exhaustive;
     }
   }
 }

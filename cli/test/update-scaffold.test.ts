@@ -11,11 +11,14 @@ import { foreignPackageManagerMessage } from "@/platform";
 const execFileAsync = promisify(execFile);
 const cliEntry = fileURLToPath(new URL("../index.macos.ts", import.meta.url));
 
-const runCli = async (args: string[]) => {
+const runCliWithEnv = async (
+  args: string[],
+  env: Record<string, string | undefined> = {},
+) => {
   try {
     const result = await execFileAsync("bun", [cliEntry, ...args], {
       encoding: "utf8",
-      env: process.env,
+      env: { ...process.env, ...env },
     });
     return { code: 0, stdout: result.stdout, stderr: result.stderr };
   } catch (error) {
@@ -32,6 +35,8 @@ const runCli = async (args: string[]) => {
     };
   }
 };
+
+const runCli = async (args: string[]) => runCliWithEnv(args);
 
 describe("update / setup stub effects", () => {
   test("notImplementedYet fails with path", async () => {
@@ -84,10 +89,20 @@ describe("macos CLI scaffold (process)", () => {
     expect(`${stdout}\n${stderr}`).toMatch(/scoop/i);
   });
 
-  test("setup is registered but not implemented", async () => {
-    const { code, stdout, stderr } = await runCli(["setup"]);
-    expect(code).not.toBe(0);
-    expect(`${stdout}\n${stderr}`).toMatch(/not implemented yet/i);
+  test("setup materializes a state root", async () => {
+    const { mkdtemp, rm } = await import("node:fs/promises");
+    const { tmpdir } = await import("node:os");
+    const { join } = await import("node:path");
+    const root = await mkdtemp(join(tmpdir(), "outfitting-setup-cli-"));
+    try {
+      const { code, stdout, stderr } = await runCliWithEnv(["setup"], {
+        OUTFITTING_STATE_ROOT: root,
+      });
+      expect(code).toBe(0);
+      expect(`${stdout}\n${stderr}`).toMatch(/State root ready/i);
+    } finally {
+      await rm(root, { force: true, recursive: true });
+    }
   });
 
   test("sync and lockfiles both expose push subcommand help", async () => {
