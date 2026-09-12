@@ -80,10 +80,14 @@ describe("macos CLI scaffold (process)", () => {
     }
   });
 
-  test("update nix switch is registered but not implemented", async () => {
-    const { code, stdout, stderr } = await runCli(["update", "nix", "switch"]);
+  test("update nix dry is registered (fails fast without repo rather than stub)", async () => {
+    const { code, stdout, stderr } = await runCliWithEnv(["update", "nix", "dry"], {
+      OUTFITTING_REPO: "/tmp/definitely-not-an-outfitting-repo",
+    });
+    const text = `${stdout}\n${stderr}`;
     expect(code).not.toBe(0);
-    expect(`${stdout}\n${stderr}`).toMatch(/not implemented yet/i);
+    expect(text).not.toMatch(/not implemented yet/i);
+    expect(text).toMatch(/missing system\/macos\/flake\.nix|not configured|not installed/i);
   });
 
   test("update scoop is a foreign hint stub", async () => {

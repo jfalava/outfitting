@@ -11,3 +11,11 @@ export {
   HOMEBREW_INVENTORY_HEADER,
   HOMEBREW_INVENTORY_KIND,
 } from "@/update/snapshot";
+export {
+  updateNix,
+  buildNixSystem,
+  activateNixSystem,
+  prepareNixRecovery,
+  nextRecoveryAction,
+  NIX_SYSTEM_ATTR,
+} from "@/update/nix";

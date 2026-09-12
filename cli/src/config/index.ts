@@ -9,6 +9,11 @@ export {
   stateRoot,
 } from "@/config/paths";
 export {
+  physicalPath,
+  resolveOutfittingRepo,
+  type OutfittingRepo,
+} from "@/config/repo";
+export {
   DEFAULT_MANIFEST_BASE_URL,
   DEFAULT_MANIFEST_REF,
   type ManagerConfig,

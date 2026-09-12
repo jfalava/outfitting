@@ -7,14 +7,23 @@ import {
   NIX_ACTIONS,
   type HostPlatform,
   type PackageManager,
+  type NixAction,
 } from "@/platform";
 import { updateBrew } from "@/update/brew";
 import { updateBun } from "@/update/bun";
+import { updateNix } from "@/update/nix";
 
 const noSyncFlag = Flag.boolean("no-sync").pipe(
   Flag.withDefault(false),
   Flag.withDescription("Skip pushing inventory/lock blobs after a successful update."),
 );
+
+const nixActionDescription = {
+  build: "Build the nix-darwin system without activating.",
+  switch: "Build and activate the nix-darwin system (activate runs in-process).",
+  test: "Test-build the nix-darwin system without activating.",
+  dry: "Dry-run the nix-darwin build without activating.",
+} as const satisfies Record<NixAction, string>;
 
 const makeForeignStub = (pm: PackageManager, host: HostPlatform) =>
   Command.make(pm, {}, () => foreignPackageManagerStub(pm, host)).pipe(
@@ -23,18 +32,8 @@ const makeForeignStub = (pm: PackageManager, host: HostPlatform) =>
 
 const makeNixCommand = () => {
   const actions = NIX_ACTIONS.map((action) =>
-    Command.make(action, {}, () =>
-      Effect.fail(new Error(`update nix ${action} is not implemented yet`)),
-    ).pipe(
-      Command.withDescription(
-        action === "switch"
-          ? "Build and activate the nix-darwin system (activate runs in-process)."
-          : action === "dry"
-            ? "Dry-run the nix-darwin build without activating."
-            : action === "test"
-              ? "Test-build the nix-darwin system without activating."
-              : "Build the nix-darwin system without activating.",
-      ),
+    Command.make(action, {}, () => updateNix({ action })).pipe(
+      Command.withDescription(nixActionDescription[action]),
     ),
   );
 
@@ -64,7 +63,7 @@ const allCommand = Command.make(
   ({ noSync }) =>
     Effect.fail(
       new Error(
-        `update all is not implemented yet (no-sync=${noSync}; lands after nix step).`,
+        `update all is not implemented yet (no-sync=${noSync}; lands in the next migration step).`,
       ),
     ),
 ).pipe(
@@ -74,7 +73,7 @@ const allCommand = Command.make(
 );
 
 /**
- * macOS `update` tree: bun | brew implemented; nix | all stubs;
+ * macOS `update` tree: bun | brew | nix implemented; all stub;
  * plus foreign PM hint stubs (scoop, winget).
  */
 export const makeMacosUpdateCommand = () => {
@@ -94,4 +93,3 @@ export const makeMacosUpdateCommand = () => {
     ]),
   );
 };
-
