@@ -1,4 +1,3 @@
-import { Effect } from "effect";
 import { Command, Flag } from "effect/unstable/cli";
 
 import { foreignPackageManagerStub } from "@/commands/update/stubs";
@@ -9,6 +8,7 @@ import {
   type PackageManager,
   type NixAction,
 } from "@/platform";
+import { updateAll } from "@/update/all";
 import { updateBrew } from "@/update/brew";
 import { updateBun } from "@/update/bun";
 import { updateNix } from "@/update/nix";
@@ -60,15 +60,10 @@ const brewCommand = Command.make(
 const allCommand = Command.make(
   "all",
   { noSync: noSyncFlag },
-  ({ noSync }) =>
-    Effect.fail(
-      new Error(
-        `update all is not implemented yet (no-sync=${noSync}; lands in the next migration step).`,
-      ),
-    ),
+  ({ noSync }) => updateAll({ noSync }),
 ).pipe(
   Command.withDescription(
-    "Run nix switch → brew → bun → inventory sync; continue on failure; exit ≠0 if any step failed.",
+    "Run nix switch → brew → bun (inventory sync via brew unless --no-sync); continue on failure; exit ≠0 if any step failed.",
   ),
 );
 

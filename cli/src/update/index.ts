@@ -1,3 +1,4 @@
+export { updateAll, type UpdateAllOptions, type UpdateStepResult } from "@/update/all";
 export {
   updateBun,
   parseBunGlobalList,
