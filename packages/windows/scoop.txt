@@ -2,3 +2,6 @@ bucket "https://github.com/sheeki03/scoop-tirith"
 
 package "tirith"
 package "rustic"
+package "ani-cli"
+package "fzf"
+package "mpv"
