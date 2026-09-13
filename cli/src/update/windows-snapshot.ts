@@ -2,7 +2,7 @@ import { mkdtemp, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { Console, Effect } from "effect";
+import { Console, Effect, Option, Schema } from "effect";
 
 import { loadConfig, type ManagerConfig } from "@/config";
 import { pushLockfile } from "@/lockfiles";
@@ -35,67 +35,40 @@ export interface ScoopExportState {
   buckets: ScoopExportBucket[];
 }
 
-function asRecord(value: unknown): Record<string, unknown> | undefined {
-  return typeof value === "object" && value !== null && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : undefined;
-}
+const ScoopExportAppSchema = Schema.Struct({
+  Name: Schema.String,
+  Source: Schema.optionalKey(Schema.NullOr(Schema.String)),
+  Version: Schema.String,
+  Info: Schema.String,
+});
 
-function requiredString(record: Record<string, unknown>, key: string): string {
-  const value = record[key];
-  if (typeof value !== "string") {
-    throw new Error(`Scoop export field ${key} must be a string.`);
-  }
-  return value;
-}
+const ScoopExportBucketSchema = Schema.Struct({
+  Name: Schema.String,
+  Source: Schema.optionalKey(Schema.NullOr(Schema.String)),
+});
 
-function sourceString(record: Record<string, unknown>, key: string): string {
-  const value = record[key];
-  if (value === null || value === undefined) {
-    return "";
-  }
-  if (typeof value !== "string") {
-    throw new Error(`Scoop export field ${key} must be a string or null.`);
-  }
-  return value;
-}
+const ScoopExportSchema = Schema.Struct({
+  apps: Schema.ArrayEnsure(ScoopExportAppSchema),
+  buckets: Schema.ArrayEnsure(ScoopExportBucketSchema),
+});
 
-function collection(value: unknown, name: string): unknown[] {
-  if (Array.isArray(value)) {
-    return value;
-  }
-  if (asRecord(value)) {
-    return [value];
-  }
-  throw new Error(`Scoop export is missing a ${name} array.`);
-}
+type DecodedScoopExport = Schema.Schema.Type<typeof ScoopExportSchema>;
 
-function parseScoopApps(value: unknown): ScoopExportApp[] {
-  return collection(value, "apps").map((entry) => {
-    const record = asRecord(entry);
-    if (!record) {
-      throw new Error("Scoop export contains an invalid app entry.");
-    }
-    return {
-      Name: requiredString(record, "Name"),
-      Source: sourceString(record, "Source"),
-      Version: requiredString(record, "Version"),
-      Info: requiredString(record, "Info"),
-    };
-  });
-}
+const decodeScoopExport = Schema.decodeUnknownOption(ScoopExportSchema);
 
-function parseScoopBuckets(value: unknown): ScoopExportBucket[] {
-  return collection(value, "buckets").map((entry) => {
-    const record = asRecord(entry);
-    if (!record) {
-      throw new Error("Scoop export contains an invalid bucket entry.");
-    }
-    return {
-      Name: requiredString(record, "Name"),
-      Source: sourceString(record, "Source"),
-    };
-  });
+function normalizeScoopExport(decoded: DecodedScoopExport): ScoopExportState {
+  return {
+    apps: decoded.apps.map((app) => ({
+      Name: app.Name,
+      Source: app.Source ?? "",
+      Version: app.Version,
+      Info: app.Info,
+    })),
+    buckets: decoded.buckets.map((bucket) => ({
+      Name: bucket.Name,
+      Source: bucket.Source ?? "",
+    })),
+  };
 }
 
 /** Parse the stable JSON object emitted by `scoop export`. */
@@ -109,21 +82,18 @@ export function parseScoopExport(output: string): ScoopExportState {
       { cause },
     );
   }
-  const record = asRecord(parsed);
-  if (!record) {
-    throw new Error("Scoop export must be a JSON object.");
+  const decoded = decodeScoopExport(parsed);
+  if (Option.isNone(decoded)) {
+    throw new Error("Scoop export must contain valid apps and buckets.");
   }
-  return {
-    apps: parseScoopApps(record.apps),
-    buckets: parseScoopBuckets(record.buckets),
-  };
+  return normalizeScoopExport(decoded.value);
 }
 
 function stableScoopInventory(state: ScoopExportState): string {
-  const apps = [...state.apps].sort((left, right) =>
+  const apps = state.apps.toSorted((left, right) =>
     `${left.Name}\u0000${left.Source}`.localeCompare(`${right.Name}\u0000${right.Source}`, "en"),
   );
-  const buckets = [...state.buckets].sort((left, right) =>
+  const buckets = state.buckets.toSorted((left, right) =>
     `${left.Name}\u0000${left.Source}`.localeCompare(`${right.Name}\u0000${right.Source}`, "en"),
   );
   return `${JSON.stringify(
@@ -157,7 +127,7 @@ function stableBunInventory(packages: ReadonlyArray<BunPackageEntry>): string {
   return `${JSON.stringify(
     {
       format: BUN_GLOBAL_INVENTORY_FORMAT,
-      packages: [...new Set(packages.map((entry) => entry.name))].sort((left, right) =>
+      packages: [...new Set(packages.map((entry) => entry.name))].toSorted((left, right) =>
         left.localeCompare(right, "en"),
       ),
     },

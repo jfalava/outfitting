@@ -26,6 +26,80 @@ export interface WindowsUpdateStepResult {
   error?: string;
 }
 
+function runWindowsStep<A, E>(
+  results: WindowsUpdateStepResult[],
+  name: string,
+  effect: Effect.Effect<A, E, never>,
+  markSuccess?: () => void,
+): Effect.Effect<void> {
+  return effect.pipe(
+    Effect.asVoid,
+    Effect.map(() => {
+      results.push({ name, ok: true });
+      markSuccess?.();
+    }),
+    Effect.catch((error) => {
+      const message = error instanceof Error ? error.message : String(error);
+      results.push({ name, ok: false, error: message });
+      return Console.log(ui.muted(`Step failed (${name}): ${message}`));
+    }),
+  );
+}
+
+const printWindowsResults = Effect.fn("printWindowsResults")(function* (
+  results: ReadonlyArray<WindowsUpdateStepResult>,
+) {
+  yield* Console.log("");
+  for (const step of results) {
+    if (step.ok) {
+      yield* Console.log(ui.success(step.name));
+    } else {
+      yield* Console.log(`${ui.heading("✗")} ${step.name}: ${step.error ?? "failed"}`);
+    }
+  }
+});
+
+interface WindowsInventorySyncOptions {
+  config: ManagerConfig;
+  run: typeof runCommand;
+  scoopPath: string | undefined;
+  results: WindowsUpdateStepResult[];
+  wingetUpdated: boolean;
+  scoopUpdated: boolean;
+  bunUpdated: boolean;
+  which: typeof which;
+}
+
+const syncWindowsInventories = Effect.fn("syncWindowsInventories")(function* (
+  options: WindowsInventorySyncOptions,
+) {
+  if (options.wingetUpdated) {
+    yield* runWindowsStep(
+      options.results,
+      "winget inventory",
+      pushWingetInventory({ config: options.config, run: options.run }),
+    );
+  }
+  if (options.scoopUpdated) {
+    yield* runWindowsStep(
+      options.results,
+      "scoop inventory",
+      pushScoopInventory({
+        config: options.config,
+        run: options.run,
+        scoopPath: options.scoopPath,
+      }),
+    );
+  }
+  if (options.bunUpdated && (yield* tryPromise(() => options.which("bun"))) !== undefined) {
+    yield* runWindowsStep(
+      options.results,
+      "bun inventory",
+      pushBunGlobalInventory({ config: options.config, run: options.run }),
+    );
+  }
+});
+
 /**
  * Windows `update all`: winget → scoop → bun → inventory sync.
  * Continues after failures and exits nonzero when any update or sync fails.
@@ -41,62 +115,49 @@ export const updateWindowsAll = (options: WindowsUpdateAllOptions = {}) =>
     let scoopUpdated = false;
     let bunUpdated = false;
 
-    const runStep = <A, E>(
-      name: string,
-      effect: Effect.Effect<A, E, never>,
-      markSuccess?: () => void,
-    ): Effect.Effect<void> =>
-      effect.pipe(
-        Effect.asVoid,
-        Effect.map(() => {
-          results.push({ name, ok: true });
-          markSuccess?.();
-        }),
-        Effect.catch((error) => {
-          const message = error instanceof Error ? error.message : String(error);
-          results.push({ name, ok: false, error: message });
-          return Console.log(ui.muted(`Step failed (${name}): ${message}`));
-        }),
-      );
-
     yield* Console.log(ui.heading("update all: winget → scoop → bun → sync"));
 
-    yield* runStep("winget", updateWinget({ config, noSync: true, run, which: whichFn }), () => {
-      wingetUpdated = true;
-    });
-    yield* runStep(
+    yield* runWindowsStep(
+      results,
+      "winget",
+      updateWinget({ config, noSync: true, run, which: whichFn }),
+      () => {
+        wingetUpdated = true;
+      },
+    );
+    yield* runWindowsStep(
+      results,
       "scoop",
       updateScoop({ config, noSync: true, run, which: whichFn, scoopPath }),
       () => {
         scoopUpdated = true;
       },
     );
-    yield* runStep("bun", updateBun({ skipIfMissing: true, run, which: whichFn }), () => {
-      bunUpdated = true;
-    });
+    yield* runWindowsStep(
+      results,
+      "bun",
+      updateBun({ skipIfMissing: true, run, which: whichFn }),
+      () => {
+        bunUpdated = true;
+      },
+    );
 
     if (options.noSync) {
       yield* Console.log(ui.muted("Skipped inventory sync (--no-sync)."));
     } else {
-      if (wingetUpdated) {
-        yield* runStep("winget inventory", pushWingetInventory({ config, run }));
-      }
-      if (scoopUpdated) {
-        yield* runStep("scoop inventory", pushScoopInventory({ config, run, scoopPath }));
-      }
-      if (bunUpdated && (yield* tryPromise(() => whichFn("bun"))) !== undefined) {
-        yield* runStep("bun inventory", pushBunGlobalInventory({ config, run }));
-      }
+      yield* syncWindowsInventories({
+        config,
+        run,
+        scoopPath,
+        results,
+        wingetUpdated,
+        scoopUpdated,
+        bunUpdated,
+        which: whichFn,
+      });
     }
 
-    yield* Console.log("");
-    for (const step of results) {
-      if (step.ok) {
-        yield* Console.log(ui.success(step.name));
-      } else {
-        yield* Console.log(`${ui.heading("✗")} ${step.name}: ${step.error ?? "failed"}`);
-      }
-    }
+    yield* printWindowsResults(results);
 
     const failed = results.filter((step) => !step.ok);
     if (failed.length > 0) {

@@ -89,6 +89,44 @@ async function listGlobalPackages(run: typeof runCommand = runCommand): Promise<
   return parseBunGlobalList(result.stdout);
 }
 
+const updateGlobalPackages = Effect.fn("updateGlobalPackages")(function* (
+  packages: BunPackageEntry[],
+  fetcher: NpmFetcher,
+  run: typeof runCommand,
+) {
+  let updated = 0;
+  let failed = 0;
+  let skipped = 0;
+
+  for (const entry of packages) {
+    yield* Console.log(ui.muted(`Checking ${entry.name} (installed ${entry.installedVersion})…`));
+    const latest = yield* tryPromise(() => fetchNpmLatestVersion(entry.name, fetcher));
+    if (latest === undefined) {
+      yield* Console.log(ui.muted(`  failed to fetch latest for ${entry.name}`));
+      failed += 1;
+      continue;
+    }
+    if (latest === entry.installedVersion) {
+      yield* Console.log(ui.muted(`  up to date`));
+      skipped += 1;
+      continue;
+    }
+    yield* Console.log(ui.muted(`  updating to ${latest}`));
+    const install = yield* tryPromise(() =>
+      run("bun", ["add", "-g", `${entry.name}@${latest}`], { inherit: true }),
+    );
+    if (install.code === 0) {
+      yield* Console.log(ui.success(`${entry.name}@${latest}`));
+      updated += 1;
+    } else {
+      yield* Console.log(ui.muted(`  failed to install ${entry.name}@${latest}`));
+      failed += 1;
+    }
+  }
+
+  return { updated, failed, skipped } satisfies BunUpdateResult;
+});
+
 /**
  * Update global Bun packages to registry latest.
  * Explicit command: fails if bun is missing.
@@ -121,41 +159,17 @@ export const updateBun = (options?: {
 
     yield* Console.log(ui.muted(`Found ${packages.length} global package(s).`));
     const fetcher = options?.fetcher ?? fetch;
-    let updated = 0;
-    let failed = 0;
-    let skipped = 0;
+    const result = yield* updateGlobalPackages(packages, fetcher, run);
 
-    for (const entry of packages) {
-      yield* Console.log(ui.muted(`Checking ${entry.name} (installed ${entry.installedVersion})…`));
-      const latest = yield* tryPromise(() => fetchNpmLatestVersion(entry.name, fetcher));
-      if (latest === undefined) {
-        yield* Console.log(ui.muted(`  failed to fetch latest for ${entry.name}`));
-        failed += 1;
-        continue;
-      }
-      if (latest === entry.installedVersion) {
-        yield* Console.log(ui.muted(`  up to date`));
-        skipped += 1;
-        continue;
-      }
-      yield* Console.log(ui.muted(`  updating to ${latest}`));
-      const install = yield* tryPromise(() =>
-        run("bun", ["add", "-g", `${entry.name}@${latest}`], { inherit: true }),
-      );
-      if (install.code === 0) {
-        yield* Console.log(ui.success(`${entry.name}@${latest}`));
-        updated += 1;
-      } else {
-        yield* Console.log(ui.muted(`  failed to install ${entry.name}@${latest}`));
-        failed += 1;
-      }
-    }
-
-    if (failed > 0) {
+    if (result.failed > 0) {
       return yield* Effect.fail(
-        new Error(`Bun global update finished with ${failed} failure(s); updated ${updated}.`),
+        new Error(
+          `Bun global update finished with ${result.failed} failure(s); updated ${result.updated}.`,
+        ),
       );
     }
-    yield* Console.log(ui.success(`Bun globals: ${updated} updated, ${skipped} already current.`));
-    return { updated, failed, skipped } satisfies BunUpdateResult;
+    yield* Console.log(
+      ui.success(`Bun globals: ${result.updated} updated, ${result.skipped} already current.`),
+    );
+    return result;
   });

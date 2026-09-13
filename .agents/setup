@@ -67,6 +67,7 @@ else
 fi
 
 time_step "bun install --frozen-lockfile" bun install --frozen-lockfile
+time_step "bun prepare" bun prepare
 
 agents_dir="${HOME}/.config/amp"
 mkdir -p "$agents_dir"

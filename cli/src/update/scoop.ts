@@ -1,4 +1,4 @@
-import { Console, Effect } from "effect";
+import { Console, Effect, Option, Schema } from "effect";
 
 import { loadConfig, type ManagerConfig } from "@/config";
 import { fetchManifest, type ManifestFetcher } from "@/fetch";
@@ -13,6 +13,14 @@ import {
 } from "@/update/windows-snapshot";
 
 export const SCOOP_MANIFEST_PATH = "packages/windows/scoop.txt";
+
+const ScoopDependencySchema = Schema.Struct({
+  Name: Schema.String,
+});
+
+const ScoopDependenciesSchema = Schema.ArrayEnsure(ScoopDependencySchema);
+
+const decodeScoopDependencies = Schema.decodeUnknownOption(ScoopDependenciesSchema);
 
 export interface ScoopBucket {
   name: string;
@@ -67,14 +75,14 @@ export function parseScoopManifest(content: string): ScoopManifest {
 
     const packageMatch = /^package\s+"([^"\r\n]*\S[^"\r\n]*)"$/i.exec(entry);
     if (packageMatch?.[1] !== undefined) {
-      const packageName = packageMatch[1].trim();
-      const name = packageName.split("/").at(-1);
+      const packageSpec = packageMatch[1].trim();
+      const name = packageSpec.split("/").at(-1);
       if (name === undefined || packageNames.has(name.toLowerCase())) {
-        invalid.push(`line ${index + 1}: invalid or duplicate package '${packageName}'`);
+        invalid.push(`line ${index + 1}: invalid or duplicate package '${packageSpec}'`);
         return;
       }
       packageNames.add(name.toLowerCase());
-      packages.push(packageName);
+      packages.push(packageSpec);
       return;
     }
 
@@ -122,19 +130,17 @@ function parseScoopDependencies(output: string, packageSpec: string): string[] {
     );
   }
 
-  const entries = Array.isArray(parsed) ? parsed : [parsed];
-  const names: string[] = [];
-  for (const entry of entries) {
-    if (typeof entry !== "object" || entry === null || Array.isArray(entry)) {
-      throw new Error(`Scoop dependencies for ${packageSpec} contain an invalid entry.`);
-    }
-    const name = (entry as { Name?: unknown }).Name;
-    if (typeof name !== "string" || name.trim().length === 0) {
+  const decoded = decodeScoopDependencies(parsed);
+  if (Option.isNone(decoded)) {
+    throw new Error(`Scoop dependencies for ${packageSpec} contain an invalid entry.`);
+  }
+  return decoded.value.map((entry) => {
+    const name = entry.Name.trim();
+    if (name.length === 0) {
       throw new Error(`Scoop dependencies for ${packageSpec} contain an invalid package name.`);
     }
-    names.push(name.trim());
-  }
-  return names;
+    return name;
+  });
 }
 
 function powerShellStringLiteral(value: string): string {
@@ -156,9 +162,8 @@ async function requireScoopCommand(
   scoopPath: string,
   args: ReadonlyArray<string>,
   label: string,
-  inherit = true,
 ): Promise<RunCommandResult> {
-  const result = await runScoopCommand(run, scoopPath, args, { inherit });
+  const result = await runScoopCommand(run, scoopPath, args, { inherit: true });
   if (result.code !== 0) {
     throw new Error(
       `${label} failed (exit ${result.code}): ${result.stderr || result.stdout}`.trim(),
@@ -188,6 +193,93 @@ async function dependencyNames(
     );
   }
   return parseScoopDependencies(result.stdout, packageSpec);
+}
+
+const addMissingBuckets = Effect.fn("addMissingBuckets")(function* (
+  desired: ScoopManifest,
+  installed: ReadonlySet<string>,
+  run: typeof runCommand,
+  scoopPath: string,
+) {
+  for (const bucket of desired.buckets) {
+    if (installed.has(bucket.name.toLowerCase())) {
+      continue;
+    }
+    yield* tryPromise(() =>
+      requireScoopCommand(
+        run,
+        scoopPath,
+        ["bucket", "add", bucket.name, bucket.url],
+        `scoop bucket add ${bucket.name}`,
+      ),
+    );
+  }
+});
+
+const installMissingPackages = Effect.fn("installMissingPackages")(function* (
+  desired: ScoopManifest,
+  installed: ReadonlySet<string>,
+  run: typeof runCommand,
+  scoopPath: string,
+) {
+  for (const spec of desired.packages) {
+    if (installed.has(packageName(spec).toLowerCase())) {
+      continue;
+    }
+    yield* tryPromise(() =>
+      requireScoopCommand(run, scoopPath, ["install", spec], `scoop install ${spec}`),
+    );
+  }
+});
+
+const collectDesiredPackages = Effect.fn("collectDesiredPackages")(function* (
+  desired: ScoopManifest,
+  scoopPath: string,
+  run: typeof runCommand,
+) {
+  const packages = new Set(desired.packages.map((spec) => packageName(spec).toLowerCase()));
+  for (const spec of desired.packages) {
+    const dependencies = yield* tryPromise(() => dependencyNames(spec, scoopPath, run));
+    for (const dependency of dependencies) {
+      packages.add(dependency.toLowerCase());
+    }
+  }
+  return packages;
+});
+
+const removeUndesiredPackages = Effect.fn("removeUndesiredPackages")(function* (
+  state: ScoopExportState,
+  desiredPackages: ReadonlySet<string>,
+  run: typeof runCommand,
+  scoopPath: string,
+) {
+  for (const app of state.apps) {
+    if (!isGlobalInstall(app) && !desiredPackages.has(app.Name.toLowerCase())) {
+      yield* tryPromise(() =>
+        requireScoopCommand(run, scoopPath, ["uninstall", app.Name], `scoop uninstall ${app.Name}`),
+      );
+    }
+  }
+});
+
+const updateAndCleanScoop = Effect.fn("updateAndCleanScoop")(function* (
+  run: typeof runCommand,
+  scoopPath: string,
+) {
+  yield* tryPromise(() => requireScoopCommand(run, scoopPath, ["update"], "scoop update"));
+  yield* tryPromise(() => requireScoopCommand(run, scoopPath, ["update", "*"], "scoop update *"));
+  yield* tryPromise(() => requireScoopCommand(run, scoopPath, ["cleanup", "*"], "scoop cleanup *"));
+});
+
+function syncScoopInventory(
+  config: ManagerConfig,
+  run: typeof runCommand,
+  scoopPath: string,
+  noSync: boolean,
+) {
+  return noSync
+    ? Console.log(ui.muted("Skipped inventory sync (--no-sync)."))
+    : pushScoopInventory({ config, run, scoopPath });
 }
 
 export interface UpdateScoopOptions {
@@ -229,65 +321,19 @@ export const updateScoop = (options: UpdateScoopOptions = {}) =>
     const buckets = installedBuckets(state);
 
     yield* Console.log(ui.heading("Reconciling Scoop packages…"));
-    for (const bucket of desired.buckets) {
-      if (buckets.has(bucket.name.toLowerCase())) {
-        continue;
-      }
-      yield* tryPromise(() =>
-        requireScoopCommand(
-          run,
-          scoopPath,
-          ["bucket", "add", bucket.name, bucket.url],
-          `scoop bucket add ${bucket.name}`,
-        ),
-      );
-    }
+    yield* addMissingBuckets(desired, buckets, run, scoopPath);
 
-    const packages = installedPackages(state);
-    for (const spec of desired.packages) {
-      if (!packages.has(packageName(spec).toLowerCase())) {
-        yield* tryPromise(() =>
-          requireScoopCommand(run, scoopPath, ["install", spec], `scoop install ${spec}`),
-        );
-      }
-    }
+    yield* installMissingPackages(desired, installedPackages(state), run, scoopPath);
 
-    const desiredPackages = new Set(
-      desired.packages.map((spec) => packageName(spec).toLowerCase()),
-    );
-    for (const spec of desired.packages) {
-      const dependencies = yield* tryPromise(() => dependencyNames(spec, scoopPath, run));
-      for (const dependency of dependencies) {
-        desiredPackages.add(dependency.toLowerCase());
-      }
-    }
+    const desiredPackages = yield* collectDesiredPackages(desired, scoopPath, run);
 
     const current = yield* tryPromise(() => scoopState(run, scoopPath));
-    for (const app of current.apps) {
-      if (!isGlobalInstall(app) && !desiredPackages.has(app.Name.toLowerCase())) {
-        yield* tryPromise(() =>
-          requireScoopCommand(
-            run,
-            scoopPath,
-            ["uninstall", app.Name],
-            `scoop uninstall ${app.Name}`,
-          ),
-        );
-      }
-    }
+    yield* removeUndesiredPackages(current, desiredPackages, run, scoopPath);
 
-    yield* tryPromise(() => requireScoopCommand(run, scoopPath, ["update"], "scoop update"));
-    yield* tryPromise(() => requireScoopCommand(run, scoopPath, ["update", "*"], "scoop update *"));
-    yield* tryPromise(() =>
-      requireScoopCommand(run, scoopPath, ["cleanup", "*"], "scoop cleanup *"),
-    );
+    yield* updateAndCleanScoop(run, scoopPath);
     yield* Console.log(ui.success("Scoop packages match scoop.txt."));
 
-    if (options.noSync) {
-      yield* Console.log(ui.muted("Skipped inventory sync (--no-sync)."));
-    } else {
-      yield* pushScoopInventory({ config, run, scoopPath });
-    }
+    yield* syncScoopInventory(config, run, scoopPath, options.noSync === true);
   });
 
 export { captureScoopInventory, parseScoopExport } from "@/update/windows-snapshot";
