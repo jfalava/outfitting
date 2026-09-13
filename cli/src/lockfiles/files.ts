@@ -40,6 +40,7 @@ const OUTPUT_PATHS = {
   "powershell-inventory": "powershell-inventory.json",
   "private-fonts": "private-fonts-inventory.json",
   "scoop-inventory": "scoop-inventory.json",
+  windows: "windows.lock.json",
   winget: "winget.json",
 } as const satisfies Readonly<Record<string, string>>;
 

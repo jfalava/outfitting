@@ -2,15 +2,17 @@ import { Console, Data, Effect, Option, Schema } from "effect";
 
 import { loadConfig, type ManagerConfig } from "@/config";
 import { fetchManifest, type ManifestFetcher } from "@/fetch";
+import { pushLockfile } from "@/lockfiles";
 import { tryPromise } from "@/lockfiles/effect";
 import { runCommand, which } from "@/process";
 import { ui } from "@/ui";
 import { runScoopCommand, scoopScriptPath } from "@/update/scoop-command";
+import { parseScoopExport, type ScoopExportState } from "@/update/windows-snapshot";
 import {
-  parseScoopExport,
-  pushScoopInventory,
-  type ScoopExportState,
-} from "@/update/windows-snapshot";
+  WINDOWS_LOCK_KIND,
+  updateWindowsBaseline,
+  type WindowsPackageRecord,
+} from "@/update/windows-lock";
 
 export const SCOOP_MANIFEST_PATH = "packages/windows/scoop.txt";
 
@@ -268,12 +270,21 @@ const collectDesiredPackages = Effect.fn("collectDesiredPackages")(function* (
   return packages;
 });
 
+interface ScoopCleanupContext {
+  run: typeof runCommand;
+  scoopPath: string;
+  prune: boolean;
+}
+
 const removeUndesiredPackages = Effect.fn("removeUndesiredPackages")(function* (
   state: ScoopExportState,
   desiredPackages: ReadonlySet<string>,
-  run: typeof runCommand,
-  scoopPath: string,
+  context: ScoopCleanupContext,
 ) {
+  const { run, scoopPath, prune } = context;
+  if (!prune) {
+    return;
+  }
   for (const app of state.apps) {
     if (!isGlobalInstall(app) && !desiredPackages.has(app.Name.toLowerCase())) {
       yield* requireScoopCommand(
@@ -295,20 +306,11 @@ const updateAndCleanScoop = Effect.fn("updateAndCleanScoop")(function* (
   yield* requireScoopCommand(run, scoopPath, ["cleanup", "*"], "scoop cleanup *");
 });
 
-function syncScoopInventory(
-  config: ManagerConfig,
-  run: typeof runCommand,
-  scoopPath: string,
-  noSync: boolean,
-) {
-  return noSync
-    ? Console.log(ui.muted("Skipped inventory sync (--no-sync)."))
-    : pushScoopInventory({ config, run, scoopPath });
-}
-
 export interface UpdateScoopOptions {
   config?: ManagerConfig;
   noSync?: boolean;
+  /** Remove non-global packages absent from scoop.txt. Defaults to true. */
+  prune?: boolean;
   scoopPath?: string;
   run?: typeof runCommand;
   which?: typeof which;
@@ -356,12 +358,30 @@ export const updateScoop = (options: UpdateScoopOptions = {}) =>
     const desiredPackages = yield* collectDesiredPackages(desired, scoopPath, run);
 
     const current = yield* scoopState(run, scoopPath);
-    yield* removeUndesiredPackages(current, desiredPackages, run, scoopPath);
+    yield* removeUndesiredPackages(current, desiredPackages, {
+      run,
+      scoopPath,
+      prune: options.prune !== false,
+    });
 
     yield* updateAndCleanScoop(run, scoopPath);
     yield* Console.log(ui.success("Scoop packages match scoop.txt."));
 
-    yield* syncScoopInventory(config, run, scoopPath, options.noSync === true);
+    if (options.noSync) {
+      yield* Console.log(ui.muted("Skipped lock sync (--no-sync)."));
+    } else {
+      const records: WindowsPackageRecord[] = desired.packages.map((name) => ({
+        name: packageName(name),
+        args: ["install", name],
+        origin: "baseline",
+      }));
+      const lock = yield* tryPromise(() => updateWindowsBaseline(config, { scoop: records }));
+      yield* pushLockfile({
+        machine: config.machineId,
+        kind: WINDOWS_LOCK_KIND,
+        path: lock,
+      });
+    }
   });
 
 export { captureScoopInventory, parseScoopExport } from "@/update/windows-snapshot";

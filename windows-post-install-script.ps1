@@ -57,139 +57,64 @@ function Install-OutfittingManagerQuietly {
 Install-OutfittingManagerQuietly
 Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 
-###################################### Scoop
-$scoopPackagesUrl = "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/packages/windows/scoop.txt"
+###################################### Scoop and desired-state sync
+$failedPackageCommands = 0
 if (-not (Get-Command scoop -ErrorAction SilentlyContinue)) {
     try {
+        Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
         Invoke-RestMethod -Uri https://get.scoop.sh -ErrorAction Stop | Invoke-Expression
-        . $PROFILE
     } catch {
-        Write-Host "❖ Failed to install or load Scoop: $($_.Exception.Message)" -ForegroundColor Red
-        exit 1
+        $failedPackageCommands++
+        Write-Host "❖ Failed to install Scoop: $($_.Exception.Message)" -ForegroundColor Red
     }
 }
 
-function Get-ScoopBucketName([string] $BucketUrl) {
-    $normalizedUrl = $BucketUrl.Trim().TrimEnd("/")
-    $normalizedUrl = $normalizedUrl -replace '(?i)\.git$', ''
-    $normalizedUrl = $normalizedUrl.TrimEnd("/")
-    $segments = $normalizedUrl -split '/' | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
-
-    if ($segments.Count -eq 0) { return $null }
-
-    $bucketName = $segments[-1] -replace '^(?i:scoop-)', ''
-    if ([string]::IsNullOrWhiteSpace($bucketName)) { return $null }
-
-    return $bucketName
+$scoopShims = Join-Path $env:USERPROFILE "scoop\shims"
+if (Test-Path -LiteralPath $scoopShims -PathType Container) {
+    $env:PATH = "$scoopShims;$env:PATH"
+}
+$wingetLinks = Join-Path $env:LOCALAPPDATA "Microsoft\WinGet\Links"
+if (Test-Path -LiteralPath $wingetLinks -PathType Container) {
+    $env:PATH = "$wingetLinks;$env:PATH"
 }
 
-try {
-    $scoopPackagesContent = Invoke-RestMethod -Uri $scoopPackagesUrl -ErrorAction Stop
-} catch {
-    Write-Host "❖ Failed to download Scoop package list:" -ForegroundColor Red
-    Write-Host "  - $_" -ForegroundColor Red
-    exit 1
-}
-
-$scoopBuckets = [System.Collections.Generic.List[string]]::new()
-$scoopPackages = [System.Collections.Generic.List[string]]::new()
-$invalidScoopEntries = 0
-$lineNumber = 0
-
-foreach ($line in [regex]::Split([string] $scoopPackagesContent, "\r?\n")) {
-    $lineNumber++
-    $entry = $line.Trim()
-    if ([string]::IsNullOrWhiteSpace($entry) -or $entry.StartsWith("#")) { continue }
-
-    $bucketMatch = [regex]::Match($entry, '^(?i:bucket)\s+"(?<value>[^"\r\n]*\S[^"\r\n]*)"\s*$')
-    $packageMatch = [regex]::Match($entry, '^(?i:package)\s+"(?<value>[^"\r\n]*\S[^"\r\n]*)"\s*$')
-
-    if ($bucketMatch.Success) {
-        $scoopBuckets.Add($bucketMatch.Groups["value"].Value.Trim())
-    } elseif ($packageMatch.Success) {
-        $scoopPackages.Add($packageMatch.Groups["value"].Value.Trim())
-    } else {
-        $invalidScoopEntries++
-        Write-Host "❖ Ignoring invalid Scoop list entry on line ${lineNumber}: $entry" -ForegroundColor Yellow
+if (Test-Path -LiteralPath $outfittingManagerInstallPath -PathType Leaf) {
+    & $outfittingManagerInstallPath setup --no-fetch
+    if ($LASTEXITCODE -ne 0) {
+        $failedPackageCommands++
+        Write-Host "❖ outfitting-manager setup failed (exit $LASTEXITCODE)." -ForegroundColor Red
+    } elseif (Get-Command scoop -ErrorAction SilentlyContinue) {
+        & $outfittingManagerInstallPath sync --no-push
+        if ($LASTEXITCODE -ne 0) {
+            $failedPackageCommands++
+            Write-Host "❖ Windows package sync failed (exit $LASTEXITCODE)." -ForegroundColor Red
+        }
     }
-}
-
-$successfulBuckets = 0
-$unchangedBuckets = 0
-$successfulPackages = 0
-$unchangedPackages = 0
-$failedScoopCommands = 0
-
-$installedBucketNames = @(
-    & scoop bucket list 2>$null | ForEach-Object {
-        if ($_ -match '^\s*(?<name>\S+)\s+https?://') { $Matches.name }
-    }
-)
-
-foreach ($bucketUrl in $scoopBuckets) {
-    $bucketName = Get-ScoopBucketName $bucketUrl
-    if ($null -eq $bucketName) {
-        $failedScoopCommands++
-        Write-Host "❖ Failed to derive Scoop bucket name from: $bucketUrl" -ForegroundColor Red
-        continue
-    }
-
-    if ($installedBucketNames -contains $bucketName) {
-        $unchangedBuckets++
-        Write-Host "❖ Scoop bucket already added: $bucketName" -ForegroundColor Yellow
-        continue
-    }
-
-    & scoop bucket add $bucketName $bucketUrl
-    if ($LASTEXITCODE -eq 0) {
-        $successfulBuckets++
-        Write-Host "❖ Added Scoop bucket: $bucketName" -ForegroundColor Green
-    } else {
-        $failedScoopCommands++
-        Write-Host "❖ Failed to add Scoop bucket: $bucketName" -ForegroundColor Red
-    }
-}
-
-foreach ($package in $scoopPackages) {
-    $null = & scoop prefix $package 2>$null
-    if ($LASTEXITCODE -eq 0) {
-        $unchangedPackages++
-        Write-Host "❖ Scoop package already installed: $package" -ForegroundColor Yellow
-        continue
-    }
-
-    & scoop install $package
-    if ($LASTEXITCODE -eq 0) {
-        $successfulPackages++
-        Write-Host "❖ Installed Scoop package: $package" -ForegroundColor Green
-    } else {
-        $failedScoopCommands++
-        Write-Host "❖ Failed to install Scoop package: $package" -ForegroundColor Red
-    }
-}
-
-Write-Host "❖ Scoop: $successfulBuckets bucket(s) added, $unchangedBuckets unchanged; $successfulPackages package(s) installed, $unchangedPackages unchanged; $invalidScoopEntries invalid list entry/entries, $failedScoopCommands failure(s)." -ForegroundColor Cyan
-if ($failedScoopCommands -gt 0) {
-    Write-Host "❖ Scoop had failures; continuing with post-install tasks." -ForegroundColor Yellow
+} else {
+    $failedPackageCommands++
+    Write-Host "❖ outfitting-manager is unavailable; skipping Windows package sync." -ForegroundColor Red
 }
 ############################################
 
 #################### Install public fonts via FontGet
-$fontGetListUrl = "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/fonts/fontget.txt"
-$failedFontGetCommands = 0
 $installedFontGetFonts = 0
 
 if (-not (Get-Command fontget -ErrorAction SilentlyContinue)) {
     Write-Host "`n❖ Installing FontGet..." -ForegroundColor Cyan
-    winget install --id Graphixa.FontGet -e --accept-source-agreements --accept-package-agreements
+    if (Test-Path -LiteralPath $outfittingManagerInstallPath -PathType Leaf) {
+        & $outfittingManagerInstallPath winget install Graphixa.FontGet --no-sync
+        if ($LASTEXITCODE -ne 0) { $failedPackageCommands++ }
+    } else {
+        $failedPackageCommands++
+    }
 }
 
 if (-not (Get-Command fontget -ErrorAction SilentlyContinue)) {
-    $failedFontGetCommands++
+    $failedPackageCommands++
     Write-Host "❖ FontGet is unavailable; continuing with the private font download." -ForegroundColor Red
 } else {
     try {
-        $fontGetListContent = Invoke-RestMethod -Uri $fontGetListUrl -ErrorAction Stop
+        $fontGetListContent = Invoke-RestMethod -Uri "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/fonts/fontget.txt" -ErrorAction Stop
         $env:FONTGET_ACCEPT_DEFAULTS = "1"
         $env:FONTGET_ACCEPT_AGREEMENTS = "1"
 
@@ -202,18 +127,18 @@ if (-not (Get-Command fontget -ErrorAction SilentlyContinue)) {
             if ($LASTEXITCODE -eq 0) {
                 $installedFontGetFonts++
             } else {
-                $failedFontGetCommands++
+                $failedPackageCommands++
                 Write-Host "❖ FontGet failed to install: $font" -ForegroundColor Red
             }
         }
     } catch {
-        $failedFontGetCommands++
+        $failedPackageCommands++
         Write-Host "❖ FontGet font installation failed: $($_.Exception.Message)" -ForegroundColor Red
     }
 }
 
-Write-Host "❖ FontGet: $installedFontGetFonts font(s) processed, $failedFontGetCommands failure(s)." -ForegroundColor Cyan
-if ($failedFontGetCommands -gt 0) {
+Write-Host "❖ FontGet: $installedFontGetFonts font(s) processed." -ForegroundColor Cyan
+if ($failedPackageCommands -gt 0) {
     Write-Host "❖ FontGet had failures; continuing with the private font download." -ForegroundColor Yellow
 }
 ############################################
@@ -296,7 +221,10 @@ $fontUrl = "https://win.jfa.dev/fonts"
 $checksumUrl = "https://win.jfa.dev/fonts/checksum"
 try {
     if (-not (Get-Command cloudflared -ErrorAction SilentlyContinue)) {
-        winget install --id Cloudflare.cloudflared -e --accept-source-agreements --accept-package-agreements
+        if (Test-Path -LiteralPath $outfittingManagerInstallPath -PathType Leaf) {
+            & $outfittingManagerInstallPath winget install Cloudflare.cloudflared --no-sync
+            if ($LASTEXITCODE -ne 0) { $failedPackageCommands++ }
+        }
     }
     if (-not (Get-Command cloudflared -ErrorAction SilentlyContinue)) {
         Stop-FontInstall "cloudflared is not available after installation; restart this shell and try again"
@@ -330,5 +258,5 @@ try {
 } finally {
     Remove-Item -LiteralPath $tempDirectory -Recurse -Force -ErrorAction SilentlyContinue
 }
-if ($failedScoopCommands -gt 0 -or $failedFontGetCommands -gt 0) { exit 1 }
+if ($failedPackageCommands -gt 0) { exit 1 }
 ############################################

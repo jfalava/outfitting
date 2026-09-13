@@ -1,15 +1,15 @@
 import { Hono } from "hono";
 
-import { CONTENT_TYPES, MSSTORE_PACKAGE_PROFILES } from "../../constants";
-import { setScriptHeaders } from "../../utils";
-import { generateMsstoreErrorScript, generateMsstoreScript } from "../scripts/msstore";
+import { CONTENT_TYPES, MSSTORE_PACKAGE_PROFILES, SCRIPT_URLS } from "../../constants";
+import { fetchScript, sanitizeHost, setScriptHeaders } from "../../utils";
+import { generateMsstoreErrorScript } from "../scripts/msstore";
 
 const msstoreRouter = new Hono();
 
-// GET /msstore/:profile - Install Microsoft Store packages
-msstoreRouter.get("/:profile", (c) => {
+// GET /msstore/:profile - CLI bootstrap script with injected Store profiles
+msstoreRouter.get("/:profile", async (c) => {
   const profileParam = c.req.param("profile");
-  const host = c.req.header("Host") || "win.jfa.dev";
+  const host = sanitizeHost(c.req.header("Host") || "win.jfa.dev");
 
   const requestedProfiles = profileParam.split("+").map((p) => p.trim().toLowerCase());
 
@@ -26,8 +26,20 @@ msstoreRouter.get("/:profile", (c) => {
     `Serving Microsoft Store installation script for profiles: ${requestedProfiles.join(", ")}`,
   );
 
+  const baseScript = await fetchScript(SCRIPT_URLS.windows);
+  if (!baseScript) {
+    return c.text("Failed to fetch the base script", 500);
+  }
+
+  const originalMarker = '$outfittingInitialProfiles = @("base")';
+  const replacement = `$outfittingInitialProfiles = @(${requestedProfiles.map((profile) => `"${profile}"`).join(", ")})`;
+  const modifiedScript = baseScript.replace(originalMarker, replacement);
+  if (!modifiedScript.includes(replacement)) {
+    return c.text("Internal error: Failed to inject Microsoft Store profiles.", 500);
+  }
+
   setScriptHeaders(c, CONTENT_TYPES.powershell);
-  return c.body(generateMsstoreScript(host, profileParam));
+  return c.body(modifiedScript);
 });
 
 export default msstoreRouter;

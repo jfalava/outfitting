@@ -8,12 +8,18 @@ import { promisify } from "node:util";
 import { Effect } from "effect";
 import { describe, expect, test } from "vitest";
 
+import {
+  parseWindowsPackageList,
+  resolveWindowsProfiles,
+  syncWindows,
+} from "@/commands/windows-sync";
 import type { RunCommandResult } from "@/process";
 import { WINDOWS_SETUP_MANIFEST_PATHS } from "@/setup/manifests";
 import { runSetup } from "@/setup/run";
 import { parseScoopManifest, updateScoop } from "@/update/scoop";
 import { scoopScriptPath } from "@/update/scoop-command";
 import { updateWindowsAll } from "@/update/windows-all";
+import { readWindowsLock, recordWindowsOperation, windowsLockPath } from "@/update/windows-lock";
 import {
   captureBunGlobalInventory,
   captureScoopInventory,
@@ -46,17 +52,220 @@ describe("Windows CLI entrypoint", () => {
     const root = await runWindowsCli(["--help"]);
     const update = await runWindowsCli(["update", "--help"]);
     const setup = await runWindowsCli(["setup", "--help"]);
+    const sync = await runWindowsCli(["sync", "--help"]);
+    const winget = await runWindowsCli(["winget", "--help"]);
+    const scoop = await runWindowsCli(["scoop", "--help"]);
     const foreign = await runWindowsCli(["update", "brew"]);
 
     expect(root.code).toBe(0);
     expect(root.text).toMatch(/\bsetup\b/);
+    expect(root.text).toMatch(/\bsync\b/);
+    expect(root.text).toMatch(/\bwinget\b/);
+    expect(root.text).toMatch(/\bscoop\b/);
     expect(update.text).toMatch(/\bwinget\b/);
     expect(update.text).toMatch(/\bscoop\b/);
     expect(update.text).toMatch(/\bbun\b/);
     expect(update.text).toMatch(/\ball\b/);
     expect(setup.text).toMatch(/scoop\.txt/);
+    expect(sync.text).toMatch(/--clean/);
+    expect(sync.text).toMatch(/--winget-only/);
+    expect(winget.text).toMatch(/install/);
+    expect(scoop.text).toMatch(/uninstall/);
     expect(foreign.code).not.toBe(0);
     expect(foreign.text).toMatch(/macOS/);
+  });
+});
+
+describe("Windows desired state and lock", () => {
+  test("deduplicates profiles and package IDs while rejecting command fragments", () => {
+    expect(resolveWindowsProfiles(["base,dev", "dev"], [])).toEqual(["base", "dev"]);
+    expect(
+      parseWindowsPackageList("# comment\nGit.Git\ngit.git\nOven-sh.Bun\n", "base.txt"),
+    ).toEqual(["Git.Git", "Oven-sh.Bun"]);
+    expect(() => parseWindowsPackageList("Git.Git --silent\n", "base.txt")).toThrow(
+      /Invalid WinGet/,
+    );
+    expect(() => resolveWindowsProfiles(["unknown"], [])).toThrow(/Unknown Windows profile/);
+  });
+
+  test("records successful installs, failed operations, and uninstalls in one lock", async () => {
+    const root = await mkdtemp(join(tmpdir(), "outfitting-windows-lock-"));
+    const config = {
+      stateRoot: root,
+      machineId: "test:x64-windows",
+      machineIdOverridden: true,
+      manifest: {
+        baseUrl: "https://example.test/outfitting",
+        ref: "test",
+      },
+    };
+    try {
+      await recordWindowsOperation(
+        {
+          config,
+          manager: "winget",
+          action: "install",
+          name: "Git.Git",
+          args: ["install", "--id", "Git.Git"],
+          status: "success",
+          exitCode: 0,
+        },
+        { root },
+      );
+      await recordWindowsOperation(
+        {
+          config,
+          manager: "winget",
+          action: "uninstall",
+          name: "Missing.Package",
+          args: ["uninstall", "--id", "Missing.Package"],
+          status: "failed",
+          exitCode: 1,
+        },
+        { root },
+      );
+      await recordWindowsOperation(
+        {
+          config,
+          manager: "winget",
+          action: "uninstall",
+          name: "Git.Git",
+          args: ["uninstall", "--id", "Git.Git"],
+          status: "success",
+          exitCode: 0,
+        },
+        { root },
+      );
+
+      const lock = await readWindowsLock(config, { root });
+      expect(lock.packages.winget).toEqual([]);
+      expect(lock.operations).toHaveLength(3);
+      expect(lock.operations[1]).toMatchObject({
+        name: "Missing.Package",
+        status: "failed",
+        exitCode: 1,
+      });
+      expect(windowsLockPath({ root })).toContain("windows.lock.json");
+    } finally {
+      await rm(root, { force: true, recursive: true });
+    }
+  });
+
+  test("sync preserves manually tracked extras unless --clean is selected", async () => {
+    const root = await mkdtemp(join(tmpdir(), "outfitting-windows-sync-"));
+    const config = {
+      stateRoot: root,
+      machineId: "test:x64-windows",
+      machineIdOverridden: true,
+      manifest: {
+        baseUrl: "https://example.test/outfitting",
+        ref: "test",
+      },
+    };
+    const calls: string[] = [];
+    const run = async (command: string, args: ReadonlyArray<string>) => {
+      calls.push(`${command} ${args.join(" ")}`);
+      if (command === "powershell.exe" && args.at(-1) === "export") {
+        return ok(
+          JSON.stringify({
+            apps: [{ Name: "extra-scoop", Source: "main", Version: "1", Info: "" }],
+            buckets: [],
+          }),
+        );
+      }
+      if (command === "powershell.exe" && args.some((arg) => arg.includes("depends"))) {
+        return ok("[]");
+      }
+      return ok();
+    };
+    try {
+      await recordWindowsOperation(
+        {
+          config,
+          manager: "winget",
+          action: "install",
+          name: "Manual.Package",
+          args: ["install", "--id", "Manual.Package"],
+          status: "success",
+          exitCode: 0,
+        },
+        { root },
+      );
+
+      await Effect.runPromise(
+        syncWindows({
+          config,
+          noPush: true,
+          which: async (manager) => `C:\\${manager}.exe`,
+          run,
+          fetcher: async (url) =>
+            new Response(url.includes("scoop") ? 'package "fzf"\n' : "Git.Git\n"),
+        }),
+      );
+
+      const lock = await readWindowsLock(config, { root });
+      expect(lock.packages.winget.map((entry) => entry.name)).toEqual([
+        "Git.Git",
+        "Manual.Package",
+      ]);
+      expect(lock.packages.scoop.map((entry) => entry.name)).toEqual(["fzf"]);
+      await expect(
+        readFile(join(root, "manifests/dotfiles/Microsoft.PowerShell_profile.ps1"), "utf8"),
+      ).resolves.toBe("Git.Git\n");
+      expect(calls.some((call) => call.includes("uninstall"))).toBe(false);
+
+      await Effect.runPromise(
+        syncWindows({
+          config,
+          clean: true,
+          noPush: true,
+          which: async (manager) => `C:\\${manager}.exe`,
+          run,
+          fetcher: async (url) =>
+            new Response(url.includes("scoop") ? 'package "fzf"\n' : "Git.Git\n"),
+        }),
+      );
+
+      const cleaned = await readWindowsLock(config, { root });
+      expect(cleaned.packages.winget.map((entry) => entry.name)).toEqual(["Git.Git"]);
+      expect(calls.some((call) => call.includes("Manual.Package"))).toBe(true);
+      expect(calls.some((call) => call.includes("extra-scoop"))).toBe(false);
+    } finally {
+      await rm(root, { force: true, recursive: true });
+    }
+  });
+
+  test("can bootstrap the WinGet baseline before Scoop is installed", async () => {
+    const root = await mkdtemp(join(tmpdir(), "outfitting-windows-winget-only-"));
+    const config = {
+      stateRoot: root,
+      machineId: "test:x64-windows",
+      machineIdOverridden: true,
+      manifest: {
+        baseUrl: "https://example.test/outfitting",
+        ref: "test",
+      },
+    };
+    try {
+      await Effect.runPromise(
+        syncWindows({
+          config,
+          wingetOnly: true,
+          noPush: true,
+          which: async (manager) => (manager === "winget" ? "C:\\Windows\\winget.exe" : undefined),
+          run: async () => ok(),
+          fetcher: async (url) =>
+            new Response(url.includes("dotfiles") ? "profile\n" : "Git.Git\n"),
+        }),
+      );
+
+      const lock = await readWindowsLock(config, { root });
+      expect(lock.profiles).toEqual(["base"]);
+      expect(lock.packages.winget.map((entry) => entry.name)).toEqual(["Git.Git"]);
+      expect(lock.packages.scoop).toEqual([]);
+    } finally {
+      await rm(root, { force: true, recursive: true });
+    }
   });
 });
 

@@ -20,6 +20,6 @@ The docs site itself is an optional static asset behind the router (`docs/src/wo
 
 - Lockfile push: CLI → `https://<router>/api/lockfiles/:machine/:kind` → router strips `/api` → API worker verifies Bearer token, writes KV blob + D1 metadata. See [API worker](/docs/architecture/api) and [CLI lockfiles](/docs/cli/lockfiles).
 
-- Fresh machine: `irm win.jfa.dev | iex` (or `curl mac.jfa.dev/post-install | bash`) → installer worker fetches the script live from GitHub `main` (or serves `releases/fonts.tar.gz` from R2 after Cloudflare Access) → script clones the repo, symlinks dotfiles, installs manifests. See [Dotfiles](/docs/architecture/dotfiles).
+- Fresh machine: `irm win.jfa.dev | iex` (or `curl mac.jfa.dev/post-install | bash`) → installer worker fetches the script live from GitHub `main` (or serves `releases/fonts.tar.gz` from R2 after Cloudflare Access) → the Windows bootstrap delegates manifests and the cached PowerShell profile to `outfitting-manager`, while registry/system work stays in PowerShell. See [Dotfiles](/docs/architecture/dotfiles).
 
 - Font publish: `outfitting-manager fonts publish` packs a new `fonts.tar.gz`, uploads archive then checksum to R2, and rewrites the `outfitting/private-fonts` inventory through the API worker with an `If-Match` precondition. Operator steps and R2 mechanics are in [CLI fonts](/docs/cli/fonts).

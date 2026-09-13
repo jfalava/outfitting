@@ -2,16 +2,17 @@ import { Console, Effect } from "effect";
 
 import { loadConfig, type ManagerConfig } from "@/config";
 import { CliFailure } from "@/errors";
+import { pushLockfile } from "@/lockfiles";
 import { tryPromise } from "@/lockfiles/effect";
 import { runCommand, which } from "@/process";
 import { ui } from "@/ui";
 import { updateBun } from "@/update/bun";
 import { updateScoop } from "@/update/scoop";
 import {
-  pushBunGlobalInventory,
-  pushScoopInventory,
-  pushWingetInventory,
-} from "@/update/windows-snapshot";
+  recordWindowsOperation,
+  WINDOWS_LOCK_KIND,
+  windowsLockPath,
+} from "@/update/windows-lock";
 import { updateWinget } from "@/update/winget";
 
 export interface WindowsUpdateAllOptions {
@@ -62,47 +63,72 @@ const printWindowsResults = Effect.fn("printWindowsResults")(function* (
 
 interface WindowsInventorySyncOptions {
   config: ManagerConfig;
-  run: typeof runCommand;
-  scoopPath: string | undefined;
   results: WindowsUpdateStepResult[];
   wingetUpdated: boolean;
   scoopUpdated: boolean;
   bunUpdated: boolean;
-  which: typeof which;
 }
 
-const syncWindowsInventories = Effect.fn("syncWindowsInventories")(function* (
+const syncWindowsLock = Effect.fn("syncWindowsLock")(function* (
   options: WindowsInventorySyncOptions,
 ) {
-  if (options.wingetUpdated) {
-    yield* runWindowsStep(
-      options.results,
-      "winget inventory",
-      pushWingetInventory({ config: options.config, run: options.run }),
-    );
+  if (!options.wingetUpdated && !options.scoopUpdated && !options.bunUpdated) {
+    return;
   }
-  if (options.scoopUpdated) {
-    yield* runWindowsStep(
-      options.results,
-      "scoop inventory",
-      pushScoopInventory({
-        config: options.config,
-        run: options.run,
-        scoopPath: options.scoopPath,
-      }),
-    );
-  }
-  if (options.bunUpdated && (yield* tryPromise(() => options.which("bun"))) !== undefined) {
-    yield* runWindowsStep(
-      options.results,
-      "bun inventory",
-      pushBunGlobalInventory({ config: options.config, run: options.run }),
-    );
-  }
+  yield* runWindowsStep(
+    options.results,
+    "windows lock",
+    Effect.gen(function* () {
+      if (options.wingetUpdated) {
+        yield* tryPromise(() =>
+          recordWindowsOperation({
+            config: options.config,
+            manager: "winget",
+            action: "upgrade",
+            name: "*",
+            args: ["upgrade", "--all"],
+            status: "success",
+            exitCode: 0,
+          }),
+        );
+      }
+      if (options.scoopUpdated) {
+        yield* tryPromise(() =>
+          recordWindowsOperation({
+            config: options.config,
+            manager: "scoop",
+            action: "upgrade",
+            name: "*",
+            args: ["update", "*"],
+            status: "success",
+            exitCode: 0,
+          }),
+        );
+      }
+      if (options.bunUpdated) {
+        yield* tryPromise(() =>
+          recordWindowsOperation({
+            config: options.config,
+            manager: "bun",
+            action: "upgrade",
+            name: "*",
+            args: ["update", "*"],
+            status: "success",
+            exitCode: 0,
+          }),
+        );
+      }
+      yield* pushLockfile({
+        machine: options.config.machineId,
+        kind: WINDOWS_LOCK_KIND,
+        path: windowsLockPath({ root: options.config.stateRoot }),
+      });
+    }),
+  );
 });
 
 /**
- * Windows `update all`: winget → scoop → bun → inventory sync.
+ * Windows `update all`: winget → scoop → bun → unified lock sync.
  * Continues after failures and exits nonzero when any update or sync fails.
  */
 export const updateWindowsAll = (options: WindowsUpdateAllOptions = {}) =>
@@ -144,17 +170,14 @@ export const updateWindowsAll = (options: WindowsUpdateAllOptions = {}) =>
     );
 
     if (options.noSync) {
-      yield* Console.log(ui.muted("Skipped inventory sync (--no-sync)."));
+      yield* Console.log(ui.muted("Skipped Windows lock sync (--no-sync)."));
     } else {
-      yield* syncWindowsInventories({
+      yield* syncWindowsLock({
         config,
-        run,
-        scoopPath,
         results,
         wingetUpdated,
         scoopUpdated,
         bunUpdated,
-        which: whichFn,
       });
     }
 

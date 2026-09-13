@@ -20,14 +20,14 @@ The worker routes by `Host` header and serves scripts/config from `main` branch 
 ### Windows (`win.jfa.dev`)
 
 - `GET /` -> help/usage PowerShell script
-- `GET /:profile` -> WinGet install script (`base+dev+...` supported)
-- `GET /msstore/:profile` -> Microsoft Store install script (`msstore-*` composition)
+- `GET /:profile` -> CLI bootstrap script with WinGet profiles (`base+dev+...` supported)
+- `GET /msstore/:profile` -> CLI bootstrap script with Microsoft Store profiles (`msstore-*` composition)
 - `GET /bun` -> Bun global packages install script
 - `GET /packages/:profile` -> raw WinGet package list
 - `GET /packages/msstore/:profile` -> raw MS Store package list
 - `GET /config/powershell` -> PowerShell profile content
 - `GET /config/pwsh-profile` -> profile updater script
-- `GET /post-install` -> post-install PowerShell script (requires elevation)
+- `GET /post-install` -> post-install PowerShell script for Scoop, fonts, and registry-adjacent setup
 - `GET|HEAD /fonts` -> protected private-font archive from R2
 - `GET|HEAD /fonts/checksum` -> protected SHA-256 sidecar for the archive
 
@@ -104,4 +104,4 @@ Routes and domains are owned by the edge router in `router/` and provisioned fro
 - Domain allowlist is enforced; unknown hosts return `418`.
 - Package profiles are validated before script generation.
 - Script URLs resolve from `https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main`.
-- Worker is intentionally stateless and fetch-driven.
+- Worker is intentionally stateless and fetch-driven. Windows package/profile state is fetched by the CLI from GitHub; the installer does not clone the monorepo.

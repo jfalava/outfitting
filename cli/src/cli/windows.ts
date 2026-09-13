@@ -4,9 +4,10 @@ import { fontsCommand } from "@/commands/fonts";
 import { lockfilesCommand } from "@/commands/lockfiles";
 import { provisionCommand } from "@/commands/provision";
 import { windowsSetupCommand } from "@/commands/setup/windows";
-import { syncCommand } from "@/commands/sync";
 import { makeWindowsUpdateCommand } from "@/commands/update/windows";
 import { makeUpgradeCommand } from "@/commands/upgrade";
+import { windowsPackageCommands } from "@/commands/windows-packages";
+import { windowsSyncCommand } from "@/commands/windows-sync";
 
 /** Windows root command surface. */
 export const makeWindowsRootCommand = (currentVersion: string) =>
@@ -15,7 +16,8 @@ export const makeWindowsRootCommand = (currentVersion: string) =>
     Command.withSubcommands([
       windowsSetupCommand,
       makeWindowsUpdateCommand(),
-      syncCommand,
+      windowsSyncCommand,
+      ...windowsPackageCommands,
       lockfilesCommand,
       fontsCommand,
       provisionCommand,

@@ -17,9 +17,8 @@ The script is separate from the main installer and performs the following work:
 
 - Quietly downloads the latest checksum-verified Windows x64 outfitting-manager zip, extracts `outfitting-manager.exe`, and installs it only when `%USERPROFILE%\.local\bin\outfitting-manager.exe` is missing. Download, checksum, or extract failures are suppressed.
 - Sets the current-user PowerShell execution policy to RemoteSigned.
-- Installs Scoop when it is missing, reloads the current profile, then reads `packages/windows/scoop.txt` from the repository's main branch. It adds the declared buckets and installs the declared packages. It does not remove packages, update all packages, or save the Scoop inventory; `outfitting-manager update scoop` performs that reconciliation.
-- Installs FontGet through WinGet when needed, then processes the public font list in `fonts/fontget.txt`.
-- If needed, installs `Cloudflare.cloudflared` through WinGet, then authenticates to Cloudflare Access and downloads the protected private-font archive and checksum. After verification and archive safety checks, it extracts the fonts to `%USERPROFILE%\Downloads\fonts`.
+- Installs Scoop when it is missing, then calls `outfit sync` to fetch `packages/windows/scoop.txt`, reconcile buckets and packages, and update the local `windows.lock.json`. The sync uses the profiles saved by the main installer.
+- Installs FontGet and `Cloudflare.cloudflared` through `outfit winget install` when needed, then processes the public font list in `fonts/fontget.txt` and authenticates to Cloudflare Access for the protected private-font archive. After verification and archive safety checks, it extracts the fonts to `%USERPROFILE%\Downloads\fonts`.
 
 The private-font step is optional. If Cloudflare Access does not authorize the account, the archive cannot be downloaded, or the archive fails validation, the script reports the issue and continues without private fonts. Install any extracted licensed fonts manually from the fonts folder.
 
@@ -27,6 +26,6 @@ Operators publish that archive with `outfitting-manager fonts`. See [CLI fonts](
 
 ## Rerunning
 
-Rerunning the script does not replace an existing manager: the fallback downloads only when `%USERPROFILE%\.local\bin\outfitting-manager.exe` is missing. Existing Scoop buckets and packages are left unchanged, while newly declared items may be installed. Public font commands may still report already-installed or failed items.
+Rerunning the script does not replace an existing manager: the fallback downloads only when `%USERPROFILE%\.local\bin\outfitting-manager.exe` is missing. `outfit sync` keeps unmanaged packages, reconciles the selected baseline, and refreshes the cached PowerShell profile. Public font commands may still report already-installed or failed items.
 
 Scoop or public-font failures cause the script to exit with a failure status after the remaining post-install work completes. The private-font failure does not cause that failure status.

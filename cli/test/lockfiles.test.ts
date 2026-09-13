@@ -27,6 +27,7 @@ describe("lockfiles command helpers", () => {
     expect(inferOutputPath("powershell-inventory")).toBe("powershell-inventory.json");
     expect(inferOutputPath("private-fonts")).toBe("private-fonts-inventory.json");
     expect(inferOutputPath("scoop-inventory")).toBe("scoop-inventory.json");
+    expect(inferOutputPath("windows")).toBe("windows.lock.json");
     expect(inferOutputPath("winget")).toBe("winget.json");
     expect(inferOutputPath("custom-kind")).toBeUndefined();
   });

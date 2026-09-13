@@ -5,5 +5,5 @@ export const machineArgument = Argument.string("machine").pipe(
 );
 
 export const kindArgument = Argument.string("kind").pipe(
-  Argument.withDescription("Free-form lockfile kind, such as nix, bun, or winget."),
+  Argument.withDescription("Free-form lockfile kind, such as nix, bun, winget, or windows."),
 );

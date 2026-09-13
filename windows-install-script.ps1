@@ -3,7 +3,6 @@
 #############################################
 
 ############################## Initial Setup
-# Set error action preference to stop so all errors become terminating and trigger trap
 $ErrorActionPreference = "Stop"
 $script:hasErrors = $false
 # Trap to catch all errors and prevent window closure
@@ -18,61 +17,19 @@ winget --info
 ############################################
 
 ########################### Variable setting
-$wingetPackagesUrl = "https://win.jfa.dev/packages/base"
-$wingetPackagesFile = "$env:TEMP\winget.txt"
+$outfittingInitialProfiles = @("base")
 $outfittingManagerReleaseUrl = "https://github.com/jfalava/outfitting/releases/latest/download"
 $outfittingManagerAsset = "outfitting-manager-windows-x64.zip"
 $outfittingManagerEntry = "outfitting-manager.exe"
 $outfittingManagerInstallPath = "$env:USERPROFILE\.local\bin\outfitting-manager.exe"
-$outfittingRepoUrl = "https://github.com/jfalava/outfitting.git"
-$outfittingRepoConfigPath = "$env:USERPROFILE\.config\outfitting\repo-path"
-$outfittingRepoDefaultPath = "$env:USERPROFILE\.config\outfitting\repo"
-############################################
-
-################# Download the package list
-try {
-    Invoke-WebRequest -Uri $wingetPackagesUrl -OutFile $wingetPackagesFile
-    Write-Host "❖ Package list downloaded." -ForegroundColor Green
-} catch {
-    $script:hasErrors = $true
-    Write-Host "❖ Failed to download package list:" -ForegroundColor Red
-    Write-Host "  - $_" -ForegroundColor Red
-    Write-Host "`nPress any key to exit..."
-    $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
-    exit 1 # don't continue
+$outfittingStateRoot = if ([string]::IsNullOrWhiteSpace($env:OUTFITTING_STATE_ROOT)) {
+    "$env:USERPROFILE\.config\outfitting"
+} else {
+    $env:OUTFITTING_STATE_ROOT
 }
 ############################################
 
 ##################### Installation functions
-function Install-WingetPackages {
-    param (
-        [string]$filePath
-    )
-
-    if (-Not (Test-Path $filePath)) {
-        $script:hasErrors = $true
-        Write-Host "❖ Installation failed: the package list was not found:" -ForegroundColor Red
-        Write-Host "  - $filePath" -ForegroundColor Red
-        Write-Host "❖ And the script cannot continue." -ForegroundColor Red
-        Write-Host "`nPress any key to exit..."
-        $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
-        exit 1
-    }
-
-    $packages = Get-Content $filePath | Where-Object { -Not ($_ -match '^\s*$') -and -Not ($_ -match '^#') }
-
-    foreach ($package in $packages) {
-        try {
-            winget install --id $package --accept-source-agreements --accept-package-agreements -e
-            Write-Host "❖ Installed package: $package" -ForegroundColor Green
-        } catch {
-            $script:hasErrors = $true
-            Write-Host "❖ Failed to install package:" -ForegroundColor Red
-            Write-Host "  - ${package}: $_" -ForegroundColor Red
-            # Continue to next package
-        }
-    }
-}
 function Install-PSModules {
     param (
         [string[]]$modules
@@ -93,62 +50,6 @@ function Install-PSModules {
             Write-Host "❖ PowerShell module already available: $module" -ForegroundColor Yellow
         }
     }
-}
-function Initialize-OutfittingRepo {
-    if (-Not [string]::IsNullOrWhiteSpace($env:OUTFITTING_REPO)) {
-        $repoPath = $env:OUTFITTING_REPO
-    } elseif (Test-Path -LiteralPath $outfittingRepoConfigPath -PathType Leaf) {
-        $repoPath = (Get-Content -LiteralPath $outfittingRepoConfigPath -Raw).Trim()
-    } else {
-        $repoPath = $outfittingRepoDefaultPath
-    }
-
-    if ([string]::IsNullOrWhiteSpace($repoPath)) {
-        throw "The configured outfitting repository path is empty."
-    }
-    $repoPath = [IO.Path]::GetFullPath($repoPath)
-
-    $machinePath = [Environment]::GetEnvironmentVariable("Path", "Machine")
-    $userPath = [Environment]::GetEnvironmentVariable("Path", "User")
-    $env:Path = "$machinePath;$userPath"
-
-    $gitCommand = Get-Command git.exe -ErrorAction SilentlyContinue
-    if ($null -eq $gitCommand) {
-        $gitCandidates = @(
-            "$env:ProgramFiles\Git\cmd\git.exe",
-            "$env:LOCALAPPDATA\Microsoft\WinGet\Links\git.exe"
-        )
-        $gitCommand = $gitCandidates |
-            Where-Object { Test-Path -LiteralPath $_ -PathType Leaf } |
-            Select-Object -First 1
-    }
-    if ($null -eq $gitCommand) {
-        throw "Git is not available after package installation."
-    }
-
-    if (Test-Path -LiteralPath $repoPath -PathType Container) {
-        $isGitRepo = & $gitCommand -C $repoPath rev-parse --is-inside-work-tree 2>$null
-        if ($LASTEXITCODE -ne 0 -or $isGitRepo -ne "true") {
-            throw "The outfitting repository path exists but is not a Git checkout: $repoPath"
-        }
-        Write-Host "❖ Outfitting repository already exists: $repoPath" -ForegroundColor Yellow
-    } elseif (Test-Path -LiteralPath $repoPath) {
-        throw "The outfitting repository path exists but is not a directory: $repoPath"
-    } else {
-        New-Item -Path (Split-Path -Parent $repoPath) -ItemType Directory -Force | Out-Null
-        & $gitCommand clone $outfittingRepoUrl $repoPath
-        if ($LASTEXITCODE -ne 0) {
-            throw "git clone exited with code $LASTEXITCODE."
-        }
-        Write-Host "❖ Cloned outfitting repository: $repoPath" -ForegroundColor Green
-    }
-
-    New-Item -Path (Split-Path -Parent $outfittingRepoConfigPath) -ItemType Directory -Force | Out-Null
-    [IO.File]::WriteAllText(
-        $outfittingRepoConfigPath,
-        $repoPath,
-        [Text.UTF8Encoding]::new($false)
-    )
 }
 
 function Install-OutfittingManager {
@@ -192,18 +93,35 @@ function Install-OutfittingManager {
         Remove-Item -LiteralPath $temporaryExtractDirectory -Recurse -Force -ErrorAction SilentlyContinue
     }
 }
+
+function Invoke-OutfittingManager {
+    param ([Parameter(Mandatory)][string[]]$Arguments)
+
+    if (-not (Test-Path -LiteralPath $outfittingManagerInstallPath -PathType Leaf)) {
+        throw "outfitting-manager was not installed at $outfittingManagerInstallPath."
+    }
+
+    & $outfittingManagerInstallPath @Arguments
+    if ($LASTEXITCODE -ne 0) {
+        throw "outfitting-manager $($Arguments -join ' ') exited with code $LASTEXITCODE."
+    }
+}
 ############################################
 
-########################### Install packages
-Install-WingetPackages -filePath $wingetPackagesFile
-############################################
-
-############ Configure outfitting repository
+################ Install manager and the selected WinGet baseline
+Install-OutfittingManager
 try {
-    Initialize-OutfittingRepo
+    Invoke-OutfittingManager -Arguments @("setup", "--no-fetch")
+    Invoke-OutfittingManager -Arguments @(
+        "sync",
+        "--profile",
+        ($outfittingInitialProfiles -join ","),
+        "--winget-only",
+        "--no-push"
+    )
 } catch {
     $script:hasErrors = $true
-    Write-Host "❖ Failed to configure the outfitting repository:" -ForegroundColor Red
+    Write-Host "❖ Failed to install the WinGet baseline through outfitting-manager:" -ForegroundColor Red
     Write-Host "  - $_" -ForegroundColor Red
 }
 ############################################
@@ -211,10 +129,6 @@ try {
 ################# Install PowerShell modules
 $psModules = @("PSReadLine")
 Install-PSModules -modules $psModules
-############################################
-
-################ Install outfitting-manager
-Install-OutfittingManager
 ############################################
 
 ####### Install and configure OpenSSH Server
@@ -397,36 +311,11 @@ try {
 }
 ############################################
 
-#################### Cleanup temporary files
-Remove-Item $wingetPackagesFile -ErrorAction SilentlyContinue
-
-########## Link PowerShell profiles to local
-$repoCandidates = @()
-if (-Not [string]::IsNullOrWhiteSpace($env:OUTFITTING_REPO)) {
-    $repoCandidates += $env:OUTFITTING_REPO
-}
-
-$repoPathFile = "$env:USERPROFILE\.config\outfitting\repo-path"
-if (Test-Path -LiteralPath $repoPathFile -PathType Leaf) {
-    $configuredRepoPath = (Get-Content -LiteralPath $repoPathFile -Raw).Trim()
-    if (-Not [string]::IsNullOrWhiteSpace($configuredRepoPath)) {
-        $repoCandidates += $configuredRepoPath
-    }
-}
-$repoCandidates += "$env:USERPROFILE\.config\outfitting\repo"
-
-$profileSourcePath = $null
-foreach ($repoCandidate in $repoCandidates) {
-    $candidateProfilePath = Join-Path $repoCandidate "dotfiles\Microsoft.PowerShell_profile.ps1"
-    if (Test-Path -LiteralPath $candidateProfilePath -PathType Leaf) {
-        $profileSourcePath = (Resolve-Path -LiteralPath $candidateProfilePath).Path
-        break
-    }
-}
-
+########## Link PowerShell profiles to the sparsely fetched source
+$profileSourcePath = Join-Path $outfittingStateRoot "manifests\dotfiles\Microsoft.PowerShell_profile.ps1"
 try {
-    if ($null -eq $profileSourcePath) {
-        throw "Could not find dotfiles\Microsoft.PowerShell_profile.ps1 in OUTFITTING_REPO, ~/.config/outfitting/repo-path, or ~/.config/outfitting/repo."
+    if (-not (Test-Path -LiteralPath $profileSourcePath -PathType Leaf)) {
+        throw "outfitting-manager did not materialize the PowerShell profile at $profileSourcePath."
     }
 
     $profilePaths = @(
@@ -468,13 +357,13 @@ try {
             throw "mklink failed for $profilePath with exit code $LASTEXITCODE."
         }
 
-        Write-Host "❖ Linked PowerShell profile to repository: $profilePath" -ForegroundColor Green
+        Write-Host "❖ Linked PowerShell profile to cached GitHub source: $profilePath" -ForegroundColor Green
     }
 } catch {
     $script:hasErrors = $true
     Write-Host "❖ Failed to link PowerShell profiles:" -ForegroundColor Red
     Write-Host "  - $_" -ForegroundColor Red
-    Write-Host "❖ Confirm the repository is configured locally and Windows Developer Mode is enabled." -ForegroundColor Yellow
+    Write-Host "❖ Confirm the manager completed sync and Windows Developer Mode is enabled." -ForegroundColor Yellow
 }
 ############################################
 

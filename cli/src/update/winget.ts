@@ -2,10 +2,15 @@ import { Console, Effect } from "effect";
 
 import { loadConfig, type ManagerConfig } from "@/config";
 import { CliFailure } from "@/errors";
+import { pushLockfile } from "@/lockfiles";
 import { tryPromise } from "@/lockfiles/effect";
 import { runCommand, which, type RunCommandResult } from "@/process";
 import { ui } from "@/ui";
-import { pushWingetInventory } from "@/update/windows-snapshot";
+import {
+  recordWindowsOperation,
+  WINDOWS_LOCK_KIND,
+  windowsLockPath,
+} from "@/update/windows-lock";
 
 export interface UpdateWingetOptions {
   config?: ManagerConfig;
@@ -27,7 +32,7 @@ async function requireWingetCommand(
   return result;
 }
 
-/** Upgrade every installed WinGet package, then optionally store its export. */
+/** Upgrade every installed WinGet package and optionally record the operation. */
 export const updateWinget = (options: UpdateWingetOptions = {}) =>
   Effect.gen(function* () {
     const run = options.run ?? runCommand;
@@ -49,9 +54,29 @@ export const updateWinget = (options: UpdateWingetOptions = {}) =>
     );
 
     if (options.noSync) {
-      yield* Console.log(ui.muted("Skipped inventory sync (--no-sync)."));
+      yield* Console.log(ui.muted("Skipped Windows lock sync (--no-sync)."));
     } else {
-      yield* pushWingetInventory({ config, run });
+      yield* tryPromise(() =>
+        recordWindowsOperation({
+          config,
+          manager: "winget",
+          action: "upgrade",
+          name: "*",
+          args: [
+            "upgrade",
+            "--all",
+            "--accept-source-agreements",
+            "--accept-package-agreements",
+          ],
+          status: "success",
+          exitCode: 0,
+        }),
+      );
+      yield* pushLockfile({
+        machine: config.machineId,
+        kind: WINDOWS_LOCK_KIND,
+        path: windowsLockPath({ root: config.stateRoot }),
+      });
     }
     yield* Console.log(ui.success("WinGet update complete."));
   });

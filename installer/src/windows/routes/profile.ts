@@ -6,7 +6,7 @@ import { generateProfileErrorScript } from "../scripts/profile";
 
 const profileRouter = new Hono();
 
-// GET /:profile - WinGet install script with injected profile URL (supports "base+dev+gaming")
+// GET /:profile - CLI bootstrap script with injected desired-state profiles (supports "base+dev+gaming")
 profileRouter.get("/:profile", async (c) => {
   const profileParam = c.req.param("profile");
   const host = sanitizeHost(c.req.header("Host") || "win.jfa.dev");
@@ -29,17 +29,17 @@ profileRouter.get("/:profile", async (c) => {
     return c.text("Failed to fetch the base script", 500);
   }
 
-  // Inject the requested profile URL into the base script
-  const originalMarker = '$wingetPackagesUrl = "https://win.jfa.dev/packages/base"';
-  const replacementURL = `$wingetPackagesUrl = "https://${host}/packages/${requestedProfiles.join("+")}"`;
-  const modifiedScript = baseScript.replace(originalMarker, replacementURL);
+  // Inject the requested profiles into the shared CLI bootstrap script.
+  const originalMarker = '$outfittingInitialProfiles = @("base")';
+  const replacement = `$outfittingInitialProfiles = @(${requestedProfiles.map((profile) => `"${profile}"`).join(", ")})`;
+  const modifiedScript = baseScript.replace(originalMarker, replacement);
 
-  if (!modifiedScript.includes(replacementURL)) {
+  if (!modifiedScript.includes(replacement)) {
     console.error("URL replacement failed!");
     console.error(`Original marker: ${originalMarker}`);
-    console.error(`Replacement URL: ${replacementURL}`);
+    console.error(`Replacement profiles: ${replacement}`);
     console.error(
-      `Script snippet around expected location:\n${baseScript.substring(baseScript.indexOf("wingetPackagesUrl") - 50, baseScript.indexOf("wingetPackagesUrl") + 150)}`,
+      `Script snippet around expected location:\n${baseScript.substring(baseScript.indexOf("outfittingInitialProfiles") - 50, baseScript.indexOf("outfittingInitialProfiles") + 150)}`,
     );
     return c.text(
       "Internal error: Failed to inject profile URL. The base script format may have changed. Please file an issue in https://github.com/jfalava/outfitting/issues",

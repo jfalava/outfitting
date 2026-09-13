@@ -1,7 +1,11 @@
 export function generateHelpScript(host: string): string {
-  return `# Outfitting - Windows Package Installer
+  return `# Outfitting - Windows CLI Bootstrap
 #
 # Usage: irm ${host}/<profile> | iex
+#
+# The bootstrap downloads the release outfitting-manager binary. The manager
+# fetches selected manifests and the PowerShell profile sparsely from GitHub;
+# it does not clone the monorepo.
 #
 # WinGet Package Profiles:
 #   base     - Core packages, runtimes, and utilities
@@ -31,7 +35,7 @@ export function generateHelpScript(host: string): string {
 # Note: Packages must be explicitly specified. There is no default installation.
 
 Write-Host ""
-Write-Host "❖❖❖ Outfitting - Windows Installer ❖❖❖" -ForegroundColor Cyan
+Write-Host "❖❖❖ Outfitting - Windows CLI Bootstrap ❖❖❖" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "WinGet Package Profiles:" -ForegroundColor Yellow
 Write-Host "  • base     - Core packages, runtimes, and utilities" -ForegroundColor White
@@ -64,6 +68,7 @@ Write-Host "  Registry tweaks only:" -ForegroundColor Cyan
 Write-Host "    irm ${host}/registry | iex" -ForegroundColor Green
 Write-Host ""
 Write-Host "Tip: Combine multiple profiles with '+' to customize your installation" -ForegroundColor Cyan
+Write-Host "The manager owns package installation and records windows.lock.json." -ForegroundColor DarkGray
 Write-Host ""
 `;
 }

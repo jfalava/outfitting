@@ -27,7 +27,7 @@ irm win.jfa.dev | iex
 
 ## WinGet Package Installation
 
-The main installer downloads the selected WinGet package list and installs each package by ID with source and package agreements accepted. Package failures are reported while the script continues with the remaining setup steps.
+The main installer bootstraps the release binary, then asks `outfitting-manager` to fetch and install the selected WinGet profiles. Package reconciliation does not clone the repository; it reads the selected manifests from GitHub and writes the local Windows lock.
 
 Use elevated PowerShell for the full installer:
 
@@ -53,10 +53,10 @@ Available WinGet profiles:
 The installer also:
 
 - Installs the `PSReadLine PowerShell` module for the current user.
-- Resolves the repository from `OUTFITTING_REPO`, then `%USERPROFILE%\.config\outfitting\repo-path`, then `%USERPROFILE%\.config\outfitting\repo`. It validates an existing Git checkout or clones the repository when it is missing, then persists the resolved path to repo-path.
+- Fetches the selected package manifests and the PowerShell profile sparsely from the configured GitHub source. A full repository checkout is not required on Windows.
 - Downloads the latest Windows x64 outfitting-manager zip and its `.sha256` file, verifies the archive checksum, extracts `outfitting-manager.exe`, and installs it under `%USERPROFILE%\.local\bin`.
 - Downloads and installs the latest `PowerShell/Win32-OpenSSH` server when it is missing, starts `sshd`, configures automatic startup, and creates the inbound TCP port 22 firewall rule.
-- Links the PowerShell, VS Code PowerShell, and Windows PowerShell profile entry points to `dotfiles/Microsoft.PowerShell_profile.ps1`. Existing profiles are backed up with a timestamp before replacement.
+- Links the PowerShell, VS Code PowerShell, and Windows PowerShell profile entry points to the cached `dotfiles/Microsoft.PowerShell_profile.ps1`. Existing profiles are backed up with a timestamp before replacement; later `outfit sync` refreshes the cached source.
 - Discovers .reg files under [system/windows/registry](https://github.com/jfalava/outfitting/tree/main/system/windows/registry) and interactively offers to import them. Choose A for all (the default), N for none, or R to review each tweak.
 
 The profile links use Windows symbolic links. Enable Windows Developer Mode or run the installer with the required elevation for those links to be created.
@@ -112,19 +112,21 @@ outfitting-manager update bun
 
 `update bun` fails when Bun is missing. `update all` skips the Bun step when Bun is not installed.
 
-## Scoop reconciliation and inventory
+## Scoop reconciliation and unified lock
 
-The repository-owned `packages/windows/scoop.txt` is the source of truth for directly installed Scoop packages. The manager fetches that manifest without requiring a local checkout, reconciles buckets and packages, preserves dependencies, removes undeclared non-global packages, updates packages, and stores a stable `scoop-inventory` snapshot.
+The repository-owned `packages/windows/scoop.txt` is part of the Windows baseline. `outfit sync` fetches it without requiring a full local checkout, reconciles buckets and packages, and records the result in the unified `windows.lock.json`. Normal sync preserves manually installed packages; use `--clean` to remove tracked packages outside the selected baseline. The installer uses `--winget-only` until the post-install step bootstraps Scoop.
 
 ```powershell
-outfitting-manager setup
-outfitting-manager update scoop
+outfit setup
+outfit sync
+outfit sync --profile base,dev --clean
 ```
 
-Use the primary `sync` command to upload an existing export without reconciling first. `lockfiles` remains an alias for `sync`.
+Manual package installs are tracked through the CLI, while native `winget` and `scoop` remain available for unmanaged packages:
 
 ```powershell
-outfitting-manager sync push <machine> scoop-inventory <path>
+outfit winget install Git.Git
+outfit scoop install extras/fzf
 ```
 
 ## Registry Tweaks Only
