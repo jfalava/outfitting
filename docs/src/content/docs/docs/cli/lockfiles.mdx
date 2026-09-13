@@ -91,4 +91,4 @@ Public equivalents: `https://worker-url/api/lockfiles/...`.
 
 * Successful `outfit sync` and `outfit upgrade` operations automatically store the observed, versioned Homebrew state as `homebrew-inventory`. Kinds are free-form and require no schema migration.
 
-* Windows treats `packages/windows/scoop.txt` as the source of truth for directly installed Scoop packages, and every `Update-All` run reconciles against it. After a successful `Sync-OutfittingScoop`, the PowerShell profile writes a stable, sorted Scoop export without volatile timestamps and uploads it as `scoop-inventory` for `machine-name:x64-windows`. Run `Save-OutfittingScoopInventory` to capture current state without reconciling first.
+* Windows treats `packages/windows/scoop.txt` as the source of truth for directly installed Scoop packages. `outfitting-manager update scoop` reconciles it, writes a stable, sorted Scoop export without volatile timestamps, and uploads it as `scoop-inventory` for `machine-name:x64-windows`. The existing PowerShell `Sync-OutfittingScoop` and `Save-OutfittingScoopInventory` functions remain available during migration.

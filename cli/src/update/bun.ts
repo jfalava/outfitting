@@ -11,10 +11,7 @@ const NpmLatestSchema = Schema.Struct({
 });
 const decodeNpmLatest = Schema.decodeUnknownOption(NpmLatestSchema);
 
-export type NpmFetcher = (
-  input: string,
-  init?: RequestInit,
-) => Promise<Response>;
+export type NpmFetcher = (input: string, init?: RequestInit) => Promise<Response>;
 
 export interface BunPackageEntry {
   name: string;
@@ -82,11 +79,11 @@ export async function fetchNpmLatestVersion(
   return decoded.value["dist-tags"].latest;
 }
 
-async function listGlobalPackages(): Promise<BunPackageEntry[]> {
-  const result = await runCommand("bun", ["pm", "ls", "-g"], { inherit: false });
+async function listGlobalPackages(run: typeof runCommand = runCommand): Promise<BunPackageEntry[]> {
+  const result = await run("bun", ["pm", "ls", "-g"], { inherit: false });
   if (result.code !== 0) {
     throw new Error(
-      `bun pm ls -g failed (exit ${result.code}): ${result.stderr || result.stdout}`.trim(),
+      `Bun global update failure: bun pm ls -g failed (exit ${result.code}): ${result.stderr || result.stdout}`.trim(),
     );
   }
   return parseBunGlobalList(result.stdout);
@@ -100,9 +97,13 @@ export const updateBun = (options?: {
   fetcher?: NpmFetcher;
   /** When true (update all), skip instead of failing if bun is absent. */
   skipIfMissing?: boolean;
+  run?: typeof runCommand;
+  which?: typeof which;
 }) =>
   Effect.gen(function* () {
-    const bunPath = yield* tryPromise(() => which("bun"));
+    const run = options?.run ?? runCommand;
+    const whichFn = options?.which ?? which;
+    const bunPath = yield* tryPromise(() => whichFn("bun"));
     if (bunPath === undefined) {
       if (options?.skipIfMissing) {
         yield* Console.log(ui.muted("Bun not installed; skipping."));
@@ -112,7 +113,7 @@ export const updateBun = (options?: {
     }
 
     yield* Console.log(ui.heading("Updating global Bun packages…"));
-    const packages = yield* tryPromise(() => listGlobalPackages());
+    const packages = yield* tryPromise(() => listGlobalPackages(run));
     if (packages.length === 0) {
       yield* Console.log(ui.muted("No global Bun packages found."));
       return { updated: 0, failed: 0, skipped: 0 } satisfies BunUpdateResult;
@@ -125,9 +126,7 @@ export const updateBun = (options?: {
     let skipped = 0;
 
     for (const entry of packages) {
-      yield* Console.log(
-        ui.muted(`Checking ${entry.name} (installed ${entry.installedVersion})…`),
-      );
+      yield* Console.log(ui.muted(`Checking ${entry.name} (installed ${entry.installedVersion})…`));
       const latest = yield* tryPromise(() => fetchNpmLatestVersion(entry.name, fetcher));
       if (latest === undefined) {
         yield* Console.log(ui.muted(`  failed to fetch latest for ${entry.name}`));
@@ -141,7 +140,7 @@ export const updateBun = (options?: {
       }
       yield* Console.log(ui.muted(`  updating to ${latest}`));
       const install = yield* tryPromise(() =>
-        runCommand("bun", ["add", "-g", `${entry.name}@${latest}`], { inherit: true }),
+        run("bun", ["add", "-g", `${entry.name}@${latest}`], { inherit: true }),
       );
       if (install.code === 0) {
         yield* Console.log(ui.success(`${entry.name}@${latest}`));

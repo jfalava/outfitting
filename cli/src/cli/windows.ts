@@ -3,21 +3,18 @@ import { Command } from "effect/unstable/cli";
 import { fontsCommand } from "@/commands/fonts";
 import { lockfilesCommand } from "@/commands/lockfiles";
 import { provisionCommand } from "@/commands/provision";
-import { setupCommand } from "@/commands/setup";
+import { windowsSetupCommand } from "@/commands/setup/windows";
 import { syncCommand } from "@/commands/sync";
-import { makeMacosUpdateCommand } from "@/commands/update";
+import { makeWindowsUpdateCommand } from "@/commands/update/windows";
 import { makeUpgradeCommand } from "@/commands/upgrade";
 
-/**
- * macOS root command surface.
- * The Windows entrypoint registers its own platform-specific command tree.
- */
-export const makeMacosRootCommand = (currentVersion: string) =>
+/** Windows root command surface. */
+export const makeWindowsRootCommand = (currentVersion: string) =>
   Command.make("outfitting-manager").pipe(
     Command.withDescription("Portable maintenance tools for Outfitting-managed machines."),
     Command.withSubcommands([
-      setupCommand,
-      makeMacosUpdateCommand(),
+      windowsSetupCommand,
+      makeWindowsUpdateCommand(),
       syncCommand,
       lockfilesCommand,
       fontsCommand,
@@ -25,6 +22,3 @@ export const makeMacosRootCommand = (currentVersion: string) =>
       makeUpgradeCommand(currentVersion),
     ]),
   );
-
-/** @deprecated Prefer makeMacosRootCommand; kept as the default until multi-entry is universal. */
-export const makeRootCommand = makeMacosRootCommand;

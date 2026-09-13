@@ -1,13 +1,14 @@
 import { Option } from "effect";
 import { Command, Flag } from "effect/unstable/cli";
 
+import { WINDOWS_SETUP_MANIFEST_PATHS } from "@/setup/manifests";
 import { runSetup } from "@/setup/run";
-import { ensureNixSymlinks } from "@/update/nix/symlinks";
 
 /**
- * Materialize the outfitting state root: config, repo-path, manifests, nix symlinks.
+ * Materialize the Windows state root and cache the Scoop + Bun manifests.
+ * Windows session environment remains owned by PowerShell.
  */
-export const setupCommand = Command.make(
+export const windowsSetupCommand = Command.make(
   "setup",
   {
     machineId: Flag.string("machine-id").pipe(
@@ -24,34 +25,22 @@ export const setupCommand = Command.make(
       Flag.optional,
       Flag.withDescription("Git ref for manifests (default: main)."),
     ),
-    repo: Flag.string("repo").pipe(
-      Flag.optional,
-      Flag.withDescription(
-        "Monorepo path to store in ~/.config/outfitting/repo-path (replaces set_outfitting_repo).",
-      ),
-    ),
     noFetch: Flag.boolean("no-fetch").pipe(
       Flag.withDefault(false),
-      Flag.withDescription("Skip prefetching Brewfile / bun.txt into the state root."),
-    ),
-    skipSymlinks: Flag.boolean("skip-symlinks").pipe(
-      Flag.withDefault(false),
-      Flag.withDescription("Do not ensure nix-darwin / home-manager symlinks."),
+      Flag.withDescription("Skip prefetching scoop.txt / bun.txt into the state root."),
     ),
   },
-  ({ machineId, manifestBaseUrl, manifestRef, repo, noFetch, skipSymlinks }) =>
+  ({ machineId, manifestBaseUrl, manifestRef, noFetch }) =>
     runSetup({
       machineId: Option.getOrUndefined(machineId),
       manifestBaseUrl: Option.getOrUndefined(manifestBaseUrl),
       manifestRef: Option.getOrUndefined(manifestRef),
-      repo: Option.getOrUndefined(repo),
       fetchManifests: !noFetch,
-      skipSymlinks,
-      ensureSymlinks: ensureNixSymlinks,
-      nextCommand: "Next: outfitting-manager update brew|bun|nix|all",
+      manifestPaths: WINDOWS_SETUP_MANIFEST_PATHS,
+      nextCommand: "Next: outfitting-manager update winget|scoop|bun|all",
     }),
 ).pipe(
   Command.withDescription(
-    "Materialize the outfitting state root (config, repo-path, manifests, nix symlinks) without cloning the monorepo.",
+    "Materialize the Windows state root and cache scoop.txt / bun.txt without cloning the monorepo.",
   ),
 );

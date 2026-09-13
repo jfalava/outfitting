@@ -11,10 +11,10 @@ import {
   type ManagerConfigFile,
   type ManifestSourceConfig,
 } from "@/config";
+import type { OutfittingRepo } from "@/config/repo";
 import type { ManifestFetcher } from "@/fetch";
 import { tryPromise } from "@/lockfiles/effect";
 import { prefetchSetupManifests } from "@/setup/manifests";
-import { ensureNixSymlinks } from "@/update/nix/symlinks";
 import { ui } from "@/ui";
 
 export interface SetupOptions {
@@ -28,8 +28,14 @@ export interface SetupOptions {
   repo?: string;
   /** Fetch core manifests into state root (default true). */
   fetchManifests?: boolean;
+  /** Manifest paths to prefetch; defaults to the macOS set. */
+  manifestPaths?: ReadonlyArray<string>;
   /** Skip nix-darwin / home-manager symlink ensure. */
   skipSymlinks?: boolean;
+  /** Platform-specific symlink setup, supplied only by the macOS entrypoint. */
+  ensureSymlinks?: (repo: OutfittingRepo) => Promise<void>;
+  /** Command shown as the next step after setup. */
+  nextCommand?: string;
   /** Override state root (tests / OUTFITTING_STATE_ROOT already handled in load). */
   stateRoot?: string;
   /** Injected fetcher for tests. */
@@ -74,9 +80,7 @@ export const runSetup = (options: SetupOptions = {}) =>
     }
 
     if (options.repo !== undefined) {
-      const written = yield* tryPromise(() =>
-        writeRepoPath(options.repo!, { stateRoot: root }),
-      );
+      const written = yield* tryPromise(() => writeRepoPath(options.repo!, { stateRoot: root }));
       yield* Console.log(ui.success(`Repository path set to: ${written.repo.root}`));
       yield* Console.log(ui.muted(`repo-path: ${written.pathFile}`));
     }
@@ -84,9 +88,7 @@ export const runSetup = (options: SetupOptions = {}) =>
     const config = yield* tryPromise(() => loadConfig({ stateRoot: root }));
     yield* Console.log(ui.success(`State root ready: ${config.stateRoot}`));
     yield* Console.log(ui.muted(`machine id: ${config.machineId}`));
-    yield* Console.log(
-      ui.muted(`manifests: ${config.manifest.baseUrl}/${config.manifest.ref}/…`),
-    );
+    yield* Console.log(ui.muted(`manifests: ${config.manifest.baseUrl}/${config.manifest.ref}/…`));
     yield* Console.log(ui.muted(`config: ${configFilePath(config.stateRoot)}`));
 
     const shouldFetch = options.fetchManifests !== false;
@@ -95,15 +97,14 @@ export const runSetup = (options: SetupOptions = {}) =>
       const prefetched = yield* tryPromise(() =>
         prefetchSetupManifests({
           config,
+          paths: options.manifestPaths,
           fetcher: options.fetcher,
           offline: options.offline,
         }),
       );
       for (const item of prefetched.ok) {
         const where = item.materializedPath ?? item.path;
-        yield* Console.log(
-          ui.success(`${item.path} (${item.source}) → ${where}`),
-        );
+        yield* Console.log(ui.success(`${item.path} (${item.source}) → ${where}`));
         if (item.warning) {
           yield* Console.log(ui.muted(item.warning));
         }
@@ -113,13 +114,11 @@ export const runSetup = (options: SetupOptions = {}) =>
       }
     }
 
-    if (options.skipSymlinks !== true) {
+    if (options.ensureSymlinks !== undefined && options.skipSymlinks !== true) {
       const repo = yield* tryPromise(() => tryResolveOutfittingRepo({ config }));
       if (repo !== undefined) {
-        yield* tryPromise(() => ensureNixSymlinks(repo));
-        yield* Console.log(
-          ui.success(`nix-darwin symlinks ensured for ${repo.root}`),
-        );
+        yield* tryPromise(() => options.ensureSymlinks!(repo));
+        yield* Console.log(ui.success(`nix-darwin symlinks ensured for ${repo.root}`));
       } else {
         yield* Console.log(
           ui.muted(
@@ -130,5 +129,7 @@ export const runSetup = (options: SetupOptions = {}) =>
     }
 
     yield* Console.log("");
-    yield* Console.log(ui.muted("Next: outfitting-manager update brew|bun|nix|all"));
+    yield* Console.log(
+      ui.muted(options.nextCommand ?? "Next: outfitting-manager update brew|bun|nix|all"),
+    );
   });

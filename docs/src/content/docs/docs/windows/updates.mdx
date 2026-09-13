@@ -5,6 +5,19 @@ sidebar:
   order: 4
 ---
 
+## Manager setup
+
+The manager keeps configuration, manifest caches, and materialized manifests under `%USERPROFILE%\.config\outfitting` by default. It fetches the manifests from the repository's raw content; it does not clone or pull the monorepo.
+
+Run setup once, or run it again when changing the machine id or manifest source:
+
+```powershell
+outfitting-manager setup
+outfitting-manager setup --machine-id jfalava:x64-windows
+```
+
+The Windows setup manifests are `packages/windows/scoop.txt` and `packages/bun.txt`. Use `--no-fetch` when only the state root and config should be created.
+
 ## Repository-managed configuration
 
 The installer stores the repository path in `%USERPROFILE%\.config\outfitting\repo-path`. If `OUTFITTING_REPO` is set, it takes precedence; otherwise the default is `%USERPROFILE%\.config\outfitting\repo`.
@@ -39,21 +52,27 @@ reload
 
 ## Packages and inventories
 
-Update-All performs these operations:
-
-- Upgrades all WinGet packages.
-- Reconciles Scoop against `packages/windows/scoop.txt`, including required buckets and dependencies, removes undeclared non-global packages, updates Scoop packages, cleans old versions, and stores the resulting inventory.
-- Updates global Bun packages and stores their inventory when Bun is installed.
-- Updates installed PowerShell modules and stores the PowerShell inventory.
-- Exports the installed WinGet package state and uploads its lockfile.
-
-Run it from a session with the repository-owned profile loaded:
+The manager is the Windows package-update path:
 
 ```powershell
-Update-All
+outfitting-manager update winget
+outfitting-manager update scoop
+outfitting-manager update bun
+outfitting-manager update all
 ```
 
-Each inventory or lockfile upload uses `outfitting-manager` only when an application with that name is available on `PATH`. If it is unavailable, that upload is skipped with a warning; the package update work continues. A failure in the WinGet, Scoop, or PowerShell update steps still causes `Update-All` to fail.
+`update winget` upgrades all installed WinGet packages and stores the exported `winget` state. `update scoop` reconciles `packages/windows/scoop.txt`, updates packages, and stores `scoop-inventory`. `update bun` updates global Bun packages and stores `bun-global-inventory`.
+
+`update all` runs `winget → scoop → bun`, then stores the successful inventories. It continues after a failed step and exits nonzero if any update or inventory step fails. When Bun is absent, `update all` skips it; explicit `update bun` fails. Add `--no-sync` to any update command to skip inventory uploads.
+
+The existing PowerShell `Update-All` profile function remains available during migration for PowerShell modules and other profile-owned tasks. The manager owns package updates and inventory snapshots; PowerShell continues to own session environment and `PATH` setup.
+
+Configure the lockfiles Worker before the first upload if the machine has not been provisioned:
+
+```powershell
+outfitting-manager sync configure-worker
+outfitting-manager sync configure-token
+```
 
 ## Post-install work
 

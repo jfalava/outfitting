@@ -14,6 +14,8 @@ Start with the [installation instructions](/docs/windows/installation/) to boots
 
 1. Install one or more WinGet or Microsoft Store profiles.
 2. Run the post-install script for Scoop and fonts.
-3. Pull repository changes and run `Update-All` when you need to reconcile packages and inventories.
+3. Run `outfitting-manager setup` once, then `outfitting-manager update all` when you need to reconcile packages and inventories.
 
 The Windows installer supports regular Windows hosts. Windows Subsystem for Linux has its own [installation instructions](/docs/wsl/installation/).
+
+The manager fetches manifests from the repository's raw content and does not require a local checkout for package updates. PowerShell still owns session environment and `PATH` setup.
