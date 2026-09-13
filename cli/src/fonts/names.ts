@@ -10,6 +10,12 @@ const PLATFORM_UNICODE = 0;
 const PLATFORM_MACINTOSH = 1;
 const PLATFORM_WINDOWS = 3;
 
+type OpenTypeEncoding = "utf-16be" | "mac" | "latin1";
+
+function openTypeTextDecoder(encoding: OpenTypeEncoding): TextDecoder {
+  return new TextDecoder(encoding as ConstructorParameters<typeof TextDecoder>[0]);
+}
+
 export interface FontNameRecord {
   readonly family: string;
   readonly style: string;
@@ -90,12 +96,12 @@ function tagAt(bytes: Uint8Array, offset: number): string {
 
 function decodeNameBytes(platformId: number, encodingId: number, bytes: Uint8Array): string {
   if (platformId === PLATFORM_UNICODE || platformId === PLATFORM_WINDOWS) {
-    return new TextDecoder("utf-16be").decode(bytes).replaceAll("\u0000", "").trim();
+    return openTypeTextDecoder("utf-16be").decode(bytes).replaceAll("\u0000", "").trim();
   }
   if (platformId === PLATFORM_MACINTOSH && encodingId === 0) {
-    return new TextDecoder("mac").decode(bytes).trim();
+    return openTypeTextDecoder("mac").decode(bytes).trim();
   }
-  return new TextDecoder("latin1").decode(bytes).trim();
+  return openTypeTextDecoder("latin1").decode(bytes).trim();
 }
 
 interface NamedString {

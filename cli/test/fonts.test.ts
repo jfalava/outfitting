@@ -1,4 +1,4 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -241,8 +241,7 @@ describe("fonts helpers", () => {
   });
 
   test("skips licenses and hidden files when collecting a source directory", async () => {
-    const directory = join(tmpdir(), `outfitting-fonts-${crypto.randomUUID()}`);
-    await mkdir(directory, { recursive: true });
+    const directory = await mkdtemp(join(tmpdir(), "outfitting-fonts-"));
     await writeFile(join(directory, "LICENSE"), "not a font");
     await writeFile(
       join(directory, ".hidden.otf"),

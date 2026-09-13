@@ -13,6 +13,11 @@ export interface RunCommandResult {
   stderr: string;
 }
 
+interface ChildProcessEvents {
+  on(event: "error", listener: (error: Error) => void): void;
+  on(event: "close", listener: (code: number | null) => void): void;
+}
+
 /**
  * Run a subprocess. When inherit is true, streams live to the terminal and
  * still captures nothing; callers that need output should set inherit false.
@@ -28,7 +33,7 @@ export function runCommand(
       cwd: options.cwd,
       env: options.env ?? process.env,
       stdio: inherit ? "inherit" : ["ignore", "pipe", "pipe"],
-    });
+    }) as ReturnType<typeof spawn> & ChildProcessEvents;
 
     const stdoutChunks: Buffer[] = [];
     const stderrChunks: Buffer[] = [];
