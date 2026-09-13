@@ -31,6 +31,6 @@ export const upgrade = (currentVersion: string) =>
 
     yield* Console.log(`Updating outfitting-manager ${currentVersion} → ${release.version}…`);
     yield* tryPromise(() => installRelease(release, targetPath));
-    const suffix = process.platform === "win32" ? " after this process exits" : "";
+    const suffix = process.platform === "win32" ? " and will be active on the next run" : "";
     yield* Console.log(ui.success(`Installed outfitting-manager ${release.version}${suffix}.`));
   });

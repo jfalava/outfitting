@@ -90,14 +90,33 @@ export function checksumFromFile(contents: string): string {
   return checksum.toLowerCase();
 }
 
-function scheduleWindowsReplacement(temporaryPath: string, targetPath: string): void {
+export function scheduleWindowsReplacement(
+  temporaryPath: string,
+  targetPath: string,
+  waitingProcessId = process.pid,
+): void {
   const script = [
-    `Wait-Process -Id ${process.pid}`,
+    `Wait-Process -Id ${waitingProcessId}`,
     `Move-Item -LiteralPath ${quotePowerShellLiteral(temporaryPath)} -Destination ${quotePowerShellLiteral(targetPath)} -Force`,
   ].join("; ");
+  const encodedScript = Buffer.from(script, "utf16le").toString("base64");
   const child = spawn(
-    "powershell.exe",
-    ["-NoLogo", "-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", script],
+    "cmd.exe",
+    [
+      "/d",
+      "/c",
+      "start",
+      "",
+      "/b",
+      "powershell.exe",
+      "-NoLogo",
+      "-NoProfile",
+      "-NonInteractive",
+      "-WindowStyle",
+      "Hidden",
+      "-EncodedCommand",
+      encodedScript,
+    ],
     { detached: true, stdio: "ignore", windowsHide: true },
   );
   child.unref();

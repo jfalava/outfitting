@@ -1,3 +1,6 @@
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { deflateRawSync } from "node:zlib";
 
 import { describe, expect, test } from "vitest";
@@ -14,6 +17,7 @@ import {
   latestCliRelease,
   parseCliVersion,
 } from "@/upgrade";
+import { scheduleWindowsReplacement } from "@/upgrade/install";
 
 function appendBytes(parts: ReadonlyArray<Uint8Array>): Uint8Array {
   const result = new Uint8Array(parts.reduce((total, part) => total + part.length, 0));
@@ -100,6 +104,42 @@ describe("upgrade command helpers", () => {
         "C:\\Users\\test\\.local\\bin\\outfitting-manager.exe",
       ),
     ).toBe("C:\\Users\\test\\.local\\bin\\outfitting-manager.exe");
+  });
+
+  test("replaces the Windows executable after the current process exits", async () => {
+    if (process.platform !== "win32") {
+      return;
+    }
+
+    const root = await mkdtemp(join(tmpdir(), "outfitting upgrade ' & "));
+    const temporaryPath = join(root, "outfitting-manager.upgrade");
+    const targetPath = join(root, "outfitting-manager.exe");
+    try {
+      await writeFile(temporaryPath, "new", "utf8");
+      await writeFile(targetPath, "old", "utf8");
+      const blocker = Bun.spawn(
+        [
+          "powershell.exe",
+          "-NoLogo",
+          "-NoProfile",
+          "-NonInteractive",
+          "-Command",
+          "Start-Sleep -Milliseconds 250",
+        ],
+        { stdout: "ignore", stderr: "ignore" },
+      );
+
+      scheduleWindowsReplacement(temporaryPath, targetPath, blocker.pid);
+      await blocker.exited;
+
+      const deadline = Date.now() + 5_000;
+      while (Date.now() < deadline && (await readFile(targetPath, "utf8")) !== "new") {
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      }
+      expect(await readFile(targetPath, "utf8")).toBe("new");
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
   });
 
   test("parses release checksum files", () => {
