@@ -66,7 +66,7 @@ outfitting-manager sync list machine-name:aarch64-darwin
 outfitting-manager sync history machine-name:aarch64-darwin nix
 ```
 
-Machine names are free-form. The manager's automatic Windows id uses the `username:x86_64-windows` convention. The legacy PowerShell hook in this repository still uses `jfalava:x64-windows`; pass `setup --machine-id` when manager and legacy snapshots must share a record.
+Machine names are free-form. The manager's automatic Windows id uses the `username:x86_64-windows` convention; pass `setup --machine-id` to override it.
 
 ## Worker API
 
@@ -92,4 +92,4 @@ Public equivalents: `https://worker-url/api/lockfiles/...`.
 
 * Successful `outfit sync` and `outfit upgrade` operations automatically store the observed, versioned Homebrew state as `homebrew-inventory`. Kinds are free-form and require no schema migration.
 
-* Windows treats `packages/windows/scoop.txt` as the source of truth for directly installed Scoop packages. `outfitting-manager update scoop` reconciles it, writes a stable, sorted Scoop export without volatile timestamps, and uploads it as `scoop-inventory` for the configured `username:x86_64-windows` machine. `update bun` similarly uploads `bun-global-inventory`; the existing PowerShell `Sync-OutfittingScoop` and `Save-OutfittingScoopInventory` functions remain available during migration.
+* Windows treats `packages/windows/scoop.txt` as the source of truth for directly installed Scoop packages. `outfitting-manager update scoop` reconciles it, writes a stable, sorted Scoop export without volatile timestamps, and uploads it as `scoop-inventory` for the configured `username:x86_64-windows` machine. `update bun` similarly uploads `bun-global-inventory`.

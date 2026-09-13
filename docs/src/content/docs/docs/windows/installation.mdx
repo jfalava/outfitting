@@ -96,7 +96,7 @@ The main Windows installer downloads the latest Windows x64 outfitting-manager z
 %USERPROFILE%\.local\bin\outfitting-manager.exe
 ```
 
-The separate [post-install script](/docs/windows/post-install/) silently performs the same checksum-verified download as a best-effort fallback when the executable is missing. It suppresses manager download errors and does not block its other tasks. The manager is a release binary; these scripts do not create a manager symlink or build it from the repository.
+The separate [post-install script](/docs/windows/post-install/) silently performs the same checksum-verified download as a best-effort fallback when the executable is missing. It suppresses manager download errors and does not block its other tasks. The manager is a release binary; these scripts do not create a manager symlink or build it from the repository. The linked PowerShell profile provides `outfit` as an alias for `outfitting-manager`.
 
 The installer does not persist `%USERPROFILE%\.local\bin` in the user PATH. The linked PowerShell profile adds it when a new session starts. Open a new PowerShell session or reload the profile with `. $PROFILE` before running the manager.
 

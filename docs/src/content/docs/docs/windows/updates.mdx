@@ -71,11 +71,7 @@ outfitting-manager update all
 
 `update winget` upgrades all installed WinGet packages and stores the exported `winget` state. `update scoop` reconciles `packages/windows/scoop.txt`, updates packages, and stores `scoop-inventory`. `update bun` updates global Bun packages and stores `bun-global-inventory`.
 
-`update all` runs `winget → scoop → bun`, then stores the successful inventories. It continues after a failed step and exits nonzero if any update or inventory step fails. When Bun is absent, `update all` skips it; explicit `update bun` fails. Add `--no-sync` to any update command to skip inventory uploads.
-
-The existing PowerShell `Update-All` profile function remains available as a legacy full update path. It still runs WinGet, Scoop, Bun globals, PowerShell module updates, and a WinGet inventory export; it is not a modules-only command. Prefer the manager for package updates and inventory snapshots. PowerShell continues to own session environment and `PATH` setup.
-
-The manager stores uploads under its configured machine id, normally `<username>:x86_64-windows`. The legacy profile functions in this repository still use `jfalava:x64-windows`; set `--machine-id` explicitly if those snapshots must share one remote record.
+`update all` runs `winget → scoop → bun`, then stores the successful inventories. It continues after a failed step and exits nonzero if any update or inventory step fails. When Bun is absent, `update all` skips it; explicit `update bun` fails. Add `--no-sync` to any update command to skip inventory uploads. PowerShell continues to own session environment and `PATH` setup.
 
 Configure the lockfiles Worker before the first upload if the machine has not been provisioned:
 

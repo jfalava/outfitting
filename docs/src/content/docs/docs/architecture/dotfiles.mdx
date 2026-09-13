@@ -9,7 +9,7 @@ Desired state lives in the repo; observed state is pushed to the API worker. Pla
 
 ## Dotfiles
 
-- `dotfiles/Microsoft.PowerShell_profile.ps1` — Windows shell: `PATH`, `Update-All` (WinGet upgrade, `Sync-OutfittingScoop` against `scoop.txt`, Bun globals, PowerShell modules, `winget export` push), `Push-OutfittingLockfile`, and `Save-Outfitting{Scoop,BunGlobal,PowerShell}Inventory`.
+- `dotfiles/Microsoft.PowerShell_profile.ps1` — Windows shell: `PATH` and the `outfit` alias for `outfitting-manager`.
 - `dotfiles/.gitconfig` — identity, SSH commit/tag signing.
 - `dotfiles/ssh.config` — GitHub SSH defaults.
 
@@ -35,4 +35,4 @@ Committed desired state: `packages/macos/` (Brewfile, nix), `packages/windows/` 
 
 Root `*-install-script.{sh,ps1}` files are served live from the installer hosts. They resolve the repo (`OUTFITTING_REPO`, then `~/.config/outfitting/repo-path`, then `~/.config/outfitting/repo`), clone when missing, symlink dotfiles, install manifests, and fetch the checksum-verified `outfitting-manager` release. Post-install adds Scoop buckets, public fonts, and the Access-gated private archive (checksum-verified before extraction).
 
-Day-to-day sync pushes observed inventories via the CLI's primary [sync command](/docs/cli/lockfiles): `winget` / `scoop-inventory` / `bun-global-inventory` / `powershell-inventory` (`<username>:x86_64-windows`), `nix` + `homebrew-inventory` (`jfalava:aarch64-darwin`). Legacy PowerShell inventory functions still use `jfalava:x64-windows`.
+Day-to-day sync pushes observed inventories via the CLI's primary [sync command](/docs/cli/lockfiles): `winget` / `scoop-inventory` / `bun-global-inventory` (`<username>:x86_64-windows`), `nix` + `homebrew-inventory` (`jfalava:aarch64-darwin`).
