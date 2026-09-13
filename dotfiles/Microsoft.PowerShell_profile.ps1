@@ -4,6 +4,7 @@
 $pathList = @(
     "C:\bin"
     "C:\Program Files\Go\bin",
+    "$env:USERPROFILE\.amp\bin"
     "$env:USERPROFILE\scoop",
     "$env:LOCALAPPDATA\pnpm\",
     "$env:USERPROFILE\.bun\bin",
