@@ -9,7 +9,7 @@
   "scripts": {
     "check": "bun run lint --fix",
     "format": "oxfmt",
-    "lint": "oxlint",
+    "lint": "oxlint --type-aware --type-check",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },

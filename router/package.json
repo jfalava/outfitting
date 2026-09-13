@@ -5,7 +5,7 @@
   "scripts": {
     "check": "bun run lint && bun run typecheck && bun run test",
     "format": "oxfmt",
-    "lint": "oxlint",
+    "lint": "oxlint --type-aware --type-check",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
