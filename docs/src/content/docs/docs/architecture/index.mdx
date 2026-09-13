@@ -11,7 +11,7 @@ sidebar:
 - [API worker](/docs/architecture/api) — Hono + D1 + KV lockfile storage behind a Bearer gate.
 - Router worker — sole public entry; host dispatch, `/api` strip, docs allowlist, `418`/`404`.
 - Installer worker — stateless proxy for install scripts and the private font archive.
-- [CLI](/docs/cli) — local `outfitting-manager` internals: keychain, provision, upgrade, wire contract.
+- CLI — local `outfitting-manager` internals: keychain, provision, upgrade, wire contract.
 - [Dotfiles and machine state](/docs/architecture/dotfiles) — what lands on machines and how it is reconciled.
 
 The docs site itself is an optional static asset behind the router (`docs/src/worker.ts` forwards to `DOCS_ASSETS`). When a stack is provisioned with docs skipped, the router has no `DOCS_WORKER` binding and docs paths return `404`.
