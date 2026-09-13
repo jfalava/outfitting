@@ -1,8 +1,9 @@
+import { Effect } from "effect";
 import { describe, expect, test } from "vitest";
 
+import type { RunCommandResult } from "@/process";
 import { parseBrewfileTaps } from "@/update/brew";
 import { captureHomebrewInventory, HOMEBREW_INVENTORY_HEADER } from "@/update/snapshot";
-import type { RunCommandResult } from "@/process";
 
 describe("parseBrewfileTaps", () => {
   test("extracts tap names", () => {
@@ -32,7 +33,7 @@ describe("captureHomebrewInventory", () => {
       throw new Error(`unexpected brew args: ${key}`);
     };
 
-    const body = await captureHomebrewInventory(run);
+    const body = await Effect.runPromise(captureHomebrewInventory(run));
     expect(body.startsWith(HOMEBREW_INVENTORY_HEADER)).toBe(true);
     expect(body).toContain("[taps]\na/tap\nz/tap\n");
     expect(body).toContain("[formulae]\nbun 1.0\nzsh 5.9\n");

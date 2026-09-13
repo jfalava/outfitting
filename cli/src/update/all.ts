@@ -2,10 +2,10 @@ import { Console, Effect } from "effect";
 
 import { loadConfig, type ManagerConfig } from "@/config";
 import { tryPromise } from "@/lockfiles/effect";
+import { ui } from "@/ui";
 import { updateBrew } from "@/update/brew";
 import { updateBun } from "@/update/bun";
 import { updateNix } from "@/update/nix";
-import { ui } from "@/ui";
 
 export interface UpdateAllOptions {
   noSync?: boolean;
@@ -28,10 +28,10 @@ export const updateAll = (options: UpdateAllOptions = {}) =>
     const config = options.config ?? (yield* tryPromise(() => loadConfig()));
     const results: UpdateStepResult[] = [];
 
-    const runStep = <A, E>(
+    const runStep = <A, E, R>(
       name: string,
-      effect: Effect.Effect<A, E, never>,
-    ): Effect.Effect<void> =>
+      effect: Effect.Effect<A, E, R>,
+    ): Effect.Effect<void, never, R> =>
       effect.pipe(
         Effect.asVoid,
         Effect.map(() => {
@@ -47,10 +47,7 @@ export const updateAll = (options: UpdateAllOptions = {}) =>
     yield* Console.log(ui.heading("update all: nix switch → brew → bun"));
 
     yield* runStep("nix switch", updateNix({ action: "switch", config }));
-    yield* runStep(
-      "brew",
-      updateBrew({ config, noSync: options.noSync === true }),
-    );
+    yield* runStep("brew", updateBrew({ config, noSync: options.noSync === true }));
     yield* runStep("bun", updateBun({ skipIfMissing: true }));
 
     const failed = results.filter((step) => !step.ok);

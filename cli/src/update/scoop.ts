@@ -1,9 +1,9 @@
-import { Console, Effect, Option, Schema } from "effect";
+import { Console, Data, Effect, Option, Schema } from "effect";
 
 import { loadConfig, type ManagerConfig } from "@/config";
 import { fetchManifest, type ManifestFetcher } from "@/fetch";
 import { tryPromise } from "@/lockfiles/effect";
-import { runCommand, which, type RunCommandResult } from "@/process";
+import { runCommand, which } from "@/process";
 import { ui } from "@/ui";
 import { runScoopCommand, scoopScriptPath } from "@/update/scoop-command";
 import {
@@ -13,6 +13,11 @@ import {
 } from "@/update/windows-snapshot";
 
 export const SCOOP_MANIFEST_PATH = "packages/windows/scoop.txt";
+
+class ScoopUpdateError extends Data.TaggedError("ScoopUpdateError")<{
+  readonly message: string;
+  readonly cause?: unknown;
+}> {}
 
 const ScoopDependencySchema = Schema.Struct({
   Name: Schema.String,
@@ -147,53 +152,79 @@ function powerShellStringLiteral(value: string): string {
   return `'${value.replace(/'/g, "''")}'`;
 }
 
-async function scoopState(run: typeof runCommand, scoopPath: string): Promise<ScoopExportState> {
-  const result = await runScoopCommand(run, scoopPath, ["export"], { inherit: false });
+const scoopState = Effect.fn("scoopState")(function* (run: typeof runCommand, scoopPath: string) {
+  const result = yield* tryPromise(() =>
+    runScoopCommand(run, scoopPath, ["export"], { inherit: false }),
+  );
   if (result.code !== 0) {
-    throw new Error(
-      `scoop export failed (exit ${result.code}): ${result.stderr || result.stdout}`.trim(),
+    return yield* Effect.fail(
+      new ScoopUpdateError({
+        message:
+          `scoop export failed (exit ${result.code}): ${result.stderr || result.stdout}`.trim(),
+      }),
     );
   }
-  return parseScoopExport(result.stdout);
-}
+  return yield* Effect.try({
+    try: () => parseScoopExport(result.stdout),
+    catch: (cause) =>
+      new ScoopUpdateError({
+        message: cause instanceof Error ? cause.message : String(cause),
+        cause,
+      }),
+  });
+});
 
-async function requireScoopCommand(
+const requireScoopCommand = Effect.fn("requireScoopCommand")(function* (
   run: typeof runCommand,
   scoopPath: string,
   args: ReadonlyArray<string>,
   label: string,
-): Promise<RunCommandResult> {
-  const result = await runScoopCommand(run, scoopPath, args, { inherit: true });
+) {
+  const result = yield* tryPromise(() => runScoopCommand(run, scoopPath, args, { inherit: true }));
   if (result.code !== 0) {
-    throw new Error(
-      `${label} failed (exit ${result.code}): ${result.stderr || result.stdout}`.trim(),
+    return yield* Effect.fail(
+      new ScoopUpdateError({
+        message: `${label} failed (exit ${result.code}): ${result.stderr || result.stdout}`.trim(),
+      }),
     );
   }
   return result;
-}
+});
 
-async function dependencyNames(
+const dependencyNames = Effect.fn("dependencyNames")(function* (
   packageSpec: string,
   scoopPath: string,
   run: typeof runCommand,
-): Promise<string[]> {
-  const result = await run(
-    "powershell.exe",
-    [
-      "-NoProfile",
-      "-NonInteractive",
-      "-Command",
-      `$ErrorActionPreference = 'Stop'; $dependencies = @(& ${powerShellStringLiteral(scoopScriptPath(scoopPath))} depends -- ${powerShellStringLiteral(packageSpec)}); if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; $dependencies | ConvertTo-Json -Compress`,
-    ],
-    { inherit: false },
+) {
+  const result = yield* tryPromise(() =>
+    run(
+      "powershell.exe",
+      [
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        `$ErrorActionPreference = 'Stop'; $dependencies = @(& ${powerShellStringLiteral(scoopScriptPath(scoopPath))} depends -- ${powerShellStringLiteral(packageSpec)}); if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; $dependencies | ConvertTo-Json -Compress`,
+      ],
+      { inherit: false },
+    ),
   );
   if (result.code !== 0) {
-    throw new Error(
-      `powershell.exe scoop depends ${packageSpec} failed (exit ${result.code}): ${result.stderr || result.stdout}`.trim(),
+    return yield* Effect.fail(
+      new ScoopUpdateError({
+        message:
+          `powershell.exe scoop depends ${packageSpec} failed (exit ${result.code}): ${result.stderr || result.stdout}`.trim(),
+      }),
     );
   }
-  return parseScoopDependencies(result.stdout, packageSpec);
-}
+  return yield* Effect.try({
+    try: () => parseScoopDependencies(result.stdout, packageSpec),
+    catch: (cause) =>
+      new ScoopUpdateError({
+        message: cause instanceof Error ? cause.message : String(cause),
+        cause,
+      }),
+  });
+});
 
 const addMissingBuckets = Effect.fn("addMissingBuckets")(function* (
   desired: ScoopManifest,
@@ -205,13 +236,11 @@ const addMissingBuckets = Effect.fn("addMissingBuckets")(function* (
     if (installed.has(bucket.name.toLowerCase())) {
       continue;
     }
-    yield* tryPromise(() =>
-      requireScoopCommand(
-        run,
-        scoopPath,
-        ["bucket", "add", bucket.name, bucket.url],
-        `scoop bucket add ${bucket.name}`,
-      ),
+    yield* requireScoopCommand(
+      run,
+      scoopPath,
+      ["bucket", "add", bucket.name, bucket.url],
+      `scoop bucket add ${bucket.name}`,
     );
   }
 });
@@ -226,9 +255,7 @@ const installMissingPackages = Effect.fn("installMissingPackages")(function* (
     if (installed.has(packageName(spec).toLowerCase())) {
       continue;
     }
-    yield* tryPromise(() =>
-      requireScoopCommand(run, scoopPath, ["install", spec], `scoop install ${spec}`),
-    );
+    yield* requireScoopCommand(run, scoopPath, ["install", spec], `scoop install ${spec}`);
   }
 });
 
@@ -239,7 +266,7 @@ const collectDesiredPackages = Effect.fn("collectDesiredPackages")(function* (
 ) {
   const packages = new Set(desired.packages.map((spec) => packageName(spec).toLowerCase()));
   for (const spec of desired.packages) {
-    const dependencies = yield* tryPromise(() => dependencyNames(spec, scoopPath, run));
+    const dependencies = yield* dependencyNames(spec, scoopPath, run);
     for (const dependency of dependencies) {
       packages.add(dependency.toLowerCase());
     }
@@ -255,8 +282,11 @@ const removeUndesiredPackages = Effect.fn("removeUndesiredPackages")(function* (
 ) {
   for (const app of state.apps) {
     if (!isGlobalInstall(app) && !desiredPackages.has(app.Name.toLowerCase())) {
-      yield* tryPromise(() =>
-        requireScoopCommand(run, scoopPath, ["uninstall", app.Name], `scoop uninstall ${app.Name}`),
+      yield* requireScoopCommand(
+        run,
+        scoopPath,
+        ["uninstall", app.Name],
+        `scoop uninstall ${app.Name}`,
       );
     }
   }
@@ -266,9 +296,9 @@ const updateAndCleanScoop = Effect.fn("updateAndCleanScoop")(function* (
   run: typeof runCommand,
   scoopPath: string,
 ) {
-  yield* tryPromise(() => requireScoopCommand(run, scoopPath, ["update"], "scoop update"));
-  yield* tryPromise(() => requireScoopCommand(run, scoopPath, ["update", "*"], "scoop update *"));
-  yield* tryPromise(() => requireScoopCommand(run, scoopPath, ["cleanup", "*"], "scoop cleanup *"));
+  yield* requireScoopCommand(run, scoopPath, ["update"], "scoop update");
+  yield* requireScoopCommand(run, scoopPath, ["update", "*"], "scoop update *");
+  yield* requireScoopCommand(run, scoopPath, ["cleanup", "*"], "scoop cleanup *");
 });
 
 function syncScoopInventory(
@@ -298,7 +328,9 @@ export const updateScoop = (options: UpdateScoopOptions = {}) =>
     const whichFn = options.which ?? which;
     const scoopPath = options.scoopPath ?? (yield* tryPromise(() => whichFn("scoop")));
     if (scoopPath === undefined) {
-      return yield* Effect.fail(new Error("Scoop is not installed or not in PATH."));
+      return yield* Effect.fail(
+        new ScoopUpdateError({ message: "Scoop is not installed or not in PATH." }),
+      );
     }
 
     const config = options.config ?? (yield* tryPromise(() => loadConfig()));
@@ -315,9 +347,13 @@ export const updateScoop = (options: UpdateScoopOptions = {}) =>
     }
     const desired = yield* Effect.try({
       try: () => parseScoopManifest(manifest.text),
-      catch: (cause) => (cause instanceof Error ? cause : new Error(String(cause))),
+      catch: (cause) =>
+        new ScoopUpdateError({
+          message: cause instanceof Error ? cause.message : String(cause),
+          cause,
+        }),
     });
-    const state = yield* tryPromise(() => scoopState(run, scoopPath));
+    const state = yield* scoopState(run, scoopPath);
     const buckets = installedBuckets(state);
 
     yield* Console.log(ui.heading("Reconciling Scoop packages…"));
@@ -327,7 +363,7 @@ export const updateScoop = (options: UpdateScoopOptions = {}) =>
 
     const desiredPackages = yield* collectDesiredPackages(desired, scoopPath, run);
 
-    const current = yield* tryPromise(() => scoopState(run, scoopPath));
+    const current = yield* scoopState(run, scoopPath);
     yield* removeUndesiredPackages(current, desiredPackages, run, scoopPath);
 
     yield* updateAndCleanScoop(run, scoopPath);
