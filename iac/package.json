@@ -4,14 +4,14 @@
   "type": "module",
   "scripts": {
     "build": "bun run typecheck && if [ \"${OUTFITTING_DEPLOY_DOCS:-1}\" != \"0\" ] && [ \"${OUTFITTING_DEPLOY_DOCS:-1}\" != \"false\" ]; then bun run --cwd ../docs build; else echo 'skipping docs build (OUTFITTING_DEPLOY_DOCS off)'; fi",
-    "check": "oxlint --type-aware --type-check --fix",
+    "check": "oxlint --fix",
     "ci:build": "bun run typecheck && bun run --cwd ../docs build",
     "ci:deploy": "alchemy deploy --yes --adopt",
     "deploy": "alchemy deploy",
     "destroy": "alchemy destroy",
     "dev": "alchemy dev",
     "format": "oxfmt",
-    "lint": "oxlint --type-aware --type-check",
+    "lint": "oxlint",
     "plan": "alchemy plan",
     "test": "bun test test",
     "typecheck": "tsc --noEmit"

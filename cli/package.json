@@ -17,7 +17,7 @@
     "build:windows-x64": "mkdir -p dist && bun build --compile --target=bun-windows-x64 index.windows.ts --outfile dist/outfitting-manager-cli-windows-x64.exe",
     "check": "bun run lint --fix",
     "format": "oxfmt",
-    "lint": "oxlint --type-aware --type-check",
+    "lint": "oxlint",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },

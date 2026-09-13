@@ -15,8 +15,8 @@
     "lint:docs": "nimbus-docs lint",
     "lint:docs:fix": "nimbus-docs lint --fix",
     "lint:fix": "bun run lint:oxlint:fix && bun run lint:astro:fix && bun run lint:docs:fix",
-    "lint:oxlint": "astro sync && oxlint src --type-aware --type-check",
-    "lint:oxlint:fix": "astro sync && oxlint src --type-aware --type-check --fix",
+    "lint:oxlint": "astro sync && oxlint src",
+    "lint:oxlint:fix": "astro sync && oxlint src --fix",
     "preview": "astro preview",
     "typecheck": "astro check"
   },

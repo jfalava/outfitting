@@ -3,9 +3,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "check": "oxlint --type-aware --type-check --fix",
+    "check": "oxlint --fix",
     "format": "oxfmt",
-    "lint": "oxlint --type-aware --type-check",
+    "lint": "oxlint",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

@@ -1,6 +1,6 @@
 import { defineConfig } from "oxlint";
 
-import base, { agentIgnores, antiSlopJsPlugins } from "../oxlint.config.ts";
+import { agentIgnores, antiSlopJsPlugins, base } from "../oxlint.config.ts";
 
 // Object spread instead of oxlint `extends`: extends-based inheritance drops
 // env/globals/overrides from the parent config.

@@ -122,12 +122,19 @@ const builtinRules: DummyRuleMap = {
   "import/no-self-import": "error",
 };
 
-// Strict application base: the workspace lint scripts enable type-aware
-// linting over the built-in plugins plus the vendored anti-slop rules. Workspace
-// configs spread this and add their own jsPlugins registration and ignorePatterns.
-export default defineConfig({
-  extends: [recommended],
-  plugins: ["eslint", "react", "typescript", "unicorn", "oxc", "import", "promise"],
+// Shared application base for workspace configs. Root-only options stay on the
+// default export below so they do not propagate through workspace imports.
+export const base = defineConfig({
+  plugins: [
+    ...(recommended.plugins ?? []),
+    "eslint",
+    "react",
+    "typescript",
+    "unicorn",
+    "oxc",
+    "import",
+    "promise",
+  ],
   categories: {
     correctness: "error",
     suspicious: "warn",
@@ -138,8 +145,18 @@ export default defineConfig({
     es2022: true,
   },
   rules: {
+    ...recommended.rules,
     ...builtinRules,
     ...antiSlopRules,
   },
   ignorePatterns: ["tools/**"],
+});
+
+export default defineConfig({
+  ...base,
+  jsPlugins: antiSlopJsPlugins("."),
+  options: {
+    typeAware: true,
+    typeCheck: true,
+  },
 });
