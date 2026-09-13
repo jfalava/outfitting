@@ -1,5 +1,6 @@
 import { Console, Effect } from "effect";
 
+import { CliFailure } from "@/errors";
 import { promptAndStoreR2Credentials, storeR2Endpoint } from "@/fonts/keychain";
 import { tryPromise } from "@/lockfiles/effect";
 import { ui } from "@/ui";
@@ -10,7 +11,7 @@ export const configureEndpoint = (requestedEndpoint?: string) =>
       requestedEndpoint ??
       prompt("R2 S3 endpoint or Cloudflare account ID (stored in your OS keychain):")?.trim();
     if (!value) {
-      return yield* Effect.fail(new Error("An R2 endpoint is required."));
+      return yield* new CliFailure({ message: "An R2 endpoint is required." });
     }
 
     const endpoint = yield* tryPromise(() => storeR2Endpoint(value));

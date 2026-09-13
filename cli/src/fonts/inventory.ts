@@ -22,7 +22,7 @@ const InventorySchema = Schema.Struct({
   archive: Schema.Struct({
     key: Schema.Literal(FONT_ARCHIVE_KEY),
     sha256: Sha256,
-    size: Schema.Number,
+    size: Schema.Finite,
   }),
   faces: Schema.Array(InventoryFaceSchema),
 });

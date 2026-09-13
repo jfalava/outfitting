@@ -1,6 +1,7 @@
 import { Console, Effect } from "effect";
 
 import { loadConfig, type ManagerConfig } from "@/config";
+import { CliFailure } from "@/errors";
 import { tryPromise } from "@/lockfiles/effect";
 import { runCommand, which } from "@/process";
 import { ui } from "@/ui";
@@ -161,13 +162,11 @@ export const updateWindowsAll = (options: WindowsUpdateAllOptions = {}) =>
 
     const failed = results.filter((step) => !step.ok);
     if (failed.length > 0) {
-      return yield* Effect.fail(
-        new Error(
-          `update all finished with ${failed.length} failed step(s): ${failed
-            .map((step) => step.name)
-            .join(", ")}`,
-        ),
-      );
+      return yield* new CliFailure({
+        message: `update all finished with ${failed.length} failed step(s): ${failed
+          .map((step) => step.name)
+          .join(", ")}`,
+      });
     }
 
     yield* Console.log(ui.success("Windows update all completed successfully."));

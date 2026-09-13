@@ -1,6 +1,8 @@
 import { Effect } from "effect";
 import { describe, expect, test, vi } from "vitest";
 
+import { CliFailure } from "@/errors";
+
 // Unit-test the continue-on-fail policy with a local replica of the reducer
 // used by updateAll (avoids spawning real nix/brew/bun).
 
@@ -11,7 +13,7 @@ interface StepResult {
 }
 
 async function runSequence(
-  steps: ReadonlyArray<{ name: string; effect: Effect.Effect<void, Error> }>,
+  steps: ReadonlyArray<{ name: string; effect: Effect.Effect<void, CliFailure> }>,
 ): Promise<{ results: StepResult[]; failedNames: string[] }> {
   const results: StepResult[] = [];
   for (const step of steps) {
@@ -46,7 +48,7 @@ describe("update all continue-on-fail policy", () => {
         name: "nix switch",
         effect: Effect.sync(() => {
           order.push("nix");
-        }).pipe(Effect.flatMap(() => Effect.fail(new Error("nix boom")))),
+        }).pipe(Effect.flatMap(() => Effect.fail(new CliFailure({ message: "nix boom" })))),
       },
       {
         name: "brew",
@@ -58,7 +60,7 @@ describe("update all continue-on-fail policy", () => {
         name: "bun",
         effect: Effect.sync(() => {
           order.push("bun");
-        }).pipe(Effect.flatMap(() => Effect.fail(new Error("bun boom")))),
+        }).pipe(Effect.flatMap(() => Effect.fail(new CliFailure({ message: "bun boom" })))),
       },
     ]);
 

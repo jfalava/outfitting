@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { Console, Effect, Option, Schema } from "effect";
 
 import { loadConfig, type ManagerConfig } from "@/config";
+import { CliFailure } from "@/errors";
 import { pushLockfile } from "@/lockfiles";
 import { tryPromise } from "@/lockfiles/effect";
 import { runCommand, which } from "@/process";
@@ -187,7 +188,7 @@ export const pushScoopInventory = (options: WindowsSnapshotOptions = {}) =>
     const scoopPath =
       options.scoopPath ??
       (yield* tryPromise(() => (options.which ?? which)("scoop"))) ??
-      (yield* Effect.fail(new Error("Scoop is not installed or not in PATH.")));
+      (yield* new CliFailure({ message: "Scoop is not installed or not in PATH." }));
     yield* Console.log(ui.heading("Capturing Scoop inventory…"));
     const body = yield* tryPromise(() => captureScoopInventory(run, scoopPath));
     yield* pushTextSnapshot({

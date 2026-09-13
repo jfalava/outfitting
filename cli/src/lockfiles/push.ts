@@ -1,6 +1,7 @@
 import { decodeResponse, isJsonValue, PushResponse } from "@outfitting/contract";
 import { Console, Effect } from "effect";
 
+import { CliFailure } from "@/errors";
 import { tryPromise, toError } from "@/lockfiles/effect";
 import { isGitTrackedFile, normalizeSha256 } from "@/lockfiles/files";
 import { request } from "@/lockfiles/request";
@@ -23,15 +24,13 @@ export const pushLockfile = ({
     const file = Bun.file(path);
 
     if (!(yield* tryPromise(() => file.exists()))) {
-      return yield* Effect.fail(new Error(`File not found: ${path}`));
+      return yield* new CliFailure({ message: `File not found: ${path}` });
     }
 
     if (yield* tryPromise(() => isGitTrackedFile(path))) {
-      return yield* Effect.fail(
-        new Error(
-          `Refusing to upload Git-tracked file: ${path}; KV is reserved for lock state that is not committed to Git.`,
-        ),
-      );
+      return yield* new CliFailure({
+        message: `Refusing to upload Git-tracked file: ${path}; KV is reserved for lock state that is not committed to Git.`,
+      });
     }
 
     type RequestHeaders = Record<string, string>;
@@ -53,11 +52,11 @@ export const pushLockfile = ({
     const result = yield* tryPromise(async () => {
       const raw: unknown = await response.json();
       if (!isJsonValue(raw)) {
-        throw new Error("Worker returned an invalid push response.");
+        throw new CliFailure({ message: "Worker returned an invalid push response." });
       }
       const decoded = decodeResponse(PushResponse, raw, "push");
       if (decoded === undefined) {
-        throw new Error("Worker returned an invalid push response.");
+        throw new CliFailure({ message: "Worker returned an invalid push response." });
       }
       return decoded;
     });

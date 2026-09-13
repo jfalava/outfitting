@@ -2,14 +2,15 @@ import { Console, Effect } from "effect";
 
 import { loadConfig, type ManagerConfig } from "@/config";
 import { resolveOutfittingRepo, type OutfittingRepo } from "@/config/repo";
+import { CliFailure } from "@/errors";
 import { tryPromise } from "@/lockfiles/effect";
 import { which } from "@/process";
+import { ui } from "@/ui";
 import { activateNixSystem } from "@/update/nix/activate";
 import { buildNixSystem } from "@/update/nix/build";
 import { closeNixLock, openNixLock } from "@/update/nix/lock";
 import { ensureNixSymlinks } from "@/update/nix/symlinks";
 import type { NixAction } from "@/update/nix/types";
-import { ui } from "@/ui";
 
 export interface UpdateNixOptions {
   action: NixAction;
@@ -25,12 +26,11 @@ export const updateNix = (options: UpdateNixOptions) =>
   Effect.gen(function* () {
     const nixPath = yield* tryPromise(() => which("nix"));
     if (nixPath === undefined) {
-      return yield* Effect.fail(new Error("nix is not installed or not in PATH."));
+      return yield* new CliFailure({ message: "nix is not installed or not in PATH." });
     }
 
     const config = options.config ?? (yield* tryPromise(() => loadConfig()));
-    const repo =
-      options.repo ?? (yield* tryPromise(() => resolveOutfittingRepo({ config })));
+    const repo = options.repo ?? (yield* tryPromise(() => resolveOutfittingRepo({ config })));
 
     yield* tryPromise(() => ensureNixSymlinks(repo));
 

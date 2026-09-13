@@ -4,11 +4,12 @@ import { join } from "node:path";
 import { Console, Effect } from "effect";
 
 import { loadConfig, type ManagerConfig } from "@/config";
+import { CliFailure } from "@/errors";
 import { fetchManifest } from "@/fetch";
 import { tryPromise } from "@/lockfiles/effect";
 import { runCommand, which } from "@/process";
-import { pushHomebrewInventory } from "@/update/snapshot";
 import { ui } from "@/ui";
+import { pushHomebrewInventory } from "@/update/snapshot";
 
 export const BREWFILE_MANIFEST_PATH = "packages/macos/Brewfile";
 
@@ -25,10 +26,7 @@ export function parseBrewfileTaps(brewfile: string): string[] {
   return taps;
 }
 
-async function trustTaps(
-  taps: ReadonlyArray<string>,
-  run: typeof runCommand,
-): Promise<void> {
+async function trustTaps(taps: ReadonlyArray<string>, run: typeof runCommand): Promise<void> {
   for (const tap of taps) {
     const result = await run("brew", ["trust", "--tap", tap], { inherit: false });
     const output = `${result.stdout}${result.stderr}`.trim();
@@ -64,7 +62,7 @@ export const updateBrew = (options: UpdateBrewOptions = {}) =>
     const run = options.run ?? runCommand;
     const brewPath = yield* tryPromise(() => whichFn("brew"));
     if (brewPath === undefined) {
-      return yield* Effect.fail(new Error("Homebrew is not installed or not in PATH."));
+      return yield* new CliFailure({ message: "Homebrew is not installed or not in PATH." });
     }
 
     const config = options.config ?? (yield* tryPromise(() => loadConfig()));
@@ -80,8 +78,7 @@ export const updateBrew = (options: UpdateBrewOptions = {}) =>
       yield* Console.log(ui.muted(manifest.warning));
     }
     const brewfilePath =
-      manifest.materializedPath ??
-      (yield* tryPromise(() => writeBrewfile(config, manifest.text)));
+      manifest.materializedPath ?? (yield* tryPromise(() => writeBrewfile(config, manifest.text)));
 
     const taps = parseBrewfileTaps(manifest.text);
     if (taps.length > 0) {
@@ -94,7 +91,7 @@ export const updateBrew = (options: UpdateBrewOptions = {}) =>
       run("brew", ["bundle", `--file=${brewfilePath}`], { inherit: true }),
     );
     if (bundle.code !== 0) {
-      return yield* Effect.fail(new Error(`brew bundle failed (exit ${bundle.code}).`));
+      return yield* new CliFailure({ message: `brew bundle failed (exit ${bundle.code}).` });
     }
 
     yield* requireBrewOk(run, ["upgrade"], "brew upgrade");
@@ -114,15 +111,11 @@ export const updateBrew = (options: UpdateBrewOptions = {}) =>
     }
   });
 
-const requireBrewOk = (
-  run: typeof runCommand,
-  args: ReadonlyArray<string>,
-  label: string,
-) =>
+const requireBrewOk = (run: typeof runCommand, args: ReadonlyArray<string>, label: string) =>
   Effect.gen(function* () {
     yield* Console.log(ui.heading(`${label}…`));
     const result = yield* tryPromise(() => run("brew", args, { inherit: true }));
     if (result.code !== 0) {
-      return yield* Effect.fail(new Error(`${label} failed (exit ${result.code}).`));
+      return yield* new CliFailure({ message: `${label} failed (exit ${result.code}).` });
     }
   });

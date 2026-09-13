@@ -1,6 +1,7 @@
 import { Console, Effect } from "effect";
 
 import { loadConfig, type ManagerConfig } from "@/config";
+import { CliFailure } from "@/errors";
 import { tryPromise } from "@/lockfiles/effect";
 import { ui } from "@/ui";
 import { updateBrew } from "@/update/brew";
@@ -61,13 +62,11 @@ export const updateAll = (options: UpdateAllOptions = {}) =>
     }
 
     if (failed.length > 0) {
-      return yield* Effect.fail(
-        new Error(
-          `update all finished with ${failed.length} failed step(s): ${failed
-            .map((step) => step.name)
-            .join(", ")}`,
-        ),
-      );
+      return yield* new CliFailure({
+        message: `update all finished with ${failed.length} failed step(s): ${failed
+          .map((step) => step.name)
+          .join(", ")}`,
+      });
     }
 
     yield* Console.log(ui.success("update all completed successfully."));

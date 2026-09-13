@@ -3,6 +3,7 @@ import { dirname } from "node:path";
 
 import { Console, Effect } from "effect";
 
+import { CliFailure } from "@/errors";
 import { tryPromise } from "@/lockfiles/effect";
 import { inferOutputPath, isGitTrackedFile } from "@/lockfiles/files";
 import { request } from "@/lockfiles/request";
@@ -13,17 +14,15 @@ export const pullLockfile = ({ machine, kind, outPath: requestedPath }: PullLock
   Effect.gen(function* () {
     const outPath = requestedPath ?? inferOutputPath(kind);
     if (!outPath) {
-      return yield* Effect.fail(
-        new Error(`Cannot infer a filename for kind "${kind}"; provide out-path explicitly.`),
-      );
+      return yield* new CliFailure({
+        message: `Cannot infer a filename for kind "${kind}"; provide out-path explicitly.`,
+      });
     }
 
     if (yield* tryPromise(() => isGitTrackedFile(outPath))) {
-      return yield* Effect.fail(
-        new Error(
-          `Refusing to overwrite Git-tracked file: ${outPath}; use --out-path to write elsewhere.`,
-        ),
-      );
+      return yield* new CliFailure({
+        message: `Refusing to overwrite Git-tracked file: ${outPath}; use --out-path to write elsewhere.`,
+      });
     }
 
     const response = yield* tryPromise(() => request(["lockfiles", machine, kind]));

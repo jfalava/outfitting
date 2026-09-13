@@ -157,12 +157,10 @@ const scoopState = Effect.fn("scoopState")(function* (run: typeof runCommand, sc
     runScoopCommand(run, scoopPath, ["export"], { inherit: false }),
   );
   if (result.code !== 0) {
-    return yield* Effect.fail(
-      new ScoopUpdateError({
-        message:
-          `scoop export failed (exit ${result.code}): ${result.stderr || result.stdout}`.trim(),
-      }),
-    );
+    return yield* new ScoopUpdateError({
+      message:
+        `scoop export failed (exit ${result.code}): ${result.stderr || result.stdout}`.trim(),
+    });
   }
   return yield* Effect.try({
     try: () => parseScoopExport(result.stdout),
@@ -182,11 +180,9 @@ const requireScoopCommand = Effect.fn("requireScoopCommand")(function* (
 ) {
   const result = yield* tryPromise(() => runScoopCommand(run, scoopPath, args, { inherit: true }));
   if (result.code !== 0) {
-    return yield* Effect.fail(
-      new ScoopUpdateError({
-        message: `${label} failed (exit ${result.code}): ${result.stderr || result.stdout}`.trim(),
-      }),
-    );
+    return yield* new ScoopUpdateError({
+      message: `${label} failed (exit ${result.code}): ${result.stderr || result.stdout}`.trim(),
+    });
   }
   return result;
 });
@@ -209,12 +205,10 @@ const dependencyNames = Effect.fn("dependencyNames")(function* (
     ),
   );
   if (result.code !== 0) {
-    return yield* Effect.fail(
-      new ScoopUpdateError({
-        message:
-          `powershell.exe scoop depends ${packageSpec} failed (exit ${result.code}): ${result.stderr || result.stdout}`.trim(),
-      }),
-    );
+    return yield* new ScoopUpdateError({
+      message:
+        `powershell.exe scoop depends ${packageSpec} failed (exit ${result.code}): ${result.stderr || result.stdout}`.trim(),
+    });
   }
   return yield* Effect.try({
     try: () => parseScoopDependencies(result.stdout, packageSpec),
@@ -328,9 +322,7 @@ export const updateScoop = (options: UpdateScoopOptions = {}) =>
     const whichFn = options.which ?? which;
     const scoopPath = options.scoopPath ?? (yield* tryPromise(() => whichFn("scoop")));
     if (scoopPath === undefined) {
-      return yield* Effect.fail(
-        new ScoopUpdateError({ message: "Scoop is not installed or not in PATH." }),
-      );
+      return yield* new ScoopUpdateError({ message: "Scoop is not installed or not in PATH." });
     }
 
     const config = options.config ?? (yield* tryPromise(() => loadConfig()));

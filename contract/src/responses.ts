@@ -9,7 +9,7 @@ export type ErrorBody = Schema.Schema.Type<typeof ErrorBody>;
 
 export const PushResponse = Schema.Struct({
   hash: Sha256,
-  size: Schema.Number,
+  size: Schema.Finite,
 });
 export type PushResponse = Schema.Schema.Type<typeof PushResponse>;
 
@@ -22,7 +22,7 @@ export type StalePushBody = Schema.Schema.Type<typeof StalePushBody>;
 
 export const HistoryEntry = Schema.Struct({
   hash: Sha256,
-  size: Schema.Number,
+  size: Schema.Finite,
   created_at: Schema.String,
 });
 export type HistoryEntry = Schema.Schema.Type<typeof HistoryEntry>;

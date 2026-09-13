@@ -1,5 +1,6 @@
 import { Console, Effect, Option, Schema } from "effect";
 
+import { CliFailure } from "@/errors";
 import { tryPromise } from "@/lockfiles/effect";
 import { runCommand, which } from "@/process";
 import { ui } from "@/ui";
@@ -147,7 +148,7 @@ export const updateBun = (options?: {
         yield* Console.log(ui.muted("Bun not installed; skipping."));
         return { updated: 0, failed: 0, skipped: 0 } satisfies BunUpdateResult;
       }
-      return yield* Effect.fail(new Error("Bun is not installed or not in PATH."));
+      return yield* new CliFailure({ message: "Bun is not installed or not in PATH." });
     }
 
     yield* Console.log(ui.heading("Updating global Bun packages…"));
@@ -162,11 +163,9 @@ export const updateBun = (options?: {
     const result = yield* updateGlobalPackages(packages, fetcher, run);
 
     if (result.failed > 0) {
-      return yield* Effect.fail(
-        new Error(
-          `Bun global update finished with ${result.failed} failure(s); updated ${result.updated}.`,
-        ),
-      );
+      return yield* new CliFailure({
+        message: `Bun global update finished with ${result.failed} failure(s); updated ${result.updated}.`,
+      });
     }
     yield* Console.log(
       ui.success(`Bun globals: ${result.updated} updated, ${result.skipped} already current.`),

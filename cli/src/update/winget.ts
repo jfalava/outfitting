@@ -1,6 +1,7 @@
 import { Console, Effect } from "effect";
 
 import { loadConfig, type ManagerConfig } from "@/config";
+import { CliFailure } from "@/errors";
 import { tryPromise } from "@/lockfiles/effect";
 import { runCommand, which, type RunCommandResult } from "@/process";
 import { ui } from "@/ui";
@@ -33,7 +34,7 @@ export const updateWinget = (options: UpdateWingetOptions = {}) =>
     const whichFn = options.which ?? which;
     const wingetPath = yield* tryPromise(() => whichFn("winget"));
     if (wingetPath === undefined) {
-      return yield* Effect.fail(new Error("WinGet is not installed or not in PATH."));
+      return yield* new CliFailure({ message: "WinGet is not installed or not in PATH." });
     }
 
     const config = options.config ?? (yield* tryPromise(() => loadConfig()));

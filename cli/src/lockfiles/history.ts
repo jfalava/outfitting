@@ -1,6 +1,7 @@
 import { decodeResponse, HistoryResponse, isJsonValue } from "@outfitting/contract";
 import { Console, Effect } from "effect";
 
+import { CliFailure } from "@/errors";
 import { tryPromise } from "@/lockfiles/effect";
 import { request } from "@/lockfiles/request";
 import { ui } from "@/ui";
@@ -11,11 +12,11 @@ export const historyLockfiles = (machine: string, kind: string) =>
     const entries = yield* tryPromise(async () => {
       const raw: unknown = await response.json();
       if (!isJsonValue(raw)) {
-        throw new Error("Worker returned an invalid history response.");
+        throw new CliFailure({ message: "Worker returned an invalid history response." });
       }
       const decoded = decodeResponse(HistoryResponse, raw, "history");
       if (decoded === undefined) {
-        throw new Error("Worker returned an invalid history response.");
+        throw new CliFailure({ message: "Worker returned an invalid history response." });
       }
       return decoded;
     });

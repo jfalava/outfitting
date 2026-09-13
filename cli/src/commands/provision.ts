@@ -6,6 +6,7 @@ import { Console, Effect, Option } from "effect";
 import { Command, Flag } from "effect/unstable/cli";
 import pc from "picocolors";
 
+import { toCliFailure } from "@/errors";
 import { storeWorkerUrl } from "@/lockfiles/keychain";
 import { ui } from "@/ui";
 
@@ -242,8 +243,7 @@ export const provisionCommand = Command.make(
             configPath: optionalFlag(flags.config),
             overrides,
           }),
-        catch: (cause) =>
-          cause instanceof Error ? cause : new Error("Invalid provision configuration."),
+        catch: (cause) => toCliFailure(cause, "Invalid provision configuration."),
       });
 
       const workerToken =
@@ -257,8 +257,7 @@ export const provisionCommand = Command.make(
             deployConfig: resolved,
             workerToken,
           }),
-        catch: (cause) =>
-          cause instanceof Error ? cause : new Error("Could not deploy the Outfitting stack."),
+        catch: (cause) => toCliFailure(cause, "Could not deploy the Outfitting stack."),
       });
 
       const routerUrl = deployment.url.replace(/\/$/, "");
@@ -275,7 +274,8 @@ export const provisionCommand = Command.make(
             });
           },
           catch: (cause) =>
-            new Error(
+            toCliFailure(
+              cause,
               `Stack deployed, but credentials could not be stored in the OS keychain: ${
                 cause instanceof Error ? cause.message : String(cause)
               }. Set them with lockfiles configure-worker / configure-token.`,

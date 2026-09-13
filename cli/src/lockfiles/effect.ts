@@ -1,7 +1,8 @@
 import { Effect } from "effect";
 
-export const toError = (cause: unknown): Error =>
-  cause instanceof Error ? cause : new Error(String(cause));
+import { toCliFailure, type CliFailure } from "@/errors";
+
+export const toError = (cause: unknown): CliFailure => toCliFailure(cause);
 
 export const tryPromise = <A>(try_: () => Promise<A>) =>
   Effect.tryPromise({

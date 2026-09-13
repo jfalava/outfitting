@@ -35,12 +35,10 @@ export const captureHomebrewInventory = Effect.fn("captureHomebrewInventory")(fu
 
   for (const result of [taps, formulae, casks]) {
     if (result.code !== 0) {
-      return yield* Effect.fail(
-        new HomebrewInventoryError({
-          message:
-            `Failed to capture Homebrew inventory (exit ${result.code}): ${result.stderr || result.stdout}`.trim(),
-        }),
-      );
+      return yield* new HomebrewInventoryError({
+        message:
+          `Failed to capture Homebrew inventory (exit ${result.code}): ${result.stderr || result.stdout}`.trim(),
+      });
     }
   }
 
