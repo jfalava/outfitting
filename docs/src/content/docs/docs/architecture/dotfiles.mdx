@@ -35,4 +35,4 @@ Committed desired state: `packages/macos/` (Brewfile, nix), `packages/windows/` 
 
 Root `*-install-script.{sh,ps1}` files are served live from the installer hosts. They resolve the repo (`OUTFITTING_REPO`, then `~/.config/outfitting/repo-path`, then `~/.config/outfitting/repo`), clone when missing, symlink dotfiles, install manifests, and fetch the checksum-verified `outfitting-manager` release. Post-install adds Scoop buckets, public fonts, and the Access-gated private archive (checksum-verified before extraction).
 
-Day-to-day sync pushes observed inventories via [CLI lockfiles](/docs/cli/lockfiles): `winget` / `scoop-inventory` / `bun-global-inventory` / `powershell-inventory` (`jfalava:x64-windows`), `nix` + `homebrew-inventory` (`jfalava:aarch64-darwin`).
+Day-to-day sync pushes observed inventories via the CLI's primary [sync command](/docs/cli/lockfiles): `winget` / `scoop-inventory` / `bun-global-inventory` / `powershell-inventory` (`<username>:x86_64-windows`), `nix` + `homebrew-inventory` (`jfalava:aarch64-darwin`). Legacy PowerShell inventory functions still use `jfalava:x64-windows`.

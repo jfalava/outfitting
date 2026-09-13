@@ -11,17 +11,32 @@ Upgrade to the latest version with:
 outfitting-manager upgrade
 ```
 
-The command checks the latest GitHub release for the current platform, compares it with the running binary, and exits when already up to date. Otherwise it downloads the platform zip and its `.sha256` sidecar, verifies the archive checksum, extracts the `outfitting-manager` binary (or `outfitting-manager.exe` on Windows), replaces the current executable, and sets the executable bit on the replacement.
+Run this command from the compiled release binary installed by a platform installer. Running Bun source directly is rejected because a source process cannot safely identify itself as the installed executable.
+
+The command checks the latest GitHub release for the current platform, compares it with the running binary, and exits when already up to date. Otherwise it downloads the platform zip and its `.sha256` sidecar, verifies the archive checksum, and extracts the platform executable.
+
+On Unix, the command replaces the current executable and sets its executable bit. On Windows, the running `.exe` cannot replace itself while it is still open, so the command writes a temporary executable and starts a hidden PowerShell process to move it into place after the current process exits. Run a new `outfitting-manager --version` command after the upgrade to verify the replacement.
 
 Each release publishes one zip per platform. The archive name includes the platform (`outfitting-manager-linux-x64.zip`, `outfitting-manager-darwin-arm64.zip`, `outfitting-manager-windows-x64.zip`); the binary inside is always named `outfitting-manager` (with `.exe` on Windows).
 
 ## Troubleshooting
 
-If you extracted a release zip in a browser, some OS like macOS saves the binary without the executable bit. Repair it before the first run:
+If you extracted a release zip in a browser, some Unix operating systems such as macOS save the binary without the executable bit. Repair it before the first run:
 
 ```bash
 chmod 755 ~/.local/bin/outfitting-manager
 ```
+
+### Windows
+
+Confirm that PowerShell resolves the compiled executable rather than a Bun source shim:
+
+```powershell
+Get-Command outfitting-manager | Select-Object -ExpandProperty Source
+outfitting-manager --version
+```
+
+The resolved path should normally be `%USERPROFILE%\.local\bin\outfitting-manager.exe`. If the command reports that upgrade must run from a compiled binary, remove the source shim from the beginning of `PATH` and start a new PowerShell session.
 
 ### macOS
 

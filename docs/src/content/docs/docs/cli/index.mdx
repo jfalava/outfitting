@@ -13,7 +13,7 @@ sidebar:
 - [Upgrade](/docs/cli/upgrade) — check for and install the latest release.
 - `setup` — create the state root and cache platform manifests without cloning the repository.
 - `update` — run the platform package-manager path; Windows supports `winget`, `scoop`, `bun`, and `all`.
-- [Lockfiles](/docs/cli/lockfiles) — send, restore, and inspect generated machine-local state.
+- [Lockfiles](/docs/cli/lockfiles) — use the primary `sync` command to send, restore, and inspect generated machine-local state.
 - [Fonts](/docs/cli/fonts) — publish and remove licensed private fonts.
 
 ## When it is installed
@@ -24,7 +24,7 @@ Platform installers download a checksum-verified GitHub release zip, extract the
 - [Windows Subsystem for Linux](/docs/wsl): the [installer](/docs/wsl/installation/) does not install `outfitting-manager`.
 - [macOS](/docs/macos): the [installer](/docs/macos/installation/) writes `outfitting-manager` to `$HOME/.local/bin` on Apple Silicon, then uses it to pull the canonical Nix lock.
 
-Once the binary is on `PATH`, `outfitting-manager upgrade` replaces it with the latest release.
+Once the compiled release binary is on `PATH`, `outfitting-manager upgrade` replaces it with the latest release. Running the upgrade from Bun source is rejected.
 
 Run the CLI once it is on `PATH`:
 

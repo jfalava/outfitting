@@ -55,9 +55,9 @@ The installer also:
 - Installs the `PSReadLine PowerShell` module for the current user.
 - Resolves the repository from `OUTFITTING_REPO`, then `%USERPROFILE%\.config\outfitting\repo-path`, then `%USERPROFILE%\.config\outfitting\repo`. It validates an existing Git checkout or clones the repository when it is missing, then persists the resolved path to repo-path.
 - Downloads the latest Windows x64 outfitting-manager zip and its `.sha256` file, verifies the archive checksum, extracts `outfitting-manager.exe`, and installs it under `%USERPROFILE%\.local\bin`.
-- Installs OpenSSH Server when it is missing, starts `sshd`, configures automatic startup, and creates the inbound TCP port 22 firewall rule.
+- Downloads and installs the latest `PowerShell/Win32-OpenSSH` server when it is missing, starts `sshd`, configures automatic startup, and creates the inbound TCP port 22 firewall rule.
 - Links the PowerShell, VS Code PowerShell, and Windows PowerShell profile entry points to `dotfiles/Microsoft.PowerShell_profile.ps1`. Existing profiles are backed up with a timestamp before replacement.
-- Discovers .reg files under [system/windows/registry](https://github.com/jfalava/outfitting/tree/main/system/windows/registry) and interactively offers to import them. The default choice is all discovered tweaks; choose N to skip them.
+- Discovers .reg files under [system/windows/registry](https://github.com/jfalava/outfitting/tree/main/system/windows/registry) and interactively offers to import them. Choose A for all (the default), N for none, or R to review each tweak.
 
 The profile links use Windows symbolic links. Enable Windows Developer Mode or run the installer with the required elevation for those links to be created.
 
@@ -98,15 +98,21 @@ The main Windows installer downloads the latest Windows x64 outfitting-manager z
 
 The separate [post-install script](/docs/windows/post-install/) silently performs the same checksum-verified download as a best-effort fallback when the executable is missing. It suppresses manager download errors and does not block its other tasks. The manager is a release binary; these scripts do not create a manager symlink or build it from the repository.
 
+The installer does not persist `%USERPROFILE%\.local\bin` in the user PATH. The linked PowerShell profile adds it when a new session starts. Open a new PowerShell session or reload the profile with `. $PROFILE` before running the manager.
+
 ## Bun Global Packages
 
-Requires Bun installed first:
+The `base` WinGet profile installs Bun as `Oven-sh.Bun`. Windows has no `/bun` installer route. `packages/bun.txt` is cached by `outfitting-manager setup`, but it is not a desired-state manifest for Windows global packages.
+
+After Bun is installed, update the global packages that are already present:
 
 ```powershell
-irm win.jfa.dev/bun | iex
+outfitting-manager update bun
 ```
 
-## Scoop inventory
+`update bun` fails when Bun is missing. `update all` skips the Bun step when Bun is not installed.
+
+## Scoop reconciliation and inventory
 
 The repository-owned `packages/windows/scoop.txt` is the source of truth for directly installed Scoop packages. The manager fetches that manifest without requiring a local checkout, reconciles buckets and packages, preserves dependencies, removes undeclared non-global packages, updates packages, and stores a stable `scoop-inventory` snapshot.
 
@@ -115,7 +121,11 @@ outfitting-manager setup
 outfitting-manager update scoop
 ```
 
-Use `outfitting-manager sync push <machine> scoop-inventory <path>` to upload an existing export without reconciling first.
+Use the primary `sync` command to upload an existing export without reconciling first. `lockfiles` remains an alias for `sync`.
+
+```powershell
+outfitting-manager sync push <machine> scoop-inventory <path>
+```
 
 ## Registry Tweaks Only
 

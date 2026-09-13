@@ -5,7 +5,7 @@ sidebar:
   order: 4
 ---
 
-The `lockfiles` command stores generated state that is not committed to Git, such as the canonical macOS flake lock and package-manager inventories.
+The primary `sync` command stores generated state that is not committed to Git, such as the canonical macOS flake lock and package-manager inventories. `lockfiles` remains an alias during the command migration, so both names accept the same subcommands.
 
 - Push state to the API worker behind the edge router.
 - Restore, list, and inspect stored state on another machine.
@@ -20,28 +20,29 @@ Public API URL (via the edge router): `https://worker-url/api`.
 Point the CLI at your deployed Worker. See [Provision credentials](/docs/cli/provision#credentials) for where configuration is stored.
 
 ```bash
-outfitting-manager lockfiles configure-worker "https://url-to-your-worker"
+outfitting-manager sync configure-worker "https://url-to-your-worker"
 ```
 
 If it has not been configured, the first API call prompts for it and for the bearer token using masked input. Run `configure-worker` again whenever the Worker URL changes, and `configure-token` to set or replace the API token:
 
 ```bash
-outfitting-manager lockfiles configure-token
+outfitting-manager sync configure-token
 ```
 
 ## Push lock state
 
 ```bash
-outfitting-manager lockfiles push machine-name:aarch64-darwin nix updated-flake.lock
-outfitting-manager lockfiles push machine-name:aarch64-darwin homebrew-inventory homebrew-inventory.txt
-outfitting-manager lockfiles push machine-name:x64-windows scoop-inventory scoop-inventory.json
-outfitting-manager lockfiles push machine-name:x64-windows winget winget.json
+outfitting-manager sync push machine-name:aarch64-darwin nix updated-flake.lock
+outfitting-manager sync push machine-name:aarch64-darwin homebrew-inventory homebrew-inventory.txt
+outfitting-manager sync push machine-name:x86_64-windows scoop-inventory scoop-inventory.json
+outfitting-manager sync push machine-name:x86_64-windows bun-global-inventory bun-global-inventory.json
+outfitting-manager sync push machine-name:x86_64-windows winget winget.json
 ```
 
 Protect a read-modify-write update by supplying the SHA-256 of the version that was pulled:
 
 ```bash
-outfitting-manager lockfiles push machine-name:aarch64-darwin nix updated-flake.lock \
+outfitting-manager sync push machine-name:aarch64-darwin nix updated-flake.lock \
   --if-match 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
 ```
 
@@ -52,20 +53,20 @@ The Worker rejects the push with HTTP 412 if another client has advanced that ma
 Pull the latest version:
 
 ```bash
-outfitting-manager lockfiles pull machine-name:x64-wsl nix
-outfitting-manager lockfiles pull machine-name:x64-windows winget restored-winget.json
+outfitting-manager sync pull machine-name:x64-wsl nix
+outfitting-manager sync pull machine-name:x86_64-windows winget restored-winget.json
 ```
 
-The default output filename is inferred for common kinds, including `nix`, `flake`, `bun`, `npm`, `package-lock`, `homebrew-inventory`, `homebrew`, `brew`, `brewfile`, `scoop-inventory`, and `winget`. Pass an explicit output path for any other free-form kind.
+The default output filename is inferred for common kinds, including `nix`, `flake`, `bun`, `npm`, `package-lock`, `homebrew-inventory`, `homebrew`, `brew`, `brewfile`, `scoop-inventory`, `bun-global-inventory`, `powershell-inventory`, `private-fonts`, and `winget`. Pass an explicit output path for any other free-form kind.
 
 List kinds and inspect history:
 
 ```bash
-outfitting-manager lockfiles list machine-name:aarch64-darwin
-outfitting-manager lockfiles history machine-name:aarch64-darwin nix
+outfitting-manager sync list machine-name:aarch64-darwin
+outfitting-manager sync history machine-name:aarch64-darwin nix
 ```
 
-Machine names are free-form. Automatic maintenance hooks use the repository's `username:platform` convention. The current Windows hook uses `machine-name:x64-windows`.
+Machine names are free-form. The manager's automatic Windows id uses the `username:x86_64-windows` convention. The legacy PowerShell hook in this repository still uses `jfalava:x64-windows`; pass `setup --machine-id` when manager and legacy snapshots must share a record.
 
 ## Worker API
 
@@ -91,4 +92,4 @@ Public equivalents: `https://worker-url/api/lockfiles/...`.
 
 * Successful `outfit sync` and `outfit upgrade` operations automatically store the observed, versioned Homebrew state as `homebrew-inventory`. Kinds are free-form and require no schema migration.
 
-* Windows treats `packages/windows/scoop.txt` as the source of truth for directly installed Scoop packages. `outfitting-manager update scoop` reconciles it, writes a stable, sorted Scoop export without volatile timestamps, and uploads it as `scoop-inventory` for `machine-name:x64-windows`. The existing PowerShell `Sync-OutfittingScoop` and `Save-OutfittingScoopInventory` functions remain available during migration.
+* Windows treats `packages/windows/scoop.txt` as the source of truth for directly installed Scoop packages. `outfitting-manager update scoop` reconciles it, writes a stable, sorted Scoop export without volatile timestamps, and uploads it as `scoop-inventory` for the configured `username:x86_64-windows` machine. `update bun` similarly uploads `bun-global-inventory`; the existing PowerShell `Sync-OutfittingScoop` and `Save-OutfittingScoopInventory` functions remain available during migration.

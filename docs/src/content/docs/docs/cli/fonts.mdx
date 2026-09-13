@@ -16,9 +16,11 @@ You keep one private font set that machines can install. `list` shows what is pu
 `outfitting-manager` must already be on `PATH`. If this machine has not been configured yet:
 
 ```bash
-outfitting-manager lockfiles configure-worker
-outfitting-manager lockfiles configure-token
+outfitting-manager sync configure-worker
+outfitting-manager sync configure-token
 ```
+
+`sync` is the primary command for the lockfiles Worker; `lockfiles` remains an alias.
 
 `publish` and `remove` also need storage credentials. The commands below save them on this machine; the first publish or remove prompts if they are missing.
 

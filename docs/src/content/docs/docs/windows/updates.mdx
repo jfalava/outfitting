@@ -9,14 +9,22 @@ sidebar:
 
 The manager keeps configuration, manifest caches, and materialized manifests under `%USERPROFILE%\.config\outfitting` by default. It fetches the manifests from the repository's raw content; it does not clone or pull the monorepo.
 
-Run setup once, or run it again when changing the machine id or manifest source:
+Run setup once, or run it again when changing the machine id or manifest source. The default Windows machine id is `<username>:x86_64-windows`:
 
 ```powershell
 outfitting-manager setup
-outfitting-manager setup --machine-id jfalava:x64-windows
+outfitting-manager setup --machine-id jfalava:x86_64-windows
 ```
 
-The Windows setup manifests are `packages/windows/scoop.txt` and `packages/bun.txt`. Use `--no-fetch` when only the state root and config should be created.
+The Windows setup manifests are `packages/windows/scoop.txt` and `packages/bun.txt`. Setup caches both files in the state root; only `scoop.txt` is reconciled as desired package state. `update bun` updates global packages already installed by Bun. Use `--no-fetch` when only the state root and config should be created.
+
+For a different manifest source, pass a raw GitHub base URL without the ref and an explicit Git ref:
+
+```powershell
+outfitting-manager setup `
+  --manifest-base-url "https://raw.githubusercontent.com/jfalava/outfitting" `
+  --manifest-ref main
+```
 
 ## Repository-managed configuration
 
@@ -65,7 +73,9 @@ outfitting-manager update all
 
 `update all` runs `winget → scoop → bun`, then stores the successful inventories. It continues after a failed step and exits nonzero if any update or inventory step fails. When Bun is absent, `update all` skips it; explicit `update bun` fails. Add `--no-sync` to any update command to skip inventory uploads.
 
-The existing PowerShell `Update-All` profile function remains available during migration for PowerShell modules and other profile-owned tasks. The manager owns package updates and inventory snapshots; PowerShell continues to own session environment and `PATH` setup.
+The existing PowerShell `Update-All` profile function remains available as a legacy full update path. It still runs WinGet, Scoop, Bun globals, PowerShell module updates, and a WinGet inventory export; it is not a modules-only command. Prefer the manager for package updates and inventory snapshots. PowerShell continues to own session environment and `PATH` setup.
+
+The manager stores uploads under its configured machine id, normally `<username>:x86_64-windows`. The legacy profile functions in this repository still use `jfalava:x64-windows`; set `--machine-id` explicitly if those snapshots must share one remote record.
 
 Configure the lockfiles Worker before the first upload if the machine has not been provisioned:
 
@@ -73,6 +83,8 @@ Configure the lockfiles Worker before the first upload if the machine has not be
 outfitting-manager sync configure-worker
 outfitting-manager sync configure-token
 ```
+
+Use the compiled release binary for self-upgrades. Running `upgrade` from Bun source is rejected; see [CLI upgrade](/docs/cli/upgrade/) for the Windows replacement behavior.
 
 ## Post-install work
 
