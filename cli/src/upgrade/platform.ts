@@ -23,6 +23,9 @@ const ASSETS = {
 
 const normalizePath = (path: string): string => path.replaceAll("\\", "/").toLowerCase();
 
+const isCompiledBinaryPath = (normalizedPath: string): boolean =>
+  normalizedPath.startsWith("/$bunfs/") || /^[a-z]:\/~bun\/root\//.test(normalizedPath);
+
 export function assetNameFor(platform = process.platform, arch = process.arch): string {
   const names = ASSETS[`${platform}:${arch}` as keyof typeof ASSETS];
   if (!names) {
@@ -41,7 +44,7 @@ export function executableNameFor(platform = process.platform, arch = process.ar
 
 export function executablePath(main = Bun.main, execPath = process.execPath): string {
   const normalizedMain = normalizePath(main);
-  const isCompiledBinary = normalizedMain.startsWith("/$bunfs/");
+  const isCompiledBinary = isCompiledBinaryPath(normalizedMain);
   if (!isCompiledBinary && normalizedMain !== normalizePath(execPath)) {
     throw new Error(
       "upgrade must be run from the compiled outfitting-manager binary, not from Bun source.",

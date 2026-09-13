@@ -94,6 +94,12 @@ describe("upgrade command helpers", () => {
         "/Users/test/.local/bin/outfitting-manager",
       ),
     ).toBe("/Users/test/.local/bin/outfitting-manager");
+    expect(
+      executablePath(
+        "B:\\~BUN\\root\\outfitting-manager.exe",
+        "C:\\Users\\test\\.local\\bin\\outfitting-manager.exe",
+      ),
+    ).toBe("C:\\Users\\test\\.local\\bin\\outfitting-manager.exe");
   });
 
   test("parses release checksum files", () => {
