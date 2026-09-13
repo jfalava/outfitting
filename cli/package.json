@@ -1,6 +1,6 @@
 {
   "name": "@outfitting/cli",
-  "version": "0.19.2",
+  "version": "0.19.3",
   "private": true,
   "bin": {
     "outfitting-manager": "index.ts"
@@ -22,7 +22,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "3.1130.0",
+    "@aws-sdk/client-s3": "3.1131.0",
     "@effect/platform-bun": "catalog:effect",
     "@outfitting/contract": "workspace:*",
     "effect": "catalog:effect",

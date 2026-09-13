@@ -1,6 +1,6 @@
 {
   "name": "@outfitting/docs",
-  "version": "0.19.2",
+  "version": "0.19.3",
   "private": true,
   "type": "module",
   "scripts": {
@@ -31,7 +31,7 @@
     "astro-og-canvas": "0.13.1",
     "canvaskit-wasm": "0.42.0",
     "clsx": "2.1.1",
-    "tailwind-merge": "3.6.0"
+    "tailwind-merge": "3.7.0"
   },
   "devDependencies": {
     "@astrojs/check": "0.9.10",
