@@ -87,7 +87,7 @@ describe("fetchManifest", () => {
     expect(first.source).toBe("network");
     expect(first.text).toContain("example/tap");
     expect(first.etag).toBe('"v1"');
-    expect(first.materializedPath).toContain("manifests/packages/macos/Brewfile");
+    expect(first.materializedPath).toBe(join(root, "manifests", "packages", "macos", "Brewfile"));
     bodies.push(first.text);
 
     const cached = await readCachedManifest(join(root, "cache", "manifests"), first.url);
