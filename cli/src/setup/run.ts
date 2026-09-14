@@ -8,6 +8,7 @@ import {
   saveConfigFile,
   tryResolveOutfittingRepo,
   writeRepoPath,
+  type ManagerConfig,
   type ManagerConfigFile,
   type ManifestSourceConfig,
 } from "@/config";
@@ -15,6 +16,7 @@ import type { OutfittingRepo } from "@/config/repo";
 import type { ManifestFetcher } from "@/fetch";
 import { tryPromise } from "@/lockfiles/effect";
 import { prefetchSetupManifests } from "@/setup/manifests";
+import { syncMacosSource, type SparseSourceResult } from "@/setup/source";
 import { ui } from "@/ui";
 
 export interface SetupOptions {
@@ -30,6 +32,10 @@ export interface SetupOptions {
   fetchManifests?: boolean;
   /** Manifest paths to prefetch; defaults to the macOS set. */
   manifestPaths?: ReadonlyArray<string>;
+  /** Fetch and publish a sparse macOS source tree instead of loose manifests. */
+  sourcePaths?: ReadonlyArray<string>;
+  /** Override the sparse macOS source root. */
+  sourceRoot?: string;
   /** Skip nix-darwin / home-manager symlink ensure. */
   skipSymlinks?: boolean;
   /** Platform-specific symlink setup, supplied only by the macOS entrypoint. */
@@ -64,8 +70,62 @@ function buildConfigPatch(options: SetupOptions): ManagerConfigFile | undefined 
   return patch;
 }
 
+function logSparseSource(source: SparseSourceResult) {
+  return Effect.gen(function* () {
+    for (const item of source.files) {
+      yield* Console.log(ui.success(`${item.path} (${item.source}) → ${source.root}`));
+      if (item.warning) {
+        yield* Console.log(ui.muted(item.warning));
+      }
+    }
+  });
+}
+
+function setupSparseSource(options: SetupOptions, config: ManagerConfig, root: string) {
+  return Effect.gen(function* () {
+    yield* Console.log(ui.heading("Fetching sparse macOS source…"));
+    const source = yield* tryPromise(() =>
+      syncMacosSource({
+        config,
+        sourceRoot: options.sourceRoot,
+        paths: options.sourcePaths,
+        fetcher: options.fetcher,
+        offline: options.offline,
+      }),
+    );
+    yield* logSparseSource(source);
+    const written = yield* tryPromise(() => writeRepoPath(source.root, { stateRoot: root }));
+    yield* Console.log(ui.success(`Sparse source path set to: ${written.repo.root}`));
+    yield* Console.log(ui.muted(`repo-path: ${written.pathFile}`));
+  });
+}
+
+function prefetchCoreManifests(options: SetupOptions, config: ManagerConfig) {
+  return Effect.gen(function* () {
+    yield* Console.log(ui.heading("Prefetching core manifests…"));
+    const prefetched = yield* tryPromise(() =>
+      prefetchSetupManifests({
+        config,
+        paths: options.manifestPaths,
+        fetcher: options.fetcher,
+        offline: options.offline,
+      }),
+    );
+    for (const item of prefetched.ok) {
+      const where = item.materializedPath ?? item.path;
+      yield* Console.log(ui.success(`${item.path} (${item.source}) → ${where}`));
+      if (item.warning) {
+        yield* Console.log(ui.muted(item.warning));
+      }
+    }
+    for (const item of prefetched.failed) {
+      yield* Console.log(ui.muted(`manifest ${item.path}: ${item.error}`));
+    }
+  });
+}
+
 /**
- * Materialize state root: config, optional repo-path, core manifests, nix symlinks.
+ * Materialize state root: config, optional repo-path, source/manifests, nix symlinks.
  * Does not clone the monorepo.
  */
 export const runSetup = (options: SetupOptions = {}) =>
@@ -79,12 +139,6 @@ export const runSetup = (options: SetupOptions = {}) =>
       yield* tryPromise(() => saveConfigFile(patch, { stateRoot: root }));
     }
 
-    if (options.repo !== undefined) {
-      const written = yield* tryPromise(() => writeRepoPath(options.repo!, { stateRoot: root }));
-      yield* Console.log(ui.success(`Repository path set to: ${written.repo.root}`));
-      yield* Console.log(ui.muted(`repo-path: ${written.pathFile}`));
-    }
-
     const config = yield* tryPromise(() => loadConfig({ stateRoot: root }));
     yield* Console.log(ui.success(`State root ready: ${config.stateRoot}`));
     yield* Console.log(ui.muted(`machine id: ${config.machineId}`));
@@ -93,25 +147,17 @@ export const runSetup = (options: SetupOptions = {}) =>
 
     const shouldFetch = options.fetchManifests !== false;
     if (shouldFetch) {
-      yield* Console.log(ui.heading("Prefetching core manifests…"));
-      const prefetched = yield* tryPromise(() =>
-        prefetchSetupManifests({
-          config,
-          paths: options.manifestPaths,
-          fetcher: options.fetcher,
-          offline: options.offline,
-        }),
-      );
-      for (const item of prefetched.ok) {
-        const where = item.materializedPath ?? item.path;
-        yield* Console.log(ui.success(`${item.path} (${item.source}) → ${where}`));
-        if (item.warning) {
-          yield* Console.log(ui.muted(item.warning));
-        }
+      if (options.sourcePaths !== undefined && options.repo === undefined) {
+        yield* setupSparseSource(options, config, root);
+      } else {
+        yield* prefetchCoreManifests(options, config);
       }
-      for (const item of prefetched.failed) {
-        yield* Console.log(ui.muted(`manifest ${item.path}: ${item.error}`));
-      }
+    }
+
+    if (options.repo !== undefined) {
+      const written = yield* tryPromise(() => writeRepoPath(options.repo!, { stateRoot: root }));
+      yield* Console.log(ui.success(`Repository path set to: ${written.repo.root}`));
+      yield* Console.log(ui.muted(`repo-path: ${written.pathFile}`));
     }
 
     if (options.ensureSymlinks !== undefined && options.skipSymlinks !== true) {
@@ -122,7 +168,7 @@ export const runSetup = (options: SetupOptions = {}) =>
       } else {
         yield* Console.log(
           ui.muted(
-            `No repo configured yet. Re-run with --repo /path/to/outfitting (writes ${repoPathFile(root)}).`,
+            `No source configured yet. Re-run setup with fetching enabled (writes ${repoPathFile(root)}).`,
           ),
         );
       }

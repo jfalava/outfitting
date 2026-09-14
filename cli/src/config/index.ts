@@ -6,6 +6,7 @@ export {
   manifestCacheDir,
   manifestsDir,
   repoPathFile,
+  sparseSourceRoot,
   stateRoot,
 } from "@/config/paths";
 export {

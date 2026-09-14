@@ -1,13 +1,14 @@
-import { access, mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { access, mkdtemp, mkdir, readFile, realpath, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { Effect } from "effect";
 import { afterEach, describe, expect, test } from "vitest";
 
-import { runSetup } from "@/setup/run";
-import { SETUP_MANIFEST_PATHS } from "@/setup/manifests";
+import { sparseSourceRoot } from "@/config";
 import { writeRepoPath, validateOutfittingRepo } from "@/config/repo";
+import { MACOS_SOURCE_PATHS } from "@/setup/manifests";
+import { runSetup } from "@/setup/run";
 
 const temps: string[] = [];
 
@@ -76,9 +77,29 @@ describe("runSetup", () => {
     expect(config.machineId).toBe("test:aarch64-darwin");
     expect((await readFile(join(state, "repo-path"), "utf8")).trim().length).toBeGreaterThan(0);
 
-    for (const path of SETUP_MANIFEST_PATHS) {
+    for (const path of MACOS_SOURCE_PATHS) {
       await access(join(state, "manifests", path));
     }
     void home;
+  });
+
+  test("fetches sparse macOS source and persists its repo-path", async () => {
+    const state = await tempDir("outfitting-sparse-setup-");
+
+    await Effect.runPromise(
+      runSetup({
+        stateRoot: state,
+        sourcePaths: MACOS_SOURCE_PATHS,
+        fetcher: async (url) => new Response(`source:${url}\n`, { status: 200 }),
+        skipSymlinks: true,
+      }),
+    );
+
+    expect((await readFile(join(state, "repo-path"), "utf8")).trim()).toBe(
+      await realpath(sparseSourceRoot(state)),
+    );
+    for (const path of MACOS_SOURCE_PATHS) {
+      await access(join(sparseSourceRoot(state), path));
+    }
   });
 });

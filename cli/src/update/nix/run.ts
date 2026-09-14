@@ -1,10 +1,13 @@
 import { Console, Effect } from "effect";
 
 import { loadConfig, type ManagerConfig } from "@/config";
-import { resolveOutfittingRepo, type OutfittingRepo } from "@/config/repo";
+import { resolveOutfittingRepo, writeRepoPath, type OutfittingRepo } from "@/config/repo";
 import { CliFailure } from "@/errors";
+import type { ManifestFetcher } from "@/fetch";
 import { tryPromise } from "@/lockfiles/effect";
 import { which } from "@/process";
+import { envValue } from "@/secrets";
+import { syncMacosSource } from "@/setup/source";
 import { ui } from "@/ui";
 import { activateNixSystem } from "@/update/nix/activate";
 import { buildNixSystem } from "@/update/nix/build";
@@ -17,6 +20,32 @@ export interface UpdateNixOptions {
   action: NixAction;
   config?: ManagerConfig;
   repo?: OutfittingRepo;
+  sourceFetcher?: ManifestFetcher;
+  offline?: boolean;
+}
+
+function resolveMacosRepo(options: UpdateNixOptions, config: ManagerConfig) {
+  return Effect.gen(function* () {
+    if (options.repo !== undefined) {
+      return options.repo;
+    }
+    if (envValue("OUTFITTING_REPO") !== undefined) {
+      return yield* tryPromise(() => resolveOutfittingRepo({ config }));
+    }
+
+    yield* Console.log(ui.heading("Refreshing sparse macOS source…"));
+    const source = yield* tryPromise(() =>
+      syncMacosSource({
+        config,
+        fetcher: options.sourceFetcher,
+        offline: options.offline,
+      }),
+    );
+    const written = yield* tryPromise(() =>
+      writeRepoPath(source.root, { stateRoot: config.stateRoot }),
+    );
+    return written.repo;
+  });
 }
 
 /**
@@ -31,7 +60,6 @@ export const updateNix = (options: UpdateNixOptions) =>
     }
 
     const config = options.config ?? (yield* tryPromise(() => loadConfig()));
-    const repo = options.repo ?? (yield* tryPromise(() => resolveOutfittingRepo({ config })));
 
     const recovery = yield* tryPromise(() => readNixRecovery());
     if (recovery !== undefined) {
@@ -39,6 +67,8 @@ export const updateNix = (options: UpdateNixOptions) =>
         message: `An unfinished Nix recovery checkpoint exists at ${recovery.dir}. Run: outfit recover nix`,
       });
     }
+
+    const repo = yield* resolveMacosRepo(options, config);
 
     yield* tryPromise(() => ensureNixSymlinks(repo));
 

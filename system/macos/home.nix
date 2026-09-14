@@ -8,7 +8,7 @@
 let
   repoFromEnvironment = builtins.getEnv "OUTFITTING_REPO";
   outfittingRepo =
-    if repoFromEnvironment != "" then repoFromEnvironment else "/Users/jfalava/.config/outfitting/repo";
+    if repoFromEnvironment != "" then repoFromEnvironment else "/Users/jfalava/.config/outfitting/source";
   audioOutputState = "${config.xdg.stateHome}/outfitting/audio-output-uid";
   # Outputs in priority order: the guard always promotes the highest entry
   # that is currently available.

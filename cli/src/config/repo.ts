@@ -10,7 +10,7 @@ import { envValue } from "@/secrets";
 const FLAKE_RELATIVE = join("system", "macos");
 
 export interface OutfittingRepo {
-  /** Absolute path to the monorepo root. */
+  /** Absolute path to the full repository or sparse source root. */
   root: string;
   /** Absolute path to `system/macos` (flake root for darwinConfigurations.macos). */
   flakePath: string;
@@ -44,7 +44,7 @@ export async function readRepoPathFile(config: ManagerConfig): Promise<string | 
   }
 }
 
-/** Validate a monorepo root and return structured paths. */
+/** Validate a repository or sparse source root and return structured paths. */
 export async function validateOutfittingRepo(candidate: string): Promise<OutfittingRepo> {
   let absolute: string;
   try {
@@ -71,7 +71,7 @@ export async function validateOutfittingRepo(candidate: string): Promise<Outfitt
 }
 
 /**
- * Persist monorepo path to the legacy `repo-path` file (mode 600).
+ * Persist a repository or sparse source path to the legacy `repo-path` file (mode 600).
  * Matches `set_outfitting_repo` so shell and manager share one source of truth.
  */
 export async function writeRepoPath(

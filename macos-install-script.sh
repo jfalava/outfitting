@@ -52,65 +52,6 @@ check_architecture() {
 }
 #############################################
 
-#################### Configure the local repo
-configure_outfitting_repo() {
-    echo ""
-    echo "Repository Configuration"
-    echo ""
-
-    # Guard: skip setup if git is not available (e.g. fresh macOS before nix-darwin runs).
-    # Nix will install git; the caller should retry after nix-darwin completes.
-    if ! command -v git &>/dev/null; then
-        warning "git not found — skipping repository setup. Will retry after Nix installation."
-        return 0
-    fi
-
-    # Always use default location for remote installation
-    repo_path="$HOME/.config/outfitting/repo"
-    info "Using default repository location: $repo_path"
-
-    # Handle the repository setup
-    if [ ! -d "$repo_path" ]; then
-        info "Directory doesn't exist. Creating: $repo_path"
-        mkdir -p "$(dirname "$repo_path")"
-
-        info "Cloning outfitting repository..."
-        if git clone https://github.com/jfalava/outfitting.git "$repo_path"; then
-            success "Repository cloned successfully"
-        else
-            error "Failed to clone repository, but continuing..."
-        fi
-    elif [ ! -d "$repo_path/.git" ]; then
-        error "Directory exists but is not a git repository: $repo_path"
-        return 1
-    else
-        echo "Using existing repository at: $repo_path"
-    fi
-
-    # Store the configuration
-    config_dir="$HOME/.config/outfitting"
-    config_file="$config_dir/repo-path"
-
-    mkdir -p "$config_dir"
-    # Write the repo path before locking permissions
-    echo "$repo_path" > "$config_file"
-    chmod 600 "$config_file"
-
-    success "Repository location configured successfully!"
-
-    return 0
-}
-get_outfitting_repo() {
-    local config_file="$HOME/.config/outfitting/repo-path"
-    if [ ! -f "$config_file" ]; then
-        error "Repository location is not configured."
-        return 1
-    fi
-
-    cat "$config_file"
-}
-#############################################
-
 ################# Set up the package managers
 configure_package_manager_paths() {
     if [ -x "/opt/homebrew/bin/brew" ]; then
@@ -159,11 +100,6 @@ install_astral_uv() {
 }
 
 install_outfitting_manager() {
-    if command -v outfitting-manager >/dev/null 2>&1; then
-        success "outfitting-manager is already installed"
-        return 0
-    fi
-
     local arch asset entry release_base install_dir temp_dir
     arch=$(uname -m)
     if [[ "$arch" != "arm64" ]]; then
@@ -229,10 +165,25 @@ install_outfitting_manager() {
 
     success "outfitting-manager installed"
 }
+
+run_outfitting_manager() {
+    local manager="$HOME/.local/bin/outfitting-manager"
+    if [ ! -x "$manager" ]; then
+        error "outfitting-manager is not installed at $manager"
+        return 1
+    fi
+    "$manager" "$@"
+}
 #############################################
 
 ############################ Nix Installation
+source_nix_environment() {
+    # shellcheck source=/dev/null
+    source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh 2>/dev/null || true
+}
+
 install_nix() {
+    source_nix_environment
     if command -v nix &>/dev/null; then
         success "Nix already installed ($(nix --version 2>/dev/null | head -1))"
         return 0
@@ -240,9 +191,7 @@ install_nix() {
 
     info "Installing Nix (Determinate Systems)..."
     if curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install --no-confirm; then
-        # Source nix for current session
-        # shellcheck source=/dev/null
-        source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh 2>/dev/null || true
+        source_nix_environment
         success "Nix installed"
     else
         error "Failed to install Nix"
@@ -251,141 +200,6 @@ install_nix() {
 }
 #############################################
 
-############################## Setup symlinks
-setup_symlinks() {
-    info "Setting up Home Manager configuration symlinks..."
-
-    local config_file="$HOME/.config/outfitting/repo-path"
-    if [ ! -f "$config_file" ]; then
-        error "Repository not configured. Cannot create symlinks."
-        return 1
-    fi
-
-    local repo_path hm_target
-    repo_path=$(cat "$config_file")
-    hm_target="$repo_path/system/macos"
-
-    mkdir -p "$HOME/.config"
-
-    # Backup existing managed dotfiles
-    local timestamp
-    timestamp=$(date +%Y%m%d_%H%M%S)
-    local managed_files=(".zshrc")
-
-    for file in "${managed_files[@]}"; do
-        if [ -f "$HOME/$file" ] && [ ! -L "$HOME/$file" ]; then
-            info "Backing up existing $file to ${file}.backup-${timestamp}"
-            mv "$HOME/$file" "$HOME/${file}.backup-${timestamp}"
-        fi
-    done
-
-    # Create symlink for home-manager config
-    if [ ! -L "$HOME/.config/home-manager" ]; then
-        info "Creating symlink: ~/.config/home-manager → $hm_target"
-        ln -sfn "$hm_target" "$HOME/.config/home-manager"
-    else
-        success "Symlink already exists: ~/.config/home-manager"
-    fi
-
-    success "Symlinks configured!"
-    return 0
-}
-#############################################
-
-##################### nix-darwin Installation
-install_nix_darwin() {
-    if ! command -v nix &>/dev/null; then
-        error "Nix not found, cannot install nix-darwin"
-        return 1
-    fi
-
-    local config_file="$HOME/.config/outfitting/repo-path"
-    if [ ! -f "$config_file" ]; then
-        error "Repository not configured"
-        return 1
-    fi
-
-    if ! command -v outfitting-manager >/dev/null 2>&1; then
-        error "outfitting-manager is required to retrieve the remote Nix lock"
-        return 1
-    fi
-
-    local repo_path flake_path lock_dir_display lock_dir lock_path
-    repo_path=$(cat "$config_file")
-    flake_path="$repo_path/system/macos"
-    lock_dir_display=$(mktemp -d "${TMPDIR:-/tmp}/outfitting-nix-lock.XXXXXX")
-    lock_dir=$(cd "$lock_dir_display" && pwd -P)
-    lock_path="$lock_dir/flake.lock"
-
-    if ! outfitting-manager lockfiles pull jfalava:aarch64-darwin nix "$lock_path"; then
-        error "Failed to retrieve the canonical Nix lock"
-        rm -f "$lock_path"
-        rmdir "$lock_dir"
-        return 1
-    fi
-
-    info "Building nix-darwin with the canonical remote lock..."
-    local system_config
-    if ! system_config=$(
-        OUTFITTING_REPO="$repo_path" env -u NIX_PATH nix build \
-            --no-link --print-out-paths --impure \
-            --reference-lock-file "$lock_path" --no-write-lock-file \
-            "path:$flake_path#darwinConfigurations.macos.system"
-    ); then
-        error "Failed to build nix-darwin"
-        rm -f "$lock_path"
-        rmdir "$lock_dir"
-        return 1
-    fi
-
-    info "Activating nix-darwin..."
-    # sudo -H is required on macOS to avoid /Users/<user> ownership warnings
-    if ! sudo -H HOME=/var/root env -u SUDO_HOME -u NIX_PATH \
-        nix-env -p /nix/var/nix/profiles/system --set "$system_config"; then
-        error "Failed to update the nix-darwin system profile"
-        rm -f "$lock_path"
-        rmdir "$lock_dir"
-        return 1
-    fi
-    if ! sudo -H HOME=/var/root env -u SUDO_HOME -u NIX_PATH SUDO_USER="$USER" \
-        "$system_config/sw/bin/darwin-rebuild" activate; then
-        error "Failed to activate nix-darwin"
-        rm -f "$lock_path"
-        rmdir "$lock_dir"
-        return 1
-    fi
-    success "nix-darwin activated"
-
-    rm -f "$lock_path"
-    rmdir "$lock_dir"
-}
-#############################################
-
-############################ Install packages
-install_homebrew_packages() {
-    info "Installing Homebrew packages..."
-
-    if ! command -v brew >/dev/null 2>&1; then
-        error "Homebrew is not available in PATH"
-        return 1
-    fi
-
-    local repo_path
-    repo_path=$(get_outfitting_repo) || return 1
-
-    local brewfile="$repo_path/packages/macos/Brewfile"
-    if [ ! -f "$brewfile" ]; then
-        error "Homebrew manifest not found: $brewfile"
-        return 1
-    fi
-
-    if brew bundle --file="$brewfile"; then
-        success "Homebrew packages installed from $brewfile"
-    else
-        error "Failed to install Homebrew packages from $brewfile"
-        return 1
-    fi
-}
 install_fontget() {
 	if ! command -v fontget >/dev/null 2>&1; then
 	   info "Installing FontGet"
@@ -396,9 +210,6 @@ install_fontget() {
 
 ############## Post-installation instructions
 post_install_info() {
-    local repo_path
-    repo_path=$(get_outfitting_repo 2>/dev/null || true)
-
     echo ""
     success "Installation Complete"
     echo ""
@@ -414,20 +225,13 @@ main() {
     check_macos
     check_architecture
 
-    configure_outfitting_repo
     install_outfitting_manager || exit 1
+    install_homebrew || exit 1
+    install_nix || exit 1
 
-    if [ ! -f "$HOME/.config/outfitting/repo-path" ]; then
-        info "Retrying repository setup now that Nix is installed..."
-        configure_outfitting_repo
-    fi
-
-    install_homebrew
-    install_homebrew_packages
-
-    install_nix
-    setup_symlinks
-    install_nix_darwin
+    run_outfitting_manager setup || exit 1
+    run_outfitting_manager update brew --no-sync || exit 1
+    run_outfitting_manager update nix || exit 1
 
     install_astral_uv
 

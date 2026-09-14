@@ -1,11 +1,12 @@
 import { Option } from "effect";
 import { Command, Flag } from "effect/unstable/cli";
 
+import { MACOS_SOURCE_PATHS } from "@/setup/manifests";
 import { runSetup } from "@/setup/run";
 import { ensureNixSymlinks } from "@/update/nix/symlinks";
 
 /**
- * Materialize the outfitting state root: config, repo-path, manifests, nix symlinks.
+ * Materialize the outfitting state root: config, sparse source, repo-path, and nix symlinks.
  */
 export const setupCommand = Command.make(
   "setup",
@@ -27,12 +28,12 @@ export const setupCommand = Command.make(
     repo: Flag.string("repo").pipe(
       Flag.optional,
       Flag.withDescription(
-        "Monorepo path to store in ~/.config/outfitting/repo-path (replaces set_outfitting_repo).",
+        "Existing monorepo path to store in ~/.config/outfitting/repo-path; omit for sparse macOS source.",
       ),
     ),
     noFetch: Flag.boolean("no-fetch").pipe(
       Flag.withDefault(false),
-      Flag.withDescription("Skip prefetching Brewfile / bun.txt into the state root."),
+      Flag.withDescription("Skip fetching the sparse macOS source into the state root."),
     ),
     skipSymlinks: Flag.boolean("skip-symlinks").pipe(
       Flag.withDefault(false),
@@ -46,12 +47,13 @@ export const setupCommand = Command.make(
       manifestRef: Option.getOrUndefined(manifestRef),
       repo: Option.getOrUndefined(repo),
       fetchManifests: !noFetch,
+      sourcePaths: MACOS_SOURCE_PATHS,
       skipSymlinks,
       ensureSymlinks: ensureNixSymlinks,
       nextCommand: "Next: outfit update nix|brew|bun|all",
     }),
 ).pipe(
   Command.withDescription(
-    "Materialize the outfitting state root (config, repo-path, manifests, nix symlinks) without cloning the monorepo.",
+    "Materialize the outfitting state root and sparse macOS source without cloning the monorepo.",
   ),
 );

@@ -31,3 +31,8 @@ export function manifestCacheDir(root = stateRoot()): string {
 export function manifestsDir(root = stateRoot()): string {
   return join(root, "manifests");
 }
+
+/** Sparse macOS Nix/Brew/Zsh source tree managed by outfitting-manager. */
+export function sparseSourceRoot(root = stateRoot()): string {
+  return join(root, "source");
+}

@@ -1,8 +1,8 @@
 import { describe, expect, test } from "vitest";
 
-import { HOMEBREW_INVENTORY_HEADER } from "@/update/snapshot";
 import { NIX_ACTIONS } from "@/platform";
-import { SETUP_MANIFEST_PATHS } from "@/setup/manifests";
+import { MACOS_SOURCE_PATHS } from "@/setup/manifests";
+import { HOMEBREW_INVENTORY_HEADER } from "@/update/snapshot";
 
 /**
  * Step 7 dual-run gates (real machine). This test only locks the golden signals
@@ -17,10 +17,21 @@ describe("dual-run golden signals (checklist)", () => {
     expect([...NIX_ACTIONS]).toEqual(["build", "switch", "test", "dry"]);
   });
 
-  test("setup prefetches brew + bun manifests", () => {
-    expect([...SETUP_MANIFEST_PATHS]).toEqual([
+  test("setup fetches the macOS sparse source closure", () => {
+    expect([...MACOS_SOURCE_PATHS]).toEqual([
+      "system/macos/flake.nix",
+      "system/macos/flake.lock",
+      "system/macos/darwin.nix",
+      "system/macos/home.nix",
+      "system/macos/zsh/macos.plugin.zsh",
+      "system/common/zsh.nix",
+      "system/common/zsh/outfitting.plugin.zsh",
+      "packages/common/programs.nix",
+      "packages/common/packages.nix",
+      "packages/macos/programs.nix",
+      "packages/macos/packages.nix",
+      "packages/macos/zed.nix",
       "packages/macos/Brewfile",
-      "packages/bun.txt",
     ]);
   });
 

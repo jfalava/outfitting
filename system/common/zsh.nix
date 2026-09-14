@@ -4,7 +4,9 @@
 }:
 
 let
-  outfittingRepo = "${config.home.homeDirectory}/.config/outfitting/repo";
+  repoFromEnvironment = builtins.getEnv "OUTFITTING_REPO";
+  outfittingRepo =
+    if repoFromEnvironment != "" then repoFromEnvironment else "${config.home.homeDirectory}/.config/outfitting/source";
   completionDirectory = "${config.home.homeDirectory}/.zsh/completions";
   sharedPlugin = config.lib.file.mkOutOfStoreSymlink "${outfittingRepo}/system/common/zsh";
 in
