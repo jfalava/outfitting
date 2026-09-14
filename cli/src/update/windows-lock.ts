@@ -10,6 +10,11 @@ export const WINDOWS_LOCK_KIND = "windows";
 export const WINDOWS_LOCK_FORMAT = "outfitting-windows-lock-v1";
 const MAX_OPERATION_HISTORY = 100;
 
+/** WinGet uses either representation for update-not-applicable on Windows. */
+export function isWingetAlreadyInstalledExitCode(code: number): boolean {
+  return code === 43 || code === -1978335189;
+}
+
 export type WindowsPackageManager = "winget" | "scoop" | "bun";
 export type WindowsPackageAction = "install" | "uninstall" | "upgrade";
 export type WindowsOperationStatus = "success" | "failed";

@@ -11,6 +11,7 @@ import { ui } from "@/ui";
 import { parseScoopManifest, SCOOP_MANIFEST_PATH, updateScoop } from "@/update/scoop";
 import { runScoopCommand } from "@/update/scoop-command";
 import {
+  isWingetAlreadyInstalledExitCode,
   readWindowsLock,
   recordWindowsOperation,
   WINDOWS_LOCK_KIND,
@@ -130,9 +131,9 @@ function replaceManagedRecords(
   const desiredNames = new Set(desired.map((record) => record.name.toLowerCase()));
   const manual = clean
     ? []
-    : lock.packages[manager].filter(
-        (record) => record.origin === "manual" && !desiredNames.has(record.name.toLowerCase()),
-      );
+    : lock.packages[manager]
+        .filter((record) => !desiredNames.has(record.name.toLowerCase()))
+        .map((record) => ({ ...record, origin: "manual" as const }));
   lock.packages[manager] = [...manual, ...desired].toSorted((left, right) =>
     left.name.localeCompare(right.name),
   );
@@ -166,12 +167,16 @@ function runWinget({ run, executable, action, name, source }: WingetRunContext) 
   const args = wingetInstallArgs(action, name, source);
   return Effect.gen(function* () {
     const result = yield* tryPromise(() => run(executable, args, { inherit: true }));
-    if (result.code !== 0) {
+    const alreadyInstalled = action === "install" && isWingetAlreadyInstalledExitCode(result.code);
+    if (result.code !== 0 && !alreadyInstalled) {
       return yield* new CliFailure({
         message: `winget ${action} ${name} failed (exit ${result.code}).`,
       });
     }
-    return { args };
+    if (alreadyInstalled) {
+      yield* Console.log(ui.muted(`WinGet package already installed and up to date: ${name}`));
+    }
+    return { args, exitCode: result.code };
   });
 }
 
@@ -237,7 +242,7 @@ const installWingetPackages = Effect.fn("installWingetPackages")(function* (
   packages: ReadonlyArray<WindowsWingetPackage>,
 ) {
   for (const packageInfo of packages) {
-    const { args } = yield* runWinget({
+    const { args, exitCode } = yield* runWinget({
       run,
       executable,
       action: "install",
@@ -252,7 +257,7 @@ const installWingetPackages = Effect.fn("installWingetPackages")(function* (
         name: packageInfo.name,
         args,
         status: "success",
-        exitCode: 0,
+        exitCode,
       }),
     );
   }

@@ -35,14 +35,14 @@ profileRouter.get("/:profile", async (c) => {
   const modifiedScript = baseScript.replace(originalMarker, replacement);
 
   if (!modifiedScript.includes(replacement)) {
-    console.error("URL replacement failed!");
+    console.error("Profile replacement failed!");
     console.error(`Original marker: ${originalMarker}`);
     console.error(`Replacement profiles: ${replacement}`);
     console.error(
       `Script snippet around expected location:\n${baseScript.substring(baseScript.indexOf("outfittingInitialProfiles") - 50, baseScript.indexOf("outfittingInitialProfiles") + 150)}`,
     );
     return c.text(
-      "Internal error: Failed to inject profile URL. The base script format may have changed. Please file an issue in https://github.com/jfalava/outfitting/issues",
+      "Internal error: Failed to inject profiles. The base script format may have changed. Please file an issue in https://github.com/jfalava/outfitting/issues",
       500,
     );
   }

@@ -9,6 +9,7 @@ import { runCommand, which } from "@/process";
 import { ui } from "@/ui";
 import { runScoopCommand } from "@/update/scoop-command";
 import {
+  isWingetAlreadyInstalledExitCode,
   recordWindowsOperation,
   WINDOWS_LOCK_KIND,
   windowsLockPath,
@@ -65,7 +66,9 @@ function runPackage(
         ? runScoopCommand(runCommand, executable, args, { inherit: true })
         : runCommand(executable, args, { inherit: true }),
     );
-    const status = result.code === 0 ? "success" : "failed";
+    const alreadyInstalled =
+      manager === "winget" && action === "install" && isWingetAlreadyInstalledExitCode(result.code);
+    const status = result.code === 0 || alreadyInstalled ? "success" : "failed";
     yield* tryPromise(() =>
       recordWindowsOperation({
         config,
@@ -78,10 +81,13 @@ function runPackage(
       }),
     );
 
-    if (result.code !== 0) {
+    if (status === "failed") {
       return yield* new CliFailure({
         message: `${manager} ${action} ${name} failed (exit ${result.code}).`,
       });
+    }
+    if (alreadyInstalled) {
+      yield* Console.log(ui.muted(`WinGet package already installed and up to date: ${name}`));
     }
     return undefined;
   });
