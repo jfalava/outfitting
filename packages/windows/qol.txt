@@ -1,8 +1,5 @@
 OBSProject.OBSStudio
 KDE.Krita
-CiderCollective.Cider
 Mega.MEGASync
-Proton.ProtonDrive
 Proton.ProtonPass
-Proton.ProtonAuthenticator
 qBittorrent.qBittorrent
