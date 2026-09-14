@@ -438,24 +438,6 @@ if command -v rg &> /dev/null; then
     }
 fi
 
-# Update all global Bun packages
-bun-update-global() {
-    # Prefer outfitting-manager's native registry-aware update path.
-    if command -v outfitting-manager >/dev/null 2>&1; then
-        outfitting-manager update bun
-        return $?
-    fi
-
-    # Keep the shell fallback usable during manager installation or recovery.
-    if command -v bun >/dev/null 2>&1; then
-        bun update --global
-        return $?
-    fi
-
-    echo "Error: neither outfitting-manager nor Bun is installed or in PATH."
-    return 1
-}
-
 # ---- Secret History Filter ----
 # Lines containing secrets are never written to the history file. The command
 # still stays in the current session's in-memory history, but HISTFILE (and

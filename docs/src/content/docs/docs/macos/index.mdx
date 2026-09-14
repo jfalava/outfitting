@@ -36,7 +36,7 @@ outfit update bun
 
 Successful Homebrew updates store a versioned inventory of taps, formulae, and casks through `outfitting-manager`. The inventory is observed state; the committed Brewfile remains the desired Homebrew configuration.
 
-The Zsh profile keeps the older shortcuts and native update implementations as a fallback when `outfitting-manager` is unavailable. They are compatibility paths; new usage should use the hierarchical commands above.
+The Zsh profile keeps Nix compatibility shortcuts and a native Nix fallback when `outfitting-manager` is unavailable. Homebrew, Bun, aggregate updates, snapshots, and setup are manager-owned and require `outfitting-manager`.
 
 Capture the observed Homebrew state without reconciling packages:
 
