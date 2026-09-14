@@ -405,7 +405,7 @@ describe("Windows package update commands", () => {
     expect(calls).toEqual([
       "powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File C:\\scoop\\shims\\scoop.ps1 export",
       "powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File C:\\scoop\\shims\\scoop.ps1 install new-package",
-      "powershell.exe -NoProfile -NonInteractive -Command $ErrorActionPreference = 'Stop'; $dependencies = @(& 'C:\\scoop\\shims\\scoop.ps1' depends -- 'new-package'); if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; $dependencies | ConvertTo-Json -Compress",
+      "powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command $ErrorActionPreference = 'Stop'; $dependencies = @(& 'C:\\scoop\\shims\\scoop.ps1' depends -- 'new-package'); if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; $dependencies | ConvertTo-Json -Compress",
       "powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File C:\\scoop\\shims\\scoop.ps1 export",
       "powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File C:\\scoop\\shims\\scoop.ps1 uninstall old",
       "powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File C:\\scoop\\shims\\scoop.ps1 update",

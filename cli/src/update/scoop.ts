@@ -200,6 +200,8 @@ const dependencyNames = Effect.fn("dependencyNames")(function* (
       [
         "-NoProfile",
         "-NonInteractive",
+        "-ExecutionPolicy",
+        "Bypass",
         "-Command",
         `$ErrorActionPreference = 'Stop'; $dependencies = @(& ${powerShellStringLiteral(scoopScriptPath(scoopPath))} depends -- ${powerShellStringLiteral(packageSpec)}); if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; $dependencies | ConvertTo-Json -Compress`,
       ],
