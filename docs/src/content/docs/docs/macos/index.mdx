@@ -12,35 +12,39 @@ Start with the [installation instructions](/docs/macos/installation/) to bootstr
 
 ## Everyday commands
 
-The macOS Zsh profile provides the `outfit` command, also available as `o`:
+The macOS Zsh profile provides the `outfit` command, also available as `o`. Package updates use `outfit update <origin> [action]`:
 
 ```bash
-# Apply the Homebrew manifest, remove unlisted casks, and store an inventory
-outfit sync
+# Apply and upgrade the Homebrew desired state
+outfit update brew
 
-# Upgrade nix-darwin, Homebrew packages/casks, and store an inventory
-outfit upgrade
+# Update all package origins: Nix, Homebrew, then Bun
+outfit update all
 
-# Preview, build, test, or apply Nix-darwin changes
-outfit dry
-outfit build
-outfit test
-outfit switch
+# Update Nix-darwin (switch is the default action)
+outfit update nix
+
+# Build, test, preview, or apply Nix-darwin changes
+outfit update nix build
+outfit update nix test
+outfit update nix dry
+outfit update nix switch
+
+# Update global Bun packages
+outfit update bun
 ```
 
-Successful `outfit sync` and `outfit upgrade` operations store a versioned inventory of Homebrew taps, formulae, and casks through `outfitting-manager`. The inventory is observed state; the committed Brewfile remains the desired Homebrew configuration.
+Successful Homebrew updates store a versioned inventory of taps, formulae, and casks through `outfitting-manager`. The inventory is observed state; the committed Brewfile remains the desired Homebrew configuration.
 
-Store the observed Homebrew inventory without changing packages:
+The Zsh profile keeps the older shortcuts and native update implementations as a fallback when `outfitting-manager` is unavailable. They are compatibility paths; new usage should use the hierarchical commands above.
+
+The standalone snapshot and recovery helpers remain compatibility surfaces while their manager-owned commands are migrated. A successful `outfit update brew` stores the current inventory; recovery checkpoint handling remains the next migration slice.
 
 ```bash
 outfit snapshot
 ```
 
-If an upgrade is interrupted after creating a candidate Nix lock, Outfitting keeps a recovery checkpoint under the XDG state directory, by default `$HOME/.local/state/outfitting/nix-lock-recovery`. Resume it with:
-
-```bash
-outfit recover
-```
+If an update is interrupted after creating a candidate Nix lock, Outfitting keeps a recovery checkpoint under the XDG state directory, by default `$HOME/.local/state/outfitting/nix-lock-recovery`.
 
 ## Nix-darwin profile management
 

@@ -17,7 +17,7 @@ Installers symlink the profile entry points (Windows backs up existing profiles 
 
 ## System definitions
 
-- `system/macos/` (`darwin.nix`, `home.nix`, `flake.nix`, `zsh/macos.plugin.zsh`) — `outfit sync|upgrade|snapshot|recover|build|switch|test|dry`, Homebrew reconcile, remote Nix lock pull/push, recovery checkpoint under XDG state.
+- `system/macos/` (`darwin.nix`, `home.nix`, `flake.nix`, `zsh/macos.plugin.zsh`) — canonical `outfit update nix|brew|bun|all` commands, Nix `build|switch|test|dry` actions, Homebrew reconcile, remote Nix lock pull/push, and recovery checkpoint under XDG state.
 - `system/ubuntu-wsl/` (`base.nix`, `flake.nix`, `zsh/wsl.plugin.zsh`) — `hm-sync|switch|update`, `update-all`, `remote-update` from `wsl.jfa.dev`.
 - `system/nixos/` (`configuration.nix`, `desktop.nix`, `server.nix`, `home.nix`, `flake.nix`) — host roles.
 - `system/windows/registry/*.reg` — machine tweaks (Recall, Copilot, Ink, developer mode, menu delay).

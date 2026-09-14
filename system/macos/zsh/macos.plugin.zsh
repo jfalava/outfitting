@@ -82,18 +82,153 @@ get_outfitting_repo() {
 
 set_outfitting_repo() {
     local repo_path="$1"
-    outfit-require-manager || return 1
     if [ -z "$repo_path" ]; then
         echo "Usage: set_outfitting_repo /path/to/outfitting"
-        echo "  (or: outfitting-manager setup --repo /path/to/outfitting)"
         return 1
     fi
-    outfitting-manager setup --repo "$repo_path" --no-fetch
+
+    if command -v outfitting-manager >/dev/null 2>&1; then
+        outfitting-manager setup --repo "$repo_path" --no-fetch
+        return $?
+    fi
+
+    repo_path="$(cd "$repo_path" 2>/dev/null && pwd)" || {
+        echo "Error: Path does not exist: $repo_path"
+        return 1
+    }
+
+    local config_dir="${OUTFITTING_STATE_ROOT:-$HOME/.config/outfitting}"
+    mkdir -p "$config_dir" || return 1
+    print -r -- "$repo_path" > "$config_dir/repo-path" || return 1
+    chmod 600 "$config_dir/repo-path"
+    echo "Repository path set to: $repo_path"
+}
+
+# Native fallback paths remain available when the compiled manager is missing.
+outfit-fallback-update-nix() {
+    local action="${1:-switch}"
+    local repo_path
+    repo_path=$(get_outfitting_repo) || {
+        echo "Error: Repository location not configured."
+        echo "Run 'set_outfitting_repo /path/to/outfitting' to configure."
+        return 1
+    }
+    command -v nix >/dev/null 2>&1 || {
+        echo "Error: nix is not installed or not in PATH."
+        return 1
+    }
+
+    local flake_path="$repo_path/system/macos"
+    mkdir -p "$HOME/.nixpkgs" "$HOME/.config" || return 1
+    ln -sfn "$flake_path/darwin.nix" "$HOME/.nixpkgs/darwin-configuration.nix"
+    ln -sfn "$flake_path" "$HOME/.config/home-manager"
+
+    case "$action" in
+        build)
+            OUTFITTING_REPO="$repo_path" env -u NIX_PATH nix build \
+                --no-link --print-out-paths --impure \
+                "path:$flake_path#darwinConfigurations.macos.system"
+            ;;
+        switch)
+            local system_config
+            system_config=$(OUTFITTING_REPO="$repo_path" env -u NIX_PATH nix build \
+                --no-link --print-out-paths --impure \
+                "path:$flake_path#darwinConfigurations.macos.system") || return 1
+            sudo -H HOME=/var/root env -u SUDO_HOME -u NIX_PATH \
+                nix-env -p /nix/var/nix/profiles/system --set "$system_config" || return 1
+            sudo -H HOME=/var/root env -u SUDO_HOME -u NIX_PATH SUDO_USER="$USER" \
+                "$system_config/sw/bin/darwin-rebuild" activate
+            ;;
+        test)
+            OUTFITTING_REPO="$repo_path" env -u NIX_PATH nix build \
+                --no-link --impure \
+                "path:$flake_path#darwinConfigurations.macos.system"
+            ;;
+        dry)
+            OUTFITTING_REPO="$repo_path" env -u NIX_PATH nix build \
+                --dry-run --no-link --impure \
+                "path:$flake_path#darwinConfigurations.macos.system"
+            ;;
+        *)
+            echo "Usage: outfit update nix [build|switch|test|dry]"
+            return 1
+            ;;
+    esac
+}
+
+outfit-fallback-update-brew() {
+    local repo_path
+    repo_path=$(get_outfitting_repo) || {
+        echo "Error: Repository location not configured."
+        echo "Run 'set_outfitting_repo /path/to/outfitting' to configure."
+        return 1
+    }
+    command -v brew >/dev/null 2>&1 || {
+        echo "Error: Homebrew is not installed or not in PATH."
+        return 1
+    }
+
+    local brewfile="$repo_path/packages/macos/Brewfile"
+    [ -f "$brewfile" ] || {
+        echo "Error: Homebrew manifest not found: $brewfile"
+        return 1
+    }
+
+    local tap trust_output
+    while IFS= read -r tap; do
+        if [[ -n "$tap" ]]; then
+            trust_output=$(brew trust --tap "$tap" 2>&1)
+            [[ "$trust_output" == *"Already trusted"* ]] || echo "$trust_output"
+        fi
+    done < <(sed -n -E "s/^[[:space:]]*tap[[:space:]]+['\"]([^'\"]+)['\"].*/\1/p" "$brewfile")
+
+    brew bundle --file="$brewfile" || return 1
+    brew upgrade || return 1
+    brew upgrade --cask || return 1
+    brew bundle cleanup --file="$brewfile" --cask --force
+}
+
+outfit-fallback-update-bun() {
+    command -v bun >/dev/null 2>&1 || {
+        echo "Error: Bun is not installed or not in PATH."
+        return 1
+    }
+    bun update --global
+}
+
+outfit-fallback-update() {
+    local manager="$1"
+    shift
+    case "$manager" in
+        nix)
+            outfit-fallback-update-nix "${1:-switch}"
+            ;;
+        brew)
+            outfit-fallback-update-brew
+            ;;
+        bun)
+            outfit-fallback-update-bun
+            ;;
+        all)
+            local status=0
+            outfit-fallback-update-nix switch || status=1
+            outfit-fallback-update-brew || status=1
+            outfit-fallback-update-bun || status=1
+            return $status
+            ;;
+        *)
+            echo "Usage: outfit update [nix|brew|bun|all]"
+            return 1
+            ;;
+    esac
 }
 
 # nix-darwin rebuild (no flake-input upgrade in the manager yet).
 outfit-rebuild() {
-    outfit-require-manager || return 1
+    if ! command -v outfitting-manager >/dev/null 2>&1; then
+        outfit-fallback-update-nix "${1:-switch}"
+        return $?
+    fi
     case "${1:-switch}" in
         build|b)
             outfitting-manager update nix build
@@ -125,7 +260,10 @@ outfit-rebuild() {
 }
 
 outfit-homebrew() {
-    outfit-require-manager || return 1
+    if ! command -v outfitting-manager >/dev/null 2>&1; then
+        outfit-fallback-update-brew
+        return $?
+    fi
     case "${1:-upgrade}" in
         sync|s|install|i|upgrade|u|"")
             # Manager always runs the full brew path (bundle + upgrade + cleanup + snapshot).
@@ -147,6 +285,13 @@ outfit-snapshot() {
     echo "Homebrew inventory is pushed by 'outfitting-manager update brew'."
     echo "To push an existing inventory file: outfitting-manager sync push <machine> homebrew-inventory <path>"
     return 0
+}
+
+outfit-recover() {
+    echo "Error: Nix upgrade recovery is not exposed in outfitting-manager v1 yet."
+    echo "Recovery checkpoint helpers exist in the CLI; a recover subcommand is forthcoming."
+    echo "Checkpoint dir: \${XDG_STATE_HOME:-\$HOME/.local/state}/outfitting/nix-lock-recovery"
+    return 1
 }
 
 hm-sync() {
@@ -181,61 +326,61 @@ hm-clean() {
     echo "Cleaning complete!"
 }
 
-# Standard outfit entrypoint — thin aliases over the manager.
+# Standard outfit entrypoint. The manager owns the hierarchical command path;
+# the native fallback keeps the same update tree available if it is unavailable.
 outfit() {
-    outfit-require-manager || return 1
+    if command -v outfitting-manager >/dev/null 2>&1; then
+        local -a manager_args
+        if (( $# == 0 )); then
+            manager_args=(update nix switch)
+        else
+            case "$1" in
+                update|setup|lockfiles|fonts|provision)
+                    manager_args=("$@")
+                    ;;
+                build|switch|test|dry)
+                    manager_args=(update nix "$@")
+                    ;;
+                sync)
+                    manager_args=(update brew "${@:2}")
+                    ;;
+                upgrade)
+                    manager_args=(update all "${@:2}")
+                    ;;
+                snapshot)
+                    outfit-snapshot "${@:2}"
+                    return $?
+                    ;;
+                recover)
+                    outfit-recover "${@:2}"
+                    return $?
+                    ;;
+                *)
+                    echo "Usage: outfit [update|setup|sync|lockfiles|fonts|provision|upgrade] ..."
+                    return 1
+                    ;;
+            esac
+        fi
+        command outfitting-manager "${manager_args[@]}"
+        return $?
+    fi
+
     case "${1:-switch}" in
-        snapshot)
+        update)
             shift
-            if (( $# != 0 )); then
-                echo "Usage: outfit snapshot"
-                return 1
-            fi
-            outfit-snapshot
+            outfit-fallback-update "${1:-nix}" "${@:2}"
+            ;;
+        build|switch|test|dry)
+            outfit-fallback-update nix "$1"
             ;;
         sync|s)
-            shift
-            outfitting-manager update brew
+            outfit-fallback-update brew
             ;;
         upgrade|u)
-            shift
-            echo "❖ Nix switch + Homebrew (manager update all without bun is not separate; use update-all)"
-            echo "  Running: outfitting-manager update nix switch && outfitting-manager update brew"
-            outfitting-manager update nix switch || return 1
-            outfitting-manager update brew || return 1
-            ;;
-        recover)
-            shift
-            if (( $# != 0 )); then
-                echo "Usage: outfit recover"
-                return 1
-            fi
-            echo "Error: Nix upgrade recovery is not exposed in outfitting-manager v1 yet."
-            echo "Recovery checkpoint helpers exist in the CLI; a recover subcommand is forthcoming."
-            echo "Checkpoint dir: \${XDG_STATE_HOME:-\$HOME/.local/state}/outfitting/nix-lock-recovery"
-            return 1
-            ;;
-        build|b)
-            outfitting-manager update nix build
-            ;;
-        switch|s|"")
-            outfitting-manager update nix switch
-            ;;
-        test|t)
-            outfitting-manager update nix test
-            ;;
-        dry|d)
-            outfitting-manager update nix dry
+            outfit-fallback-update all
             ;;
         *)
-            echo "Usage: outfit [build|switch|test|dry|sync|upgrade|snapshot]"
-            echo "  build/b    - outfitting-manager update nix build"
-            echo "  switch     - outfitting-manager update nix switch (default)"
-            echo "  test/t     - outfitting-manager update nix test"
-            echo "  dry/d      - outfitting-manager update nix dry"
-            echo "  sync/s     - outfitting-manager update brew"
-            echo "  upgrade/u  - nix switch then brew"
-            echo "  snapshot   - see brew inventory push notes"
+            echo "Error: outfitting-manager is unavailable and no native fallback exists for '$1'."
             return 1
             ;;
     esac
@@ -243,7 +388,10 @@ outfit() {
 
 # Full machine update: sudo -v once, then manager update all.
 update-all() {
-    outfit-require-manager || return 1
+    if ! command -v outfitting-manager >/dev/null 2>&1; then
+        outfit-fallback-update all
+        return $?
+    fi
     sudo -v || return 1
     outfitting-manager update all
     local status=$?
@@ -275,5 +423,5 @@ update-all-no-nix() {
     fi
 
     echo ""
-    echo "System updated (no package managers). Run 'outfit switch' to apply profile changes."
+    echo "System updated (no package managers). Run 'outfit update nix switch' to apply profile changes."
 }

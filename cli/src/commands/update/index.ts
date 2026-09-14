@@ -37,9 +37,9 @@ const makeNixCommand = () => {
     ),
   );
 
-  return Command.make("nix").pipe(
+  return Command.make("nix", {}, () => updateNix({ action: "switch" })).pipe(
     Command.withDescription(
-      "nix-darwin build | switch | test | dry (no flake-input upgrade in v1).",
+      "Update nix-darwin (switch by default); build | switch | test | dry are available as subcommands.",
     ),
     Command.withSubcommands(actions),
   );
@@ -67,10 +67,7 @@ const allCommand = Command.make(
   ),
 );
 
-/**
- * macOS `update` tree: bun | brew | nix implemented; all stub;
- * plus foreign PM hint stubs (scoop, winget).
- */
+/** macOS `update` tree: one manager per subcommand, plus foreign PM hints. */
 export const makeMacosUpdateCommand = () => {
   const host = "macos" as const satisfies HostPlatform;
   const foreign = foreignPackageManagers(host).map((pm) => makeForeignStub(pm, host));

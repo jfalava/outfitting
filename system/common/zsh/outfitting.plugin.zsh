@@ -440,12 +440,20 @@ fi
 
 # Update all global Bun packages
 bun-update-global() {
-    # Ported to outfitting-manager (native registry fetch; no Python/uv).
-    if ! command -v outfitting-manager >/dev/null 2>&1; then
-        echo "Error: outfitting-manager is not installed or not in PATH."
-        return 1
+    # Prefer outfitting-manager's native registry-aware update path.
+    if command -v outfitting-manager >/dev/null 2>&1; then
+        outfitting-manager update bun
+        return $?
     fi
-    outfitting-manager update bun
+
+    # Keep the shell fallback usable during manager installation or recovery.
+    if command -v bun >/dev/null 2>&1; then
+        bun update --global
+        return $?
+    fi
+
+    echo "Error: neither outfitting-manager nor Bun is installed or in PATH."
+    return 1
 }
 
 # ---- Secret History Filter ----

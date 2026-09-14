@@ -48,7 +48,7 @@ export const setupCommand = Command.make(
       fetchManifests: !noFetch,
       skipSymlinks,
       ensureSymlinks: ensureNixSymlinks,
-      nextCommand: "Next: outfitting-manager update brew|bun|nix|all",
+      nextCommand: "Next: outfit update nix|brew|bun|all",
     }),
 ).pipe(
   Command.withDescription(

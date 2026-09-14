@@ -70,6 +70,16 @@ describe("macos CLI scaffold (process)", () => {
     expect(text).toMatch(/update/i);
   });
 
+  test("update exposes one subcommand per package origin", async () => {
+    const { code, stdout, stderr } = await runCli(["update", "--help"]);
+    const text = `${stdout}\n${stderr}`;
+    expect(code).toBe(0);
+    for (const manager of ["nix", "brew", "bun", "all"]) {
+      expect(text).toMatch(new RegExp(`\\b${manager}\\b`));
+    }
+    expect(text).not.toMatch(/update[-_]all/i);
+  });
+
   test("update bun is registered (runs or fails on missing bun)", async () => {
     const { code, stdout, stderr } = await runCli(["update", "bun"]);
     const text = `${stdout}\n${stderr}`;
@@ -90,6 +100,23 @@ describe("macos CLI scaffold (process)", () => {
     expect(text).toMatch(
       /missing system\/macos\/flake\.nix|does not exist|not configured|not installed/i,
     );
+  });
+
+  test("update nix defaults to switch while retaining build actions", async () => {
+    const { code, stdout, stderr } = await runCliWithEnv(["update", "nix"], {
+      OUTFITTING_REPO: "/tmp/definitely-not-an-outfitting-repo",
+    });
+    const text = `${stdout}\n${stderr}`;
+    expect(code).not.toBe(0);
+    expect(text).not.toMatch(/Usage:.*update nix/i);
+    expect(text).not.toMatch(/not implemented yet/i);
+    expect(text).toMatch(
+      /missing system\/macos\/flake\.nix|does not exist|not configured|not installed/i,
+    );
+
+    const help = await runCli(["update", "nix", "--help"]);
+    expect(help.code).toBe(0);
+    expect(`${help.stdout}\n${help.stderr}`).toMatch(/build|switch|test|dry/);
   });
 
   test("update scoop is a foreign hint stub", async () => {
