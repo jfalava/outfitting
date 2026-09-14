@@ -11,6 +11,7 @@ export {
   setNixRecoveryPhase,
 } from "@/update/nix/recovery";
 export { updateNix } from "@/update/nix/run";
+export { recoverNix, type RecoverNixOptions } from "@/update/nix/recover";
 export { ensureNixSymlinks } from "@/update/nix/symlinks";
 export {
   isNixRecoveryPhase,

@@ -43,10 +43,16 @@ outfit update all
 
 The Zsh profile keeps the previous `outfit sync`, `outfit upgrade`, and update helper functions as compatibility paths. If the manager binary is unavailable, `outfit update nix|brew|bun|all` falls back to native shell operations; remote inventory synchronization is only available through the manager.
 
-The standalone snapshot helper remains a compatibility surface while the manager-owned command is migrated. A successful `outfit update brew` already stores the current Homebrew state:
+Capture only the current Homebrew state with:
 
 ```bash
-outfit snapshot
+outfit snapshot brew
+```
+
+If Nix activation or lock publication is interrupted, resume the durable checkpoint with:
+
+```bash
+outfit recover nix
 ```
 
 ## Individual operations

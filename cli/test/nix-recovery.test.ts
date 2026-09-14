@@ -2,8 +2,11 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
+import { Effect } from "effect";
 import { afterEach, describe, expect, test } from "vitest";
 
+import type { ManagerConfig } from "@/config";
+import { CliFailure } from "@/errors";
 import {
   clearNixRecovery,
   hasNixRecovery,
@@ -12,6 +15,7 @@ import {
   readNixRecovery,
   setNixRecoveryPhase,
 } from "@/update/nix/recovery";
+import { recoverNix, type RecoverNixOptions } from "@/update/nix/recover";
 
 const temps: string[] = [];
 
@@ -71,5 +75,113 @@ describe("nix recovery checkpoint", () => {
     await clearNixRecovery(recoveryDir);
     expect(await hasNixRecovery(recoveryDir)).toBe(false);
     expect(await readNixRecovery(recoveryDir)).toBeUndefined();
+  });
+});
+
+describe("recoverNix", () => {
+  test("activates prepared checkpoints, publishes with the base hash, and clears them", async () => {
+    const parent = await tempDir();
+    const recoveryDir = join(parent, "nix-lock-recovery");
+    const lockSource = join(parent, "source.lock");
+    await writeFile(lockSource, '{ "lock": true }\n', "utf8");
+    await prepareNixRecovery({
+      lockPath: lockSource,
+      baseHash: "a".repeat(64),
+      recoveryDir,
+    });
+
+    const config: ManagerConfig = {
+      stateRoot: join(parent, "state"),
+      machineId: "test:aarch64-darwin",
+      machineIdOverridden: true,
+      manifest: { baseUrl: "https://example.test/outfitting", ref: "main" },
+    };
+    const repo = {
+      root: "/repo",
+      flakePath: "/repo/system/macos",
+      darwinNixPath: "/repo/system/macos/darwin.nix",
+    };
+    const calls: string[] = [];
+    let pushed: Parameters<NonNullable<RecoverNixOptions["push"]>>[0] | undefined;
+
+    const build: NonNullable<RecoverNixOptions["build"]> = async (options) => {
+      calls.push(`build:${options.lockPath}:${options.mode}`);
+      return "/nix/store/recovered-system";
+    };
+    const activate: NonNullable<RecoverNixOptions["activate"]> = async (options) => {
+      calls.push(`activate:${options.systemConfig}`);
+    };
+    const push: NonNullable<RecoverNixOptions["push"]> = (options) =>
+      Effect.sync(() => {
+        pushed = options;
+        return undefined;
+      });
+
+    await Effect.runPromise(
+      recoverNix({
+        config,
+        repo,
+        recoveryDir,
+        which: async () => "/nix/bin/nix",
+        build,
+        activate,
+        push,
+        ensureSymlinks: async () => undefined,
+      }),
+    );
+
+    expect(calls).toEqual([
+      `build:${join(recoveryDir, "flake.lock")}:build`,
+      "activate:/nix/store/recovered-system",
+    ]);
+    expect(pushed).toMatchObject({
+      machine: config.machineId,
+      kind: "nix",
+      path: join(recoveryDir, "flake.lock"),
+      ifMatch: "a".repeat(64),
+    });
+    expect(await hasNixRecovery(recoveryDir)).toBe(false);
+  });
+
+  test("retains the checkpoint when publishing fails", async () => {
+    const parent = await tempDir();
+    const recoveryDir = join(parent, "nix-lock-recovery");
+    const lockSource = join(parent, "source.lock");
+    await writeFile(lockSource, '{ "lock": true }\n', "utf8");
+    await prepareNixRecovery({
+      lockPath: lockSource,
+      baseHash: "local",
+      recoveryDir,
+    });
+    await setNixRecoveryPhase("activated", recoveryDir);
+
+    const config: ManagerConfig = {
+      stateRoot: join(parent, "state"),
+      machineId: "test:aarch64-darwin",
+      machineIdOverridden: true,
+      manifest: { baseUrl: "https://example.test/outfitting", ref: "main" },
+    };
+    const repo = {
+      root: "/repo",
+      flakePath: "/repo/system/macos",
+      darwinNixPath: "/repo/system/macos/darwin.nix",
+    };
+    const push: NonNullable<RecoverNixOptions["push"]> = () =>
+      Effect.fail(new CliFailure({ message: "stale remote lock" }));
+
+    await expect(
+      Effect.runPromise(
+        recoverNix({
+          config,
+          repo,
+          recoveryDir,
+          which: async () => "/nix/bin/nix",
+          push,
+          ensureSymlinks: async () => undefined,
+        }),
+      ),
+    ).rejects.toThrow("stale remote lock");
+    expect(await hasNixRecovery(recoveryDir)).toBe(true);
+    expect((await readNixRecovery(recoveryDir))?.phase).toBe("activated");
   });
 });

@@ -9,6 +9,7 @@ import { ui } from "@/ui";
 import { activateNixSystem } from "@/update/nix/activate";
 import { buildNixSystem } from "@/update/nix/build";
 import { closeNixLock, openNixLock } from "@/update/nix/lock";
+import { readNixRecovery } from "@/update/nix/recovery";
 import { ensureNixSymlinks } from "@/update/nix/symlinks";
 import type { NixAction } from "@/update/nix/types";
 
@@ -31,6 +32,13 @@ export const updateNix = (options: UpdateNixOptions) =>
 
     const config = options.config ?? (yield* tryPromise(() => loadConfig()));
     const repo = options.repo ?? (yield* tryPromise(() => resolveOutfittingRepo({ config })));
+
+    const recovery = yield* tryPromise(() => readNixRecovery());
+    if (recovery !== undefined) {
+      return yield* new CliFailure({
+        message: `An unfinished Nix recovery checkpoint exists at ${recovery.dir}. Run: outfit recover nix`,
+      });
+    }
 
     yield* tryPromise(() => ensureNixSymlinks(repo));
 

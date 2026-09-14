@@ -14,6 +14,7 @@ export {
 } from "@/update/snapshot";
 export {
   updateNix,
+  recoverNix,
   buildNixSystem,
   activateNixSystem,
   prepareNixRecovery,

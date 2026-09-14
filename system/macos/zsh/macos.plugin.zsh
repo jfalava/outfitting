@@ -278,18 +278,41 @@ outfit-homebrew() {
 }
 
 outfit-snapshot() {
-    outfit-require-manager || return 1
-    # Snapshot is included after a successful brew update; brew --no-sync skips push.
-    # For a standalone snapshot, re-run brew with network only for inventory is heavy;
-    # push path is owned by update brew. Expose manager sync push docs:
-    echo "Homebrew inventory is pushed by 'outfitting-manager update brew'."
-    echo "To push an existing inventory file: outfitting-manager sync push <machine> homebrew-inventory <path>"
-    return 0
+    case "${1:-brew}" in
+        brew)
+            ;;
+        *)
+            echo "Usage: outfit snapshot brew"
+            return 1
+            ;;
+    esac
+
+    if command -v outfitting-manager >/dev/null 2>&1; then
+        outfitting-manager snapshot brew
+        return $?
+    fi
+
+    echo "Error: outfitting-manager is unavailable; standalone Homebrew snapshots require the manager."
+    return 1
 }
 
 outfit-recover() {
-    echo "Error: Nix upgrade recovery is not exposed in outfitting-manager v1 yet."
-    echo "Recovery checkpoint helpers exist in the CLI; a recover subcommand is forthcoming."
+    case "${1:-nix}" in
+        nix)
+            ;;
+        *)
+            echo "Usage: outfit recover nix"
+            return 1
+            ;;
+    esac
+
+    if command -v outfitting-manager >/dev/null 2>&1; then
+        outfitting-manager recover nix
+        return $?
+    fi
+
+    echo "Error: Nix recovery requires outfitting-manager."
+    echo "Install or restore outfitting-manager, then run 'outfit recover nix'."
     echo "Checkpoint dir: \${XDG_STATE_HOME:-\$HOME/.local/state}/outfitting/nix-lock-recovery"
     return 1
 }
@@ -356,7 +379,7 @@ outfit() {
                     return $?
                     ;;
                 *)
-                    echo "Usage: outfit [update|setup|sync|lockfiles|fonts|provision|upgrade] ..."
+                    echo "Usage: outfit [update|snapshot|recover|setup|sync|lockfiles|fonts|provision|upgrade] ..."
                     return 1
                     ;;
             esac

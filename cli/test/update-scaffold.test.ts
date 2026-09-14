@@ -61,6 +61,8 @@ describe("macos CLI scaffold (process)", () => {
     expect(text).toMatch(/\bupdate\b/);
     expect(text).toMatch(/\bsync\b/);
     expect(text).toMatch(/\blockfiles\b/);
+    expect(text).toMatch(/\bsnapshot\b/);
+    expect(text).toMatch(/\brecover\b/);
   });
 
   test("bare update exits nonzero and shows usage", async () => {

@@ -38,13 +38,17 @@ Successful Homebrew updates store a versioned inventory of taps, formulae, and c
 
 The Zsh profile keeps the older shortcuts and native update implementations as a fallback when `outfitting-manager` is unavailable. They are compatibility paths; new usage should use the hierarchical commands above.
 
-The standalone snapshot and recovery helpers remain compatibility surfaces while their manager-owned commands are migrated. A successful `outfit update brew` stores the current inventory; recovery checkpoint handling remains the next migration slice.
+Capture the observed Homebrew state without reconciling packages:
 
 ```bash
-outfit snapshot
+outfit snapshot brew
 ```
 
-If an update is interrupted after creating a candidate Nix lock, Outfitting keeps a recovery checkpoint under the XDG state directory, by default `$HOME/.local/state/outfitting/nix-lock-recovery`.
+If an update is interrupted after creating a candidate Nix lock, Outfitting keeps a recovery checkpoint under the XDG state directory, by default `$HOME/.local/state/outfitting/nix-lock-recovery`. Resume it with:
+
+```bash
+outfit recover nix
+```
 
 ## Nix-darwin profile management
 
