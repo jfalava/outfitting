@@ -114,12 +114,12 @@ outfitting-manager update bun
 
 ## Scoop reconciliation and unified lock
 
-The repository-owned `packages/windows/scoop.txt` is part of the Windows baseline. `outfit sync` fetches it without requiring a full local checkout, reconciles buckets and packages, and records the result in the unified `windows.lock.json`. Normal sync preserves manually installed packages; use `--clean` to remove tracked packages outside the selected baseline. The installer uses `--winget-only` until the post-install step bootstraps Scoop.
+The repository-owned `packages/windows/scoop.txt` is part of the Windows baseline. `outfit sync` fetches it without requiring a full local checkout, reconciles buckets and packages, and records the result in the unified `windows.lock.json`. Each sync lists tracked packages outside the selected baseline and asks for confirmation before removing them; declining aborts before package operations or lock writes. Untracked native installs remain unmanaged. The installer uses `--winget-only` until the post-install step bootstraps Scoop.
 
 ```powershell
 outfit setup
 outfit sync
-outfit sync --profile base,dev --clean
+outfit sync --profile base,dev
 ```
 
 Manual package installs are tracked through the CLI, while native `winget` and `scoop` remain available for unmanaged packages:

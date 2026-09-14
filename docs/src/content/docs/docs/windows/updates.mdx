@@ -49,7 +49,7 @@ The manager is the Windows package and desired-state path. The PowerShell profil
 ```powershell
 outfit sync                         # use saved profiles, or base initially
 outfit sync --profile base,dev      # pull selected repo manifests from GitHub
-outfit sync --profile base --clean  # remove tracked packages outside the baseline
+outfit sync --profile base          # reconcile tracked packages to the baseline
 
 outfit winget install Git.Git
 outfit scoop install extras/fzf
@@ -58,7 +58,7 @@ outfit winget uninstall Git.Git
 
 `sync` fetches the selected `packages/windows/*.txt` files from the configured raw GitHub source, installs the WinGet and Scoop baseline, and writes one `windows.lock.json`. Microsoft Store profiles automatically add `--source msstore` to their WinGet operations.
 
-Normal sync preserves packages installed manually through native WinGet or Scoop. `--clean` removes tracked packages that are no longer in the selected baseline; it does not claim ownership of untracked native installs. The explicit package commands record manual installs and removals in the same lock. Add `--no-sync` to those commands to save locally without pushing; add `--no-push` to `sync` for the same behavior.
+Each sync lists tracked packages that are no longer in the selected baseline and asks for confirmation before removing them. Declining aborts before package operations or lock writes; untracked native WinGet and Scoop installs remain unmanaged. The explicit package commands record manual installs and removals in the same lock. Add `--no-sync` to those commands to save locally without pushing; add `--no-push` to `sync` for the same behavior.
 
 The existing update commands remain useful for upgrading already-installed packages:
 

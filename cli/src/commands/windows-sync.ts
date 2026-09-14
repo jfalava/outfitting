@@ -1,5 +1,5 @@
 import { Console, Effect, Option } from "effect";
-import { Command, Flag } from "effect/unstable/cli";
+import { Command, Flag, Prompt } from "effect/unstable/cli";
 
 import { loadConfig, type ManagerConfig } from "@/config";
 import { CliFailure } from "@/errors";
@@ -8,7 +8,12 @@ import { pushLockfile } from "@/lockfiles";
 import { tryPromise } from "@/lockfiles/effect";
 import { runCommand, which } from "@/process";
 import { ui } from "@/ui";
-import { parseScoopManifest, SCOOP_MANIFEST_PATH, updateScoop } from "@/update/scoop";
+import {
+  parseScoopManifest,
+  SCOOP_MANIFEST_PATH,
+  updateScoop,
+  type ScoopManifest,
+} from "@/update/scoop";
 import { runScoopCommand } from "@/update/scoop-command";
 import {
   isWingetAlreadyInstalledExitCode,
@@ -37,16 +42,17 @@ export const WINDOWS_PROFILE_NAMES = [
 const WINGET_PROFILE_PATH = (profile: string) => `packages/windows/${profile}.txt`;
 export const WINDOWS_PROFILE_PATH = "dotfiles/Microsoft.PowerShell_profile.ps1";
 
-export interface WindowsSyncOptions {
+export interface WindowsSyncOptions<ConfirmR = never> {
   config?: ManagerConfig;
   profiles?: ReadonlyArray<string>;
-  clean?: boolean;
   /** Allow bootstrap installers to reconcile WinGet before Scoop exists. */
   wingetOnly?: boolean;
   noPush?: boolean;
   fetcher?: ManifestFetcher;
   run?: typeof runCommand;
   which?: typeof which;
+  /** Override the confirmation response for clean operations. */
+  confirmClean?: Effect.Effect<boolean, never, ConfirmR>;
 }
 
 interface WindowsWingetPackage {
@@ -122,19 +128,63 @@ function baselineScoopRecords(names: ReadonlyArray<string>): WindowsPackageRecor
   return names.map((name) => ({ name, args: [], origin: "baseline" }));
 }
 
+interface CleanPackage {
+  manager: "WinGet" | "Scoop";
+  name: string;
+}
+
+function cleanCandidates(
+  current: WindowsLock,
+  desiredWinget: ReadonlyArray<WindowsWingetPackage>,
+  desiredScoop: ScoopManifest | undefined,
+): CleanPackage[] {
+  const desiredWingetNames = new Set(
+    desiredWinget.map((packageInfo) => packageInfo.name.toLowerCase()),
+  );
+  const desiredScoopNames = new Set(
+    (desiredScoop?.packages ?? []).map((spec) => packageName(spec).toLowerCase()),
+  );
+  return [
+    ...current.packages.winget
+      .filter((record) => !desiredWingetNames.has(record.name.toLowerCase()))
+      .map((record) => ({ manager: "WinGet" as const, name: record.name })),
+    ...current.packages.scoop
+      .filter((record) => !desiredScoopNames.has(record.name.toLowerCase()))
+      .map((record) => ({ manager: "Scoop" as const, name: record.name })),
+  ];
+}
+
+const confirmCleanPlan = Effect.fn("confirmCleanPlan")(function* <ConfirmR>(
+  removals: ReadonlyArray<CleanPackage>,
+  confirmation: Effect.Effect<boolean, never, ConfirmR> | undefined,
+) {
+  if (removals.length === 0) {
+    yield* Console.log(ui.muted("No tracked packages will be removed."));
+    return true;
+  }
+
+  yield* Console.log(ui.heading("Packages to be removed:"));
+  for (const removal of removals) {
+    yield* Console.log(`  ${removal.manager}: ${removal.name}`);
+  }
+  if (confirmation === undefined) {
+    return yield* new CliFailure({
+      message: "A confirmation effect is required when sync would remove packages.",
+    });
+  }
+  const confirmed = yield* confirmation;
+  if (!confirmed) {
+    yield* Console.log(ui.muted("Aborted. No packages were removed."));
+  }
+  return confirmed;
+});
+
 function replaceManagedRecords(
   lock: WindowsLock,
   manager: "winget" | "scoop",
   desired: ReadonlyArray<WindowsPackageRecord>,
-  clean: boolean,
 ): void {
-  const desiredNames = new Set(desired.map((record) => record.name.toLowerCase()));
-  const manual = clean
-    ? []
-    : lock.packages[manager]
-        .filter((record) => !desiredNames.has(record.name.toLowerCase()))
-        .map((record) => ({ ...record, origin: "manual" as const }));
-  lock.packages[manager] = [...manual, ...desired].toSorted((left, right) =>
+  lock.packages[manager] = desired.toSorted((left, right) =>
     left.name.localeCompare(right.name),
   );
 }
@@ -352,7 +402,7 @@ const fetchScoop = Effect.fn("fetchScoop")(function* (
   fetcher: ManifestFetcher | undefined,
 ) {
   const manifest = yield* tryPromise(() =>
-    fetchManifest({ path: SCOOP_MANIFEST_PATH, config, fetcher }),
+    fetchManifest({ path: SCOOP_MANIFEST_PATH, config, materialize: true, fetcher }),
   );
   if (manifest.warning) {
     yield* Console.log(ui.muted(manifest.warning));
@@ -364,46 +414,58 @@ const fetchScoop = Effect.fn("fetchScoop")(function* (
   });
 });
 
+const prepareScoop = Effect.fn("prepareScoop")(function* (
+  config: ManagerConfig,
+  fetcher: ManifestFetcher | undefined,
+  whichFn: typeof which,
+  wingetOnly: boolean,
+) {
+  const path = yield* tryPromise(() => whichFn("scoop"));
+  if (path === undefined) {
+    if (!wingetOnly) {
+      return yield* new CliFailure({ message: "scoop is not installed or not in PATH." });
+    }
+    yield* Console.log(ui.muted("Scoop is not installed; skipping Scoop until post-install."));
+    return { path: undefined, manifest: undefined };
+  }
+  return { path, manifest: yield* fetchScoop(config, fetcher) };
+});
+
 interface SyncScoopContext {
   config: ManagerConfig;
   current: WindowsLock;
-  fetcher: ManifestFetcher | undefined;
+  manifest: ScoopManifest;
   run: typeof runCommand;
   scoopPath: string;
-  clean: boolean;
 }
 
 const syncScoopPackages = Effect.fn("syncScoopPackages")(function* ({
   config,
   current,
-  fetcher,
+  manifest,
   run,
   scoopPath,
-  clean,
 }: SyncScoopContext) {
-  const scoop = yield* fetchScoop(config, fetcher);
   yield* updateScoop({
     config,
+    manifest,
     noSync: true,
     prune: false,
-    fetcher,
     run,
     which: async () => scoopPath,
     scoopPath,
   });
-  if (clean) {
-    yield* cleanScoopPackages({
-      config,
-      run,
-      executable: scoopPath,
-      current,
-      desired: scoop.packages.map(packageName),
-    });
-  }
-  return scoop;
+  yield* cleanScoopPackages({
+    config,
+    run,
+    executable: scoopPath,
+    current,
+    desired: manifest.packages.map(packageName),
+  });
+  return manifest;
 });
 
-export const syncWindows = (options: WindowsSyncOptions = {}) =>
+export const syncWindows = <ConfirmR = never>(options: WindowsSyncOptions<ConfirmR> = {}) =>
   Effect.gen(function* () {
     const config = options.config ?? (yield* tryPromise(() => loadConfig()));
     const current = yield* tryPromise(() => readWindowsLock(config));
@@ -423,37 +485,40 @@ export const syncWindows = (options: WindowsSyncOptions = {}) =>
 
     const uniqueWingetPackages = yield* fetchWingetPackages(config, profiles, fetcher);
 
+    const { path: scoopPath, manifest: scoopManifest } = yield* prepareScoop(
+      config,
+      fetcher,
+      whichFn,
+      options.wingetOnly === true,
+    );
+    const cleanConfirmed = yield* confirmCleanPlan(
+      cleanCandidates(current, uniqueWingetPackages, scoopManifest),
+      options.confirmClean,
+    );
+    if (!cleanConfirmed) {
+      return;
+    }
+
     yield* Console.log(ui.heading(`Syncing Windows profiles: ${profiles.join(", ")}…`));
     yield* installWingetPackages(config, run, wingetPath, uniqueWingetPackages);
 
-    if (options.clean) {
-      yield* cleanWingetPackages({
-        config,
-        run,
-        executable: wingetPath,
-        current,
-        desired: uniqueWingetPackages,
-      });
-    }
-
-    const scoopPath = yield* tryPromise(() => whichFn("scoop"));
-    if (scoopPath === undefined) {
-      if (!options.wingetOnly) {
-        return yield* new CliFailure({ message: "scoop is not installed or not in PATH." });
-      }
-      yield* Console.log(ui.muted("Scoop is not installed; skipping Scoop until post-install."));
-    }
+    yield* cleanWingetPackages({
+      config,
+      run,
+      executable: wingetPath,
+      current,
+      desired: uniqueWingetPackages,
+    });
 
     const scoop =
-      scoopPath === undefined
+      scoopPath === undefined || scoopManifest === undefined
         ? undefined
         : yield* syncScoopPackages({
             config,
             current,
-            fetcher,
+            manifest: scoopManifest,
             run,
             scoopPath,
-            clean: options.clean === true,
           });
 
     const updated = yield* tryPromise(() => readWindowsLock(config));
@@ -461,14 +526,12 @@ export const syncWindows = (options: WindowsSyncOptions = {}) =>
       updated,
       "winget",
       baselineWingetRecords(uniqueWingetPackages),
-      options.clean === true,
     );
     if (scoop !== undefined) {
       replaceManagedRecords(
         updated,
         "scoop",
         baselineScoopRecords(scoop.packages.map(packageName)),
-        options.clean === true,
       );
     }
     updated.profiles = profiles;
@@ -493,10 +556,6 @@ export const windowsSyncCommand = Command.make(
   "sync",
   {
     profile: profileFlag,
-    clean: Flag.boolean("clean").pipe(
-      Flag.withDefault(false),
-      Flag.withDescription("Remove tracked packages absent from the selected profiles."),
-    ),
     wingetOnly: Flag.boolean("winget-only").pipe(
       Flag.withDefault(false),
       Flag.withDescription("Skip Scoop while bootstrapping WinGet on a fresh machine."),
@@ -506,12 +565,14 @@ export const windowsSyncCommand = Command.make(
       Flag.withDescription("Write the local lockfile without pushing it to the Worker."),
     ),
   },
-  ({ profile, clean, wingetOnly, noPush }) =>
+  ({ profile, wingetOnly, noPush }) =>
     syncWindows({
       profiles: Option.isSome(profile) ? [profile.value] : undefined,
-      clean,
       wingetOnly,
       noPush,
+      confirmClean: Prompt.confirm({ message: "Remove the listed packages?", initial: false }).pipe(
+        Effect.orDie,
+      ),
     }),
 ).pipe(
   Command.withDescription(

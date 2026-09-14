@@ -313,6 +313,8 @@ export interface UpdateScoopOptions {
   noSync?: boolean;
   /** Remove non-global packages absent from scoop.txt. Defaults to true. */
   prune?: boolean;
+  /** Reuse an already parsed Scoop manifest instead of fetching it again. */
+  manifest?: ScoopManifest;
   scoopPath?: string;
   run?: typeof runCommand;
   which?: typeof which;
@@ -330,25 +332,30 @@ export const updateScoop = (options: UpdateScoopOptions = {}) =>
     }
 
     const config = options.config ?? (yield* tryPromise(() => loadConfig()));
-    const manifest = yield* tryPromise(() =>
-      fetchManifest({
-        path: SCOOP_MANIFEST_PATH,
-        config,
-        materialize: true,
-        fetcher: options.fetcher,
-      }),
-    );
-    if (manifest.warning) {
-      yield* Console.log(ui.muted(manifest.warning));
-    }
-    const desired = yield* Effect.try({
-      try: () => parseScoopManifest(manifest.text),
-      catch: (cause) =>
-        new ScoopUpdateError({
-          message: cause instanceof Error ? cause.message : String(cause),
-          cause,
+    let desired: ScoopManifest;
+    if (options.manifest !== undefined) {
+      desired = options.manifest;
+    } else {
+      const manifest = yield* tryPromise(() =>
+        fetchManifest({
+          path: SCOOP_MANIFEST_PATH,
+          config,
+          materialize: true,
+          fetcher: options.fetcher,
         }),
-    });
+      );
+      if (manifest.warning) {
+        yield* Console.log(ui.muted(manifest.warning));
+      }
+      desired = yield* Effect.try({
+        try: () => parseScoopManifest(manifest.text),
+        catch: (cause) =>
+          new ScoopUpdateError({
+            message: cause instanceof Error ? cause.message : String(cause),
+            cause,
+          }),
+      });
+    }
     const state = yield* scoopState(run, scoopPath);
     const buckets = installedBuckets(state);
 

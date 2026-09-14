@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 
-import { Effect } from "effect";
+import { Console, Effect } from "effect";
 import { describe, expect, test } from "vitest";
 
 import {
@@ -67,7 +67,7 @@ describe("Windows CLI entrypoint", () => {
     expect(update.text).toMatch(/\bbun\b/);
     expect(update.text).toMatch(/\ball\b/);
     expect(setup.text).toMatch(/scoop\.txt/);
-    expect(sync.text).toMatch(/--clean/);
+    expect(sync.text).not.toMatch(/--clean/);
     expect(sync.text).toMatch(/--winget-only/);
     expect(winget.text).toMatch(/install/);
     expect(scoop.text).toMatch(/uninstall/);
@@ -151,7 +151,7 @@ describe("Windows desired state and lock", () => {
     }
   });
 
-  test("sync preserves manually tracked extras unless --clean is selected", async () => {
+  test("sync lists and removes tracked extras after confirmation", async () => {
     const root = await mkdtemp(join(tmpdir(), "outfitting-windows-sync-"));
     const config = {
       stateRoot: root,
@@ -163,6 +163,10 @@ describe("Windows desired state and lock", () => {
       },
     };
     const calls: string[] = [];
+    const output: string[] = [];
+    const testConsole = Object.assign(Object.create(console), {
+      log: (...args: ReadonlyArray<unknown>) => output.push(args.join(" ")),
+    }) as Console.Console;
     const run = async (command: string, args: ReadonlyArray<string>) => {
       calls.push(`${command} ${args.join(" ")}`);
       if (command === "powershell.exe" && args.at(-1) === "export") {
@@ -191,45 +195,41 @@ describe("Windows desired state and lock", () => {
         },
         { root },
       );
+      await recordWindowsOperation(
+        {
+          config,
+          manager: "scoop",
+          action: "install",
+          name: "extra-scoop",
+          args: ["install", "extra-scoop"],
+          status: "success",
+          exitCode: 0,
+        },
+        { root },
+      );
 
       await Effect.runPromise(
         syncWindows({
           config,
+          confirmClean: Effect.succeed(true),
           noPush: true,
           which: async (manager) => `C:\\${manager}.exe`,
           run,
           fetcher: async (url) =>
             new Response(url.includes("scoop") ? 'package "fzf"\n' : "Git.Git\n"),
-        }),
+        }).pipe(Effect.provideService(Console.Console, testConsole)),
       );
 
       const lock = await readWindowsLock(config, { root });
-      expect(lock.packages.winget.map((entry) => entry.name)).toEqual([
-        "Git.Git",
-        "Manual.Package",
-      ]);
+      expect(lock.packages.winget.map((entry) => entry.name)).toEqual(["Git.Git"]);
       expect(lock.packages.scoop.map((entry) => entry.name)).toEqual(["fzf"]);
       await expect(
         readFile(join(root, "manifests/dotfiles/Microsoft.PowerShell_profile.ps1"), "utf8"),
       ).resolves.toBe("Git.Git\n");
-      expect(calls.some((call) => call.includes("uninstall"))).toBe(false);
-
-      await Effect.runPromise(
-        syncWindows({
-          config,
-          clean: true,
-          noPush: true,
-          which: async (manager) => `C:\\${manager}.exe`,
-          run,
-          fetcher: async (url) =>
-            new Response(url.includes("scoop") ? 'package "fzf"\n' : "Git.Git\n"),
-        }),
-      );
-
-      const cleaned = await readWindowsLock(config, { root });
-      expect(cleaned.packages.winget.map((entry) => entry.name)).toEqual(["Git.Git"]);
+      expect(output.join("\n")).toContain("WinGet: Manual.Package");
+      expect(output.join("\n")).toContain("Scoop: extra-scoop");
       expect(calls.some((call) => call.includes("Manual.Package"))).toBe(true);
-      expect(calls.some((call) => call.includes("extra-scoop"))).toBe(false);
+      expect(calls.some((call) => call.includes("extra-scoop"))).toBe(true);
     } finally {
       await rm(root, { force: true, recursive: true });
     }

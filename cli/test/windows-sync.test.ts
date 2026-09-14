@@ -2,7 +2,7 @@ import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { Effect } from "effect";
+import { Console, Effect } from "effect";
 import { describe, expect, test } from "vitest";
 
 import {
@@ -149,7 +149,7 @@ describe("Windows profile selection", () => {
         Effect.runPromise(
           syncWindows({
             config,
-            clean: true,
+            confirmClean: Effect.succeed(true),
             fetcher: async (url) => responseFor(url),
             noPush: true,
             run: async (_command, args) => ({
@@ -168,7 +168,7 @@ describe("Windows profile selection", () => {
     }
   });
 
-  test("retains old profile packages for a later explicit clean", async () => {
+  test("removes old profile packages after confirmation", async () => {
     const root = await mkdtemp(join(tmpdir(), "outfitting-windows-sync-"));
     try {
       const config = configFor(root);
@@ -184,6 +184,7 @@ describe("Windows profile selection", () => {
         config,
         fetcher: async (url: string) => responseFor(url),
         noPush: true,
+        confirmClean: Effect.succeed(true),
         run,
         which: async (command: string) => (command === "winget" ? "C:\\winget.exe" : undefined),
         wingetOnly: true,
@@ -192,35 +193,9 @@ describe("Windows profile selection", () => {
       await Effect.runPromise(syncWindows({ ...common, profiles: ["base"] }));
       calls.length = 0;
       await Effect.runPromise(syncWindows({ ...common, profiles: ["dev"] }));
-      expect((await readWindowsLock(config)).packages.winget).toEqual([
-        {
-          name: "Git.Git",
-          args: [
-            "install",
-            "--id",
-            "Git.Git",
-            "--exact",
-            "--accept-source-agreements",
-            "--accept-package-agreements",
-          ],
-          origin: "manual",
-        },
-        {
-          name: "OpenAI.Codex",
-          args: [
-            "install",
-            "--id",
-            "OpenAI.Codex",
-            "--exact",
-            "--accept-source-agreements",
-            "--accept-package-agreements",
-          ],
-          origin: "baseline",
-        },
+      expect((await readWindowsLock(config)).packages.winget.map((entry) => entry.name)).toEqual([
+        "OpenAI.Codex",
       ]);
-
-      calls.length = 0;
-      await Effect.runPromise(syncWindows({ ...common, clean: true }));
       expect(calls.some((call) => call.includes("uninstall") && call.includes("Git.Git"))).toBe(
         true,
       );
@@ -229,7 +204,7 @@ describe("Windows profile selection", () => {
     }
   });
 
-  test("only removes tracked extras with --clean", async () => {
+  test("only removes tracked extras", async () => {
     const root = await mkdtemp(join(tmpdir(), "outfitting-windows-sync-"));
     try {
       const config = configFor(root);
@@ -253,8 +228,8 @@ describe("Windows profile selection", () => {
       const calls: string[] = [];
       await Effect.runPromise(
         syncWindows({
-          clean: true,
           config,
+          confirmClean: Effect.succeed(true),
           fetcher: async (url) => responseFor(url),
           noPush: true,
           run: async (command, args) => {
@@ -268,6 +243,45 @@ describe("Windows profile selection", () => {
       expect(calls.some((call) => call.includes("uninstall") && call.includes("Old.Package"))).toBe(
         true,
       );
+    } finally {
+      await rm(root, { force: true, recursive: true });
+    }
+  });
+
+  test("lists clean candidates and aborts before package operations", async () => {
+    const root = await mkdtemp(join(tmpdir(), "outfitting-windows-sync-"));
+    try {
+      const config = configFor(root);
+      const lock = await readWindowsLock(config);
+      lock.packages.winget = [{ name: "Old.Package", args: [], origin: "baseline" }];
+      await writeWindowsLock(lock, { root });
+
+      const calls: string[] = [];
+      const output: string[] = [];
+      const testConsole = Object.assign(Object.create(console), {
+        log: (...args: ReadonlyArray<unknown>) => output.push(args.join(" ")),
+      }) as Console.Console;
+      await Effect.runPromise(
+        syncWindows({
+          config,
+          confirmClean: Effect.succeed(false),
+          fetcher: async (url) => responseFor(url),
+          noPush: true,
+          run: async (command, args) => {
+            calls.push(`${command} ${args.join(" ")}`);
+            return { code: 0, stdout: "", stderr: "" };
+          },
+          which: async (command) => (command === "winget" ? "C:\\winget.exe" : undefined),
+          wingetOnly: true,
+        }).pipe(Effect.provideService(Console.Console, testConsole)),
+      );
+
+      expect(output.join("\n")).toContain("WinGet: Old.Package");
+      expect(output.join("\n")).toContain("Aborted. No packages were removed.");
+      expect(calls).toEqual([]);
+      expect((await readWindowsLock(config)).packages.winget.map((entry) => entry.name)).toEqual([
+        "Old.Package",
+      ]);
     } finally {
       await rm(root, { force: true, recursive: true });
     }
