@@ -178,21 +178,59 @@ run_outfitting_manager() {
 
 ############################ Nix Installation
 source_nix_environment() {
+    local profile nix_bin
+
+    for profile in \
+        "/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh" \
+        "$HOME/.nix-profile/etc/profile.d/nix-daemon.sh" \
+        "$HOME/.nix-profile/etc/profile.d/nix.sh"
+    do
+        if [ -r "$profile" ]; then
+            # shellcheck source=/dev/null
+            source "$profile"
+        fi
+    done
+
+    for nix_bin in \
+        "/nix/var/nix/profiles/default/bin/nix" \
+        "$HOME/.nix-profile/bin/nix" \
+        "/run/current-system/sw/bin/nix"
+    do
+        if [ -x "$nix_bin" ]; then
+            export PATH="$(dirname "$nix_bin"):$PATH"
+            return 0
+        fi
+    done
+
+    return 1
+}
+
+nix_available() {
     # shellcheck source=/dev/null
-    source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh 2>/dev/null || true
+    source_nix_environment 2>/dev/null || true
+    command -v nix >/dev/null 2>&1
 }
 
 install_nix() {
-    source_nix_environment
-    if command -v nix &>/dev/null; then
+    if nix_available; then
         success "Nix already installed ($(nix --version 2>/dev/null | head -1))"
         return 0
     fi
 
+    if [ -d "/nix" ]; then
+        error "A Nix installation already exists, but nix is not available in this shell."
+        error "Open a new shell or source the Nix profile before rerunning the installer."
+        return 1
+    fi
+
     info "Installing Nix (Determinate Systems)..."
     if curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install --no-confirm; then
-        source_nix_environment
-        success "Nix installed"
+        if nix_available; then
+            success "Nix installed"
+        else
+            error "Nix installation completed, but nix is not available in this shell"
+            return 1
+        fi
     else
         error "Failed to install Nix"
         return 1

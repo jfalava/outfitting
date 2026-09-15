@@ -10,7 +10,19 @@ set -euo pipefail
 export FONTGET_ACCEPT_DEFAULTS=1
 export FONTGET_ACCEPT_AGREEMENTS=1
 
-REPO_PATH="$HOME/.config/outfitting/repo"
+STATE_ROOT="${OUTFITTING_STATE_ROOT:-$HOME/.config/outfitting}"
+REPO_PATH_FILE="$STATE_ROOT/repo-path"
+if [ ! -f "$REPO_PATH_FILE" ]; then
+  echo "Outfitting source path not found: $REPO_PATH_FILE"
+  exit 1
+fi
+
+REPO_PATH=$(cat "$REPO_PATH_FILE")
+if [ -z "$REPO_PATH" ]; then
+  echo "Outfitting source path is empty: $REPO_PATH_FILE"
+  exit 1
+fi
+
 FONTGET_LIST="$REPO_PATH/fonts/fontget.txt"
 
 if [ ! -f "$FONTGET_LIST" ]; then

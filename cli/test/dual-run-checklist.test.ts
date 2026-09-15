@@ -32,6 +32,7 @@ describe("dual-run golden signals (checklist)", () => {
       "packages/macos/packages.nix",
       "packages/macos/zed.nix",
       "packages/macos/Brewfile",
+      "fonts/fontget.txt",
     ]);
   });
 

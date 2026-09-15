@@ -19,6 +19,7 @@ export const MACOS_SOURCE_PATHS = [
   "packages/macos/packages.nix",
   "packages/macos/zed.nix",
   "packages/macos/Brewfile",
+  "fonts/fontget.txt",
 ] as const;
 
 /** Backwards-compatible name for the default macOS setup path set. */
