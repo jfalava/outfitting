@@ -65,11 +65,10 @@ The existing update commands remain useful for upgrading already-installed packa
 ```powershell
 outfit update winget
 outfit update scoop
-outfit update bun
 outfit update all
 ```
 
-They record their upgrade operations in `windows.lock.json`. PowerShell continues to own session environment and `PATH` setup.
+They record their upgrade operations in `windows.lock.json`; `update all` runs WinGet and Scoop. Update global Bun packages directly with `bun update -g`. PowerShell continues to own session environment and `PATH` setup.
 
 Configure the lockfiles Worker before the first upload if the machine has not been provisioned:
 

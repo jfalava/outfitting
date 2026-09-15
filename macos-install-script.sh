@@ -38,17 +38,11 @@ check_architecture() {
     local arch
     arch=$(uname -m)
 
-    if [[ "$arch" == "arm64" ]]; then
-        info "Detected Apple Silicon (ARM64)"
-    elif [[ "$arch" == "x86_64" ]]; then
-        warning "Detected Intel Mac (x86_64)"
-        warning "This configuration is optimized for Apple Silicon."
-        warning "It may work on Intel Macs, but some packages might need adjustment."
-        warning "Continuing with installation..."
-    else
-        error "Unsupported architecture: $arch"
+    if [[ "$arch" != "arm64" ]]; then
+        error "Apple Silicon (arm64) is required"
         exit 1
     fi
+    info "Detected Apple Silicon (ARM64)"
 }
 #############################################
 
@@ -56,14 +50,12 @@ check_architecture() {
 configure_package_manager_paths() {
     if [ -x "/opt/homebrew/bin/brew" ]; then
         eval "$(/opt/homebrew/bin/brew shellenv)"
-    elif [ -x "/usr/local/bin/brew" ]; then
-        eval "$(/usr/local/bin/brew shellenv)"
     fi
 }
 install_homebrew() {
     info "Installing Homebrew..."
 
-    if command -v brew >/dev/null 2>&1 || [ -x "/opt/homebrew/bin/brew" ] || [ -x "/usr/local/bin/brew" ]; then
+    if command -v brew >/dev/null 2>&1 || [ -x "/opt/homebrew/bin/brew" ]; then
         configure_package_manager_paths
         success "Homebrew is already installed ($(brew --version | head -1))"
         return 0
@@ -100,13 +92,7 @@ install_astral_uv() {
 }
 
 install_outfitting_manager() {
-    local arch asset entry release_base install_dir temp_dir
-    arch=$(uname -m)
-    if [[ "$arch" != "arm64" ]]; then
-        error "No outfitting-manager release binary is available for macOS architecture: $arch"
-        return 1
-    fi
-
+    local asset entry release_base install_dir temp_dir
     asset="outfitting-manager-darwin-arm64.zip"
     entry="outfitting-manager"
     release_base="https://github.com/jfalava/outfitting/releases/latest/download"

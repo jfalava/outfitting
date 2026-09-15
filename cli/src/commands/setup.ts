@@ -50,7 +50,7 @@ export const setupCommand = Command.make(
       sourcePaths: MACOS_SOURCE_PATHS,
       skipSymlinks,
       ensureSymlinks: ensureNixSymlinks,
-      nextCommand: "Next: outfit update nix|brew|bun|all",
+      nextCommand: "Next: outfit update nix|brew|all",
     }),
 ).pipe(
   Command.withDescription(

@@ -5,7 +5,6 @@ import { CliFailure } from "@/errors";
 import { tryPromise } from "@/lockfiles/effect";
 import { ui } from "@/ui";
 import { updateBrew } from "@/update/brew";
-import { updateBun } from "@/update/bun";
 import { updateNix } from "@/update/nix";
 
 export interface UpdateAllOptions {
@@ -20,7 +19,7 @@ export interface UpdateStepResult {
 }
 
 /**
- * macOS `update all`: nix switch → brew → bun.
+ * macOS `update all`: nix switch → brew.
  * Continues after step failures; exits nonzero if any step failed.
  * Brew owns default inventory push; `--no-sync` skips it.
  */
@@ -45,11 +44,10 @@ export const updateAll = (options: UpdateAllOptions = {}) =>
         }),
       );
 
-    yield* Console.log(ui.heading("update all: nix switch → brew → bun"));
+    yield* Console.log(ui.heading("update all: nix switch → brew"));
 
     yield* runStep("nix switch", updateNix({ action: "switch", config }));
     yield* runStep("brew", updateBrew({ config, noSync: options.noSync === true }));
-    yield* runStep("bun", updateBun({ skipIfMissing: true }));
 
     const failed = results.filter((step) => !step.ok);
     yield* Console.log("");

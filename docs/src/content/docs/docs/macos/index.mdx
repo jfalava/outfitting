@@ -18,7 +18,7 @@ The macOS Zsh profile provides `outfit` and `o` as aliases for `outfitting-manag
 # Apply and upgrade the Homebrew desired state
 outfit update brew
 
-# Update all package origins: Nix, Homebrew, then Bun
+# Update Nix-darwin and Homebrew
 outfit update all
 
 # Update Nix-darwin (switch is the default action)
@@ -30,13 +30,13 @@ outfit update nix test
 outfit update nix dry
 outfit update nix switch
 
-# Update global Bun packages
-outfit update bun
+# Update global Bun packages with Bun itself
+bun update -g
 ```
 
 Successful Homebrew updates store a versioned inventory of taps, formulae, and casks through `outfitting-manager`. The inventory is observed state; the committed Brewfile remains the desired Homebrew configuration.
 
-The Zsh profile keeps Nix compatibility shortcuts and a native Nix fallback for the legacy `hm-*` helpers when `outfitting-manager` is unavailable. Homebrew, Bun, aggregate updates, snapshots, and setup are manager-owned and require `outfitting-manager`.
+The Zsh profile keeps Nix compatibility shortcuts and a native Nix fallback for the `hm-*` helpers when `outfitting-manager` is unavailable. Homebrew, Bun, aggregate updates, snapshots, and setup are manager-owned and require `outfitting-manager`.
 
 Capture the observed Homebrew state without reconciling packages:
 

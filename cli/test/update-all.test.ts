@@ -4,7 +4,7 @@ import { describe, expect, test, vi } from "vitest";
 import { CliFailure } from "@/errors";
 
 // Unit-test the continue-on-fail policy with a local replica of the reducer
-// used by updateAll (avoids spawning real nix/brew/bun).
+// used by updateAll (avoids spawning real nix/brew).
 
 interface StepResult {
   name: string;
@@ -56,24 +56,17 @@ describe("update all continue-on-fail policy", () => {
           order.push("brew");
         }),
       },
-      {
-        name: "bun",
-        effect: Effect.sync(() => {
-          order.push("bun");
-        }).pipe(Effect.flatMap(() => Effect.fail(new CliFailure({ message: "bun boom" })))),
-      },
     ]);
 
-    expect(order).toEqual(["nix", "brew", "bun"]);
-    expect(failedNames).toEqual(["nix switch", "bun"]);
-    expect(results.map((r) => r.ok)).toEqual([false, true, false]);
+    expect(order).toEqual(["nix", "brew"]);
+    expect(failedNames).toEqual(["nix switch"]);
+    expect(results.map((r) => r.ok)).toEqual([false, true]);
   });
 
   test("all success yields empty failed list", async () => {
     const { failedNames } = await runSequence([
       { name: "nix switch", effect: Effect.void },
       { name: "brew", effect: Effect.void },
-      { name: "bun", effect: Effect.void },
     ]);
     expect(failedNames).toEqual([]);
   });

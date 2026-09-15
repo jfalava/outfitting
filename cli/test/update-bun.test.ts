@@ -1,6 +1,7 @@
+import { Effect } from "effect";
 import { describe, expect, test } from "vitest";
 
-import { fetchNpmLatestVersion, parseBunGlobalList } from "@/update/bun";
+import { parseBunGlobalList, updateBun } from "@/update/bun";
 
 describe("parseBunGlobalList", () => {
   test("parses bun pm ls -g style output", () => {
@@ -23,18 +24,10 @@ describe("parseBunGlobalList", () => {
   });
 });
 
-describe("fetchNpmLatestVersion", () => {
-  test("reads dist-tags.latest", async () => {
-    const fetcher = async () =>
-      new Response(JSON.stringify({ "dist-tags": { latest: "9.9.9" } }), {
-        status: 200,
-        headers: { "content-type": "application/json" },
-      });
-    await expect(fetchNpmLatestVersion("alchemy", fetcher)).resolves.toBe("9.9.9");
-  });
-
-  test("returns undefined on HTTP error", async () => {
-    const fetcher = async () => new Response("nope", { status: 404 });
-    await expect(fetchNpmLatestVersion("missing", fetcher)).resolves.toBeUndefined();
+describe("updateBun", () => {
+  test("is deprecated in favor of Bun's native global update", async () => {
+    await expect(Effect.runPromise(updateBun)).rejects.toThrow(
+      "`update bun` is deprecated; run `bun update -g` instead.",
+    );
   });
 });

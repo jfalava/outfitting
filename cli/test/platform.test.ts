@@ -11,7 +11,7 @@ import {
 
 describe("package manager availability table", () => {
   test("macos natives and foreign hint set", () => {
-    expect([...MACOS_UPDATE_MANAGERS]).toEqual(["bun", "brew", "nix", "all"]);
+    expect([...MACOS_UPDATE_MANAGERS]).toEqual(["brew", "nix", "all"]);
     expect(foreignPackageManagers("macos").sort()).toEqual(["scoop", "winget"]);
     expect(foreignPackageManagers("windows").sort()).toEqual(["brew", "nix"]);
   });

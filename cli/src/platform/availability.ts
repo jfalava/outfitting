@@ -26,7 +26,7 @@ export const PACKAGE_MANAGER_PLATFORM = {
 export const NIX_ACTIONS = ["build", "switch", "test", "dry"] as const;
 export type NixAction = (typeof NIX_ACTIONS)[number];
 
-export const MACOS_UPDATE_MANAGERS = ["bun", "brew", "nix", "all"] as const;
+export const MACOS_UPDATE_MANAGERS = ["brew", "nix", "all"] as const;
 export type MacosUpdateManager = (typeof MACOS_UPDATE_MANAGERS)[number];
 
 /** PMs that are never native on the given host (hint stubs only). */

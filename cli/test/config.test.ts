@@ -31,7 +31,7 @@ async function tempRoot(): Promise<string> {
 describe("machine id", () => {
   test("builds nix-style triples", () => {
     expect(hostSystemTriple("darwin", "arm64")).toBe("aarch64-darwin");
-    expect(hostSystemTriple("darwin", "x64")).toBe("x86_64-darwin");
+    expect(() => hostSystemTriple("darwin", "unsupported")).toThrow("Apple Silicon");
     expect(hostSystemTriple("linux", "x64")).toBe("x86_64-linux");
     expect(hostSystemTriple("win32", "x64")).toBe("x86_64-windows");
   });

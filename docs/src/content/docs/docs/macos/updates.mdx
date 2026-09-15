@@ -5,13 +5,12 @@ sidebar:
   order: 4
 ---
 
-## Repository-managed configuration
+## Configuration source
 
-The installer stores the checkout path in `$HOME/.config/outfitting/repo-path` and protects that file with mode 600. Pull the latest repository changes from the configured checkout:
+The installer stores the sparse source path in `$HOME/.config/outfitting/repo-path` and protects that file with mode 600. Nix updates refresh the source automatically; refresh it without activating with:
 
 ```bash
-repo_path="$(cat "$HOME/.config/outfitting/repo-path")"
-git -C "$repo_path" pull --ff-only
+outfit setup
 ```
 
 Apply updated Nix-darwin/Home Manager configuration and repair its symlinks:
@@ -26,7 +25,7 @@ Apply and upgrade the committed Homebrew manifest, remove unlisted casks, and st
 outfit update brew
 ```
 
-If you only need to pull repository changes without applying package managers, use the repository update commands above and leave activation for a later `outfit update nix switch`.
+If you only need to refresh the sparse source without applying package managers, run `outfit setup` and leave activation for a later `outfit update nix switch`.
 
 ## Packages and inventories
 
@@ -35,11 +34,10 @@ Use the origin-specific commands when you want one package manager, or the aggre
 ```bash
 outfit update nix
 outfit update brew
-outfit update bun
 outfit update all
 ```
 
-`outfit update nix` builds and activates nix-darwin using the canonical remote lock. `outfit update brew` reconciles and upgrades Homebrew, then stores the observed inventory. `outfit update bun` updates global Bun packages. `outfit update all` runs Nix, Homebrew, and Bun in order, continues after individual failures, and returns a failure if any step fails.
+`outfit update nix` builds and activates nix-darwin using the canonical remote lock. `outfit update brew` reconciles and upgrades Homebrew, then stores the observed inventory. `outfit update all` runs Nix and Homebrew in order, continues after individual failures, and returns a failure if any step fails. Update global Bun packages with `bun update -g`.
 
 The Zsh profile defines `outfit` and `o` as direct aliases for `outfitting-manager`; it keeps only Nix compatibility helpers and a native Nix fallback for those helpers. Homebrew, Bun, aggregate updates, snapshots, and setup are manager-owned; if the manager binary is unavailable, those operations fail without running native shell updates.
 
@@ -70,8 +68,8 @@ outfit update nix switch
 # Remove old Nix generations and store paths
 hm-clean
 
-# Update global Bun packages manually
-outfit update bun
+# Update global Bun packages with Bun itself
+bun update -g
 ```
 
 Use the Zsh profile functions after opening a new shell or reloading the profile. The outfit commands use the canonical `jfalava:aarch64-darwin/nix` lock and do not create a repository `flake.lock`.

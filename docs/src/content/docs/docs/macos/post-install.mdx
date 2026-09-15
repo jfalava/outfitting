@@ -15,7 +15,7 @@ The new shell is important because the main installer installs FontGet and Homeb
 
 ## What it does
 
-The script reads the public font list from `$HOME/.config/outfitting/repo/fonts/fontget.txt`. It enables FontGet's default and agreement settings, then installs every non-empty, non-comment entry in that file.
+The script reads the public font list from the sparse source recorded in `$HOME/.config/outfitting/repo-path`, normally `$HOME/.config/outfitting/source/fonts/fontget.txt`. It enables FontGet's default and agreement settings, then installs every non-empty, non-comment entry in that file.
 
 It then:
 
@@ -29,7 +29,7 @@ It then:
 
 The post-install script requires:
 
-- A working repository at `$HOME/.config/outfitting/repo`.
+- A working sparse source at `$HOME/.config/outfitting/source`.
 - FontGet available on `PATH`.
 - Homebrew available for installing cloudflared when needed.
 - A Cloudflare Access identity authorized to download the licensed archive.

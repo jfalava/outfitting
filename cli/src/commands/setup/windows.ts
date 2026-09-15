@@ -37,7 +37,7 @@ export const windowsSetupCommand = Command.make(
       manifestRef: Option.getOrUndefined(manifestRef),
       fetchManifests: !noFetch,
       manifestPaths: WINDOWS_SETUP_MANIFEST_PATHS,
-      nextCommand: "Next: outfitting-manager update winget|scoop|bun|all",
+      nextCommand: "Next: outfitting-manager update winget|scoop|all",
     }),
 ).pipe(
   Command.withDescription(

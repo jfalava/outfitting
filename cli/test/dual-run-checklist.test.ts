@@ -13,7 +13,7 @@ describe("dual-run golden signals (checklist)", () => {
     expect(HOMEBREW_INVENTORY_HEADER).toBe("outfitting-homebrew-inventory-v1");
   });
 
-  test("nix actions match shell outfit-rebuild subset", () => {
+  test("nix actions match shell hm-* subset", () => {
     expect([...NIX_ACTIONS]).toEqual(["build", "switch", "test", "dry"]);
   });
 
@@ -37,7 +37,7 @@ describe("dual-run golden signals (checklist)", () => {
 
   test("documents comparison method for operators", () => {
     const checklist = [
-      "exit codes for update brew|bun|nix dry|all",
+      "exit codes for update brew|nix dry|all",
       "homebrew-inventory blob bytes (header + sorted sections)",
       "nix dry store path presence (not full activate in CI)",
       "repo-path file content after setup --repo",

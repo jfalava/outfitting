@@ -6,8 +6,6 @@
 # Homebrew
 if [[ -x /opt/homebrew/bin/brew ]]; then
     eval "$(/opt/homebrew/bin/brew shellenv)"
-elif [[ -x /usr/local/bin/brew ]]; then
-    eval "$(/usr/local/bin/brew shellenv)"
 fi
 
 # ---- Smart App Bundle PATH Detection ----
@@ -70,7 +68,7 @@ get_outfitting_repo() {
 }
 
 # Native fallback paths remain available when the compiled manager is missing.
-outfit-fallback-update-nix() {
+hm-fallback-update-nix() {
     local action="${1:-switch}"
     local repo_path
     repo_path=$(get_outfitting_repo) || {
@@ -115,85 +113,71 @@ outfit-fallback-update-nix() {
                 "path:$flake_path#darwinConfigurations.macos.system"
             ;;
         *)
-            echo "Usage: outfit update nix [build|switch|test|dry]"
+            echo "Usage: hm-build | hm-switch | hm-test | hm-dry"
             return 1
             ;;
     esac
 }
 
-# nix-darwin rebuild (no flake-input upgrade in the manager yet).
-outfit-rebuild() {
-    if ! command -v outfitting-manager >/dev/null 2>&1; then
-        outfit-fallback-update-nix "${1:-switch}"
-        return $?
-    fi
-    case "${1:-switch}" in
-        build|b)
-            outfitting-manager update nix build
-            ;;
-        switch|s|"")
-            outfitting-manager update nix switch
-            ;;
-        test|t)
-            outfitting-manager update nix test
-            ;;
-        dry|d)
-            outfitting-manager update nix dry
-            ;;
-        upgrade|u)
-            echo "Error: flake lock upgrade is not in outfitting-manager v1."
-            echo "Use 'outfitting-manager update nix switch' after updating locks manually,"
-            echo "or restore the previous shell upgrade path from git history if needed."
-            return 1
+# Home Manager compatibility helpers. The flake remains at system/macos.
+hm-nix() {
+    local action="${1:-switch}"
+    case "$action" in
+        build|switch|test|dry)
             ;;
         *)
-            echo "Usage: outfit-rebuild [build|switch|test|dry]"
-            echo "  build/b  - Build configuration only"
-            echo "  switch/s - Build and activate (default)"
-            echo "  test/t   - Test build only"
-            echo "  dry/d    - Dry-run build"
-            return 1
-            ;;
-    esac
-}
-
-outfit-recover() {
-    case "${1:-nix}" in
-        nix)
-            ;;
-        *)
-            echo "Usage: outfit recover nix"
+            echo "Usage: hm-build | hm-switch | hm-test | hm-dry"
             return 1
             ;;
     esac
 
     if command -v outfitting-manager >/dev/null 2>&1; then
-        outfitting-manager recover nix
+        command outfitting-manager update nix "$action"
+    else
+        hm-fallback-update-nix "$action"
+    fi
+}
+
+hm-build() {
+    hm-nix build
+}
+
+hm-switch() {
+    hm-nix switch
+}
+
+hm-test() {
+    hm-nix test
+}
+
+hm-dry() {
+    hm-nix dry
+}
+
+hm-recover() {
+    if command -v outfitting-manager >/dev/null 2>&1; then
+        command outfitting-manager recover nix
         return $?
     fi
 
     echo "Error: Nix recovery requires outfitting-manager."
-    echo "Install or restore outfitting-manager, then run 'outfit recover nix'."
+    echo "Install or restore outfitting-manager, then run 'hm-recover'."
     echo "Checkpoint dir: \${XDG_STATE_HOME:-\$HOME/.local/state}/outfitting/nix-lock-recovery"
     return 1
 }
 
 hm-sync() {
-    outfit-rebuild switch
-}
-
-hm-switch() {
-    outfit-rebuild switch
+    hm-switch
 }
 
 hm-switch-local() {
-    outfit-rebuild switch
+    hm-switch
 }
 
 hm-update() {
     # Previously ran flake upgrade; manager v1 has no upgrade — switch only.
     echo "Note: hm-update no longer bumps flake inputs (manager v1)."
-    outfit-rebuild switch
+    hm-switch
 }
 
 hm-rollback() {

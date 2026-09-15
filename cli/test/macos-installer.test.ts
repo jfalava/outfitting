@@ -17,6 +17,8 @@ describe("macOS installer delegation", () => {
     expect(script).toContain("run_outfitting_manager setup");
     expect(script).toContain("run_outfitting_manager update brew --no-sync");
     expect(script).toContain("run_outfitting_manager update nix");
+    expect(script).not.toContain(["/usr/local", "bin/brew"].join("/"));
+    expect(script).not.toContain("x86_64");
 
     expect(script).not.toContain("git clone");
     expect(script).not.toContain("brew bundle");

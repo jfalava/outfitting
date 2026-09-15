@@ -6,7 +6,6 @@ import { pushLockfile } from "@/lockfiles";
 import { tryPromise } from "@/lockfiles/effect";
 import { runCommand, which } from "@/process";
 import { ui } from "@/ui";
-import { updateBun } from "@/update/bun";
 import { updateScoop } from "@/update/scoop";
 import {
   recordWindowsOperation,
@@ -66,13 +65,12 @@ interface WindowsInventorySyncOptions {
   results: WindowsUpdateStepResult[];
   wingetUpdated: boolean;
   scoopUpdated: boolean;
-  bunUpdated: boolean;
 }
 
 const syncWindowsLock = Effect.fn("syncWindowsLock")(function* (
   options: WindowsInventorySyncOptions,
 ) {
-  if (!options.wingetUpdated && !options.scoopUpdated && !options.bunUpdated) {
+  if (!options.wingetUpdated && !options.scoopUpdated) {
     return;
   }
   yield* runWindowsStep(
@@ -105,19 +103,6 @@ const syncWindowsLock = Effect.fn("syncWindowsLock")(function* (
           }),
         );
       }
-      if (options.bunUpdated) {
-        yield* tryPromise(() =>
-          recordWindowsOperation({
-            config: options.config,
-            manager: "bun",
-            action: "upgrade",
-            name: "*",
-            args: ["update", "*"],
-            status: "success",
-            exitCode: 0,
-          }),
-        );
-      }
       yield* pushLockfile({
         machine: options.config.machineId,
         kind: WINDOWS_LOCK_KIND,
@@ -128,7 +113,7 @@ const syncWindowsLock = Effect.fn("syncWindowsLock")(function* (
 });
 
 /**
- * Windows `update all`: winget → scoop → bun → unified lock sync.
+ * Windows `update all`: winget → scoop → unified lock sync.
  * Continues after failures and exits nonzero when any update or sync fails.
  */
 export const updateWindowsAll = (options: WindowsUpdateAllOptions = {}) =>
@@ -140,9 +125,8 @@ export const updateWindowsAll = (options: WindowsUpdateAllOptions = {}) =>
     const results: WindowsUpdateStepResult[] = [];
     let wingetUpdated = false;
     let scoopUpdated = false;
-    let bunUpdated = false;
 
-    yield* Console.log(ui.heading("update all: winget → scoop → bun → sync"));
+    yield* Console.log(ui.heading("update all: winget → scoop → sync"));
 
     yield* runWindowsStep(
       results,
@@ -160,15 +144,6 @@ export const updateWindowsAll = (options: WindowsUpdateAllOptions = {}) =>
         scoopUpdated = true;
       },
     );
-    yield* runWindowsStep(
-      results,
-      "bun",
-      updateBun({ skipIfMissing: true, run, which: whichFn }),
-      () => {
-        bunUpdated = true;
-      },
-    );
-
     if (options.noSync) {
       yield* Console.log(ui.muted("Skipped Windows lock sync (--no-sync)."));
     } else {
@@ -177,7 +152,6 @@ export const updateWindowsAll = (options: WindowsUpdateAllOptions = {}) =>
         results,
         wingetUpdated,
         scoopUpdated,
-        bunUpdated,
       });
     }
 

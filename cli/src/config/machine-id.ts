@@ -2,6 +2,21 @@ import { userInfo } from "node:os";
 
 import { envValue } from "@/secrets";
 
+const PLATFORM_NAMES = new Map([
+  ["darwin", "darwin"],
+  ["win32", "windows"],
+  ["linux", "linux"],
+]);
+
+const CPU_NAMES = new Map([
+  ["arm64", "aarch64"],
+  ["aarch64", "aarch64"],
+  ["x64", "x86_64"],
+  ["x86_64", "x86_64"],
+  ["ia32", "i686"],
+  ["x86", "i686"],
+]);
+
 /**
  * Nix-style system triple fragment used in machine ids today
  * (e.g. `jfalava:aarch64-darwin`).
@@ -10,17 +25,12 @@ export function hostSystemTriple(
   platform: NodeJS.Platform = process.platform,
   arch: string = process.arch,
 ): string {
-  const os =
-    platform === "darwin" ? "darwin" : platform === "win32" ? "windows" : platform === "linux" ? "linux" : platform;
+  if (platform === "darwin" && arch !== "arm64" && arch !== "aarch64") {
+    throw new Error("macOS requires Apple Silicon.");
+  }
 
-  const cpu =
-    arch === "arm64" || arch === "aarch64"
-      ? "aarch64"
-      : arch === "x64" || arch === "x86_64"
-        ? "x86_64"
-        : arch === "ia32" || arch === "x86"
-          ? "i686"
-          : arch;
+  const os = PLATFORM_NAMES.get(platform) ?? platform;
+  const cpu = CPU_NAMES.get(arch) ?? arch;
 
   return `${cpu}-${os}`;
 }

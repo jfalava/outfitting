@@ -45,8 +45,8 @@ const makeNixCommand = () => {
   );
 };
 
-const bunCommand = Command.make("bun", {}, () => updateBun()).pipe(
-  Command.withDescription("Update Bun global packages (fails if bun is missing)."),
+const bunCommand = Command.make("bun", {}, () => updateBun).pipe(
+  Command.withDescription("Deprecated; run `bun update -g` directly."),
 );
 
 const brewCommand = Command.make(
@@ -63,7 +63,7 @@ const allCommand = Command.make(
   ({ noSync }) => updateAll({ noSync }),
 ).pipe(
   Command.withDescription(
-    "Run nix switch → brew → bun (inventory sync via brew unless --no-sync); continue on failure; exit ≠0 if any step failed.",
+    "Run nix switch → brew (inventory sync via brew unless --no-sync); continue on failure; exit ≠0 if any step failed.",
   ),
 );
 
@@ -74,7 +74,7 @@ export const makeMacosUpdateCommand = () => {
 
   return Command.make("update").pipe(
     Command.withDescription(
-      "Update machine packages (bun, brew, nix, or all). One verb = full package path for that manager.",
+      "Update machine packages (brew, nix, or all); Bun updates use `bun update -g`.",
     ),
     Command.withSubcommands([
       bunCommand,

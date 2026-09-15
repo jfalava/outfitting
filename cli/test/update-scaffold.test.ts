@@ -5,7 +5,7 @@ import { promisify } from "node:util";
 import { Effect } from "effect";
 import { describe, expect, test } from "vitest";
 
-import { foreignPackageManagerStub, notImplementedYet } from "@/commands/update/stubs";
+import { foreignPackageManagerStub } from "@/commands/update/stubs";
 import { foreignPackageManagerMessage } from "@/platform";
 
 const execFileAsync = promisify(execFile);
@@ -39,12 +39,6 @@ const runCliWithEnv = async (
 const runCli = async (args: string[]) => runCliWithEnv(args);
 
 describe("update / setup stub effects", () => {
-  test("notImplementedYet fails with path", async () => {
-    await expect(Effect.runPromise(notImplementedYet("update bun"))).rejects.toThrow(
-      /update bun is not implemented yet/,
-    );
-  });
-
   test("foreign scoop hint names Windows build", async () => {
     await expect(Effect.runPromise(foreignPackageManagerStub("scoop", "macos"))).rejects.toThrow(
       foreignPackageManagerMessage("scoop", "macos"),
@@ -82,14 +76,12 @@ describe("macos CLI scaffold (process)", () => {
     expect(text).not.toMatch(/update[-_]all/i);
   });
 
-  test("update bun is registered (runs or fails on missing bun)", async () => {
+  test("update bun is deprecated and points to Bun's native command", async () => {
     const { code, stdout, stderr } = await runCli(["update", "bun"]);
     const text = `${stdout}\n${stderr}`;
-    // Either bun is present and the updater runs, or it hard-fails if missing.
-    expect(text).not.toMatch(/not implemented yet/i);
-    if (code !== 0) {
-      expect(text).toMatch(/Bun is not installed|failure/i);
-    }
+    expect(code).not.toBe(0);
+    expect(text).toMatch(/deprecated/i);
+    expect(text).toContain("bun update -g");
   });
 
   test("update nix dry is registered (fails fast without repo rather than stub)", async () => {

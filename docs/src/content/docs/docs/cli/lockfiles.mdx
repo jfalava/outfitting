@@ -88,6 +88,6 @@ Public equivalents: `https://worker-url/api/lockfiles/...`.
 
 - macOS uses the `nix` kind as its canonical remote flake lock. Rebuild commands pull it into a temporary path with Nix's `--reference-lock-file`; upgrades write to a temporary `--output-lock-file` and push the result after a successful switch using the pulled hash as a concurrency precondition. A durable recovery checkpoint remains under the XDG state directory until both activation and upload succeed; `outfit recover` resumes it.
 
-* Successful `outfit sync` and `outfit upgrade` operations automatically store the observed, versioned Homebrew state as `homebrew-inventory`. Kinds are free-form and require no schema migration.
+* Successful `outfit update brew` and `outfit snapshot brew` operations automatically store the observed, versioned Homebrew state as `homebrew-inventory`. Kinds are free-form and require no schema migration.
 
 * Windows uses `windows.lock.json` as its unified machine lock. `outfit sync` pulls selected WinGet and Scoop manifests from GitHub, reconciles the baseline, records manual `outfit winget|scoop install/uninstall` operations, and uploads the lock as kind `windows`. The old `winget`, `scoop-inventory`, and `bun-global-inventory` kinds remain readable for migration but are no longer written by the normal Windows update path.

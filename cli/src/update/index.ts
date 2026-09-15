@@ -2,8 +2,6 @@ export { updateAll, type UpdateAllOptions, type UpdateStepResult } from "@/updat
 export {
   updateBun,
   parseBunGlobalList,
-  fetchNpmLatestVersion,
-  type NpmFetcher,
 } from "@/update/bun";
 export { updateBrew, parseBrewfileTaps, BREWFILE_MANIFEST_PATH } from "@/update/brew";
 export {

@@ -451,14 +451,9 @@ describe("Windows package update commands", () => {
           which: async (command) =>
             command === "winget"
               ? "C:\\Windows\\winget.exe"
-              : command === "scoop"
-                ? "C:\\scoop\\shims\\scoop.cmd"
-                : "C:\\Users\\test\\.bun\\bin\\bun.exe",
+              : "C:\\scoop\\shims\\scoop.cmd",
           run: async (command, args) => {
             calls.push([command, ...args]);
-            if (command === "bun") {
-              return ok("C:\\Users\\test\\.bun\\install\\global\\node_modules");
-            }
             return { code: 1, stdout: "", stderr: "simulated failure" };
           },
         }),
@@ -477,7 +472,6 @@ describe("Windows package update commands", () => {
         "C:\\scoop\\shims\\scoop.ps1",
         "export",
       ],
-      ["bun", "pm", "ls", "-g"],
     ]);
   });
 });
@@ -495,7 +489,7 @@ describe("Windows setup manifest selection", () => {
             fetched.push(url);
             return new Response(url.includes("scoop") ? 'package "fzf"\n' : "alchemy\n");
           },
-          nextCommand: "Next: outfitting-manager update winget|scoop|bun|all",
+          nextCommand: "Next: outfitting-manager update winget|scoop|all",
         }),
       );
       expect(fetched).toEqual([

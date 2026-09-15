@@ -3,10 +3,6 @@ const ASSETS = {
     archive: "outfitting-manager-darwin-arm64.zip",
     executable: "outfitting-manager",
   },
-  "darwin:x64": {
-    archive: "outfitting-manager-darwin-x64.zip",
-    executable: "outfitting-manager",
-  },
   "linux:arm64": {
     archive: "outfitting-manager-linux-arm64.zip",
     executable: "outfitting-manager",

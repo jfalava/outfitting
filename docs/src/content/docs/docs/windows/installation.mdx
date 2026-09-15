@@ -107,10 +107,10 @@ The `base` WinGet profile installs Bun as `Oven-sh.Bun`. Windows has no `/bun` i
 After Bun is installed, update the global packages that are already present:
 
 ```powershell
-outfitting-manager update bun
+bun update -g
 ```
 
-`update bun` fails when Bun is missing. `update all` skips the Bun step when Bun is not installed.
+`update all` upgrades WinGet and Scoop; it does not update Bun.
 
 ## Scoop reconciliation and unified lock
 

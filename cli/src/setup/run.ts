@@ -176,6 +176,6 @@ export const runSetup = (options: SetupOptions = {}) =>
 
     yield* Console.log("");
     yield* Console.log(
-      ui.muted(options.nextCommand ?? "Next: outfitting-manager update brew|bun|nix|all"),
+      ui.muted(options.nextCommand ?? "Next: outfitting-manager update brew|nix|all"),
     );
   });
