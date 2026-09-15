@@ -41,7 +41,7 @@ outfit update all
 
 `outfit update nix` builds and activates nix-darwin using the canonical remote lock. `outfit update brew` reconciles and upgrades Homebrew, then stores the observed inventory. `outfit update bun` updates global Bun packages. `outfit update all` runs Nix, Homebrew, and Bun in order, continues after individual failures, and returns a failure if any step fails.
 
-The Zsh profile keeps only Nix compatibility helpers and a native Nix fallback. Homebrew, Bun, aggregate updates, snapshots, and setup are manager-owned; if the manager binary is unavailable, those operations fail without running native shell updates.
+The Zsh profile defines `outfit` and `o` as direct aliases for `outfitting-manager`; it keeps only Nix compatibility helpers and a native Nix fallback for those helpers. Homebrew, Bun, aggregate updates, snapshots, and setup are manager-owned; if the manager binary is unavailable, those operations fail without running native shell updates.
 
 Capture only the current Homebrew state with:
 

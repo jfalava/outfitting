@@ -20,7 +20,6 @@ describe("dual-run golden signals (checklist)", () => {
   test("setup fetches the macOS sparse source closure", () => {
     expect([...MACOS_SOURCE_PATHS]).toEqual([
       "system/macos/flake.nix",
-      "system/macos/flake.lock",
       "system/macos/darwin.nix",
       "system/macos/home.nix",
       "system/macos/zsh/macos.plugin.zsh",

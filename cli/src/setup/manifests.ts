@@ -7,7 +7,6 @@ import { fetchManifest, type ManifestFetcher } from "@/fetch";
  */
 export const MACOS_SOURCE_PATHS = [
   "system/macos/flake.nix",
-  "system/macos/flake.lock",
   "system/macos/darwin.nix",
   "system/macos/home.nix",
   "system/macos/zsh/macos.plugin.zsh",

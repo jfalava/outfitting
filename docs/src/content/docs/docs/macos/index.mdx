@@ -12,7 +12,7 @@ Start with the [installation instructions](/docs/macos/installation/) to bootstr
 
 ## Everyday commands
 
-The macOS Zsh profile provides the `outfit` command, also available as `o`. Package updates use `outfit update <origin> [action]`:
+The macOS Zsh profile provides `outfit` and `o` as aliases for `outfitting-manager`. Bare `outfit` shows the manager help; package updates use `outfit update <origin> [action]`:
 
 ```bash
 # Apply and upgrade the Homebrew desired state
@@ -36,7 +36,7 @@ outfit update bun
 
 Successful Homebrew updates store a versioned inventory of taps, formulae, and casks through `outfitting-manager`. The inventory is observed state; the committed Brewfile remains the desired Homebrew configuration.
 
-The Zsh profile keeps Nix compatibility shortcuts and a native Nix fallback when `outfitting-manager` is unavailable. Homebrew, Bun, aggregate updates, snapshots, and setup are manager-owned and require `outfitting-manager`.
+The Zsh profile keeps Nix compatibility shortcuts and a native Nix fallback for the legacy `hm-*` helpers when `outfitting-manager` is unavailable. Homebrew, Bun, aggregate updates, snapshots, and setup are manager-owned and require `outfitting-manager`.
 
 Capture the observed Homebrew state without reconciling packages:
 

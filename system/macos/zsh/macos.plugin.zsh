@@ -210,44 +210,7 @@ hm-clean() {
     echo "Cleaning complete!"
 }
 
-# Standard outfit entrypoint. The manager owns the hierarchical command path;
-# the native fallback keeps Nix actions available if it is unavailable.
-outfit() {
-    if command -v outfitting-manager >/dev/null 2>&1; then
-        local -a manager_args
-        if (( $# == 0 )); then
-            manager_args=(update nix switch)
-        else
-            case "$1" in
-                build|switch|test|dry)
-                    manager_args=(update nix "$@")
-                    ;;
-                *)
-                    manager_args=("$@")
-                    ;;
-            esac
-        fi
-        command outfitting-manager "${manager_args[@]}"
-        return $?
-    fi
-
-    case "${1:-switch}" in
-        update)
-            if [[ "${2:-nix}" != "nix" ]]; then
-                echo "Error: outfitting-manager is required for '$2' updates."
-                return 1
-            fi
-            outfit-fallback-update-nix "${3:-switch}"
-            ;;
-        build|switch|test|dry)
-            outfit-fallback-update-nix "$1"
-            ;;
-        recover)
-            outfit-recover "${@:2}"
-            ;;
-        *)
-            echo "Error: outfitting-manager is unavailable; only Nix actions have a shell fallback."
-            return 1
-            ;;
-    esac
-}
+# Standard outfit entrypoints. The manager owns the complete command surface;
+# bare `outfit` now has the same behavior as bare `outfitting-manager`.
+alias outfit='outfitting-manager'
+alias o='outfitting-manager'
