@@ -1,7 +1,13 @@
 import { Console, Effect } from "effect";
 
-import { loadConfig, type ManagerConfig } from "@/config";
-import { resolveOutfittingRepo, writeRepoPath, type OutfittingRepo } from "@/config/repo";
+import { loadConfig, sparseSourceRoot, type ManagerConfig } from "@/config";
+import {
+  physicalPath,
+  readRepoPathFile,
+  resolveOutfittingRepo,
+  writeRepoPath,
+  type OutfittingRepo,
+} from "@/config/repo";
 import { CliFailure } from "@/errors";
 import type { ManifestFetcher } from "@/fetch";
 import { tryPromise } from "@/lockfiles/effect";
@@ -31,6 +37,14 @@ function resolveMacosRepo(options: UpdateNixOptions, config: ManagerConfig) {
     }
     if (envValue("OUTFITTING_REPO") !== undefined) {
       return yield* tryPromise(() => resolveOutfittingRepo({ config }));
+    }
+
+    const saved = yield* tryPromise(() => readRepoPathFile(config));
+    if (saved !== undefined) {
+      const managedRoot = sparseSourceRoot(yield* tryPromise(() => physicalPath(config.stateRoot)));
+      if (saved !== managedRoot) {
+        return yield* tryPromise(() => resolveOutfittingRepo({ config }));
+      }
     }
 
     yield* Console.log(ui.heading("Refreshing sparse macOS source…"));

@@ -196,6 +196,8 @@ const updateAndCleanScoop = Effect.fn("updateAndCleanScoop")(function* (
 export interface UpdateScoopOptions {
   config?: ManagerConfig;
   noSync?: boolean;
+  /** Record the local baseline but let the caller publish the combined lock. */
+  noPush?: boolean;
   /** Reuse an already parsed Scoop manifest instead of fetching it again. */
   manifest?: ScoopManifest;
   scoopPath?: string;
@@ -259,11 +261,13 @@ export const updateScoop = (options: UpdateScoopOptions = {}) =>
         origin: "baseline",
       }));
       const lock = yield* tryPromise(() => updateWindowsBaseline(config, { scoop: records }));
-      yield* pushLockfile({
-        machine: config.machineId,
-        kind: WINDOWS_LOCK_KIND,
-        path: lock,
-      });
+      if (!options.noPush) {
+        yield* pushLockfile({
+          machine: config.machineId,
+          kind: WINDOWS_LOCK_KIND,
+          path: lock,
+        });
+      }
     }
   });
 

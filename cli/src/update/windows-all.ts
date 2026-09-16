@@ -7,11 +7,7 @@ import { tryPromise } from "@/lockfiles/effect";
 import { runCommand, which } from "@/process";
 import { ui } from "@/ui";
 import { updateScoop } from "@/update/scoop";
-import {
-  recordWindowsOperation,
-  WINDOWS_LOCK_KIND,
-  windowsLockPath,
-} from "@/update/windows-lock";
+import { recordWindowsOperation, WINDOWS_LOCK_KIND, windowsLockPath } from "@/update/windows-lock";
 import { updateWinget } from "@/update/winget";
 
 export interface WindowsUpdateAllOptions {
@@ -139,7 +135,7 @@ export const updateWindowsAll = (options: WindowsUpdateAllOptions = {}) =>
     yield* runWindowsStep(
       results,
       "scoop",
-      updateScoop({ config, noSync: true, run, which: whichFn, scoopPath }),
+      updateScoop({ config, noSync: options.noSync, noPush: true, run, which: whichFn, scoopPath }),
       () => {
         scoopUpdated = true;
       },
