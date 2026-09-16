@@ -16,6 +16,7 @@ import {
   type WindowsPackageAction,
   type WindowsPackageManager,
 } from "@/update/windows-lock";
+import { wingetPackageArgs } from "@/update/winget";
 
 const packageArguments = Argument.string("package").pipe(
   Argument.variadic({ min: 1 }),
@@ -33,14 +34,7 @@ function commandArgs(
   name: string,
 ): string[] {
   if (manager === "winget") {
-    return [
-      action,
-      "--id",
-      name,
-      "--exact",
-      "--accept-source-agreements",
-      "--accept-package-agreements",
-    ];
+    return wingetPackageArgs(action, name);
   }
   return [action, name];
 }

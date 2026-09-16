@@ -38,6 +38,57 @@ const responseFor = (url: string): Response => {
 };
 
 describe("Windows profile selection", () => {
+  test.each([false, true])(
+    "Scoop removals require confirmation (%s) and preserve untracked apps",
+    async (confirmed) => {
+      const root = await mkdtemp(join(tmpdir(), "outfitting-scoop-sync-"));
+      try {
+        const config = configFor(root);
+        const lock = await readWindowsLock(config);
+        lock.packages.scoop = [{ name: "tracked-extra", args: [], origin: "manual" }];
+        await writeWindowsLock(lock, { root });
+        const calls: string[][] = [];
+        await Effect.runPromise(
+          syncWindows({
+            config,
+            noPush: true,
+            confirmClean: Effect.succeed(confirmed),
+            fetcher: async (url) => responseFor(url),
+            which: async (command) => (command === "winget" ? "winget" : "scoop.ps1"),
+            run: async (_command, args) => {
+              calls.push([...args]);
+              return {
+                code: 0,
+                stderr: "",
+                stdout:
+                  args.at(-1) === "export"
+                    ? JSON.stringify({
+                        apps: ["fzf", "tracked-extra", "untracked-extra"].map((Name) => ({
+                          Name,
+                          Source: "main",
+                          Version: "1",
+                          Info: "",
+                        })),
+                        buckets: [],
+                      })
+                    : "",
+              };
+            },
+          }),
+        );
+        expect(
+          calls.filter((args) => args.includes("uninstall")).map((args) => args.slice(-2)),
+        ).toEqual(confirmed ? [["uninstall", "tracked-extra"]] : []);
+        if (!confirmed) expect(calls).toEqual([]);
+        expect((await readWindowsLock(config)).packages.scoop.map((entry) => entry.name)).toEqual(
+          confirmed ? ["fzf"] : ["tracked-extra"],
+        );
+      } finally {
+        await rm(root, { recursive: true, force: true });
+      }
+    },
+  );
+
   test("deduplicates comma-separated selections and accepts compatible profile names", () => {
     expect(resolveWindowsProfiles(["base,dev", "dev"], [])).toEqual(["base", "dev"]);
     expect(parseWindowsPackageList("Git.Git\ngit.git\n# comment\n", "base.txt")).toEqual([
@@ -244,9 +295,9 @@ describe("Windows profile selection", () => {
       expect((await readWindowsLock(config)).packages.winget.map((entry) => entry.name)).toEqual([
         "OpenAI.Codex",
       ]);
-      expect(calls.some((call) => call.includes("uninstall") && call.includes("Git.Git"))).toBe(
-        true,
-      );
+      expect(calls.filter((call) => call.includes("uninstall"))).toEqual([
+        "C:\\winget.exe uninstall --id Git.Git --exact --accept-source-agreements",
+      ]);
     } finally {
       await rm(root, { force: true, recursive: true });
     }

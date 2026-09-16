@@ -1,4 +1,4 @@
-import { Console, Data, Effect, Option, Schema } from "effect";
+import { Console, Data, Effect } from "effect";
 
 import { loadConfig, resolveWindowsRoutes, type ManagerConfig } from "@/config";
 import { fetchManifest, type ManifestFetcher } from "@/fetch";
@@ -6,7 +6,7 @@ import { pushLockfile } from "@/lockfiles";
 import { tryPromise } from "@/lockfiles/effect";
 import { runCommand, which } from "@/process";
 import { ui } from "@/ui";
-import { runScoopCommand, scoopScriptPath } from "@/update/scoop-command";
+import { runScoopCommand } from "@/update/scoop-command";
 import {
   WINDOWS_LOCK_KIND,
   updateWindowsBaseline,
@@ -20,14 +20,6 @@ class ScoopUpdateError extends Data.TaggedError("ScoopUpdateError")<{
   readonly message: string;
   readonly cause?: unknown;
 }> {}
-
-const ScoopDependencySchema = Schema.Struct({
-  Name: Schema.String,
-});
-
-const ScoopDependenciesSchema = Schema.ArrayEnsure(ScoopDependencySchema);
-
-const decodeScoopDependencies = Schema.decodeUnknownOption(ScoopDependenciesSchema);
 
 export interface ScoopBucket {
   name: string;
@@ -124,36 +116,6 @@ function installedPackages(state: ScoopExportState): Set<string> {
   );
 }
 
-function parseScoopDependencies(output: string, packageSpec: string): string[] {
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(output) as unknown;
-  } catch (cause) {
-    throw new Error(
-      `Unable to parse Scoop dependencies for ${packageSpec}: ${
-        cause instanceof Error ? cause.message : String(cause)
-      }`,
-      { cause },
-    );
-  }
-
-  const decoded = decodeScoopDependencies(parsed);
-  if (Option.isNone(decoded)) {
-    throw new Error(`Scoop dependencies for ${packageSpec} contain an invalid entry.`);
-  }
-  return decoded.value.map((entry) => {
-    const name = entry.Name.trim();
-    if (name.length === 0) {
-      throw new Error(`Scoop dependencies for ${packageSpec} contain an invalid package name.`);
-    }
-    return name;
-  });
-}
-
-function powerShellStringLiteral(value: string): string {
-  return `'${value.replace(/'/g, "''")}'`;
-}
-
 const scoopState = Effect.fn("scoopState")(function* (run: typeof runCommand, scoopPath: string) {
   const result = yield* tryPromise(() =>
     runScoopCommand(run, scoopPath, ["export"], { inherit: false }),
@@ -189,41 +151,6 @@ const requireScoopCommand = Effect.fn("requireScoopCommand")(function* (
   return result;
 });
 
-const dependencyNames = Effect.fn("dependencyNames")(function* (
-  packageSpec: string,
-  scoopPath: string,
-  run: typeof runCommand,
-) {
-  const result = yield* tryPromise(() =>
-    run(
-      "powershell.exe",
-      [
-        "-NoProfile",
-        "-NonInteractive",
-        "-ExecutionPolicy",
-        "Bypass",
-        "-Command",
-        `$ErrorActionPreference = 'Stop'; $dependencies = @(& ${powerShellStringLiteral(scoopScriptPath(scoopPath))} depends -- ${powerShellStringLiteral(packageSpec)}); if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; $dependencies | ConvertTo-Json -Compress`,
-      ],
-      { inherit: false },
-    ),
-  );
-  if (result.code !== 0) {
-    return yield* new ScoopUpdateError({
-      message:
-        `powershell.exe scoop depends ${packageSpec} failed (exit ${result.code}): ${result.stderr || result.stdout}`.trim(),
-    });
-  }
-  return yield* Effect.try({
-    try: () => parseScoopDependencies(result.stdout, packageSpec),
-    catch: (cause) =>
-      new ScoopUpdateError({
-        message: cause instanceof Error ? cause.message : String(cause),
-        cause,
-      }),
-  });
-});
-
 const addMissingBuckets = Effect.fn("addMissingBuckets")(function* (
   desired: ScoopManifest,
   installed: ReadonlySet<string>,
@@ -257,48 +184,6 @@ const installMissingPackages = Effect.fn("installMissingPackages")(function* (
   }
 });
 
-const collectDesiredPackages = Effect.fn("collectDesiredPackages")(function* (
-  desired: ScoopManifest,
-  scoopPath: string,
-  run: typeof runCommand,
-) {
-  const packages = new Set(desired.packages.map((spec) => packageName(spec).toLowerCase()));
-  for (const spec of desired.packages) {
-    const dependencies = yield* dependencyNames(spec, scoopPath, run);
-    for (const dependency of dependencies) {
-      packages.add(dependency.toLowerCase());
-    }
-  }
-  return packages;
-});
-
-interface ScoopCleanupContext {
-  run: typeof runCommand;
-  scoopPath: string;
-  prune: boolean;
-}
-
-const removeUndesiredPackages = Effect.fn("removeUndesiredPackages")(function* (
-  state: ScoopExportState,
-  desiredPackages: ReadonlySet<string>,
-  context: ScoopCleanupContext,
-) {
-  const { run, scoopPath, prune } = context;
-  if (!prune) {
-    return;
-  }
-  for (const app of state.apps) {
-    if (!isGlobalInstall(app) && !desiredPackages.has(app.Name.toLowerCase())) {
-      yield* requireScoopCommand(
-        run,
-        scoopPath,
-        ["uninstall", app.Name],
-        `scoop uninstall ${app.Name}`,
-      );
-    }
-  }
-});
-
 const updateAndCleanScoop = Effect.fn("updateAndCleanScoop")(function* (
   run: typeof runCommand,
   scoopPath: string,
@@ -311,8 +196,6 @@ const updateAndCleanScoop = Effect.fn("updateAndCleanScoop")(function* (
 export interface UpdateScoopOptions {
   config?: ManagerConfig;
   noSync?: boolean;
-  /** Remove non-global packages absent from scoop.txt. Defaults to true. */
-  prune?: boolean;
   /** Reuse an already parsed Scoop manifest instead of fetching it again. */
   manifest?: ScoopManifest;
   scoopPath?: string;
@@ -321,7 +204,7 @@ export interface UpdateScoopOptions {
   fetcher?: ManifestFetcher;
 }
 
-/** Reconcile Scoop with the cached/fetched repository desired state. */
+/** Install manifest packages and update Scoop without removing extra packages. */
 export const updateScoop = (options: UpdateScoopOptions = {}) =>
   Effect.gen(function* () {
     const run = options.run ?? runCommand;
@@ -364,17 +247,8 @@ export const updateScoop = (options: UpdateScoopOptions = {}) =>
 
     yield* installMissingPackages(desired, installedPackages(state), run, scoopPath);
 
-    const desiredPackages = yield* collectDesiredPackages(desired, scoopPath, run);
-
-    const current = yield* scoopState(run, scoopPath);
-    yield* removeUndesiredPackages(current, desiredPackages, {
-      run,
-      scoopPath,
-      prune: options.prune !== false,
-    });
-
     yield* updateAndCleanScoop(run, scoopPath);
-    yield* Console.log(ui.success("Scoop packages match scoop.txt."));
+    yield* Console.log(ui.success("Scoop packages updated; extra packages were preserved."));
 
     if (options.noSync) {
       yield* Console.log(ui.muted("Skipped lock sync (--no-sync)."));

@@ -8,6 +8,7 @@ import { promisify } from "node:util";
 import { Console, Effect } from "effect";
 import { describe, expect, test } from "vitest";
 
+import { windowsPackageCommandArgs } from "@/commands/windows-packages";
 import {
   parseWindowsPackageList,
   resolveWindowsProfiles,
@@ -27,7 +28,7 @@ import {
   exportWingetInventory,
   SCOOP_INVENTORY_FORMAT,
 } from "@/update/windows-snapshot";
-import { updateWinget } from "@/update/winget";
+import { updateWinget, wingetPackageArgs } from "@/update/winget";
 
 const ok = (stdout = ""): RunCommandResult => ({ code: 0, stdout, stderr: "" });
 const execFileAsync = promisify(execFile);
@@ -47,6 +48,35 @@ async function runWindowsCli(args: string[]): Promise<{ code: number; text: stri
     };
   }
 }
+
+describe("WinGet package arguments", () => {
+  test("accepts package agreements for install, never uninstall", () => {
+    expect(windowsPackageCommandArgs("winget", "install", "Git.Git")).toEqual([
+      "install",
+      "--id",
+      "Git.Git",
+      "--exact",
+      "--accept-source-agreements",
+      "--accept-package-agreements",
+    ]);
+    expect(windowsPackageCommandArgs("winget", "uninstall", "Git.Git")).toEqual([
+      "uninstall",
+      "--id",
+      "Git.Git",
+      "--exact",
+      "--accept-source-agreements",
+    ]);
+    expect(wingetPackageArgs("uninstall", "Store.App", "msstore")).toEqual([
+      "uninstall",
+      "--id",
+      "Store.App",
+      "--exact",
+      "--source",
+      "msstore",
+      "--accept-source-agreements",
+    ]);
+  });
+});
 
 describe("Windows CLI entrypoint", () => {
   test("registers Windows config, init, setup, and update commands without macOS PM implementations", async () => {
@@ -372,7 +402,7 @@ describe("Windows package update commands", () => {
     expect(scoopScriptPath("C:\\scoop\\shims\\scoop.ps1")).toBe("C:\\scoop\\shims\\scoop.ps1");
   });
 
-  test("reconciles Scoop in order and supports --no-sync", async () => {
+  test("installs and updates Scoop while preserving packages outside the manifest", async () => {
     const calls: string[] = [];
     const state = JSON.stringify({
       apps: [
@@ -413,9 +443,6 @@ describe("Windows package update commands", () => {
     expect(calls).toEqual([
       "powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File C:\\scoop\\shims\\scoop.ps1 export",
       "powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File C:\\scoop\\shims\\scoop.ps1 install new-package",
-      "powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command $ErrorActionPreference = 'Stop'; $dependencies = @(& 'C:\\scoop\\shims\\scoop.ps1' depends -- 'new-package'); if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; $dependencies | ConvertTo-Json -Compress",
-      "powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File C:\\scoop\\shims\\scoop.ps1 export",
-      "powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File C:\\scoop\\shims\\scoop.ps1 uninstall old",
       "powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File C:\\scoop\\shims\\scoop.ps1 update",
       "powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File C:\\scoop\\shims\\scoop.ps1 update *",
       "powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File C:\\scoop\\shims\\scoop.ps1 cleanup *",

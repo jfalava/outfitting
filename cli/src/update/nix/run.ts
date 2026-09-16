@@ -73,15 +73,11 @@ export const updateNix = (options: UpdateNixOptions) =>
     yield* tryPromise(() => ensureNixSymlinks(repo));
 
     const lock = yield* tryPromise(() => openNixLock(config));
-    if (lock.warning) {
-      yield* Console.log(ui.muted(lock.warning));
-    }
 
     try {
-      const lockLabel = lock.usedRemote ? "remote lock" : "local flake.lock";
       switch (options.action) {
         case "build": {
-          yield* Console.log(ui.heading(`Building nix-darwin system (${lockLabel})…`));
+          yield* Console.log(ui.heading("Building nix-darwin system (remote lock)…"));
           const path = yield* tryPromise(() =>
             buildNixSystem({
               repo,
@@ -93,7 +89,7 @@ export const updateNix = (options: UpdateNixOptions) =>
           break;
         }
         case "test": {
-          yield* Console.log(ui.heading(`Testing nix-darwin build (${lockLabel})…`));
+          yield* Console.log(ui.heading("Testing nix-darwin build (remote lock)…"));
           yield* tryPromise(() =>
             buildNixSystem({
               repo,
@@ -105,7 +101,7 @@ export const updateNix = (options: UpdateNixOptions) =>
           break;
         }
         case "dry": {
-          yield* Console.log(ui.heading(`Dry-run nix-darwin build (${lockLabel})…`));
+          yield* Console.log(ui.heading("Dry-run nix-darwin build (remote lock)…"));
           yield* tryPromise(() =>
             buildNixSystem({
               repo,
@@ -117,7 +113,7 @@ export const updateNix = (options: UpdateNixOptions) =>
           break;
         }
         case "switch": {
-          yield* Console.log(ui.heading(`Building nix-darwin system (${lockLabel})…`));
+          yield* Console.log(ui.heading("Building nix-darwin system (remote lock)…"));
           const systemConfig = yield* tryPromise(() =>
             buildNixSystem({
               repo,

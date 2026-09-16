@@ -10,7 +10,24 @@ import {
   recordWindowsOperation,
   WINDOWS_LOCK_KIND,
   windowsLockPath,
+  type WindowsPackageAction,
 } from "@/update/windows-lock";
+
+export function wingetPackageArgs(
+  action: WindowsPackageAction,
+  name: string,
+  source?: "msstore",
+): string[] {
+  return [
+    action,
+    "--id",
+    name,
+    "--exact",
+    ...(source === "msstore" ? ["--source", "msstore"] : []),
+    "--accept-source-agreements",
+    ...(action === "uninstall" ? [] : ["--accept-package-agreements"]),
+  ];
+}
 
 export interface UpdateWingetOptions {
   config?: ManagerConfig;
@@ -62,12 +79,7 @@ export const updateWinget = (options: UpdateWingetOptions = {}) =>
           manager: "winget",
           action: "upgrade",
           name: "*",
-          args: [
-            "upgrade",
-            "--all",
-            "--accept-source-agreements",
-            "--accept-package-agreements",
-          ],
+          args: ["upgrade", "--all", "--accept-source-agreements", "--accept-package-agreements"],
           status: "success",
           exitCode: 0,
         }),

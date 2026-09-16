@@ -2,27 +2,28 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { physicalPath } from "@/config/repo";
-import type { ManagerConfig } from "@/config";
-import { pullLockfile } from "@/lockfiles";
 import { Effect } from "effect";
+
+import type { ManagerConfig } from "@/config";
+import { physicalPath } from "@/config/repo";
+import { pullLockfile } from "@/lockfiles";
 import { NIX_LOCK_KIND } from "@/update/nix/types";
 
 export interface OpenNixLockResult {
-  /** Physical temp directory holding flake.lock (empty string when pull failed). */
+  /** Physical temp directory holding flake.lock. */
   lockDir: string;
-  /** Path to pulled flake.lock, or undefined when using local lock only. */
-  lockPath: string | undefined;
-  usedRemote: boolean;
-  warning?: string;
+  /** Path to the pulled flake.lock. */
+  lockPath: string;
 }
 
 /**
  * Pull the remote nix lock into a physical temp path.
- * On failure, returns usedRemote=false so callers fall back to local flake.lock.
  * Caller must invoke `closeNixLock` when done.
  */
-export async function openNixLock(config: ManagerConfig): Promise<OpenNixLockResult> {
+export async function openNixLock(
+  config: ManagerConfig,
+  pull: typeof pullLockfile = pullLockfile,
+): Promise<OpenNixLockResult> {
   const displayDir = await mkdtemp(join(tmpdir(), "outfitting-nix-lock-"));
   let lockDir: string;
   try {
@@ -36,22 +37,20 @@ export async function openNixLock(config: ManagerConfig): Promise<OpenNixLockRes
 
   try {
     await Effect.runPromise(
-      pullLockfile({
+      pull({
         machine: config.machineId,
         kind: NIX_LOCK_KIND,
         outPath: lockPath,
       }),
     );
-    return { lockDir, lockPath, usedRemote: true };
+    return { lockDir, lockPath };
   } catch (cause) {
     const message = cause instanceof Error ? cause.message : String(cause);
     await closeNixLock(lockDir);
-    return {
-      lockDir: "",
-      lockPath: undefined,
-      usedRemote: false,
-      warning: `Failed to pull remote Nix lock (${message}). Continuing with local flake.lock.`,
-    };
+    throw new Error(
+      `Could not pull the required remote Nix lock for ${config.machineId}: ${message}. Check the lockfile service configuration and connectivity, then retry.`,
+      { cause },
+    );
   }
 }
 

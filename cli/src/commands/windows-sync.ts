@@ -19,6 +19,7 @@ import {
   type WindowsLock,
   type WindowsPackageRecord,
 } from "@/update/windows-lock";
+import { wingetPackageArgs } from "@/update/winget";
 
 /** Profiles shipped by the default repository; compatible repositories may add their own. */
 export const WINDOWS_PROFILE_NAMES = [
@@ -123,7 +124,7 @@ function baselineWingetRecords(
 ): WindowsPackageRecord[] {
   return packages.map((packageInfo) => ({
     name: packageInfo.name,
-    args: wingetInstallArgs("install", packageInfo.name, packageInfo.source),
+    args: wingetPackageArgs("install", packageInfo.name, packageInfo.source),
     origin: "baseline",
   }));
 }
@@ -191,22 +192,6 @@ function replaceManagedRecords(
   lock.packages[manager] = desired.toSorted((left, right) => left.name.localeCompare(right.name));
 }
 
-function wingetInstallArgs(
-  action: "install" | "uninstall",
-  name: string,
-  source?: "msstore",
-): string[] {
-  return [
-    action,
-    "--id",
-    name,
-    "--exact",
-    ...(source === "msstore" ? ["--source", "msstore"] : []),
-    "--accept-source-agreements",
-    "--accept-package-agreements",
-  ];
-}
-
 interface WingetRunContext {
   run: typeof runCommand;
   executable: string;
@@ -216,7 +201,7 @@ interface WingetRunContext {
 }
 
 function runWinget({ run, executable, action, name, source }: WingetRunContext) {
-  const args = wingetInstallArgs(action, name, source);
+  const args = wingetPackageArgs(action, name, source);
   return Effect.gen(function* () {
     const result = yield* tryPromise(() => run(executable, args, { inherit: true }));
     const alreadyInstalled = action === "install" && isWingetAlreadyInstalledExitCode(result.code);
@@ -457,7 +442,6 @@ const syncScoopPackages = Effect.fn("syncScoopPackages")(function* ({
     config,
     manifest,
     noSync: true,
-    prune: false,
     run,
     which: async () => scoopPath,
     scoopPath,

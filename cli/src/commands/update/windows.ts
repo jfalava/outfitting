@@ -23,7 +23,9 @@ const bunCommand = Command.make("bun", {}, () => updateBun).pipe(
 
 const scoopCommand = Command.make("scoop", { noSync: noSyncFlag }, ({ noSync }) =>
   updateScoop({ noSync }),
-).pipe(Command.withDescription("Reconcile Scoop with the configured repository manifest."));
+).pipe(
+  Command.withDescription("Install manifest packages and update Scoop without removing extras."),
+);
 
 const wingetCommand = Command.make("winget", { noSync: noSyncFlag }, ({ noSync }) =>
   updateWinget({ noSync }),
