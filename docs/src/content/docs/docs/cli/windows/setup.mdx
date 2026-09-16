@@ -1,0 +1,23 @@
+---
+title: Setup
+description: Initialize and apply the Windows Outfitting baseline.
+sidebar:
+  order: 3
+---
+
+`setup` initializes state, fetches the configured routes, applies the selected WinGet and Scoop profiles, and refreshes the cached PowerShell profile.
+
+```powershell
+outfit setup
+outfit setup --profile base,dev
+outfit setup --profile work --winget-only --no-push
+```
+
+Options are `--machine-id`, `--manifest-base-url`, `--manifest-ref`, `--profile`, `--winget-only`, and `--no-push`.
+
+- A new machine uses `defaultProfiles` from `config.json`, defaulting to `base`.
+- Without `--profile`, an existing machine reuses its saved profile selection.
+- `--winget-only` skips Scoop while bootstrapping a fresh machine.
+- `--no-push` writes the local lock without uploading it.
+
+The command asks for confirmation before removing tracked packages outside the selected baseline.

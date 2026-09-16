@@ -26,6 +26,7 @@
     "/docs/cli/windows/config",
     "/docs/cli/windows/init",
     "/docs/cli/windows/packages",
+    "/docs/cli/windows/setup",
     "/docs/cli/windows/sync",
     "/docs/cli/windows/update",
     "/docs/macos",
