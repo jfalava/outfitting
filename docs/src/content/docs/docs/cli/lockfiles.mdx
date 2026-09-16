@@ -86,7 +86,7 @@ Public equivalents: `https://worker-url/api/lockfiles/...`.
 
 ## Platform integrations
 
-- macOS uses the `nix` kind as its canonical remote flake lock. Rebuild commands pull it into a temporary path with Nix's `--reference-lock-file`; upgrades write to a temporary `--output-lock-file` and push the result after a successful switch using the pulled hash as a concurrency precondition. A durable recovery checkpoint remains under the XDG state directory until both activation and upload succeed; `outfit recover` resumes it.
+- macOS uses the `nix` kind as its canonical remote flake lock. Nix update commands pull it into a temporary path and build with `--reference-lock-file` and `--no-write-lock-file`. A failed pull aborts the update. Normal updates do not upgrade flake inputs, publish a new lock, or create a recovery checkpoint; `outfit recover nix` only resumes an existing checkpoint.
 
 * Successful `outfit update brew` and `outfit snapshot brew` operations automatically store the observed, versioned Homebrew state as `homebrew-inventory`. Kinds are free-form and require no schema migration.
 

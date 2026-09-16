@@ -24,4 +24,6 @@ The sparse source is stored at `$HOME/.config/outfitting/source`. Setup does not
 --skip-symlinks                     Do not repair Home Manager symlinks.
 ```
 
-Use `--repo` only when an existing local checkout should be used. Normal macOS installation uses the sparse source so the manager remains independent of the repository checkout.
+Use `--repo` only when an existing local checkout should be used. Subsequent `update nix` commands honor the saved checkout without replacing it with sparse source. `OUTFITTING_REPO` takes precedence over the saved path. Normal macOS installation uses the sparse source so the manager remains independent of the repository checkout.
+
+Setup and Nix updates refuse to replace regular files or directories at the Home Manager and nix-darwin symlink destinations. Back up and move conflicting paths before retrying. Existing symlinks, including broken links, can be retargeted.

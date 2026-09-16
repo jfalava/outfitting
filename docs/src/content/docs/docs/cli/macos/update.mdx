@@ -24,7 +24,9 @@ outfit update nix dry     # Dry-run without activating
 outfit update nix switch  # Build and activate
 ```
 
-Nix uses the canonical remote `jfalava:aarch64-darwin/nix` lock and does not create a repository `flake.lock`.
+Nix uses the configured machine's canonical remote `nix` lock and does not create a repository `flake.lock`. If the lock cannot be downloaded, the command stops before building or activating. Check the lockfile service configuration, credentials, and connectivity before retrying; there is no local-lock fallback.
+
+The source comes from `OUTFITTING_REPO` first, then a checkout saved by `setup --repo`. Without a checkout override, the manager refreshes its sparse source at `<stateRoot>/source`. An invalid saved checkout fails rather than silently switching sources. See [setup](/docs/cli/macos/setup/) for symlink collision handling.
 
 ## Homebrew and combined updates
 

@@ -13,7 +13,11 @@ outfit update scoop
 outfit update all
 ```
 
-`update winget` upgrades WinGet packages. `update scoop` reconciles Scoop with its configured manifest. `update all` runs WinGet, Scoop, and Windows lock synchronization in order. Add `--no-sync` to keep the resulting lock local.
+`update winget` upgrades WinGet packages. `update scoop` installs missing packages from its configured manifest, updates installed packages, and cleans old versions. It preserves extra packages; use [sync](/docs/cli/windows/sync/) for confirmed removal of tracked packages outside the baseline.
+
+`update all` runs WinGet, Scoop, and Windows lock synchronization in order. After Scoop succeeds, it writes the manifest baseline into the local `windows.lock.json` before the combined lock is uploaded. It continues after a manager fails, records successful steps, and exits nonzero if an update or upload fails. A failed upload leaves the local lock available to retry.
+
+Add `--no-sync` to skip both local lock updates and the upload. This differs from `sync --no-push`, which writes the local lock but does not upload it.
 
 Global Bun packages are updated directly by Bun:
 
