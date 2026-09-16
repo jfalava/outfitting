@@ -1,0 +1,16 @@
+---
+title: Recover
+description: Resume an interrupted macOS Nix update.
+sidebar:
+  order: 4
+---
+
+If Nix activation or lock publication is interrupted, the manager keeps a checkpoint under `$XDG_STATE_HOME/outfitting/nix-lock-recovery`, or `$HOME/.local/state/outfitting/nix-lock-recovery` by default.
+
+Resume the pending operation with:
+
+```bash
+outfit recover nix
+```
+
+`hm-recover` is the equivalent shell helper. Recovery requires the compiled manager; native Nix fallback cannot read or publish the manager checkpoint.

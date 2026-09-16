@@ -5,120 +5,21 @@ sidebar:
   order: 4
 ---
 
-## Configure and initialize the manager
+The Windows manager stores configuration, fetched manifests, and `windows.lock.json` under `%USERPROFILE%\.config\outfitting`. It does not need a monorepo checkout.
 
-The manager keeps configuration, manifest caches, the unified lock, and materialized manifests under `%USERPROFILE%\.config\outfitting` by default. It fetches package manifests from the repository's raw content; package reconciliation does not require a full repository clone.
+Use the [Windows CLI reference](/docs/cli/windows/) for the complete workflows:
 
-Use the wizard to configure a compatible repository and all Windows artifact routes. The default Windows machine id is `<username>:x86_64-windows`:
+1. Run [config](/docs/cli/windows/config/) when the repository or route map changes.
+2. Run [setup](/docs/cli/windows/setup/) for initialization and first application.
+3. Run [sync](/docs/cli/windows/sync/) to reconcile selected profiles.
+4. Run [update](/docs/cli/windows/update/) to upgrade installed packages.
 
-```powershell
-outfitting-manager config
-```
-
-The old state-root bootstrap is now `init`. It caches the configured Scoop and Bun manifests without applying packages:
-
-```powershell
-outfitting-manager init
-outfitting-manager init --no-fetch
-```
-
-`setup` initializes the state root, fetches the configured routes, applies the configured/default WinGet profiles and Scoop state, and refreshes the PowerShell profile. Use `sync` for later reconciliation without repeating initialization:
+Typical maintenance:
 
 ```powershell
-outfitting-manager setup
-outfitting-manager setup --profile work --no-push
-outfitting-manager sync --profile base,dev
-```
-
-The source is stored in `%USERPROFILE%\.config\outfitting\config.json`, so the compiled binary does not depend on the repository it was built from. A compatible repository can use any repository-relative paths. The wizard stores routes for the WinGet profile template (`{profile}` is replaced), Scoop manifest, Bun manifest, PowerShell profile, FontGet list, and registry directory under `windows` in `config.json`.
-
-For a different manifest source without using the wizard, pass a raw-compatible base URL without the ref and an explicit Git ref. `init` persists these values for later runs:
-
-```powershell
-outfitting-manager init `
-  --manifest-base-url "https://raw.githubusercontent.com/acme/workstation-config" `
-  --manifest-ref work
-```
-
-The equivalent config file is:
-
-```json
-{
-  "manifest": {
-    "baseUrl": "https://raw.githubusercontent.com/acme/workstation-config",
-    "ref": "work"
-  },
-  "windows": {
-    "wingetProfilePath": "profiles/windows/{profile}.txt",
-    "scoopPath": "manifests/scoop.txt",
-    "bunPath": "manifests/bun.txt",
-    "powershellProfilePath": "dotfiles/powershell/profile.ps1",
-    "fontListPath": "fonts/public.txt",
-    "registryPath": "windows/registry",
-    "defaultProfiles": ["base", "work"]
-  }
-}
-```
-
-For a first-boot installer, set `OUTFITTING_MANIFEST_BASE_URL` and `OUTFITTING_MANIFEST_REF` before running the PowerShell script. The installer passes them to `init` and saves them in the same config file. The manager accepts GitHub raw-compatible mirrors; registry discovery additionally requires a GitHub raw source.
-
-## Sparse configuration updates
-
-Windows does not need a monorepo checkout for daily maintenance. `outfit sync` pulls the selected package manifests and configured PowerShell profile route into `%USERPROFILE%\.config\outfitting\manifests`, then reconciles package state and updates `windows.lock.json`.
-
-Open a new PowerShell session after syncing, or reload the cached profile in the current session:
-
-```powershell
-. $PROFILE
-```
-
-The profile also provides the reload alias:
-
-```powershell
-reload
-```
-
-## Packages and unified lock
-
-The manager is the Windows package and desired-state path. The PowerShell profile exposes it as `outfit`:
-
-```powershell
-outfit sync                         # use saved profiles, or base initially
-outfit sync --profile base,dev      # pull selected repo manifests from GitHub
-outfit sync --profile base          # reconcile tracked packages to the baseline
-
-outfit winget install Git.Git
-outfit scoop install extras/fzf
-outfit winget uninstall Git.Git
-```
-
-`sync` fetches the selected profile files from the configured raw source, installs the WinGet and Scoop baseline, and writes one `windows.lock.json`. Microsoft Store profiles automatically add `--source msstore` to their WinGet operations.
-
-Each sync lists tracked packages that are no longer in the selected baseline and asks for confirmation before removing them. Declining aborts before package operations or lock writes; untracked native WinGet and Scoop installs remain unmanaged. The explicit package commands record manual installs and removals in the same lock. Add `--no-sync` to those commands to save locally without pushing; add `--no-push` to `sync` for the same behavior.
-
-The existing update commands remain useful for upgrading already-installed packages:
-
-```powershell
-outfit update winget
-outfit update scoop
+outfit sync
 outfit update all
+bun update -g
 ```
 
-They record their upgrade operations in `windows.lock.json`; `update all` runs WinGet and Scoop. Update global Bun packages directly with `bun update -g`. PowerShell continues to own session environment and `PATH` setup.
-
-Configure the lockfiles Worker before the first upload if the machine has not been provisioned:
-
-```powershell
-outfit lockfiles configure-worker
-outfit lockfiles configure-token
-```
-
-Use the compiled release binary for self-upgrades. Running `upgrade` from Bun source is rejected; see [CLI upgrade](/docs/cli/upgrade/) for the Windows replacement behavior.
-
-## Post-install work
-
-Re-run the [post-install steps](/docs/windows/post-install/), including optional downloading and extracting of the Cloudflare Access-protected licensed fonts to `%USERPROFILE%\Downloads\fonts`:
-
-```powershell
-irm win.jfa.dev/post-install | iex
-```
+Use [remote lockfiles](/docs/cli/lockfiles/) for direct Worker transport and [CLI upgrade](/docs/cli/upgrade/) for self-updating the compiled manager.

@@ -1,0 +1,28 @@
+---
+title: Maintenance
+description: Run combined WSL package and configuration maintenance.
+sidebar:
+  order: 3
+---
+
+Run the complete local maintenance sequence with:
+
+```bash
+update-all
+```
+
+It refreshes APT packages, applies the Home Manager update, cleans old Nix generations, and updates global Bun packages.
+
+To run the hosted update-only path from an existing shell:
+
+```bash
+remote-update
+```
+
+This is equivalent to `curl -L https://wsl.jfa.dev | bash -s -- --update-only`.
+
+For global Bun packages without the full sequence:
+
+```bash
+curl -fsSL wsl.jfa.dev/packages/bun | xargs -I {} bun install -g {}
+```

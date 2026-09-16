@@ -1,0 +1,23 @@
+---
+title: Windows
+description: Use outfitting-manager to configure and maintain a Windows machine.
+sidebar:
+  order: 5
+---
+
+The Windows installer provides the compiled `outfitting-manager.exe`; the PowerShell profile exposes it as `outfit`.
+
+## Commands
+
+- [Config](/docs/cli/windows/config/) - configure the compatible repository and Windows routes.
+- [Init](/docs/cli/windows/init/) - initialize state and cache manifests.
+- [Setup](/docs/cli/windows/setup/) - initialize and apply the configured baseline.
+- [Sync](/docs/cli/windows/sync/) - reconcile selected profiles and write `windows.lock.json`.
+- [Packages](/docs/cli/windows/packages/) - track manual WinGet and Scoop operations.
+- [Update](/docs/cli/windows/update/) - upgrade installed packages.
+- [Remote lockfiles](/docs/cli/lockfiles/) — push, pull, and inspect remote state.
+- [Fonts](/docs/cli/fonts/) — manage the shared private-font archive.
+- [Provision](/docs/cli/provision/) — deploy Outfitting infrastructure.
+- [Upgrade](/docs/cli/upgrade/) — update the installed manager.
+
+Use `outfit` or `outfitting-manager` in the examples. On Windows, `sync` is the desired-state package command; use `lockfiles` for direct remote lock transport.

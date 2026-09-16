@@ -1,0 +1,19 @@
+---
+title: Sync
+description: Reconcile Windows package profiles and the unified machine lock.
+sidebar:
+  order: 4
+---
+
+`sync` fetches the selected profile files from the configured raw source, reconciles WinGet and Scoop, materializes the configured PowerShell profile, and writes `windows.lock.json`.
+
+```powershell
+outfit sync
+outfit sync --profile base,dev
+outfit sync --profile msstore-base --winget-only
+outfit sync --no-push
+```
+
+Options are `--profile`, `--winget-only`, and `--no-push`. Profiles beginning with `msstore-` use the Microsoft Store source. `--no-push` keeps the lock local. Untracked native WinGet and Scoop installs remain unmanaged.
+
+Each sync lists tracked packages outside the selected baseline and asks before removing them. Declining aborts before package operations or lock writes.

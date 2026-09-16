@@ -1,0 +1,23 @@
+---
+title: Config
+description: Configure the Windows repository source and artifact routes.
+sidebar:
+  order: 1
+---
+
+Run the interactive wizard to configure a compatible repository, its Windows artifact routes, and the profiles used on a new machine:
+
+```powershell
+outfit config
+```
+
+The wizard saves `%USERPROFILE%\.config\outfitting\config.json`. It configures the raw source URL and ref plus these repository-relative routes:
+
+- `wingetProfilePath` - a `{profile}` template for WinGet files.
+- `scoopPath` and `bunPath` - package manifests.
+- `powershellProfilePath` - the cached PowerShell profile.
+- `fontListPath` - the public FontGet list.
+- `registryPath` - the registry tweaks directory.
+- `defaultProfiles` - profiles used when no machine selection exists.
+
+Routes cannot escape the repository, and profile names must contain only letters, numbers, `.`, `_`, or `-`. The default profile is `base`.

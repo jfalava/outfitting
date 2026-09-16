@@ -5,29 +5,12 @@ sidebar:
   order: 2
 ---
 
-For Ubuntu-based WSL distributions:
-
-## Installation Modes
-
-Default mode:
+Run the hosted installer from an interactive WSL shell:
 
 ```bash
 curl -L wsl.jfa.dev | bash
 ```
 
-- Updates Nix channels and packages
-- Applies the Home Manager configuration
-- Skips APT package installation
+Use `--full-install` for APT, Docker, HashiCorp tooling, Nix, and Home Manager. Use `--update-only` for the APT-only path or `--nix-only` for the Nix and Home Manager path.
 
-Full installation:
-
-```bash
-curl -L wsl.jfa.dev | bash -s -- --full-install
-```
-
-Other modes:
-
-```bash
-curl -L wsl.jfa.dev | bash -s -- --update-only
-curl -L wsl.jfa.dev | bash -s -- --nix-only
-```
+See the [Linux install command](/docs/cli/linux/install/) for all accepted modes and aliases. The installer normally clones the repository to `$HOME/.config/outfitting/repo`.

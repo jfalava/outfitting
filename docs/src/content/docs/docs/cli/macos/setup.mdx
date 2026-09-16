@@ -1,0 +1,27 @@
+---
+title: Setup
+description: Initialize the macOS Outfitting state root and sparse source.
+sidebar:
+  order: 1
+---
+
+`setup` creates the Outfitting state root, fetches the allowlisted macOS source files, records the source path, and ensures the Home Manager and nix-darwin symlinks.
+
+```bash
+outfit setup
+```
+
+The sparse source is stored at `$HOME/.config/outfitting/source`. Setup does not clone the monorepo and does not fetch `system/macos/flake.lock`; Nix updates use the canonical lockfile service.
+
+## Options
+
+```text
+--machine-id <id>                   Override the automatic machine id.
+--manifest-base-url <url>           Raw-compatible source URL without the ref.
+--manifest-ref <ref>                Git branch, tag, or SHA for the source.
+--repo <path>                       Record an existing checkout as the source path.
+--no-fetch                          Skip sparse source fetching.
+--skip-symlinks                     Do not repair Home Manager symlinks.
+```
+
+Use `--repo` only when an existing local checkout should be used. Normal macOS installation uses the sparse source so the manager remains independent of the repository checkout.

@@ -1,0 +1,16 @@
+---
+title: Linux
+description: Use the Linux and WSL installer modes and shell commands to maintain an Ubuntu-based distribution.
+sidebar:
+  order: 4
+---
+
+WSL uses the shell functions installed by the WSL Home Manager profile and `wsl-install-script.sh`, rather than the Windows `outfitting-manager` command tree.
+
+## Commands
+
+- [Install](/docs/cli/linux/install/) - run the hosted installer modes.
+- [Home Manager](/docs/cli/linux/home-manager/) - apply, update, roll back, or clean Nix state.
+- [Maintenance](/docs/cli/linux/maintenance/) - run the combined update and remote-update helpers.
+
+The WSL repository is normally cloned to `$HOME/.config/outfitting/repo`; set `OUTFITTING_REPO` to use another checkout.

@@ -1,0 +1,15 @@
+---
+title: Init
+description: Initialize Windows state and cache configured manifests.
+sidebar:
+  order: 2
+---
+
+`init` creates the Windows state root and caches the configured Scoop and Bun manifests. It does not apply package state.
+
+```powershell
+outfit init
+outfit init --no-fetch
+```
+
+Use `--no-fetch` to write or refresh configuration without prefetching manifests. Other options are `--machine-id`, `--manifest-base-url`, and `--manifest-ref`; source overrides are persisted for later runs.

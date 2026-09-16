@@ -1,0 +1,24 @@
+---
+title: Update
+description: Upgrade installed Windows packages with outfitting-manager.
+sidebar:
+  order: 6
+---
+
+Upgrade packages already installed on the machine:
+
+```powershell
+outfit update winget
+outfit update scoop
+outfit update all
+```
+
+`update winget` upgrades WinGet packages. `update scoop` reconciles Scoop with its configured manifest. `update all` runs WinGet, Scoop, and Windows lock synchronization in order. Add `--no-sync` to keep the resulting lock local.
+
+Global Bun packages are updated directly by Bun:
+
+```powershell
+bun update -g
+```
+
+`outfit update bun` is deprecated and prints this replacement. Homebrew and Nix commands are unavailable in the Windows build.

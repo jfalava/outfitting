@@ -43,6 +43,7 @@ Telegram.TelegramDesktop
 Microsoft.Edit
 Oven-sh.Bun
 astral-sh.uv
+arndawg.tmux-windows
 GoLang.Go
 EclipseAdoptium.Temurin.11.JDK
 Tailscale.Tailscale

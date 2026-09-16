@@ -5,39 +5,13 @@ sidebar:
   order: 3
 ---
 
-## Configuration
+For detailed command behavior, see the [Linux CLI reference](/docs/cli/linux/), especially [Home Manager](/docs/cli/linux/home-manager/) and [maintenance](/docs/cli/linux/maintenance/).
 
-Quick update:
-
-```bash
-curl -L wsl.jfa.dev | bash
-```
-
-Update local configuration after editing files in `~/.config/outfitting/repo`:
+The normal local workflow is:
 
 ```bash
-git pull
+git -C ~/.config/outfitting/repo pull
 hm-sync
 ```
 
-## Packages
-
-Update packages:
-
-```bash
-hm-update
-update-all
-```
-
-Other update modes:
-
-```bash
-curl -L wsl.jfa.dev | bash -s -- --update-only
-curl -L wsl.jfa.dev | bash -s -- --full-install
-```
-
-## Bun global packages
-
-```bash
-curl -fsSL wsl.jfa.dev/packages/bun | xargs -I {} bun install -g {}
-```
+Run `update-all` for APT, Home Manager, Nix cleanup, and Bun global packages. Run `remote-update` to invoke the hosted update-only installer.

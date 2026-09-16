@@ -1,56 +1,53 @@
 ---
 title: Repository Configuration
-description: How this repo is cloned and symlinked during automatic setup.
+description: Where each platform stores its source, manifests, and linked configuration.
 sidebar:
   order: 4
 ---
 
-During installation, this repository is cloned to:
-
-```text
-~/.config/outfitting/repo
-```
-
-The installation then creates symlinks into platform-specific configuration locations.
-
-On macOS, the repository also stores the package manifests used by the helper commands:
-
-```text
-packages/macos/Brewfile
-```
+Each platform uses a different source layout. WSL keeps a full checkout, while macOS and Windows use the manager's state root and fetch only the files they need.
 
 ## Windows
 
-The installer resolves the repository path in this order:
-
-1. The `OUTFITTING_REPO` environment variable.
-2. The path stored in `%USERPROFILE%\.config\outfitting\repo-path`.
-3. The default path:
+Windows stores configuration and fetched manifests under:
 
 ```text
-%USERPROFILE%\.config\outfitting\repo
+%USERPROFILE%\.config\outfitting
 ```
 
-When the repository is cloned or an existing checkout is selected, the resolved path is persisted to `repo-path`. The Windows installer links these PowerShell profile entry points to the repository-owned profile:
+`config.json` records the manifest source and repository-relative Windows routes. `manifests` contains the selected WinGet files, configured Scoop and Bun manifests, and the cached PowerShell profile. Windows package reconciliation does not require a monorepo checkout.
+
+The installer links these PowerShell profile entry points to the cached profile:
 
 ```text
 %USERPROFILE%\Documents\PowerShell\Microsoft.PowerShell_profile.ps1
 %USERPROFILE%\Documents\PowerShell\Microsoft.VSCode_profile.ps1
 %USERPROFILE%\Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1
-    -> <repository>\dotfiles\Microsoft.PowerShell_profile.ps1
+    -> %USERPROFILE%\.config\outfitting\manifests\<configured PowerShell route>
 ```
 
 Existing profiles are backed up with a timestamp before they are replaced. Windows symbolic links require Developer Mode or an elevated installer session.
 
-## WSL
-
-```text
-~/.config/home-manager -> ~/.config/outfitting/repo/system/ubuntu-wsl
-```
-
 ## macOS
 
 ```text
-~/.config/home-manager -> ~/.config/outfitting/repo/system/macos
-~/.nixpkgs/darwin-configuration.nix -> ~/.config/outfitting/repo/system/macos/darwin.nix
+~/.config/outfitting/repo-path -> ~/.config/outfitting/source
+~/.config/home-manager -> ~/.config/outfitting/source/system/macos
+~/.nixpkgs/darwin-configuration.nix -> ~/.config/outfitting/source/system/macos/darwin.nix
+```
+
+The macOS manager fetches the allowlisted source paths into `~/.config/outfitting/source`; it does not clone the monorepo. Homebrew uses `packages/macos/Brewfile` from that sparse source.
+
+## WSL
+
+WSL keeps a full checkout at:
+
+```text
+~/.config/outfitting/repo
+```
+
+Its Home Manager link points into that checkout:
+
+```text
+~/.config/home-manager -> ~/.config/outfitting/repo/system/ubuntu-wsl
 ```

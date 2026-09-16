@@ -28,7 +28,7 @@ const nimbusConfig = defineNimbusConfig({
       },
       {
         label: "CLI",
-        items: [{ autogenerate: { directory: "docs/cli" } }],
+        items: [{ autogenerate: { directory: "docs/cli" }, collapsed: true }],
       },
       "docs/repository-configuration",
       {

@@ -1,0 +1,19 @@
+---
+title: Packages
+description: Track manual WinGet and Scoop package operations on Windows.
+sidebar:
+  order: 5
+---
+
+Install or remove one or more packages and record each operation in `windows.lock.json`:
+
+```powershell
+outfit winget install Git.Git
+outfit winget uninstall Git.Git
+outfit scoop install extras/fzf
+outfit scoop uninstall fzf
+```
+
+Pass `--no-sync` to keep the updated lockfile local instead of pushing it to the Worker. WinGet arguments are package IDs; Scoop accepts package names and bucket-qualified names.
+
+These commands track only operations made through `outfit`. Native package-manager installs remain unmanaged until they are included in a selected profile or explicitly tracked.

@@ -1,0 +1,22 @@
+---
+title: Shell helpers
+description: Use the macOS Zsh compatibility helpers around outfitting-manager.
+sidebar:
+  order: 5
+---
+
+The macOS Zsh profile keeps these helpers for existing Home Manager workflows:
+
+```bash
+hm-build     # Build nix-darwin without activating
+hm-test      # Test-build without activating
+hm-dry       # Dry-run without activating
+hm-switch    # Build and activate
+hm-sync      # Alias for hm-switch
+hm-update    # Compatibility alias for hm-switch; it does not update flake inputs
+hm-rollback  # List generations and show rollback instructions
+hm-clean     # Remove old Nix generations and store paths
+hm-recover   # Resume manager-owned Nix recovery
+```
+
+`hm-build`, `hm-test`, `hm-dry`, and `hm-switch` use `outfitting-manager` when it is available and fall back to native Nix commands otherwise. `hm-recover` always requires the manager.

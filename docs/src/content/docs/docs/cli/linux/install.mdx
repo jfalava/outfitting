@@ -1,0 +1,22 @@
+---
+title: Install
+description: Run the WSL installer and choose an installation mode.
+sidebar:
+  order: 1
+---
+
+Run the hosted installer from an interactive WSL shell:
+
+```bash
+curl -L wsl.jfa.dev | bash
+```
+
+The script accepts these modes:
+
+```bash
+curl -L wsl.jfa.dev | bash -s -- --full-install  # APT, Docker, HashiCorp, Nix, and Home Manager
+curl -L wsl.jfa.dev | bash -s -- --update-only   # APT-only update path
+curl -L wsl.jfa.dev | bash -s -- --nix-only      # Nix and Home Manager path
+```
+
+`--full` and `--apt-only` remain accepted aliases. Profile-selection flags are obsolete because WSL has one personal configuration.

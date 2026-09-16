@@ -1,0 +1,46 @@
+---
+title: Update
+description: Apply macOS Nix-darwin and Homebrew updates with outfitting-manager.
+sidebar:
+  order: 2
+---
+
+`update` owns the macOS package and system update paths. Run one manager or the aggregate workflow:
+
+```bash
+outfit update nix
+outfit update brew
+outfit update all
+```
+
+## Nix-darwin
+
+`update nix` defaults to `switch`. The explicit actions are:
+
+```bash
+outfit update nix build   # Build without activating
+outfit update nix test    # Test-build without activating
+outfit update nix dry     # Dry-run without activating
+outfit update nix switch  # Build and activate
+```
+
+Nix uses the canonical remote `jfalava:aarch64-darwin/nix` lock and does not create a repository `flake.lock`.
+
+## Homebrew and combined updates
+
+`update brew` reconciles the managed `packages/macos/Brewfile`, upgrades Homebrew packages, and stores the observed inventory. `update all` runs the Nix switch followed by Homebrew and returns failure if either step fails.
+
+Pass `--no-sync` to `brew` or `all` to keep inventory and lock changes local:
+
+```bash
+outfit update brew --no-sync
+outfit update all --no-sync
+```
+
+Global Bun packages are updated by Bun itself:
+
+```bash
+bun update -g
+```
+
+`outfit update bun` is deprecated and prints this replacement. Windows package-manager commands are unavailable in the macOS build.

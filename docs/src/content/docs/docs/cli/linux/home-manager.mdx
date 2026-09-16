@@ -1,0 +1,18 @@
+---
+title: Home Manager
+description: Apply and maintain the WSL Home Manager configuration.
+sidebar:
+  order: 2
+---
+
+The WSL Zsh plugin provides:
+
+```bash
+hm-sync      # Relink the WSL flake and apply Home Manager
+hm-switch    # Alias for hm-sync
+hm-update    # Update flake inputs, then apply Home Manager
+hm-rollback  # List generations and show activation instructions
+hm-clean     # Remove old Nix generations and store paths
+```
+
+`hm-update` runs `nix flake update` against `$HOME/.config/outfitting/repo/system/ubuntu-wsl` before switching. `hm-sync` and `hm-switch` apply the current checkout without updating inputs.
