@@ -1,18 +1,18 @@
 import { Console, Data, Effect, Option, Schema } from "effect";
 
-import { loadConfig, type ManagerConfig } from "@/config";
+import { loadConfig, resolveWindowsRoutes, type ManagerConfig } from "@/config";
 import { fetchManifest, type ManifestFetcher } from "@/fetch";
 import { pushLockfile } from "@/lockfiles";
 import { tryPromise } from "@/lockfiles/effect";
 import { runCommand, which } from "@/process";
 import { ui } from "@/ui";
 import { runScoopCommand, scoopScriptPath } from "@/update/scoop-command";
-import { parseScoopExport, type ScoopExportState } from "@/update/windows-snapshot";
 import {
   WINDOWS_LOCK_KIND,
   updateWindowsBaseline,
   type WindowsPackageRecord,
 } from "@/update/windows-lock";
+import { parseScoopExport, type ScoopExportState } from "@/update/windows-snapshot";
 
 export const SCOOP_MANIFEST_PATH = "packages/windows/scoop.txt";
 
@@ -338,7 +338,7 @@ export const updateScoop = (options: UpdateScoopOptions = {}) =>
     } else {
       const manifest = yield* tryPromise(() =>
         fetchManifest({
-          path: SCOOP_MANIFEST_PATH,
+          path: resolveWindowsRoutes(config.windows).scoopPath,
           config,
           materialize: true,
           fetcher: options.fetcher,

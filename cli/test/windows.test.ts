@@ -13,6 +13,7 @@ import {
   resolveWindowsProfiles,
   syncWindows,
 } from "@/commands/windows-sync";
+import { saveConfigFile } from "@/config";
 import type { RunCommandResult } from "@/process";
 import { WINDOWS_SETUP_MANIFEST_PATHS } from "@/setup/manifests";
 import { runSetup } from "@/setup/run";
@@ -48,9 +49,11 @@ async function runWindowsCli(args: string[]): Promise<{ code: number; text: stri
 }
 
 describe("Windows CLI entrypoint", () => {
-  test("registers Windows update and setup commands without macOS PM implementations", async () => {
+  test("registers Windows config, init, setup, and update commands without macOS PM implementations", async () => {
     const root = await runWindowsCli(["--help"]);
     const update = await runWindowsCli(["update", "--help"]);
+    const config = await runWindowsCli(["config", "--help"]);
+    const init = await runWindowsCli(["init", "--help"]);
     const setup = await runWindowsCli(["setup", "--help"]);
     const sync = await runWindowsCli(["sync", "--help"]);
     const winget = await runWindowsCli(["winget", "--help"]);
@@ -58,6 +61,8 @@ describe("Windows CLI entrypoint", () => {
     const foreign = await runWindowsCli(["update", "brew"]);
 
     expect(root.code).toBe(0);
+    expect(root.text).toMatch(/\bconfig\b/);
+    expect(root.text).toMatch(/\binit\b/);
     expect(root.text).toMatch(/\bsetup\b/);
     expect(root.text).toMatch(/\bsync\b/);
     expect(root.text).toMatch(/\bwinget\b/);
@@ -66,14 +71,16 @@ describe("Windows CLI entrypoint", () => {
     expect(update.text).toMatch(/\bscoop\b/);
     expect(update.text).toMatch(/\bbun\b/);
     expect(update.text).toMatch(/\ball\b/);
-    expect(setup.text).toMatch(/scoop\.txt/);
+    expect(config.text).toMatch(/repository|route/i);
+    expect(init.text).toMatch(/initialize/i);
+    expect(setup.text).toMatch(/apply|profiles/i);
     expect(sync.text).not.toMatch(/--clean/);
     expect(sync.text).toMatch(/--winget-only/);
     expect(winget.text).toMatch(/install/);
     expect(scoop.text).toMatch(/uninstall/);
     expect(foreign.code).not.toBe(0);
     expect(foreign.text).toMatch(/macOS/);
-  });
+  }, 15_000);
 });
 
 describe("Windows desired state and lock", () => {
@@ -85,7 +92,8 @@ describe("Windows desired state and lock", () => {
     expect(() => parseWindowsPackageList("Git.Git --silent\n", "base.txt")).toThrow(
       /Invalid WinGet/,
     );
-    expect(() => resolveWindowsProfiles(["unknown"], [])).toThrow(/Unknown Windows profile/);
+    expect(resolveWindowsProfiles(["work-laptop"], [])).toEqual(["work-laptop"]);
+    expect(() => resolveWindowsProfiles(["../escape"], [])).toThrow(/Invalid Windows profile/);
   });
 
   test("records successful installs, failed operations, and uninstalls in one lock", async () => {
@@ -449,9 +457,7 @@ describe("Windows package update commands", () => {
           config,
           noSync: true,
           which: async (command) =>
-            command === "winget"
-              ? "C:\\Windows\\winget.exe"
-              : "C:\\scoop\\shims\\scoop.cmd",
+            command === "winget" ? "C:\\Windows\\winget.exe" : "C:\\scoop\\shims\\scoop.cmd",
           run: async (command, args) => {
             calls.push([command, ...args]);
             return { code: 1, stdout: "", stderr: "simulated failure" };
@@ -477,6 +483,38 @@ describe("Windows package update commands", () => {
 });
 
 describe("Windows setup manifest selection", () => {
+  test("persists and fetches from a compatible manifest repository", async () => {
+    const root = await mkdtemp(join(tmpdir(), "outfitting-windows-custom-source-"));
+    try {
+      const fetched: string[] = [];
+      await Effect.runPromise(
+        runSetup({
+          stateRoot: root,
+          manifestBaseUrl: "https://raw.githubusercontent.com/acme/workstation-config",
+          manifestRef: "work",
+          manifestPaths: WINDOWS_SETUP_MANIFEST_PATHS,
+          fetcher: async (url) => {
+            fetched.push(url);
+            return new Response(url.includes("scoop") ? 'package "fzf"\n' : "alchemy\n");
+          },
+        }),
+      );
+
+      expect(fetched).toEqual([
+        "https://raw.githubusercontent.com/acme/workstation-config/work/packages/windows/scoop.txt",
+        "https://raw.githubusercontent.com/acme/workstation-config/work/packages/bun.txt",
+      ]);
+      expect(JSON.parse(await readFile(join(root, "config.json"), "utf8"))).toMatchObject({
+        manifest: {
+          baseUrl: "https://raw.githubusercontent.com/acme/workstation-config",
+          ref: "work",
+        },
+      });
+    } finally {
+      await rm(root, { force: true, recursive: true });
+    }
+  });
+
   test("materializes Scoop and Bun without macOS symlink work", async () => {
     const root = await mkdtemp(join(tmpdir(), "outfitting-windows-setup-"));
     try {
@@ -499,6 +537,39 @@ describe("Windows setup manifest selection", () => {
       await expect(
         readFile(join(root, "manifests/packages/windows/scoop.txt"), "utf8"),
       ).resolves.toBe('package "fzf"\n');
+    } finally {
+      await rm(root, { force: true, recursive: true });
+    }
+  });
+
+  test("init prefetches configured Scoop and Bun routes", async () => {
+    const root = await mkdtemp(join(tmpdir(), "outfitting-windows-init-routes-"));
+    try {
+      await saveConfigFile(
+        {
+          windows: {
+            wingetProfilePath: "profiles/{profile}.list",
+            scoopPath: "manifests/scoop.list",
+            bunPath: "manifests/bun.list",
+          },
+        },
+        { stateRoot: root },
+      );
+      const fetched: string[] = [];
+      await Effect.runPromise(
+        runSetup({
+          stateRoot: root,
+          useWindowsRoutes: true,
+          fetcher: async (url) => {
+            fetched.push(url);
+            return new Response('package "fzf"\n');
+          },
+        }),
+      );
+      expect(fetched).toEqual([
+        "https://raw.githubusercontent.com/jfalava/outfitting/main/manifests/scoop.list",
+        "https://raw.githubusercontent.com/jfalava/outfitting/main/manifests/bun.list",
+      ]);
     } finally {
       await rm(root, { force: true, recursive: true });
     }

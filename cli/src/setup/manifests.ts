@@ -1,4 +1,4 @@
-import type { ManagerConfig } from "@/config/types";
+import type { ManagerConfig, WindowsRoutesConfig } from "@/config/types";
 import { fetchManifest, type ManifestFetcher } from "@/fetch";
 
 /**
@@ -24,11 +24,16 @@ export const MACOS_SOURCE_PATHS = [
 /** Backwards-compatible name for the default macOS setup path set. */
 export const SETUP_MANIFEST_PATHS = MACOS_SOURCE_PATHS;
 
-/** Named Windows artifacts setup materializes into the state root. */
+/** Default Windows artifacts setup materializes into the state root. */
 export const WINDOWS_SETUP_MANIFEST_PATHS = [
   "packages/windows/scoop.txt",
   "packages/bun.txt",
 ] as const;
+
+/** Windows artifacts selected from the configured repository route map. */
+export function windowsSetupManifestPaths(routes: WindowsRoutesConfig): ReadonlyArray<string> {
+  return [routes.scoopPath, routes.bunPath];
+}
 
 export interface PrefetchResult {
   path: string;

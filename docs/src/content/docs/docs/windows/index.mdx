@@ -14,8 +14,8 @@ Start with the [installation instructions](/docs/windows/installation/) to boots
 
 1. Install one or more WinGet or Microsoft Store profiles.
 2. Run the post-install script for Scoop and fonts.
-3. Run `outfit setup` once, then `outfit sync` when you need to reconcile the repository baseline.
+3. Run `outfit config` to point the manager at a compatible repository, then `outfit setup` to apply it.
 
 The Windows installer supports regular Windows hosts. Windows Subsystem for Linux has its own [installation instructions](/docs/wsl/installation/).
 
-The manager fetches manifests from the repository's raw content and does not require a full local checkout for package reconciliation. PowerShell still owns session environment and `PATH` setup; `outfit` is its alias for `outfitting-manager`.
+The manager fetches manifests from the configured repository source and does not require a full local checkout for package reconciliation. PowerShell still owns session environment and `PATH` setup; `outfit` is its alias for `outfitting-manager`.

@@ -27,7 +27,17 @@ irm win.jfa.dev | iex
 
 ## WinGet Package Installation
 
-The main installer bootstraps the release binary, then asks `outfitting-manager` to fetch and install the selected WinGet profiles. Package reconciliation does not clone the repository; it reads the selected manifests from GitHub and writes the local Windows lock.
+The main installer bootstraps the release binary, then asks `outfitting-manager` to initialize and fetch the selected WinGet profiles. Package reconciliation does not clone the repository; it reads the selected manifests from the configured source and writes the local Windows lock.
+
+To use a compatible work repository, set its raw source and ref before invoking the installer. The values are persisted in `%USERPROFILE%\.config\outfitting\config.json` and reused by later syncs:
+
+```powershell
+$env:OUTFITTING_MANIFEST_BASE_URL = "https://raw.githubusercontent.com/acme/workstation-config"
+$env:OUTFITTING_MANIFEST_REF = "work"
+irm win.jfa.dev/work-laptop | iex
+```
+
+The hosted route accepts any safe profile name from the configured repository. Microsoft Store routes retain the `msstore-` prefix, for example `win.jfa.dev/msstore/msstore-work-laptop`.
 
 Use elevated PowerShell for the full installer:
 
@@ -56,8 +66,8 @@ The installer also:
 - Fetches the selected package manifests and the PowerShell profile sparsely from the configured GitHub source. A full repository checkout is not required on Windows.
 - Downloads the latest Windows x64 outfitting-manager zip and its `.sha256` file, verifies the archive checksum, extracts `outfitting-manager.exe`, and installs it under `%USERPROFILE%\.local\bin`.
 - Downloads and installs the latest `PowerShell/Win32-OpenSSH` server when it is missing, starts `sshd`, configures automatic startup, and creates the inbound TCP port 22 firewall rule.
-- Links the PowerShell, VS Code PowerShell, and Windows PowerShell profile entry points to the cached `dotfiles/Microsoft.PowerShell_profile.ps1`. Existing profiles are backed up with a timestamp before replacement; later `outfit sync` refreshes the cached source.
-- Discovers .reg files under [system/windows/registry](https://github.com/jfalava/outfitting/tree/main/system/windows/registry) and interactively offers to import them. Choose A for all (the default), N for none, or R to review each tweak.
+- Links the PowerShell, VS Code PowerShell, and Windows PowerShell profile entry points to the configured cached profile route. Existing profiles are backed up with a timestamp before replacement; later `outfit sync` refreshes the cached source.
+- Discovers `.reg` files under the configured registry directory in the configured source and interactively offers to import them. Choose A for all (the default), N for none, or R to review each tweak.
 
 The profile links use Windows symbolic links. Enable Windows Developer Mode or run the installer with the required elevation for those links to be created.
 
@@ -102,7 +112,7 @@ The installer does not persist `%USERPROFILE%\.local\bin` in the user PATH. The 
 
 ## Bun Global Packages
 
-The `base` WinGet profile installs Bun as `Oven-sh.Bun`. Windows has no `/bun` installer route. `packages/bun.txt` is cached by `outfitting-manager setup`, but it is not a desired-state manifest for Windows global packages.
+The `base` WinGet profile installs Bun as `Oven-sh.Bun`. Windows has no `/bun` installer route. `packages/bun.txt` (or the configured Bun route) is cached by `outfitting-manager init`, but it is not a desired-state manifest for Windows global packages.
 
 After Bun is installed, update the global packages that are already present:
 
@@ -114,9 +124,10 @@ bun update -g
 
 ## Scoop reconciliation and unified lock
 
-The repository-owned `packages/windows/scoop.txt` is part of the Windows baseline. `outfit sync` fetches it without requiring a full local checkout, reconciles buckets and packages, and records the result in the unified `windows.lock.json`. Each sync lists tracked packages outside the selected baseline and asks for confirmation before removing them; declining aborts before package operations or lock writes. Untracked native installs remain unmanaged. The installer uses `--winget-only` until the post-install step bootstraps Scoop.
+The configured Scoop manifest is part of the Windows baseline. `outfit sync` fetches it without requiring a full local checkout, reconciles buckets and packages, and records the result in the unified `windows.lock.json`. Each sync lists tracked packages outside the selected baseline and asks for confirmation before removing them; declining aborts before package operations or lock writes. Untracked native installs remain unmanaged. The installer uses `--winget-only` until the post-install step bootstraps Scoop.
 
 ```powershell
+outfit init
 outfit setup
 outfit sync
 outfit sync --profile base,dev

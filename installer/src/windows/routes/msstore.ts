@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 
-import { CONTENT_TYPES, MSSTORE_PACKAGE_PROFILES, SCRIPT_URLS } from "../../constants";
-import { fetchScript, sanitizeHost, setScriptHeaders } from "../../utils";
+import { CONTENT_TYPES, SCRIPT_URLS } from "../../constants";
+import { fetchScript, isSafeProfileName, sanitizeHost, setScriptHeaders } from "../../utils";
 import { generateMsstoreErrorScript } from "../scripts/msstore";
 
 const msstoreRouter = new Hono();
@@ -14,12 +14,12 @@ msstoreRouter.get("/:profile", async (c) => {
   const requestedProfiles = profileParam.split("+").map((p) => p.trim().toLowerCase());
 
   const invalidProfiles = requestedProfiles.filter(
-    (p) => !MSSTORE_PACKAGE_PROFILES.some((profile) => profile === p),
+    (profile) => !isSafeProfileName(profile) || !profile.startsWith("msstore-"),
   );
 
   if (invalidProfiles.length > 0) {
     setScriptHeaders(c, CONTENT_TYPES.powershell);
-    return c.body(generateMsstoreErrorScript(host, invalidProfiles, MSSTORE_PACKAGE_PROFILES), 400);
+    return c.body(generateMsstoreErrorScript(host, invalidProfiles), 400);
   }
 
   console.warn(

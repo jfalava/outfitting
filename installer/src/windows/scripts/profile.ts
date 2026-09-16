@@ -1,12 +1,8 @@
-export function generateProfileErrorScript(
-  host: string,
-  invalidProfiles: string[],
-  availableProfiles: readonly string[],
-): string {
+export function generateProfileErrorScript(host: string, invalidProfiles: string[]): string {
   return `# Error: Invalid profile(s) specified
 #
 # Invalid profiles: ${invalidProfiles.join(", ")}
-# Available profiles: ${availableProfiles.join(", ")}
+# Profile names must start with a letter or number and contain only letters, numbers, dots, dashes, or underscores.
 #
 # Usage examples:
 #   irm ${host}/base | iex
@@ -16,8 +12,7 @@ Write-Host ""
 Write-Host "Error: Invalid profile(s) specified" -ForegroundColor Red
 Write-Host "  Invalid: ${invalidProfiles.join(", ")}" -ForegroundColor Yellow
 Write-Host ""
-Write-Host "Available profiles:" -ForegroundColor Cyan
-Write-Host "  ${availableProfiles.join(", ")}" -ForegroundColor White
+Write-Host "Profile names must start with a letter or number and contain only letters, numbers, dots, dashes, or underscores." -ForegroundColor Cyan
 Write-Host ""
 Write-Host "Press any key to exit..."
 $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")

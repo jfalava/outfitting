@@ -2,6 +2,11 @@
 ###################### Windows Install Script
 #############################################
 
+param(
+    [string]$OutfittingManifestBaseUrl = $env:OUTFITTING_MANIFEST_BASE_URL,
+    [string]$OutfittingManifestRef = $env:OUTFITTING_MANIFEST_REF
+)
+
 ############################## Initial Setup
 $ErrorActionPreference = "Stop"
 $script:hasErrors = $false
@@ -26,6 +31,83 @@ $outfittingStateRoot = if ([string]::IsNullOrWhiteSpace($env:OUTFITTING_STATE_RO
     "$env:USERPROFILE\.config\outfitting"
 } else {
     $env:OUTFITTING_STATE_ROOT
+}
+
+function Get-OutfittingManifestSource {
+    param (
+        [string]$BaseUrl,
+        [string]$Ref
+    )
+
+    $resolvedBaseUrl = $BaseUrl
+    $resolvedRef = $Ref
+    $configPath = Join-Path $outfittingStateRoot "config.json"
+    if (([string]::IsNullOrWhiteSpace($resolvedBaseUrl) -or [string]::IsNullOrWhiteSpace($resolvedRef)) -and (Test-Path -LiteralPath $configPath -PathType Leaf)) {
+        try {
+            $config = Get-Content -LiteralPath $configPath -Raw | ConvertFrom-Json
+            if ([string]::IsNullOrWhiteSpace($resolvedBaseUrl)) {
+                $resolvedBaseUrl = [string]$config.manifest.baseUrl
+            }
+            if ([string]::IsNullOrWhiteSpace($resolvedRef)) {
+                $resolvedRef = [string]$config.manifest.ref
+            }
+        } catch {
+            # The manager reports invalid config files during init.
+        }
+    }
+
+    if ([string]::IsNullOrWhiteSpace($resolvedBaseUrl)) {
+        $resolvedBaseUrl = "https://raw.githubusercontent.com/jfalava/outfitting"
+    }
+    if ([string]::IsNullOrWhiteSpace($resolvedRef)) {
+        $resolvedRef = "main"
+    }
+
+    return [PSCustomObject]@{
+        BaseUrl = $resolvedBaseUrl.TrimEnd("/")
+        Ref = $resolvedRef
+    }
+}
+
+function Get-OutfittingGitHubTreeUrl {
+    param ([Parameter(Mandatory)]$Source)
+
+    try {
+        $uri = [Uri]$Source.BaseUrl
+        if ($uri.Host -ne "raw.githubusercontent.com") {
+            return $null
+        }
+        $segments = @($uri.AbsolutePath.Trim("/").Split("/") | Where-Object { $_.Length -gt 0 })
+        if ($segments.Count -ne 2) {
+            return $null
+        }
+        $encodedRef = [Uri]::EscapeDataString($Source.Ref)
+        return "https://api.github.com/repos/$($segments[0])/$($segments[1])/git/trees/$encodedRef?recursive=1"
+    } catch {
+        return $null
+    }
+}
+
+function Get-OutfittingWindowsRoute {
+    param (
+        [Parameter(Mandatory)][string]$Name,
+        [Parameter(Mandatory)][string]$Default
+    )
+
+    $route = $Default
+    $configPath = Join-Path $outfittingStateRoot "config.json"
+    if (Test-Path -LiteralPath $configPath -PathType Leaf) {
+        try {
+            $config = Get-Content -LiteralPath $configPath -Raw | ConvertFrom-Json
+            $property = $config.windows.PSObject.Properties[$Name]
+            if ($null -ne $property -and -not [string]::IsNullOrWhiteSpace([string]$property.Value)) {
+                $route = [string]$property.Value
+            }
+        } catch {
+            # The manager reports invalid config files during init.
+        }
+    }
+    return $route.Trim().Trim("/")
 }
 ############################################
 
@@ -111,14 +193,20 @@ function Invoke-OutfittingManager {
 ################ Install manager and the selected WinGet baseline
 Install-OutfittingManager
 try {
-    Invoke-OutfittingManager -Arguments @("setup", "--no-fetch")
-    Invoke-OutfittingManager -Arguments @(
-        "sync",
+    $setupArguments = @(
+        "setup",
         "--profile",
         ($outfittingInitialProfiles -join ","),
         "--winget-only",
         "--no-push"
     )
+    if (-not [string]::IsNullOrWhiteSpace($OutfittingManifestBaseUrl)) {
+        $setupArguments += @("--manifest-base-url", $OutfittingManifestBaseUrl)
+    }
+    if (-not [string]::IsNullOrWhiteSpace($OutfittingManifestRef)) {
+        $setupArguments += @("--manifest-ref", $OutfittingManifestRef)
+    }
+    Invoke-OutfittingManager -Arguments $setupArguments
 } catch {
     $script:hasErrors = $true
     Write-Host "❖ Failed to install the WinGet baseline through outfitting-manager:" -ForegroundColor Red
@@ -203,14 +291,19 @@ try {
 ############################################
 
 ###### Install registry tweaks interactively
-$baseRegUrl = "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main"
-$githubApiUrl = "https://api.github.com/repos/jfalava/outfitting/git/trees/main?recursive=1"
+$manifestSource = Get-OutfittingManifestSource -BaseUrl $OutfittingManifestBaseUrl -Ref $OutfittingManifestRef
+$baseRegUrl = "$($manifestSource.BaseUrl)/$($manifestSource.Ref)"
+$githubApiUrl = Get-OutfittingGitHubTreeUrl -Source $manifestSource
 $regFilePaths = @()
 $validRegFiles = @()
 try {
+    if ($null -eq $githubApiUrl) {
+        throw "Registry discovery requires a GitHub raw manifest source."
+    }
     $apiResponse = Invoke-RestMethod -Uri $githubApiUrl -Method Get -Headers @{ "User-Agent" = "PowerShellScript" }
     $treeItems = $apiResponse.tree
-    $regFilePaths = $treeItems | Where-Object { $_.path -like "system/windows/registry/*.reg" -and $_.type -eq "blob" } | ForEach-Object { $_.path }
+    $registryRoute = Get-OutfittingWindowsRoute -Name "registryPath" -Default "system/windows/registry"
+    $regFilePaths = $treeItems | Where-Object { $_.path -like "$registryRoute/*.reg" -and $_.type -eq "blob" } | ForEach-Object { $_.path }
 
     if ($regFilePaths.Count -gt 0) {
         Write-Host "`n❖ Discovered $($regFilePaths.Count) registry tweak(s) from GitHub repo:" -ForegroundColor Cyan
@@ -302,17 +395,22 @@ try {
             Write-Host "❖ No valid .reg files fetched from discovered paths." -ForegroundColor Yellow
         }
     } else {
-        Write-Host "❖ No .reg files discovered in windows-registry/ directory." -ForegroundColor Yellow
+        Write-Host "❖ No .reg files discovered in $registryRoute/ directory." -ForegroundColor Yellow
     }
 } catch {
-    $script:hasErrors = $true
-    Write-Host "❖ Failed to discover registry files via GitHub API: $_" -ForegroundColor Red
-    Write-Host "❖ Skipping registry tweaks." -ForegroundColor Yellow
+    if ($null -eq $githubApiUrl) {
+        Write-Host "❖ Registry discovery requires a GitHub raw manifest source; skipping registry tweaks." -ForegroundColor Yellow
+    } else {
+        $script:hasErrors = $true
+        Write-Host "❖ Failed to discover registry files via GitHub API: $_" -ForegroundColor Red
+        Write-Host "❖ Skipping registry tweaks." -ForegroundColor Yellow
+    }
 }
 ############################################
 
 ########## Link PowerShell profiles to the sparsely fetched source
-$profileSourcePath = Join-Path $outfittingStateRoot "manifests\dotfiles\Microsoft.PowerShell_profile.ps1"
+$profileRoute = Get-OutfittingWindowsRoute -Name "powershellProfilePath" -Default "dotfiles/Microsoft.PowerShell_profile.ps1"
+$profileSourcePath = Join-Path $outfittingStateRoot (Join-Path "manifests" ($profileRoute -replace "/", "\"))
 try {
     if (-not (Test-Path -LiteralPath $profileSourcePath -PathType Leaf)) {
         throw "outfitting-manager did not materialize the PowerShell profile at $profileSourcePath."

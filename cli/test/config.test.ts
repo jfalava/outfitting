@@ -4,11 +4,13 @@ import { join } from "node:path";
 
 import { afterEach, describe, expect, test } from "vitest";
 
+import { windowsConfigPatch } from "@/commands/windows-config";
 import {
   autoMachineId,
   ensureStateRoot,
   hostSystemTriple,
   loadConfig,
+  resolveWindowsRoutes,
   saveConfigFile,
 } from "@/config";
 
@@ -48,9 +50,7 @@ describe("loadConfig", () => {
     expect(config.stateRoot).toBe(root);
     expect(config.machineIdOverridden).toBe(false);
     expect(config.machineId).toMatch(/^.+:.+$/);
-    expect(config.manifest.baseUrl).toBe(
-      "https://raw.githubusercontent.com/jfalava/outfitting",
-    );
+    expect(config.manifest.baseUrl).toBe("https://raw.githubusercontent.com/jfalava/outfitting");
     expect(config.manifest.ref).toBe("main");
   });
 
@@ -60,7 +60,10 @@ describe("loadConfig", () => {
     await saveConfigFile(
       {
         machineId: "from-file:aarch64-darwin",
-        manifest: { ref: "develop" },
+        manifest: {
+          baseUrl: "https://raw.githubusercontent.com/acme/workstation-config",
+          ref: "develop",
+        },
       },
       { stateRoot: root },
     );
@@ -68,12 +71,20 @@ describe("loadConfig", () => {
     const fromFile = await loadConfig({ stateRoot: root });
     expect(fromFile.machineId).toBe("from-file:aarch64-darwin");
     expect(fromFile.machineIdOverridden).toBe(true);
+    expect(fromFile.manifest.baseUrl).toBe(
+      "https://raw.githubusercontent.com/acme/workstation-config",
+    );
     expect(fromFile.manifest.ref).toBe("develop");
 
     process.env.OUTFITTING_MACHINE_ID = "from-env:x86_64-linux";
+    process.env.OUTFITTING_MANIFEST_BASE_URL =
+      "https://raw.githubusercontent.com/acme/other-workstation-config";
     process.env.OUTFITTING_MANIFEST_REF = "v1";
     const fromEnv = await loadConfig({ stateRoot: root });
     expect(fromEnv.machineId).toBe("from-env:x86_64-linux");
+    expect(fromEnv.manifest.baseUrl).toBe(
+      "https://raw.githubusercontent.com/acme/other-workstation-config",
+    );
     expect(fromEnv.manifest.ref).toBe("v1");
   });
 
@@ -92,6 +103,71 @@ describe("loadConfig", () => {
     expect(JSON.parse(raw)).toEqual({
       machineId: "a:b",
       manifest: { ref: "main" },
+    });
+  });
+
+  test("resolves custom Windows routes and defaults", async () => {
+    const root = await tempRoot();
+    await saveConfigFile(
+      {
+        windows: {
+          wingetProfilePath: "profiles/{profile}.list",
+          scoopPath: "packages/scoop.list",
+          bunPath: "packages/global-bun.list",
+          powershellProfilePath: "dotfiles/powershell/profile.ps1",
+          fontListPath: "fonts/public.list",
+          registryPath: "windows/registry",
+          defaultProfiles: ["base", "work-laptop"],
+        },
+      },
+      { stateRoot: root },
+    );
+
+    const config = await loadConfig({ stateRoot: root });
+    expect(config.windows).toEqual({
+      wingetProfilePath: "profiles/{profile}.list",
+      scoopPath: "packages/scoop.list",
+      bunPath: "packages/global-bun.list",
+      powershellProfilePath: "dotfiles/powershell/profile.ps1",
+      fontListPath: "fonts/public.list",
+      registryPath: "windows/registry",
+      defaultProfiles: ["base", "work-laptop"],
+    });
+    expect(resolveWindowsRoutes(undefined).scoopPath).toBe("packages/windows/scoop.txt");
+    await expect(
+      saveConfigFile(
+        { windows: { wingetProfilePath: "../escape/{profile}.txt" } },
+        { stateRoot: root },
+      ),
+    ).rejects.toThrow(/invalid Windows route/);
+  });
+
+  test("wizard answers map to every configurable Windows artifact", () => {
+    expect(
+      windowsConfigPatch({
+        baseUrl: "https://example.test/config",
+        ref: "work",
+        machineId: "work:x86_64-windows",
+        wingetProfilePath: "profiles/{profile}.txt",
+        scoopPath: "packages/scoop.txt",
+        bunPath: "packages/bun.txt",
+        powershellProfilePath: "dotfiles/profile.ps1",
+        fontListPath: "fonts/list.txt",
+        registryPath: "registry",
+        defaultProfiles: "base,work",
+      }),
+    ).toEqual({
+      machineId: "work:x86_64-windows",
+      manifest: { baseUrl: "https://example.test/config", ref: "work" },
+      windows: {
+        wingetProfilePath: "profiles/{profile}.txt",
+        scoopPath: "packages/scoop.txt",
+        bunPath: "packages/bun.txt",
+        powershellProfilePath: "dotfiles/profile.ps1",
+        fontListPath: "fonts/list.txt",
+        registryPath: "registry",
+        defaultProfiles: ["base", "work"],
+      },
     });
   });
 });

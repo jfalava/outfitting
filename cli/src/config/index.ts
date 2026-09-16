@@ -21,7 +21,10 @@ export {
 export {
   DEFAULT_MANIFEST_BASE_URL,
   DEFAULT_MANIFEST_REF,
+  DEFAULT_WINDOWS_ROUTES,
   type ManagerConfig,
   type ManagerConfigFile,
   type ManifestSourceConfig,
+  type WindowsRoutesConfig,
 } from "@/config/types";
+export { resolveWindowsRoutes } from "@/config/load";

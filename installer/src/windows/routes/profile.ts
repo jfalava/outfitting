@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 
-import { CONTENT_TYPES, SCRIPT_URLS, WINDOWS_PACKAGE_PROFILES } from "../../constants";
-import { fetchScript, sanitizeHost, setScriptHeaders } from "../../utils";
+import { CONTENT_TYPES, SCRIPT_URLS } from "../../constants";
+import { fetchScript, isSafeProfileName, sanitizeHost, setScriptHeaders } from "../../utils";
 import { generateProfileErrorScript } from "../scripts/profile";
 
 const profileRouter = new Hono();
@@ -13,13 +13,11 @@ profileRouter.get("/:profile", async (c) => {
 
   const requestedProfiles = profileParam.split("+").map((p) => p.trim().toLowerCase());
 
-  const invalidProfiles = requestedProfiles.filter(
-    (p) => !WINDOWS_PACKAGE_PROFILES.some((profile) => profile === p),
-  );
+  const invalidProfiles = requestedProfiles.filter((profile) => !isSafeProfileName(profile));
 
   if (invalidProfiles.length > 0) {
     setScriptHeaders(c, CONTENT_TYPES.powershell);
-    return c.body(generateProfileErrorScript(host, invalidProfiles, WINDOWS_PACKAGE_PROFILES), 400);
+    return c.body(generateProfileErrorScript(host, invalidProfiles), 400);
   }
 
   console.warn(`Serving installation script for profiles: ${requestedProfiles.join(", ")}`);

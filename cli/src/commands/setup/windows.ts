@@ -1,15 +1,14 @@
 import { Option } from "effect";
 import { Command, Flag } from "effect/unstable/cli";
 
-import { WINDOWS_SETUP_MANIFEST_PATHS } from "@/setup/manifests";
 import { runSetup } from "@/setup/run";
 
 /**
- * Materialize the Windows state root and cache the Scoop + Bun manifests.
- * Windows session environment remains owned by PowerShell.
+ * Materialize the Windows state root and cache the configured Scoop + Bun
+ * manifests. Windows session environment remains owned by PowerShell.
  */
-export const windowsSetupCommand = Command.make(
-  "setup",
+export const windowsInitCommand = Command.make(
+  "init",
   {
     machineId: Flag.string("machine-id").pipe(
       Flag.optional,
@@ -17,9 +16,7 @@ export const windowsSetupCommand = Command.make(
     ),
     manifestBaseUrl: Flag.string("manifest-base-url").pipe(
       Flag.optional,
-      Flag.withDescription(
-        "GitHub raw base URL without ref (default: raw.githubusercontent.com/jfalava/outfitting).",
-      ),
+      Flag.withDescription("Raw-compatible repository base URL without ref."),
     ),
     manifestRef: Flag.string("manifest-ref").pipe(
       Flag.optional,
@@ -27,7 +24,9 @@ export const windowsSetupCommand = Command.make(
     ),
     noFetch: Flag.boolean("no-fetch").pipe(
       Flag.withDefault(false),
-      Flag.withDescription("Skip prefetching scoop.txt / bun.txt into the state root."),
+      Flag.withDescription(
+        "Skip prefetching configured Scoop / Bun manifests into the state root.",
+      ),
     ),
   },
   ({ machineId, manifestBaseUrl, manifestRef, noFetch }) =>
@@ -36,11 +35,11 @@ export const windowsSetupCommand = Command.make(
       manifestBaseUrl: Option.getOrUndefined(manifestBaseUrl),
       manifestRef: Option.getOrUndefined(manifestRef),
       fetchManifests: !noFetch,
-      manifestPaths: WINDOWS_SETUP_MANIFEST_PATHS,
-      nextCommand: "Next: outfitting-manager update winget|scoop|all",
+      useWindowsRoutes: true,
+      nextCommand: "Next: outfitting-manager setup",
     }),
 ).pipe(
   Command.withDescription(
-    "Materialize the Windows state root and cache scoop.txt / bun.txt without cloning the monorepo.",
+    "Initialize the Windows state root and cache configured repository manifests.",
   ),
 );

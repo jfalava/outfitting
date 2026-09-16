@@ -17,8 +17,8 @@ The script is separate from the main installer and performs the following work:
 
 - Quietly downloads the latest checksum-verified Windows x64 outfitting-manager zip, extracts `outfitting-manager.exe`, and installs it only when `%USERPROFILE%\.local\bin\outfitting-manager.exe` is missing. Download, checksum, or extract failures are suppressed.
 - Sets the current-user PowerShell execution policy to RemoteSigned.
-- Installs Scoop when it is missing, then calls `outfit sync` to fetch `packages/windows/scoop.txt`, reconcile buckets and packages, and update the local `windows.lock.json`. The sync uses the profiles saved by the main installer.
-- Installs FontGet and `Cloudflare.cloudflared` through `outfit winget install` when needed, then processes the public font list in `fonts/fontget.txt` and authenticates to Cloudflare Access for the protected private-font archive. After verification and archive safety checks, it extracts the fonts to `%USERPROFILE%\Downloads\fonts`.
+- Installs Scoop when it is missing, then calls `outfit setup` to fetch the configured routes, reconcile buckets and packages, and update the local `windows.lock.json`. The setup uses the profiles saved by the main installer.
+- Installs FontGet and `Cloudflare.cloudflared` through `outfit winget install` when needed, then processes the configured public font list from the configured manifest source and authenticates to Cloudflare Access for the protected private-font archive. After verification and archive safety checks, it extracts the fonts to `%USERPROFILE%\Downloads\fonts`.
 
 The private-font step is optional. If Cloudflare Access does not authorize the account, the archive cannot be downloaded, or the archive fails validation, the script reports the issue and continues without private fonts. Install any extracted licensed fonts manually from the fonts folder.
 

@@ -8,6 +8,11 @@ export function sanitizeHost(host: string, fallback = "win.jfa.dev") {
   return sanitizedHost || fallback;
 }
 
+/** Keeps a profile route safe for URL composition and generated script input. */
+export function isSafeProfileName(profile: string): boolean {
+  return /^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(profile);
+}
+
 /**
  * Sets common response headers for script delivery
  */

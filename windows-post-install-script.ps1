@@ -2,6 +2,11 @@
 ################# Windows Post-Install Script
 #############################################
 
+param(
+    [string]$OutfittingManifestBaseUrl = $env:OUTFITTING_MANIFEST_BASE_URL,
+    [string]$OutfittingManifestRef = $env:OUTFITTING_MANIFEST_REF
+)
+
 ## This requires a shell reload.
 
 $ErrorActionPreference = "Stop"
@@ -11,6 +16,64 @@ $outfittingManagerReleaseUrl = "https://github.com/jfalava/outfitting/releases/l
 $outfittingManagerAsset = "outfitting-manager-windows-x64.zip"
 $outfittingManagerEntry = "outfitting-manager.exe"
 $outfittingManagerInstallPath = "$env:USERPROFILE\.local\bin\outfitting-manager.exe"
+$outfittingStateRoot = if ([string]::IsNullOrWhiteSpace($env:OUTFITTING_STATE_ROOT)) {
+    "$env:USERPROFILE\.config\outfitting"
+} else {
+    $env:OUTFITTING_STATE_ROOT
+}
+
+function Get-OutfittingManifestSource {
+    $resolvedBaseUrl = $OutfittingManifestBaseUrl
+    $resolvedRef = $OutfittingManifestRef
+    $configPath = Join-Path $outfittingStateRoot "config.json"
+    if (([string]::IsNullOrWhiteSpace($resolvedBaseUrl) -or [string]::IsNullOrWhiteSpace($resolvedRef)) -and (Test-Path -LiteralPath $configPath -PathType Leaf)) {
+        try {
+            $config = Get-Content -LiteralPath $configPath -Raw | ConvertFrom-Json
+            if ([string]::IsNullOrWhiteSpace($resolvedBaseUrl)) {
+                $resolvedBaseUrl = [string]$config.manifest.baseUrl
+            }
+            if ([string]::IsNullOrWhiteSpace($resolvedRef)) {
+                $resolvedRef = [string]$config.manifest.ref
+            }
+        } catch {
+            # The manager reports invalid config files during init.
+        }
+    }
+
+    if ([string]::IsNullOrWhiteSpace($resolvedBaseUrl)) {
+        $resolvedBaseUrl = "https://raw.githubusercontent.com/jfalava/outfitting"
+    }
+    if ([string]::IsNullOrWhiteSpace($resolvedRef)) {
+        $resolvedRef = "main"
+    }
+
+    return [PSCustomObject]@{
+        BaseUrl = $resolvedBaseUrl.TrimEnd("/")
+        Ref = $resolvedRef
+    }
+}
+
+function Get-OutfittingWindowsRoute {
+    param (
+        [Parameter(Mandatory)][string]$Name,
+        [Parameter(Mandatory)][string]$Default
+    )
+
+    $route = $Default
+    $configPath = Join-Path $outfittingStateRoot "config.json"
+    if (Test-Path -LiteralPath $configPath -PathType Leaf) {
+        try {
+            $config = Get-Content -LiteralPath $configPath -Raw | ConvertFrom-Json
+            $property = $config.windows.PSObject.Properties[$Name]
+            if ($null -ne $property -and -not [string]::IsNullOrWhiteSpace([string]$property.Value)) {
+                $route = [string]$property.Value
+            }
+        } catch {
+            # The manager reports invalid config files during init.
+        }
+    }
+    return $route.Trim().Trim("/")
+}
 
 function Install-OutfittingManagerQuietly {
     if (Test-Path -LiteralPath $outfittingManagerInstallPath -PathType Leaf) {
@@ -79,16 +142,17 @@ if (Test-Path -LiteralPath $wingetLinks -PathType Container) {
 }
 
 if (Test-Path -LiteralPath $outfittingManagerInstallPath -PathType Leaf) {
-    & $outfittingManagerInstallPath setup --no-fetch
+    $setupArguments = @("setup", "--no-push")
+    if (-not [string]::IsNullOrWhiteSpace($OutfittingManifestBaseUrl)) {
+        $setupArguments += @("--manifest-base-url", $OutfittingManifestBaseUrl)
+    }
+    if (-not [string]::IsNullOrWhiteSpace($OutfittingManifestRef)) {
+        $setupArguments += @("--manifest-ref", $OutfittingManifestRef)
+    }
+    & $outfittingManagerInstallPath @setupArguments
     if ($LASTEXITCODE -ne 0) {
         $failedPackageCommands++
         Write-Host "❖ outfitting-manager setup failed (exit $LASTEXITCODE)." -ForegroundColor Red
-    } elseif (Get-Command scoop -ErrorAction SilentlyContinue) {
-        & $outfittingManagerInstallPath sync --no-push
-        if ($LASTEXITCODE -ne 0) {
-            $failedPackageCommands++
-            Write-Host "❖ Windows package sync failed (exit $LASTEXITCODE)." -ForegroundColor Red
-        }
     }
 } else {
     $failedPackageCommands++
@@ -114,7 +178,10 @@ if (-not (Get-Command fontget -ErrorAction SilentlyContinue)) {
     Write-Host "❖ FontGet is unavailable; continuing with the private font download." -ForegroundColor Red
 } else {
     try {
-        $fontGetListContent = Invoke-RestMethod -Uri "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/fonts/fontget.txt" -ErrorAction Stop
+        $manifestSource = Get-OutfittingManifestSource
+        $fontListRoute = Get-OutfittingWindowsRoute -Name "fontListPath" -Default "fonts/fontget.txt"
+        $fontGetListUrl = "$($manifestSource.BaseUrl)/$([Uri]::EscapeDataString($manifestSource.Ref))/$fontListRoute"
+        $fontGetListContent = Invoke-RestMethod -Uri $fontGetListUrl -ErrorAction Stop
         $env:FONTGET_ACCEPT_DEFAULTS = "1"
         $env:FONTGET_ACCEPT_AGREEMENTS = "1"
 

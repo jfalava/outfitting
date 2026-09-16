@@ -5,30 +5,66 @@ sidebar:
   order: 4
 ---
 
-## Manager setup
+## Configure and initialize the manager
 
 The manager keeps configuration, manifest caches, the unified lock, and materialized manifests under `%USERPROFILE%\.config\outfitting` by default. It fetches package manifests from the repository's raw content; package reconciliation does not require a full repository clone.
 
-Run setup once, or run it again when changing the machine id or manifest source. The default Windows machine id is `<username>:x86_64-windows`:
+Use the wizard to configure a compatible repository and all Windows artifact routes. The default Windows machine id is `<username>:x86_64-windows`:
+
+```powershell
+outfitting-manager config
+```
+
+The old state-root bootstrap is now `init`. It caches the configured Scoop and Bun manifests without applying packages:
+
+```powershell
+outfitting-manager init
+outfitting-manager init --no-fetch
+```
+
+`setup` initializes the state root, fetches the configured routes, applies the configured/default WinGet profiles and Scoop state, and refreshes the PowerShell profile. Use `sync` for later reconciliation without repeating initialization:
 
 ```powershell
 outfitting-manager setup
-outfitting-manager setup --machine-id jfalava:x86_64-windows
+outfitting-manager setup --profile work --no-push
+outfitting-manager sync --profile base,dev
 ```
 
-The Windows setup manifests are `packages/windows/scoop.txt` and `packages/bun.txt`. Setup caches both files in the state root. Use `--no-fetch` when only the state root and config should be created. `sync` additionally refreshes the cached PowerShell profile.
+The source is stored in `%USERPROFILE%\.config\outfitting\config.json`, so the compiled binary does not depend on the repository it was built from. A compatible repository can use any repository-relative paths. The wizard stores routes for the WinGet profile template (`{profile}` is replaced), Scoop manifest, Bun manifest, PowerShell profile, FontGet list, and registry directory under `windows` in `config.json`.
 
-For a different manifest source, pass a raw GitHub base URL without the ref and an explicit Git ref:
+For a different manifest source without using the wizard, pass a raw-compatible base URL without the ref and an explicit Git ref. `init` persists these values for later runs:
 
 ```powershell
-outfitting-manager setup `
-  --manifest-base-url "https://raw.githubusercontent.com/jfalava/outfitting" `
-  --manifest-ref main
+outfitting-manager init `
+  --manifest-base-url "https://raw.githubusercontent.com/acme/workstation-config" `
+  --manifest-ref work
 ```
+
+The equivalent config file is:
+
+```json
+{
+  "manifest": {
+    "baseUrl": "https://raw.githubusercontent.com/acme/workstation-config",
+    "ref": "work"
+  },
+  "windows": {
+    "wingetProfilePath": "profiles/windows/{profile}.txt",
+    "scoopPath": "manifests/scoop.txt",
+    "bunPath": "manifests/bun.txt",
+    "powershellProfilePath": "dotfiles/powershell/profile.ps1",
+    "fontListPath": "fonts/public.txt",
+    "registryPath": "windows/registry",
+    "defaultProfiles": ["base", "work"]
+  }
+}
+```
+
+For a first-boot installer, set `OUTFITTING_MANIFEST_BASE_URL` and `OUTFITTING_MANIFEST_REF` before running the PowerShell script. The installer passes them to `init` and saves them in the same config file. The manager accepts GitHub raw-compatible mirrors; registry discovery additionally requires a GitHub raw source.
 
 ## Sparse configuration updates
 
-Windows does not need a monorepo checkout for daily maintenance. `outfit sync` pulls the selected package manifests and `dotfiles/Microsoft.PowerShell_profile.ps1` from the configured GitHub source into `%USERPROFILE%\.config\outfitting\manifests`, then reconciles package state and updates `windows.lock.json`.
+Windows does not need a monorepo checkout for daily maintenance. `outfit sync` pulls the selected package manifests and configured PowerShell profile route into `%USERPROFILE%\.config\outfitting\manifests`, then reconciles package state and updates `windows.lock.json`.
 
 Open a new PowerShell session after syncing, or reload the cached profile in the current session:
 
@@ -56,7 +92,7 @@ outfit scoop install extras/fzf
 outfit winget uninstall Git.Git
 ```
 
-`sync` fetches the selected `packages/windows/*.txt` files from the configured raw GitHub source, installs the WinGet and Scoop baseline, and writes one `windows.lock.json`. Microsoft Store profiles automatically add `--source msstore` to their WinGet operations.
+`sync` fetches the selected profile files from the configured raw source, installs the WinGet and Scoop baseline, and writes one `windows.lock.json`. Microsoft Store profiles automatically add `--source msstore` to their WinGet operations.
 
 Each sync lists tracked packages that are no longer in the selected baseline and asks for confirmation before removing them. Declining aborts before package operations or lock writes; untracked native WinGet and Scoop installs remain unmanaged. The explicit package commands record manual installs and removals in the same lock. Add `--no-sync` to those commands to save locally without pushing; add `--no-push` to `sync` for the same behavior.
 

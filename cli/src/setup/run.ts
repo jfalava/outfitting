@@ -6,6 +6,7 @@ import {
   loadConfig,
   repoPathFile,
   saveConfigFile,
+  resolveWindowsRoutes,
   tryResolveOutfittingRepo,
   writeRepoPath,
   type ManagerConfig,
@@ -15,7 +16,7 @@ import {
 import type { OutfittingRepo } from "@/config/repo";
 import type { ManifestFetcher } from "@/fetch";
 import { tryPromise } from "@/lockfiles/effect";
-import { prefetchSetupManifests } from "@/setup/manifests";
+import { prefetchSetupManifests, windowsSetupManifestPaths } from "@/setup/manifests";
 import { syncMacosSource, type SparseSourceResult } from "@/setup/source";
 import { ui } from "@/ui";
 
@@ -32,6 +33,8 @@ export interface SetupOptions {
   fetchManifests?: boolean;
   /** Manifest paths to prefetch; defaults to the macOS set. */
   manifestPaths?: ReadonlyArray<string>;
+  /** Use configured Windows routes when no explicit manifest paths are supplied. */
+  useWindowsRoutes?: boolean;
   /** Fetch and publish a sparse macOS source tree instead of loose manifests. */
   sourcePaths?: ReadonlyArray<string>;
   /** Override the sparse macOS source root. */
@@ -106,7 +109,11 @@ function prefetchCoreManifests(options: SetupOptions, config: ManagerConfig) {
     const prefetched = yield* tryPromise(() =>
       prefetchSetupManifests({
         config,
-        paths: options.manifestPaths,
+        paths:
+          options.manifestPaths ??
+          (options.useWindowsRoutes
+            ? windowsSetupManifestPaths(resolveWindowsRoutes(config.windows))
+            : undefined),
         fetcher: options.fetcher,
         offline: options.offline,
       }),

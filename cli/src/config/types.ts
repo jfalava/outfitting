@@ -6,10 +6,24 @@ export interface ManifestSourceConfig {
   ref: string;
 }
 
+/** Repository-relative Windows artifacts consumed by the manager and scripts. */
+export interface WindowsRoutesConfig {
+  /** Template for WinGet profile files; `{profile}` is replaced at sync time. */
+  wingetProfilePath: string;
+  scoopPath: string;
+  bunPath: string;
+  powershellProfilePath: string;
+  fontListPath: string;
+  registryPath: string;
+  /** Profiles used on a new machine when no lockfile selection exists. */
+  defaultProfiles: string[];
+}
+
 export interface ManagerConfigFile {
   /** Optional override; when omitted, auto `user:arch-os` is used. */
   machineId?: string;
   manifest?: Partial<ManifestSourceConfig>;
+  windows?: Partial<WindowsRoutesConfig>;
 }
 
 export interface ManagerConfig {
@@ -20,9 +34,20 @@ export interface ManagerConfig {
   /** Whether machineId came from config/env (true) or auto-detect (false). */
   machineIdOverridden: boolean;
   manifest: ManifestSourceConfig;
+  /** Resolved for configs loaded from disk; optional for backwards-compatible injected configs. */
+  windows?: WindowsRoutesConfig;
 }
 
-export const DEFAULT_MANIFEST_BASE_URL =
-  "https://raw.githubusercontent.com/jfalava/outfitting";
+export const DEFAULT_MANIFEST_BASE_URL = "https://raw.githubusercontent.com/jfalava/outfitting";
 
 export const DEFAULT_MANIFEST_REF = "main";
+
+export const DEFAULT_WINDOWS_ROUTES: WindowsRoutesConfig = {
+  wingetProfilePath: "packages/windows/{profile}.txt",
+  scoopPath: "packages/windows/scoop.txt",
+  bunPath: "packages/bun.txt",
+  powershellProfilePath: "dotfiles/Microsoft.PowerShell_profile.ps1",
+  fontListPath: "fonts/fontget.txt",
+  registryPath: "system/windows/registry",
+  defaultProfiles: ["base"],
+};

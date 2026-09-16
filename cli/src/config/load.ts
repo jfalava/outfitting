@@ -13,9 +13,11 @@ import {
 import {
   DEFAULT_MANIFEST_BASE_URL,
   DEFAULT_MANIFEST_REF,
+  DEFAULT_WINDOWS_ROUTES,
   type ManagerConfig,
   type ManagerConfigFile,
   type ManifestSourceConfig,
+  type WindowsRoutesConfig,
 } from "@/config/types";
 import { envValue } from "@/secrets";
 
@@ -24,15 +26,80 @@ const ManifestFileSchema = Schema.Struct({
   ref: Schema.optionalKey(Schema.NonEmptyString),
 });
 
+const WindowsFileSchema = Schema.Struct({
+  wingetProfilePath: Schema.optionalKey(Schema.NonEmptyString),
+  scoopPath: Schema.optionalKey(Schema.NonEmptyString),
+  bunPath: Schema.optionalKey(Schema.NonEmptyString),
+  powershellProfilePath: Schema.optionalKey(Schema.NonEmptyString),
+  fontListPath: Schema.optionalKey(Schema.NonEmptyString),
+  registryPath: Schema.optionalKey(Schema.NonEmptyString),
+  defaultProfiles: Schema.optionalKey(Schema.Array(Schema.NonEmptyString)),
+});
+
 const ConfigFileSchema = Schema.Struct({
   machineId: Schema.optionalKey(Schema.NonEmptyString),
   manifest: Schema.optionalKey(ManifestFileSchema),
+  windows: Schema.optionalKey(WindowsFileSchema),
 });
 
 const decodeConfigFile = Schema.decodeUnknownOption(ConfigFileSchema);
 
 function stripTrailingSlash(url: string): string {
   return url.replace(/\/+$/, "");
+}
+
+const ROUTE_KEYS = [
+  "wingetProfilePath",
+  "scoopPath",
+  "bunPath",
+  "powershellProfilePath",
+  "fontListPath",
+  "registryPath",
+] as const satisfies ReadonlyArray<keyof Omit<WindowsRoutesConfig, "defaultProfiles">>;
+
+function normalizeRoute(value: string): string {
+  return value.trim().replace(/^\/+|\/+$/g, "");
+}
+
+function validateRoute(value: string, key: string): string {
+  const route = normalizeRoute(value);
+  if (
+    route.length === 0 ||
+    route.includes("\\") ||
+    route.split("/").some((segment) => segment === ".." || segment.length === 0)
+  ) {
+    throw new Error(`outfitting config.json has an invalid Windows route: ${key}.`);
+  }
+  return route;
+}
+
+function validateProfile(value: string): string {
+  const profile = value.trim();
+  if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(profile)) {
+    throw new Error(`outfitting config.json has an invalid Windows profile: ${value}.`);
+  }
+  return profile;
+}
+
+export function resolveWindowsRoutes(file: ManagerConfigFile["windows"] = {}): WindowsRoutesConfig {
+  const routes = { ...DEFAULT_WINDOWS_ROUTES };
+  for (const key of ROUTE_KEYS) {
+    const value = file[key];
+    if (value !== undefined) {
+      routes[key] = validateRoute(value, key);
+    }
+  }
+  if (file.defaultProfiles !== undefined) {
+    const profiles = file.defaultProfiles.map(validateProfile);
+    if (profiles.length === 0) {
+      throw new Error("outfitting config.json must define at least one Windows profile.");
+    }
+    routes.defaultProfiles = [...new Set(profiles)];
+  }
+  if (!routes.wingetProfilePath.includes("{profile}")) {
+    throw new Error("The Windows wingetProfilePath route must contain {profile}.");
+  }
+  return routes;
 }
 
 type DecodedConfig = Schema.Schema.Type<typeof ConfigFileSchema>;
@@ -52,6 +119,19 @@ function normalizeConfigFile(decoded: DecodedConfig): ManagerConfigFile {
     }
     file.manifest = manifest;
   }
+  if (decoded.windows !== undefined) {
+    const windows: Partial<WindowsRoutesConfig> = {};
+    for (const key of ROUTE_KEYS) {
+      const value = decoded.windows[key];
+      if (value !== undefined) {
+        windows[key] = validateRoute(value, key);
+      }
+    }
+    if (decoded.windows.defaultProfiles !== undefined) {
+      windows.defaultProfiles = decoded.windows.defaultProfiles.map(validateProfile);
+    }
+    file.windows = windows;
+  }
   return file;
 }
 
@@ -65,7 +145,7 @@ function parseConfigFile(raw: string): ManagerConfigFile {
   const decoded = decodeConfigFile(parsed);
   if (Option.isNone(decoded)) {
     throw new Error(
-      "outfitting config.json must be an object with optional machineId and manifest.{baseUrl,ref} strings.",
+      "outfitting config.json must be an object with optional machineId, manifest.{baseUrl,ref}, and windows route fields.",
     );
   }
   return normalizeConfigFile(decoded.value);
@@ -73,9 +153,7 @@ function parseConfigFile(raw: string): ManagerConfigFile {
 
 function isNotFound(cause: unknown): boolean {
   return (
-    cause instanceof Error &&
-    "code" in cause &&
-    (cause as NodeJS.ErrnoException).code === "ENOENT"
+    cause instanceof Error && "code" in cause && (cause as NodeJS.ErrnoException).code === "ENOENT"
   );
 }
 
@@ -109,11 +187,8 @@ function resolveMachineId(file: ManagerConfigFile): ResolvedMachineId {
 
 function resolveManifest(file: ManagerConfigFile): ManifestSourceConfig {
   const baseUrl =
-    envValue("OUTFITTING_MANIFEST_BASE_URL") ??
-    file.manifest?.baseUrl ??
-    DEFAULT_MANIFEST_BASE_URL;
-  const ref =
-    envValue("OUTFITTING_MANIFEST_REF") ?? file.manifest?.ref ?? DEFAULT_MANIFEST_REF;
+    envValue("OUTFITTING_MANIFEST_BASE_URL") ?? file.manifest?.baseUrl ?? DEFAULT_MANIFEST_BASE_URL;
+  const ref = envValue("OUTFITTING_MANIFEST_REF") ?? file.manifest?.ref ?? DEFAULT_MANIFEST_REF;
   return {
     baseUrl: stripTrailingSlash(baseUrl),
     ref,
@@ -139,6 +214,7 @@ export async function loadConfig(options?: {
     machineId: resolved.machineId,
     machineIdOverridden: resolved.machineIdOverridden,
     manifest: resolveManifest(file),
+    windows: resolveWindowsRoutes(file.windows),
   };
 }
 
@@ -182,6 +258,15 @@ function mergeConfigFiles(
   if (manifest !== undefined) {
     next.manifest = manifest;
   }
+  const windowsPatch = patch.windows;
+  const windowsExisting = existing.windows;
+  if (windowsPatch !== undefined || windowsExisting !== undefined) {
+    const windows: Partial<WindowsRoutesConfig> = {
+      ...windowsExisting,
+      ...windowsPatch,
+    };
+    next.windows = windows;
+  }
   return next;
 }
 
@@ -196,6 +281,9 @@ export async function saveConfigFile(
 
   const existing = (await readConfigFile(path)) ?? {};
   const next = mergeConfigFiles(existing, patch);
+  if (next.windows !== undefined) {
+    resolveWindowsRoutes(next.windows);
+  }
   const serialized = `${JSON.stringify(next, null, 2)}\n`;
   await mkdir(dirname(path), { recursive: true });
   await writeFile(path, serialized, "utf8");

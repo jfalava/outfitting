@@ -38,12 +38,15 @@ const responseFor = (url: string): Response => {
 };
 
 describe("Windows profile selection", () => {
-  test("deduplicates comma-separated selections and rejects unknown profiles", () => {
+  test("deduplicates comma-separated selections and accepts compatible profile names", () => {
     expect(resolveWindowsProfiles(["base,dev", "dev"], [])).toEqual(["base", "dev"]);
     expect(parseWindowsPackageList("Git.Git\ngit.git\n# comment\n", "base.txt")).toEqual([
       "Git.Git",
     ]);
-    expect(() => resolveWindowsProfiles(["unknown"], [])).toThrow("Unknown Windows profile(s)");
+    expect(resolveWindowsProfiles(["work-laptop"], [])).toEqual(["work-laptop"]);
+    expect(() => resolveWindowsProfiles(["../escape"], [])).toThrow(
+      "Invalid Windows profile name(s)",
+    );
   });
 
   test("persists selected profiles and reuses them when --profile is omitted", async () => {
@@ -104,6 +107,51 @@ describe("Windows profile selection", () => {
       ).toEqual(["base.txt", "dev.txt"]);
       expect(calls).toHaveLength(2);
       expect((await readWindowsLock(config)).profiles).toEqual(["base", "dev"]);
+    } finally {
+      await rm(root, { force: true, recursive: true });
+    }
+  });
+
+  test("uses repository-defined Windows routes and default profiles", async () => {
+    const root = await mkdtemp(join(tmpdir(), "outfitting-windows-custom-routes-"));
+    try {
+      const config: ManagerConfig = {
+        ...configFor(root),
+        windows: {
+          wingetProfilePath: "profiles/{profile}.list",
+          scoopPath: "manifests/scoop.list",
+          bunPath: "manifests/bun.list",
+          powershellProfilePath: "dotfiles/powershell/profile.ps1",
+          fontListPath: "fonts/public.list",
+          registryPath: "windows/registry",
+          defaultProfiles: ["work-laptop"],
+        },
+      };
+      const fetched: string[] = [];
+      await Effect.runPromise(
+        syncWindows({
+          config,
+          fetcher: async (url) => {
+            fetched.push(url);
+            return new Response(
+              url.endsWith("profile.ps1") ? "Set-Alias outfit outfitting-manager\n" : "Git.Git\n",
+            );
+          },
+          noPush: true,
+          run: async () => ({ code: 0, stdout: "", stderr: "" }),
+          which: async (command) => (command === "winget" ? "C:\\winget.exe" : undefined),
+          wingetOnly: true,
+        }),
+      );
+
+      expect(fetched).toEqual([
+        "https://example.test/outfitting/main/dotfiles/powershell/profile.ps1",
+        "https://example.test/outfitting/main/profiles/work-laptop.list",
+      ]);
+      expect(
+        await readFile(join(root, "manifests", "dotfiles", "powershell", "profile.ps1"), "utf8"),
+      ).toContain("outfitting-manager");
+      expect((await readWindowsLock(config)).profiles).toEqual(["work-laptop"]);
     } finally {
       await rm(root, { force: true, recursive: true });
     }

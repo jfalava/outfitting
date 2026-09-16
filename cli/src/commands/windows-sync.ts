@@ -1,19 +1,14 @@
 import { Console, Effect, Option } from "effect";
 import { Command, Flag, Prompt } from "effect/unstable/cli";
 
-import { loadConfig, type ManagerConfig } from "@/config";
+import { loadConfig, resolveWindowsRoutes, type ManagerConfig } from "@/config";
 import { CliFailure } from "@/errors";
 import { fetchManifest, type ManifestFetcher } from "@/fetch";
 import { pushLockfile } from "@/lockfiles";
 import { tryPromise } from "@/lockfiles/effect";
 import { runCommand, which } from "@/process";
 import { ui } from "@/ui";
-import {
-  parseScoopManifest,
-  SCOOP_MANIFEST_PATH,
-  updateScoop,
-  type ScoopManifest,
-} from "@/update/scoop";
+import { parseScoopManifest, updateScoop, type ScoopManifest } from "@/update/scoop";
 import { runScoopCommand } from "@/update/scoop-command";
 import {
   isWingetAlreadyInstalledExitCode,
@@ -25,6 +20,7 @@ import {
   type WindowsPackageRecord,
 } from "@/update/windows-lock";
 
+/** Profiles shipped by the default repository; compatible repositories may add their own. */
 export const WINDOWS_PROFILE_NAMES = [
   "base",
   "dev",
@@ -39,8 +35,13 @@ export const WINDOWS_PROFILE_NAMES = [
   "msstore-work",
 ] as const;
 
-const WINGET_PROFILE_PATH = (profile: string) => `packages/windows/${profile}.txt`;
-export const WINDOWS_PROFILE_PATH = "dotfiles/Microsoft.PowerShell_profile.ps1";
+export function windowsWingetProfilePath(config: ManagerConfig, profile: string): string {
+  return resolveWindowsRoutes(config.windows).wingetProfilePath.replaceAll("{profile}", profile);
+}
+
+export function windowsPowerShellProfilePath(config: ManagerConfig): string {
+  return resolveWindowsRoutes(config.windows).powershellProfilePath;
+}
 
 export interface WindowsSyncOptions<ConfirmR = never> {
   config?: ManagerConfig;
@@ -92,20 +93,23 @@ export function parseWindowsPackageList(content: string, path: string): string[]
 export function resolveWindowsProfiles(
   requested: ReadonlyArray<string> | undefined,
   previous: ReadonlyArray<string>,
+  defaults: ReadonlyArray<string> = ["base"],
 ): string[] {
   const profiles =
     requested === undefined || requested.length === 0
       ? previous.length > 0
         ? [...previous]
-        : ["base"]
+        : [...defaults]
       : requested;
-  const allowed = new Set<string>(WINDOWS_PROFILE_NAMES);
   const normalized = [
     ...new Set(profiles.flatMap((profile) => profile.split(",")).map((profile) => profile.trim())),
   ].filter((profile) => profile.length > 0);
-  const invalid = normalized.filter((profile) => !allowed.has(profile));
+  const invalid = normalized.filter((profile) => !/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(profile));
   if (invalid.length > 0) {
-    throw new Error(`Unknown Windows profile(s): ${invalid.join(", ")}.`);
+    throw new Error(`Invalid Windows profile name(s): ${invalid.join(", ")}.`);
+  }
+  if (normalized.length === 0) {
+    throw new Error("At least one Windows profile must be selected.");
   }
   return normalized;
 }
@@ -184,9 +188,7 @@ function replaceManagedRecords(
   manager: "winget" | "scoop",
   desired: ReadonlyArray<WindowsPackageRecord>,
 ): void {
-  lock.packages[manager] = desired.toSorted((left, right) =>
-    left.name.localeCompare(right.name),
-  );
+  lock.packages[manager] = desired.toSorted((left, right) => left.name.localeCompare(right.name));
 }
 
 function wingetInstallArgs(
@@ -239,7 +241,7 @@ const fetchWingetPackages = Effect.fn("fetchWingetPackages")(function* (
   for (const profile of profiles) {
     const manifest = yield* tryPromise(() =>
       fetchManifest({
-        path: WINGET_PROFILE_PATH(profile),
+        path: windowsWingetProfilePath(config, profile),
         config,
         fetcher,
       }),
@@ -273,7 +275,7 @@ const fetchWindowsProfile = Effect.fn("fetchWindowsProfile")(function* (
 ) {
   const manifest = yield* tryPromise(() =>
     fetchManifest({
-      path: WINDOWS_PROFILE_PATH,
+      path: windowsPowerShellProfilePath(config),
       config,
       materialize: true,
       fetcher,
@@ -402,7 +404,12 @@ const fetchScoop = Effect.fn("fetchScoop")(function* (
   fetcher: ManifestFetcher | undefined,
 ) {
   const manifest = yield* tryPromise(() =>
-    fetchManifest({ path: SCOOP_MANIFEST_PATH, config, materialize: true, fetcher }),
+    fetchManifest({
+      path: resolveWindowsRoutes(config.windows).scoopPath,
+      config,
+      materialize: true,
+      fetcher,
+    }),
   );
   if (manifest.warning) {
     yield* Console.log(ui.muted(manifest.warning));
@@ -470,7 +477,12 @@ export const syncWindows = <ConfirmR = never>(options: WindowsSyncOptions<Confir
     const config = options.config ?? (yield* tryPromise(() => loadConfig()));
     const current = yield* tryPromise(() => readWindowsLock(config));
     const profiles = yield* Effect.try({
-      try: () => resolveWindowsProfiles(options.profiles, current.profiles),
+      try: () =>
+        resolveWindowsProfiles(
+          options.profiles,
+          current.profiles,
+          resolveWindowsRoutes(config.windows).defaultProfiles,
+        ),
       catch: (cause) =>
         new CliFailure({ message: cause instanceof Error ? cause.message : String(cause) }),
     });
@@ -522,11 +534,7 @@ export const syncWindows = <ConfirmR = never>(options: WindowsSyncOptions<Confir
           });
 
     const updated = yield* tryPromise(() => readWindowsLock(config));
-    replaceManagedRecords(
-      updated,
-      "winget",
-      baselineWingetRecords(uniqueWingetPackages),
-    );
+    replaceManagedRecords(updated, "winget", baselineWingetRecords(uniqueWingetPackages));
     if (scoop !== undefined) {
       replaceManagedRecords(
         updated,
@@ -548,7 +556,7 @@ export const syncWindows = <ConfirmR = never>(options: WindowsSyncOptions<Confir
 const profileFlag = Flag.string("profile").pipe(
   Flag.optional,
   Flag.withDescription(
-    "Comma-separated profiles: base, dev, gaming, network, qol, work, or msstore-* profiles.",
+    "Comma-separated profile names from the configured repository (msstore-* uses the Microsoft Store).",
   ),
 );
 

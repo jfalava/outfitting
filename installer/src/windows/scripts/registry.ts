@@ -14,15 +14,67 @@ trap {
 
 Write-Host "❖ Installing Windows registry tweaks..." -ForegroundColor Cyan
 
-$baseRegUrl = "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main"
-$githubApiUrl = "https://api.github.com/repos/jfalava/outfitting/git/trees/main?recursive=1"
+$manifestBaseUrl = $env:OUTFITTING_MANIFEST_BASE_URL
+$manifestRef = $env:OUTFITTING_MANIFEST_REF
+$outfittingStateRoot = if ([string]::IsNullOrWhiteSpace($env:OUTFITTING_STATE_ROOT)) {
+    "$env:USERPROFILE/.config/outfitting"
+} else {
+    $env:OUTFITTING_STATE_ROOT
+}
+$configPath = Join-Path $outfittingStateRoot "config.json"
+if (([string]::IsNullOrWhiteSpace($manifestBaseUrl) -or [string]::IsNullOrWhiteSpace($manifestRef)) -and (Test-Path -LiteralPath $configPath -PathType Leaf)) {
+    try {
+        $config = Get-Content -LiteralPath $configPath -Raw | ConvertFrom-Json
+        if ([string]::IsNullOrWhiteSpace($manifestBaseUrl)) {
+            $manifestBaseUrl = [string]$config.manifest.baseUrl
+        }
+        if ([string]::IsNullOrWhiteSpace($manifestRef)) {
+            $manifestRef = [string]$config.manifest.ref
+        }
+    } catch {
+        # Keep defaults; the manager reports invalid config files during init.
+    }
+}
+if ([string]::IsNullOrWhiteSpace($manifestBaseUrl)) {
+    $manifestBaseUrl = "https://raw.githubusercontent.com/jfalava/outfitting"
+}
+if ([string]::IsNullOrWhiteSpace($manifestRef)) {
+    $manifestRef = "main"
+}
+$baseRegUrl = "$manifestBaseUrl/$manifestRef"
+$githubApiUrl = $null
+try {
+    $sourceUri = [Uri]$manifestBaseUrl
+    $sourceSegments = @($sourceUri.AbsolutePath.Trim("/").Split("/") | Where-Object { $_.Length -gt 0 })
+    if ($sourceUri.Host -eq "raw.githubusercontent.com" -and $sourceSegments.Count -eq 2) {
+        $encodedRef = [Uri]::EscapeDataString($manifestRef)
+        $githubApiUrl = "https://api.github.com/repos/$($sourceSegments[0])/$($sourceSegments[1])/git/trees/$encodedRef?recursive=1"
+    }
+} catch {
+    $githubApiUrl = $null
+}
+$registryRoute = "system/windows/registry"
+if (Test-Path -LiteralPath $configPath -PathType Leaf) {
+    try {
+        $config = Get-Content -LiteralPath $configPath -Raw | ConvertFrom-Json
+        $property = $config.windows.PSObject.Properties["registryPath"]
+        if ($null -ne $property -and -not [string]::IsNullOrWhiteSpace([string]$property.Value)) {
+            $registryRoute = ([string]$property.Value).Trim().Trim("/")
+        }
+    } catch {
+        # Keep the default registry route.
+    }
+}
 $regFilePaths = @()
 $validRegFiles = @()
 
 try {
+    if ($null -eq $githubApiUrl) {
+        throw "Registry discovery requires a GitHub raw manifest source."
+    }
     $apiResponse = Invoke-RestMethod -Uri $githubApiUrl -Method Get -Headers @{ "User-Agent" = "PowerShellScript" }
     $treeItems = $apiResponse.tree
-    $regFilePaths = $treeItems | Where-Object { $_.path -like "system/windows/registry/*.reg" -and $_.type -eq "blob" } | ForEach-Object { $_.path }
+    $regFilePaths = $treeItems | Where-Object { $_.path -like "$registryRoute/*.reg" -and $_.type -eq "blob" } | ForEach-Object { $_.path }
 
     if ($regFilePaths.Count -gt 0) {
         Write-Host "\`n❖ Discovered $($regFilePaths.Count) registry tweak(s) from GitHub repo:" -ForegroundColor Cyan
@@ -103,12 +155,16 @@ try {
             Write-Host "❖ No valid .reg files fetched from discovered paths." -ForegroundColor Yellow
         }
     } else {
-        Write-Host "❖ No .reg files discovered in system/windows/registry/ directory." -ForegroundColor Yellow
+        Write-Host "❖ No .reg files discovered in $registryRoute/ directory." -ForegroundColor Yellow
     }
 } catch {
-    $script:hasErrors = $true
-    Write-Host "❖ Failed to discover registry files via GitHub API: $_" -ForegroundColor Red
-    Write-Host "❖ Skipping registry tweaks." -ForegroundColor Yellow
+    if ($null -eq $githubApiUrl) {
+        Write-Host "❖ Registry discovery requires a GitHub raw manifest source; skipping registry tweaks." -ForegroundColor Yellow
+    } else {
+        $script:hasErrors = $true
+        Write-Host "❖ Failed to discover registry files via GitHub API: $_" -ForegroundColor Red
+        Write-Host "❖ Skipping registry tweaks." -ForegroundColor Yellow
+    }
 }
 
 Write-Host "\`n"
