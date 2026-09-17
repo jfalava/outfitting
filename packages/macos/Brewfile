@@ -36,6 +36,7 @@ cask "vorssaint"
 cask "mac-mouse-fix"
 cask "cmux"
 cask "homebrew-app"
+cask "openlogi"
 
 brew "cloudflared"
 brew "ffmpeg"
