@@ -21,9 +21,13 @@ outfit diff --offline --json
 
 ## Compared state
 
-- macOS compares Homebrew taps, direct formulae, casks, and a Nix dry-build plan.
+- macOS compares Homebrew taps, formulae, casks, and the active Nix system.
 - Windows compares selected WinGet profiles and Scoop buckets/packages.
 
-Repository package manifests do not generally pin versions, so the command reports missing, extra, and changed entries rather than version drift. Homebrew dependencies are omitted by comparing direct formulae with `brew leaves`.
+Repository package manifests do not generally pin versions, so the command reports missing, extra, and changed entries rather than version drift. Homebrew checks required formulae against all installed formulae. Only explicitly installed formulae count as extras; dependencies do not.
+
+Nix evaluates the configured local repository with the canonical remote lock and compares its system output path with `/run/current-system`. A system that has been built but not activated still reports a difference. The comparison does not build or activate the system.
+
+Online comparisons require fresh or server-validated manifests. If a fetch fails and only cached data is available, that comparison is unavailable. Use `--offline` to compare cached manifests explicitly; cache warnings appear in text output and each JSON section's `warnings` array. Nix comparison is unavailable offline.
 
 The command exits successfully when the compared state matches. It exits nonzero when differences are found or a required comparison is unavailable.

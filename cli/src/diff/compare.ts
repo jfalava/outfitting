@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, realpath, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -17,8 +17,8 @@ import { fetchManifest, type ManifestFetcher } from "@/fetch";
 import { pullLockfile } from "@/lockfiles";
 import { runCommand, which } from "@/process";
 import { parseBrewfileManifest, BREWFILE_MANIFEST_PATH } from "@/update/brew";
-import { dryRunNixSystem } from "@/update/nix/build";
 import { closeNixLock, openNixLock } from "@/update/nix/lock";
+import { NIX_SYSTEM_ATTR } from "@/update/nix/types";
 import { parseScoopManifest, type ScoopManifest } from "@/update/scoop";
 import { runScoopCommand } from "@/update/scoop-command";
 import { readWindowsLock } from "@/update/windows-lock";
@@ -49,6 +49,7 @@ interface DiffContext {
   which: typeof which;
   fetcher: ManifestFetcher | undefined;
   offline: boolean;
+  warnings: string[];
 }
 
 interface WindowsDiffOptions {
@@ -68,24 +69,7 @@ function sectionStatus(
   return missing.length > 0 || extra.length > 0 || changed.length > 0 ? "different" : "same";
 }
 
-function emptySection(manager: DiffManager, message?: string): DiffSection {
-  const section: DiffSection = {
-    manager,
-    status: "same",
-    missing: [],
-    extra: [],
-    changed: [],
-  };
-  if (message !== undefined) {
-    section.message = message;
-  }
-  return section;
-}
-
-function unavailableSection(
-  manager: DiffManager,
-  message: string,
-): DiffSection {
+function unavailableSection(manager: DiffManager, message: string): DiffSection {
   return {
     manager,
     status: "unavailable",
@@ -158,7 +142,8 @@ function compareBrew(
       ...prefixed(actual.casks, "cask"),
     ],
   );
-  result.message = "Compares taps, direct formulae, and casks; Homebrew dependencies are omitted.";
+  result.message =
+    "Checks all installed formulae for required packages; only explicitly installed formulae count as extras.";
   return result;
 }
 
@@ -264,23 +249,30 @@ async function captureWingetPackages(
 async function captureBrew(
   executable: string,
   run: typeof runCommand,
+  desiredFormulae: ReadonlyArray<string>,
 ): Promise<ReturnType<typeof parseBrewfileManifest>> {
-  const commands: ReadonlyArray<ReadonlyArray<string>> = [["tap"], ["leaves"], ["list", "--cask"]];
-  const results = await Promise.all(
-    commands.map((args) => run(executable, args, { inherit: false })),
-  );
-  const labels = ["brew tap", "brew leaves", "brew list --cask"];
-  for (const [index, result] of results.entries()) {
+  async function capture(args: ReadonlyArray<string>): Promise<string[]> {
+    const result = await run(executable, args, { inherit: false });
     if (result.code !== 0) {
       throw new Error(
-        `${labels[index]} failed (exit ${result.code}): ${result.stderr || result.stdout}`.trim(),
+        `brew ${args.join(" ")} failed (exit ${result.code}): ${result.stderr || result.stdout}`.trim(),
       );
     }
+    return lines(result.stdout);
   }
+  const [taps, formulae, casks, requested] = await Promise.all([
+    capture(["tap"]),
+    capture(["list", "--formula"]),
+    capture(["list", "--cask"]),
+    capture(["list", "--formula", "--installed-on-request"]),
+  ]);
+  const relevantFormulae = new Set(
+    [...desiredFormulae, ...requested].map((name) => name.toLowerCase()),
+  );
   return {
-    taps: lines(results[0]?.stdout ?? ""),
-    formulae: lines(results[1]?.stdout ?? ""),
-    casks: lines(results[2]?.stdout ?? ""),
+    taps,
+    formulae: formulae.filter((name) => relevantFormulae.has(name.toLowerCase())),
+    casks,
   };
 }
 
@@ -295,15 +287,22 @@ function lines(content: string): string[] {
   ].toSorted((left, right) => left.localeCompare(right, "en"));
 }
 
-function uniqueNames(values: ReadonlyArray<string>): string[] {
-  const names = new Map<string, string>();
-  for (const value of values) {
-    const key = value.toLowerCase();
-    if (!names.has(key)) {
-      names.set(key, value);
-    }
+async function fetchDiffManifest(path: string, context: DiffContext): Promise<string> {
+  const manifest = await fetchManifest({
+    path,
+    config: context.config,
+    fetcher: context.fetcher,
+    offline: context.offline,
+  });
+  if (manifest.source === "cache" && !context.offline) {
+    throw new Error(
+      `${manifest.warning} Fresh repository state could not be verified. Use --offline to compare cached manifests explicitly.`,
+    );
   }
-  return [...names.values()];
+  if (manifest.warning !== undefined) {
+    context.warnings.push(manifest.warning);
+  }
+  return manifest.text;
 }
 
 async function compareBrewSection(context: DiffContext): Promise<DiffSection> {
@@ -311,14 +310,8 @@ async function compareBrewSection(context: DiffContext): Promise<DiffSection> {
   if (executable === undefined) {
     return unavailableSection("brew", "Homebrew is not installed or not in PATH.");
   }
-  const manifest = await fetchManifest({
-    path: BREWFILE_MANIFEST_PATH,
-    config: context.config,
-    fetcher: context.fetcher,
-    offline: context.offline,
-  });
-  const desired = parseBrewfileManifest(manifest.text);
-  const actual = await captureBrew(executable, context.run);
+  const desired = parseBrewfileManifest(await fetchDiffManifest(BREWFILE_MANIFEST_PATH, context));
+  const actual = await captureBrew(executable, context.run, desired.formulae);
   return compareBrew(desired, actual);
 }
 
@@ -341,18 +334,13 @@ async function compareWindowsSection(
     }
     const desired: string[] = [];
     for (const profile of selectedProfiles) {
-      const manifest = await fetchManifest({
-        path: routes.wingetProfilePath.replaceAll("{profile}", profile),
-        config: context.config,
-        fetcher: context.fetcher,
-        offline: context.offline,
-      });
-      desired.push(...parseWindowsPackageList(manifest.text, manifest.path));
+      const path = routes.wingetProfilePath.replaceAll("{profile}", profile);
+      desired.push(...parseWindowsPackageList(await fetchDiffManifest(path, context), path));
     }
     const actual = await captureWingetPackages(executable, context.run);
     return compareSets(
       "winget",
-      uniqueNames(desired).map((name) => ({ name })),
+      desired.map((name) => ({ name })),
       actual.map((name) => ({ name })),
     );
   }
@@ -362,13 +350,7 @@ async function compareWindowsSection(
     if (executable === undefined) {
       return unavailableSection("scoop", "Scoop is not installed or not in PATH.");
     }
-    const manifest = await fetchManifest({
-      path: routes.scoopPath,
-      config: context.config,
-      fetcher: context.fetcher,
-      offline: context.offline,
-    });
-    const desired = parseScoopManifest(manifest.text);
+    const desired = parseScoopManifest(await fetchDiffManifest(routes.scoopPath, context));
     const actualResult = await runScoopCommand(context.run, executable, ["export"], {
       inherit: false,
     });
@@ -381,22 +363,6 @@ async function compareWindowsSection(
   }
 
   throw new Error(`Unsupported Windows diff manager: ${options.manager}`);
-}
-
-function nixDryRunDiff(output: string): DiffSection {
-  const plan = output.trim();
-  const hasBuildPlan =
-    /(?:will|would) be (?:built|fetched|substituted)|these (?:derivations|paths) will be built|building ['"]?/i.test(
-      plan,
-    );
-  const section = emptySection(
-    "nix",
-    hasBuildPlan
-      ? "The configured system would rebuild from the current repository state."
-      : "The configured Nix system has no pending build plan.",
-  );
-  section.status = hasBuildPlan ? "different" : "same";
-  return section;
 }
 
 const quietConsole = Object.assign(Object.create(console), {
@@ -426,12 +392,39 @@ async function compareNixSection(context: DiffContext): Promise<DiffSection> {
     pullLockfile(options).pipe(Effect.provideService(Console.Console, quietConsole)),
   );
   try {
-    const output = await dryRunNixSystem({
-      repo,
-      lockPath: lock.lockPath,
-      run: (command, args, options) => context.run(executable, args, options),
-    });
-    return nixDryRunDiff(output);
+    const active = await realpath("/run/current-system");
+    const env: NodeJS.ProcessEnv = { ...process.env, OUTFITTING_REPO: repo.root };
+    delete env.NIX_PATH;
+    const result = await context.run(
+      executable,
+      [
+        "eval",
+        "--raw",
+        "--impure",
+        "--reference-lock-file",
+        lock.lockPath,
+        "--no-write-lock-file",
+        `path:${repo.flakePath}#${NIX_SYSTEM_ATTR}.outPath`,
+      ],
+      { inherit: false, env },
+    );
+    if (result.code !== 0) {
+      throw new Error(
+        `nix eval failed (exit ${result.code}): ${result.stderr || result.stdout}`.trim(),
+      );
+    }
+    const desired = result.stdout.trim();
+    if (desired.length === 0) {
+      throw new Error("nix eval succeeded but printed no system output path.");
+    }
+    return {
+      manager: "nix",
+      status: active === desired ? "same" : "different",
+      missing: [],
+      extra: [],
+      changed: active === desired ? [] : [`system: ${active} → ${desired}`],
+      message: `Compares /run/current-system with ${repo.flakePath} using the canonical remote lock.`,
+    };
   } finally {
     await closeNixLock(lock.lockDir);
   }
@@ -442,8 +435,8 @@ function selectedManagers(platform: DiffPlatform, requested: string | undefined)
   if (requested === undefined || requested === "all") {
     return [...allowed];
   }
-  const manager = requested.toLowerCase() as DiffManager;
-  if (!allowed.includes(manager as never)) {
+  const manager = allowed.find((candidate) => candidate === requested.toLowerCase());
+  if (manager === undefined) {
     throw new Error(
       `Unknown ${platform} diff manager "${requested}". Choose: ${allowed.join(", ")}, or all.`,
     );
@@ -459,29 +452,28 @@ export async function collectDiff(options: CollectDiffOptions): Promise<Platform
     which: options.which ?? which,
     fetcher: options.fetcher,
     offline: options.offline === true,
+    warnings: [],
   };
   const sections: DiffSection[] = [];
 
   for (const manager of selectedManagers(options.platform, options.manager)) {
+    context.warnings = [];
+    let section: DiffSection;
     try {
-      if (options.platform === "macos" && manager === "brew") {
-        sections.push(await compareBrewSection(context));
-      } else if (options.platform === "macos" && manager === "nix") {
-        sections.push(await compareNixSection(context));
-      } else if (options.platform === "windows") {
-        sections.push(
-          await compareWindowsSection(
-            {
-              manager: manager as Extract<DiffManager, "winget" | "scoop">,
-              profiles: options.profiles,
-            },
-            context,
-          ),
-        );
+      if (manager === "brew") {
+        section = await compareBrewSection(context);
+      } else if (manager === "nix") {
+        section = await compareNixSection(context);
+      } else {
+        section = await compareWindowsSection({ manager, profiles: options.profiles }, context);
       }
     } catch (cause) {
-      sections.push(unavailableSection(manager, errorMessage(cause)));
+      section = unavailableSection(manager, errorMessage(cause));
     }
+    if (context.warnings.length > 0) {
+      section.warnings = context.warnings;
+    }
+    sections.push(section);
   }
 
   return {

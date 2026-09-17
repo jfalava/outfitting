@@ -68,6 +68,9 @@ function printText(result: Awaited<ReturnType<typeof collectDiff>>): Effect.Effe
     yield* Console.log("");
     for (const section of result.sections) {
       yield* printSection(section);
+      for (const warning of section.warnings ?? []) {
+        yield* Console.log(ui.muted(`  ${warning}`));
+      }
     }
     yield* Console.log("");
     if (result.unavailable) {

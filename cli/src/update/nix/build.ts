@@ -12,13 +12,6 @@ export interface NixBuildOptions {
   run?: typeof runCommand;
 }
 
-export interface NixDryRunOptions {
-  repo: OutfittingRepo;
-  /** Remote lock path when available. */
-  lockPath?: string;
-  run?: typeof runCommand;
-}
-
 function flakeRef(flakePath: string): string {
   return `path:${flakePath}#${NIX_SYSTEM_ATTR}`;
 }
@@ -76,22 +69,4 @@ export async function buildNixSystem(options: NixBuildOptions): Promise<string> 
     throw new Error("nix build succeeded but printed no output path.");
   }
   return outPath;
-}
-
-/** Run a read-only Nix dry build and return its captured plan output. */
-export async function dryRunNixSystem(options: NixDryRunOptions): Promise<string> {
-  const run = options.run ?? runCommand;
-  const args = [...baseArgs("dry", options.lockPath), flakeRef(options.repo.flakePath)];
-  const env: NodeJS.ProcessEnv = {
-    ...process.env,
-    OUTFITTING_REPO: options.repo.root,
-  };
-  delete env.NIX_PATH;
-
-  const result = await run("nix", args, { inherit: false, env });
-  if (result.code !== 0) {
-    const detail = (result.stderr || result.stdout).trim();
-    throw new Error(`nix dry-run failed (exit ${result.code})${detail ? `: ${detail}` : ""}`);
-  }
-  return `${result.stdout}${result.stderr}`;
 }

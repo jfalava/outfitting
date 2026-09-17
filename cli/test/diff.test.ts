@@ -2,10 +2,12 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { afterEach, describe, expect, test } from "vitest";
+import { afterEach, describe, expect, test, vi } from "vitest";
 
-import { collectDiff, parseWingetExport } from "@/diff/compare";
-import type { RunCommandResult } from "@/process";
+import { collectDiff, parseWingetExport, type CollectDiffOptions } from "@/diff/compare";
+import { hasDifferences } from "@/diff/types";
+import { fetchManifest, type ManifestFetcher } from "@/fetch";
+import { type runCommand, type RunCommandResult } from "@/process";
 import { parseBrewfileManifest } from "@/update/brew";
 
 const roots: string[] = [];
@@ -62,7 +64,6 @@ package "not-homebrew"
     ).toEqual(["alpha.App", "zeta.App"]);
     expect(() => parseWingetExport("{}")).toThrow(/valid package sources/);
   });
-
 });
 
 describe("collectDiff", () => {
@@ -79,16 +80,46 @@ describe("collectDiff", () => {
       run: async (command, args) => {
         calls.push(`${command} ${args.join(" ")}`);
         if (args[0] === "tap") return ok("cloudflare/cloudflare\n");
-        if (args[0] === "leaves") return ok("jq\n");
+        if (args.includes("--formula")) return ok("jq\n");
         return ok("Firefox\n");
       },
     });
 
     expect(result.differences).toBe(false);
     expect(result.sections[0]).toMatchObject({ manager: "brew", status: "same" });
-    expect(calls.every((call) => !/install|uninstall|bundle|upgrade|cleanup/.test(call))).toBe(
-      true,
-    );
+    expect(calls).toEqual([
+      "brew tap",
+      "brew list --formula",
+      "brew list --cask",
+      "brew list --formula --installed-on-request",
+    ]);
+  });
+
+  test("counts required dependencies as present and excludes unrequested extras", async () => {
+    const root = await mkdtemp(join(tmpdir(), "outfitting-diff-brew-"));
+    roots.push(root);
+    const result = await collectDiff({
+      platform: "macos",
+      manager: "brew",
+      config: config(root),
+      which: async () => "brew",
+      fetcher: async () => new Response('brew "jq"\nbrew "oniguruma"\nbrew "missing"\n'),
+      run: async (_command, args) => {
+        // jq is explicitly installed but also used by another formula.
+        // oniguruma was installed as a dependency but is now required by the manifest.
+        // orphan is a leaf installed as a dependency, not an explicit extra.
+        if (args[0] === "leaves") return ok("extra\norphan\n");
+        if (args.includes("--installed-on-request")) return ok("jq\nextra\n");
+        if (args.includes("--formula")) return ok("jq\noniguruma\nextra\norphan\n");
+        return ok();
+      },
+    });
+    expect(result.sections[0]).toMatchObject({
+      status: "different",
+      missing: ["formula: missing"],
+      extra: ["formula: extra"],
+      changed: [],
+    });
   });
 
   test("compares WinGet export state and reports missing and extra packages", async () => {
@@ -124,5 +155,113 @@ describe("collectDiff", () => {
     expect(calls).toHaveLength(1);
     expect(calls[0]).toMatch(/export/);
   });
+});
 
+const manifestCases: ReadonlyArray<{
+  platform: CollectDiffOptions["platform"];
+  manager: string;
+  path: string;
+  body: string;
+}> = [
+  { platform: "macos", manager: "brew", path: "packages/macos/Brewfile", body: 'brew "jq"\n' },
+  { platform: "windows", manager: "winget", path: "packages/windows/base.txt", body: "Git.Git\n" },
+  {
+    platform: "windows",
+    manager: "scoop",
+    path: "packages/windows/scoop.txt",
+    body: 'package "jq"\n',
+  },
+];
+
+const matchingInventory: typeof runCommand = async (_command, args) => {
+  if (args.includes("export")) {
+    if (args[1] === "--output") {
+      await writeFile(
+        String(args[2]),
+        JSON.stringify({ Sources: [{ Packages: [{ PackageIdentifier: "Git.Git" }] }] }),
+      );
+      return ok();
+    }
+    return ok(JSON.stringify({ apps: [{ Name: "jq", Version: "1", Info: "" }], buckets: [] }));
+  }
+  return ok(args.includes("--formula") ? "jq\n" : "");
+};
+
+describe.each(manifestCases)("$manager manifest freshness", ({ platform, manager, path, body }) => {
+  test.each(["network", "http"])("rejects cached fallback after a %s failure", async (failure) => {
+    const root = await mkdtemp(join(tmpdir(), "outfitting-diff-cache-"));
+    roots.push(root);
+    const managerConfig = config(root);
+    await fetchManifest({ path, config: managerConfig, fetcher: async () => new Response(body) });
+    const run = vi.fn<typeof runCommand>();
+    const result = await collectDiff({
+      platform,
+      manager,
+      profiles: ["base"],
+      config: managerConfig,
+      which: async () => manager,
+      run,
+      fetcher: async () => {
+        if (failure === "network") throw new Error("network down");
+        return new Response("unavailable", { status: 503 });
+      },
+    });
+    expect(result.unavailable).toBe(true);
+    expect(hasDifferences(result)).toBe(true);
+    expect(result.sections[0]).toMatchObject({
+      status: "unavailable",
+      message: expect.stringMatching(/cached manifest.*Fresh repository state.*--offline/),
+    });
+    expect(run).not.toHaveBeenCalled();
+  });
+
+  test("allows explicit offline comparison and exposes cached provenance", async () => {
+    const root = await mkdtemp(join(tmpdir(), "outfitting-diff-cache-"));
+    roots.push(root);
+    const managerConfig = config(root);
+    await fetchManifest({ path, config: managerConfig, fetcher: async () => new Response(body) });
+    const fetcher = vi.fn<ManifestFetcher>();
+    const result = await collectDiff({
+      platform,
+      manager,
+      profiles: ["base"],
+      config: managerConfig,
+      which: async () => manager,
+      run: matchingInventory,
+      offline: true,
+      fetcher,
+    });
+    expect(result.unavailable).toBe(false);
+    expect(result.sections[0]).toMatchObject({
+      status: "same",
+      warnings: [`Using cached manifest for ${path} (offline mode).`],
+    });
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+
+  test("accepts server-validated cache without warnings", async () => {
+    const root = await mkdtemp(join(tmpdir(), "outfitting-diff-cache-"));
+    roots.push(root);
+    const managerConfig = config(root);
+    await fetchManifest({
+      path,
+      config: managerConfig,
+      fetcher: async () => new Response(body, { headers: { ETag: '"v1"' } }),
+    });
+    const result = await collectDiff({
+      platform,
+      manager,
+      profiles: ["base"],
+      config: managerConfig,
+      which: async () => manager,
+      run: matchingInventory,
+      fetcher: async (_url, init) => {
+        expect(new Headers(init?.headers).get("If-None-Match")).toBe('"v1"');
+        return new Response(null, { status: 304 });
+      },
+    });
+    expect(result.unavailable).toBe(false);
+    expect(result.sections[0]?.status).toBe("same");
+    expect(result.sections[0]?.warnings).toBeUndefined();
+  });
 });
