@@ -10,3 +10,5 @@ Derailed.k9s
 eksctl.eksctl
 Lenovo.SystemUpdate
 Fortinet.FortiClientVPN
+# Microsoft Store packages
+msstore:9WZDNCRFJ4MV

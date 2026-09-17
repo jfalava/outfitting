@@ -120,7 +120,7 @@ describe("Windows desired state and lock", () => {
     expect(resolveWindowsProfiles(["base,dev", "dev"], [])).toEqual(["base", "dev"]);
     expect(
       parseWindowsPackageList("# comment\nGit.Git\ngit.git\nOven-sh.Bun\n", "base.txt"),
-    ).toEqual(["Git.Git", "Oven-sh.Bun"]);
+    ).toEqual([{ name: "Git.Git" }, { name: "Oven-sh.Bun" }]);
     expect(() => parseWindowsPackageList("Git.Git --silent\n", "base.txt")).toThrow(
       /Invalid WinGet/,
     );

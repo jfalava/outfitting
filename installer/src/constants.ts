@@ -45,7 +45,8 @@ export const WINDOWS_PACKAGE_PROFILES = [
 ] as const;
 
 /**
- * Valid Microsoft Store package profiles
+ * Legacy Microsoft Store-only profiles. New manifests fold these entries into
+ * the regular profiles with `msstore:<id>` source tags.
  */
 export const MSSTORE_PACKAGE_PROFILES = [
   "msstore-base",

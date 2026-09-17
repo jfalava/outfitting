@@ -92,12 +92,85 @@ describe("Windows profile selection", () => {
   test("deduplicates comma-separated selections and accepts compatible profile names", () => {
     expect(resolveWindowsProfiles(["base,dev", "dev"], [])).toEqual(["base", "dev"]);
     expect(parseWindowsPackageList("Git.Git\ngit.git\n# comment\n", "base.txt")).toEqual([
-      "Git.Git",
+      { name: "Git.Git" },
     ]);
     expect(resolveWindowsProfiles(["work-laptop"], [])).toEqual(["work-laptop"]);
     expect(() => resolveWindowsProfiles(["../escape"], [])).toThrow(
       "Invalid Windows profile name(s)",
     );
+  });
+
+  test("parses explicit Store sources and preserves legacy Store profiles", async () => {
+    const root = await mkdtemp(join(tmpdir(), "outfitting-windows-store-migration-"));
+    try {
+      const config = configFor(root);
+      const calls: string[][] = [];
+      const fetcher = async (url: string) => {
+        if (url.endsWith("packages/windows/base.txt")) {
+          return new Response("Regular.Package\nmsstore:Store.App\n");
+        }
+        if (url.endsWith("packages/windows/msstore-base.txt")) {
+          return new Response("Store.App\nLegacy.Store.App\n");
+        }
+        return responseFor(url);
+      };
+
+      await Effect.runPromise(
+        syncWindows({
+          config,
+          fetcher,
+          noPush: true,
+          profiles: ["base", "msstore-base"],
+          run: async (command, args) => {
+            calls.push([command, ...args]);
+            return { code: 0, stdout: "", stderr: "" };
+          },
+          which: async (command) => (command === "winget" ? "C:\\winget.exe" : undefined),
+          wingetOnly: true,
+        }),
+      );
+
+      expect(calls).toEqual([
+        [
+          "C:\\winget.exe",
+          "install",
+          "--id",
+          "Regular.Package",
+          "--exact",
+          "--accept-source-agreements",
+          "--accept-package-agreements",
+        ],
+        [
+          "C:\\winget.exe",
+          "install",
+          "--id",
+          "Store.App",
+          "--exact",
+          "--source",
+          "msstore",
+          "--accept-source-agreements",
+          "--accept-package-agreements",
+        ],
+        [
+          "C:\\winget.exe",
+          "install",
+          "--id",
+          "Legacy.Store.App",
+          "--exact",
+          "--source",
+          "msstore",
+          "--accept-source-agreements",
+          "--accept-package-agreements",
+        ],
+      ]);
+      expect((await readWindowsLock(config)).packages.winget.map((entry) => entry.name)).toEqual([
+        "Legacy.Store.App",
+        "Regular.Package",
+        "Store.App",
+      ]);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
   });
 
   test("persists selected profiles and reuses them when --profile is omitted", async () => {

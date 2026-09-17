@@ -49,3 +49,19 @@ EclipseAdoptium.Temurin.11.JDK
 Tailscale.Tailscale
 restic.restic
 ZedIndustries.Zed
+# Microsoft Store packages
+msstore:9MZPRTH5C0TB
+msstore:9N95Q1ZZPMH4
+msstore:9MVZQVXJBQ9V
+msstore:9N4D0MSMP0PT
+msstore:9N5TDP8VCMHS
+msstore:9PB0TRCNRHFX
+msstore:9PG2DK419DRG
+msstore:9PMMSR1CGPWG
+msstore:9N7F2SM5D1LR
+msstore:9MSMLRH6LZF3
+msstore:9PCFS5B6T72H
+msstore:9WZDNCRFHWKN
+msstore:9WZDNCRFJBBG
+msstore:9WZDNCRFJBH4
+msstore:9NWVGWLHPB1Z

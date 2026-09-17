@@ -21,10 +21,10 @@ The worker routes by `Host` header and serves scripts/config from `main` branch 
 
 - `GET /` -> help/usage PowerShell script
 - `GET /:profile` -> CLI bootstrap script with WinGet profiles (`base+dev+...` supported)
-- `GET /msstore/:profile` -> CLI bootstrap script with Microsoft Store profiles (`msstore-*` composition)
+- `GET /msstore/:profile` -> legacy CLI bootstrap script with Store-only profiles (`msstore-*` composition)
 - `GET /bun` -> Bun global packages install script
 - `GET /packages/:profile` -> raw WinGet package list
-- `GET /packages/msstore/:profile` -> raw MS Store package list
+- `GET /packages/msstore/:profile` -> legacy raw MS Store package list
 - `GET /config/powershell` -> PowerShell profile content
 - `GET /config/pwsh-profile` -> profile updater script
 - `GET /post-install` -> post-install PowerShell script for Scoop, fonts, and registry-adjacent setup

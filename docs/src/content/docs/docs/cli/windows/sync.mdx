@@ -10,10 +10,10 @@ sidebar:
 ```powershell
 outfit sync
 outfit sync --profile base,dev
-outfit sync --profile msstore-base --winget-only
+outfit sync --profile base --winget-only
 outfit sync --no-push
 ```
 
-Options are `--profile`, `--winget-only`, and `--no-push`. Profiles beginning with `msstore-` use the Microsoft Store source. `--no-push` keeps the lock local. Untracked native WinGet and Scoop installs remain unmanaged.
+Options are `--profile`, `--winget-only`, and `--no-push`. Regular profiles now include their Microsoft Store entries, marked as `msstore:<id>` in the manifest, and install those entries with `--source msstore`. Existing `msstore-*` profiles remain available as Store-only compatibility profiles during migration. To move an existing machine to the unified baseline, run `outfit sync --profile base` (or the matching regular profile) once. `--no-push` keeps the lock local. Untracked native WinGet and Scoop installs remain unmanaged.
 
 Each sync lists tracked packages outside the selected baseline and asks before removing them. Declining aborts before package operations or lock writes.

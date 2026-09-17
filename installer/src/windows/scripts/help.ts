@@ -7,15 +7,15 @@ export function generateHelpScript(host: string): string {
 # fetches selected manifests and the PowerShell profile sparsely from GitHub;
 # it does not clone the monorepo.
 #
-# WinGet Package Profiles:
-#   base     - Core packages, runtimes, and utilities
+# WinGet Package Profiles (including Microsoft Store packages):
+#   base     - Core packages, runtimes, utilities, and Store apps
 #   dev      - Development tools and environments
 #   gaming   - Gaming platforms and tools
 #   work     - Work-related applications
 #   qol      - Quality of life improvements
 #   network  - Network tools and utilities
 #
-# Microsoft Store Package Profiles:
+# Legacy Microsoft Store-only profiles:
 #   msstore-base    - Core Microsoft Store apps
 #   msstore-dev     - Development-related Store apps
 #   msstore-gaming  - Gaming-related Store apps
@@ -26,9 +26,9 @@ export function generateHelpScript(host: string): string {
 #   registry - Install Windows registry tweaks only
 #
 # Examples:
-#   irm ${host}/base | iex                              # Install WinGet base packages
+#   irm ${host}/base | iex                              # Install base + Store packages
 #   irm ${host}/dev+gaming | iex                        # Install dev + gaming packages
-#   irm ${host}/msstore/msstore-base | iex              # Install Microsoft Store base apps
+#   irm ${host}/msstore/msstore-base | iex              # Legacy: Store-only base apps
 #   irm ${host}/msstore/msstore-base+msstore-qol | iex  # Install Store base + qol apps
 #   irm ${host}/registry | iex                          # Install registry tweaks only
 #
@@ -37,15 +37,15 @@ export function generateHelpScript(host: string): string {
 Write-Host ""
 Write-Host "❖❖❖ Outfitting - Windows CLI Bootstrap ❖❖❖" -ForegroundColor Cyan
 Write-Host ""
-Write-Host "WinGet Package Profiles:" -ForegroundColor Yellow
-Write-Host "  • base     - Core packages, runtimes, and utilities" -ForegroundColor White
+Write-Host "WinGet Package Profiles (including Microsoft Store packages):" -ForegroundColor Yellow
+Write-Host "  • base     - Core packages, runtimes, utilities, and Store apps" -ForegroundColor White
 Write-Host "  • dev      - Development tools and environments" -ForegroundColor White
 Write-Host "  • gaming   - Gaming platforms and tools" -ForegroundColor White
 Write-Host "  • work     - Work-related applications" -ForegroundColor White
 Write-Host "  • qol      - Quality of life improvements" -ForegroundColor White
 Write-Host "  • network  - Network tools and utilities" -ForegroundColor White
 Write-Host ""
-Write-Host "Microsoft Store Package Profiles:" -ForegroundColor Yellow
+Write-Host "Legacy Microsoft Store-only profiles:" -ForegroundColor Yellow
 Write-Host "  • msstore-base    - Core Microsoft Store apps" -ForegroundColor White
 Write-Host "  • msstore-dev     - Development-related Store apps" -ForegroundColor White
 Write-Host "  • msstore-gaming  - Gaming-related Store apps" -ForegroundColor White
@@ -60,7 +60,7 @@ Write-Host "  WinGet packages:" -ForegroundColor Cyan
 Write-Host "    irm ${host}/base | iex" -ForegroundColor Green
 Write-Host "    irm ${host}/dev+gaming+qol | iex" -ForegroundColor Green
 Write-Host ""
-Write-Host "  Microsoft Store packages:" -ForegroundColor Cyan
+Write-Host "  Legacy Store-only packages:" -ForegroundColor Cyan
 Write-Host "    irm ${host}/msstore/msstore-base | iex" -ForegroundColor Green
 Write-Host "    irm ${host}/msstore/msstore-base+msstore-gaming | iex" -ForegroundColor Green
 Write-Host ""

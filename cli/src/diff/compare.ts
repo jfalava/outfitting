@@ -4,7 +4,11 @@ import { join } from "node:path";
 
 import { Console, Effect, Option, Schema } from "effect";
 
-import { parseWindowsPackageList, resolveWindowsProfiles } from "@/commands/windows-sync";
+import {
+  parseWindowsPackageList,
+  resolveWindowsProfiles,
+  windowsWingetSourceForProfile,
+} from "@/commands/windows-sync";
 import {
   loadConfig,
   resolveOutfittingRepo,
@@ -374,7 +378,13 @@ async function compareWindowsSection(
     const desired: string[] = [];
     for (const profile of selectedProfiles) {
       const path = routes.wingetProfilePath.replaceAll("{profile}", profile);
-      desired.push(...parseWindowsPackageList(await fetchDiffManifest(path, context), path));
+      desired.push(
+        ...parseWindowsPackageList(
+          await fetchDiffManifest(path, context),
+          path,
+          windowsWingetSourceForProfile(profile),
+        ).map((packageInfo) => packageInfo.name),
+      );
     }
     const actual = await captureWingetPackages(executable, context.run);
     return compareSets(

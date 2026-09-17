@@ -22,7 +22,7 @@ outfit diff --offline --json
 ## Compared state
 
 - macOS compares Homebrew taps, formulae, casks, and the active Nix system.
-- Windows compares selected WinGet profiles and Scoop buckets/packages.
+- Windows compares selected WinGet profiles and Scoop buckets/packages. WinGet manifests may mark Microsoft Store entries as `msstore:<id>`; diff compares the package ID against the unified WinGet export regardless of source.
 
 Repository package manifests do not generally pin versions, so the command reports missing, extra, and changed entries rather than version drift. Homebrew checks required formulae against all installed formulae. Only explicitly installed formulae count as extras; dependencies do not.
 

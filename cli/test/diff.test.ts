@@ -178,14 +178,20 @@ describe("collectDiff", () => {
       config: config(root),
       onProgress: (event) => progress.push(event),
       which: async () => "winget.exe",
-      fetcher: async () => new Response("Git.Git\nOven-sh.Bun\n"),
+      fetcher: async () => new Response("Git.Git\nOven-sh.Bun\nmsstore:Store.App\n"),
       run: async (command, args) => {
         calls.push(`${command} ${args.join(" ")}`);
         await writeFile(
           String(args[2]),
           JSON.stringify({
             Sources: [
-              { Packages: [{ PackageIdentifier: "git.git" }, { PackageIdentifier: "Extra.App" }] },
+              {
+                Packages: [
+                  { PackageIdentifier: "git.git" },
+                  { PackageIdentifier: "Store.App" },
+                  { PackageIdentifier: "Extra.App" },
+                ],
+              },
             ],
           }),
         );
@@ -210,7 +216,7 @@ describe("collectDiff", () => {
         phase: "item",
         item: "Git.Git",
         itemIndex: 1,
-        itemTotal: 3,
+        itemTotal: 4,
       },
       {
         completed: 0,
@@ -219,7 +225,16 @@ describe("collectDiff", () => {
         phase: "item",
         item: "Oven-sh.Bun",
         itemIndex: 2,
-        itemTotal: 3,
+        itemTotal: 4,
+      },
+      {
+        completed: 0,
+        total: 1,
+        manager: "winget",
+        phase: "item",
+        item: "Store.App",
+        itemIndex: 3,
+        itemTotal: 4,
       },
       {
         completed: 0,
@@ -227,8 +242,8 @@ describe("collectDiff", () => {
         manager: "winget",
         phase: "item",
         item: "Extra.App",
-        itemIndex: 3,
-        itemTotal: 3,
+        itemIndex: 4,
+        itemTotal: 4,
       },
       { completed: 1, total: 1, manager: "winget", phase: "completed" },
     ]);

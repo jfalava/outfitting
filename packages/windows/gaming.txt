@@ -5,3 +5,6 @@ NexusMods.Vortex
 goatcorp.XIVLauncher
 WowUp.Wowup
 bozbez.WinCaptureAudio.beta
+# Microsoft Store packages
+msstore:XPDC2RH70K22MN
+msstore:9MWPM2CQNLHN

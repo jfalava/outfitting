@@ -3,3 +3,7 @@ KDE.Krita
 Mega.MEGASync
 Proton.ProtonPass
 qBittorrent.qBittorrent
+# Microsoft Store packages
+msstore:9PFHDD62MXS1
+msstore:9NBLGGH5R558
+msstore:9NC73MJWHSWW

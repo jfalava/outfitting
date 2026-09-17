@@ -8,3 +8,5 @@ pnpm.pnpm
 BtbN.FFmpeg.GPL
 Cloudflare.cloudflared
 GitHub.cli
+# Microsoft Store packages
+msstore:9P9TQF7MRM4R

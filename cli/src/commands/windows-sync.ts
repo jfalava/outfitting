@@ -57,29 +57,66 @@ export interface WindowsSyncOptions<ConfirmR = never> {
   confirmClean?: Effect.Effect<boolean, never, ConfirmR>;
 }
 
-interface WindowsWingetPackage {
+export interface WindowsWingetPackage {
   name: string;
   source?: "msstore";
 }
 
+export function windowsWingetSourceForProfile(profile: string): WindowsWingetPackage["source"] {
+  return /^msstore-/i.test(profile) ? "msstore" : undefined;
+}
+
+type ParsedWindowsPackageLine =
+  | { kind: "skip" }
+  | { kind: "invalid"; message: string }
+  | { kind: "package"; value: WindowsWingetPackage };
+
+function parseWindowsPackageLine(
+  raw: string,
+  index: number,
+  defaultSource: WindowsWingetPackage["source"] | undefined,
+): ParsedWindowsPackageLine {
+  const value = raw.trim();
+  if (value.length === 0 || value.startsWith("#")) {
+    return { kind: "skip" };
+  }
+  const sourceTag = /^([A-Za-z][A-Za-z0-9_-]*):(.+)$/.exec(value);
+  const source = sourceTag === null ? defaultSource : sourceTag[1]?.toLowerCase();
+  const name = sourceTag === null ? value : sourceTag[2];
+  if (source !== undefined && source !== "msstore") {
+    return { kind: "invalid", message: `line ${index + 1}: ${value}` };
+  }
+  if (name === undefined || /\s/.test(name) || name.startsWith("-")) {
+    return { kind: "invalid", message: `line ${index + 1}: ${value}` };
+  }
+  return {
+    kind: "package",
+    value: source === undefined ? { name } : { name, source },
+  };
+}
+
 /** Parse a line-oriented package manifest without allowing command fragments. */
-export function parseWindowsPackageList(content: string, path: string): string[] {
-  const packages: string[] = [];
+export function parseWindowsPackageList(
+  content: string,
+  path: string,
+  defaultSource?: WindowsWingetPackage["source"],
+): WindowsWingetPackage[] {
+  const packages: WindowsWingetPackage[] = [];
   const seen = new Set<string>();
   const invalid: string[] = [];
   for (const [index, raw] of content.split(/\r?\n/).entries()) {
-    const value = raw.trim();
-    if (value.length === 0 || value.startsWith("#")) {
+    const entry = parseWindowsPackageLine(raw, index, defaultSource);
+    if (entry.kind === "skip") {
       continue;
     }
-    if (/\s/.test(value) || value.startsWith("-")) {
-      invalid.push(`line ${index + 1}: ${value}`);
+    if (entry.kind === "invalid") {
+      invalid.push(entry.message);
       continue;
     }
-    const key = value.toLowerCase();
+    const key = `${entry.value.source ?? "winget"}:${entry.value.name.toLowerCase()}`;
     if (!seen.has(key)) {
       seen.add(key);
-      packages.push(value);
+      packages.push(entry.value);
     }
   }
   if (invalid.length > 0) {
@@ -235,21 +272,23 @@ const fetchWingetPackages = Effect.fn("fetchWingetPackages")(function* (
       yield* Console.log(ui.muted(manifest.warning));
     }
     const entries = yield* Effect.try({
-      try: () => parseWindowsPackageList(manifest.text, manifest.path),
+      try: () =>
+        parseWindowsPackageList(
+          manifest.text,
+          manifest.path,
+          windowsWingetSourceForProfile(profile),
+        ),
       catch: (cause) =>
         new CliFailure({ message: cause instanceof Error ? cause.message : String(cause) }),
     });
-    for (const name of entries) {
-      const packageInfo: WindowsWingetPackage = { name };
-      if (profile.startsWith("msstore-")) {
-        packageInfo.source = "msstore";
-      }
-      packages.push(packageInfo);
-    }
+    packages.push(...entries);
   }
   return [
     ...new Map(
-      packages.map((packageInfo) => [packageInfo.name.toLowerCase(), packageInfo]),
+      packages.map((packageInfo) => [
+        `${packageInfo.source ?? "winget"}:${packageInfo.name.toLowerCase()}`,
+        packageInfo,
+      ]),
     ).values(),
   ];
 });

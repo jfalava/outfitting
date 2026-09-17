@@ -10,6 +10,13 @@ import { setScriptHeaders } from "../../utils";
 
 const packagesRouter = new Hono();
 
+function stripSourceTags(content: string): string {
+  return content
+    .split(/\r?\n/)
+    .filter((line) => !/^\s*msstore:/i.test(line))
+    .join("\n");
+}
+
 // Route: GET /packages/msstore/:profile - Fetch Microsoft Store package lists (supports composition)
 // NOTE: This route must be registered before /packages/:profile to avoid /:profile swallowing "msstore"
 packagesRouter.get("/msstore/:profile", async (c) => {
@@ -101,7 +108,7 @@ packagesRouter.get("/:profile", async (c) => {
         return c.text(`Failed to fetch package list for profile: ${profile}`, 500);
       }
 
-      const content = await response.text();
+      const content = stripSourceTags(await response.text());
       packageContents.push(`# Packages from ${profile} profile\n${content}`);
     } catch (error) {
       console.error(`Error fetching ${profile}.txt:`, error);
