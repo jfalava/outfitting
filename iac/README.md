@@ -38,7 +38,7 @@ cp iac/outfitting.deploy.example.json outfitting.deploy.json
 | `kv` / `OUTFITTING_KV_TITLE`                      | `outfitting-lockfiles`      | KV title                                   |
 | `domain` / `OUTFITTING_DOMAIN`                    | `outfitting.jfa.dev`        | Empty string / unset via env clears domain |
 | `docs` / `OUTFITTING_DEPLOY_DOCS`                 | `true`                      | `false` / `0` / `--no-docs` skips docs     |
-| `installerHosts` / `OUTFITTING_INSTALLER_HOSTS`   | `win/wsl/mac/nixos.jfa.dev` | Comma-separated aliases                    |
+| `installerHosts` / `OUTFITTING_INSTALLER_HOSTS`   | `win/wsl/mac/nixos/linux.jfa.dev` | Comma-separated aliases                    |
 
 Provision via the manager CLI (recommended):
 

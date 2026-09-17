@@ -57,7 +57,8 @@ Example shape:
     "win.example.com",
     "wsl.example.com",
     "mac.example.com",
-    "nixos.example.com"
+    "nixos.example.com",
+    "linux.example.com"
   ],
   "workers": {
     "router": "outfitting-router",
@@ -81,7 +82,7 @@ For every field: **CLI flags → environment → config file → defaults**.
 | Docs worker     | `--docs-name`          | `OUTFITTING_DOCS_NAME`       | `outfitting-docs`                   |
 | Docs on/off     | `--docs` / `--no-docs` | `OUTFITTING_DEPLOY_DOCS`     | on                                  |
 | Apex domain     | `--domain`             | `OUTFITTING_DOMAIN`          | `outfitting.jfa.dev`                |
-| Installer hosts | `--installer-hosts`    | `OUTFITTING_INSTALLER_HOSTS` | `win/wsl/mac/nixos.jfa.dev`         |
+| Installer hosts | `--installer-hosts`    | `OUTFITTING_INSTALLER_HOSTS` | `win/wsl/mac/nixos/linux.jfa.dev`   |
 | Config path     | `--config`             | `OUTFITTING_DEPLOY_CONFIG`   | `outfitting.deploy.json` if present |
 
 `OUTFITTING_DEPLOY_DOCS` accepts `1/true/yes/on` or `0/false/no/off`.

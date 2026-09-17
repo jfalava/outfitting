@@ -1,9 +1,21 @@
 ---
 title: Install
-description: Run the WSL installer and choose an installation mode.
+description: Install generic Linux with the compiled manager or choose a WSL installer mode.
 sidebar:
   order: 1
 ---
+
+## Generic Linux
+
+Run the architecture-selecting binary bootstrap:
+
+```bash
+curl -L linux.jfa.dev | bash
+```
+
+It supports Linux x64 and arm64 and delegates package installation to `outfitting-manager`, which detects apt or pacman. The optional OCI profile can be selected with `--profile oci-agents`.
+
+## WSL
 
 Run the hosted installer from an interactive WSL shell:
 

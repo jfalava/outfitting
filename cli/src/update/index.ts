@@ -2,6 +2,18 @@ export { updateAll, type UpdateAllOptions, type UpdateStepResult } from "@/updat
 export { updateBun, parseBunGlobalList } from "@/update/bun";
 export { updateBrew, parseBrewfileTaps, BREWFILE_MANIFEST_PATH } from "@/update/brew";
 export {
+  isLinuxProfile,
+  linuxManifestPath,
+  linuxPackageManagerArgs,
+  LINUX_MANIFEST_PATH,
+  LINUX_PROFILES,
+  parseLinuxPackageManifest,
+  updateLinux,
+  type LinuxPackageAction,
+  type LinuxProfile,
+  type LinuxUpdateOptions,
+} from "@/update/linux";
+export {
   captureHomebrewInventory,
   pushHomebrewInventory,
   HOMEBREW_INVENTORY_HEADER,

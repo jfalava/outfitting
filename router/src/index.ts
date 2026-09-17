@@ -14,7 +14,13 @@ export interface Env {
 
 type App = { Bindings: Env };
 
-const INSTALLER_HOSTS = new Set(["win.jfa.dev", "wsl.jfa.dev", "mac.jfa.dev", "nixos.jfa.dev"]);
+const INSTALLER_HOSTS = new Set([
+  "win.jfa.dev",
+  "wsl.jfa.dev",
+  "mac.jfa.dev",
+  "nixos.jfa.dev",
+  "linux.jfa.dev",
+]);
 
 const forwardStripped =
   (prefix: string, binding: "API"): Handler<App> =>

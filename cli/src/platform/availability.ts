@@ -5,13 +5,15 @@
  */
 export type HostPlatform = "macos" | "windows" | "linux";
 
-export type PackageManager = "bun" | "brew" | "nix" | "scoop" | "winget" | "all";
+export type PackageManager = "apt" | "bun" | "brew" | "nix" | "pacman" | "scoop" | "winget" | "all";
 
 /** Which host platform ships each package-manager command. */
 export const PACKAGE_MANAGER_PLATFORM = {
+  apt: "linux",
   bun: "all",
   brew: "macos",
   nix: "macos",
+  pacman: "linux",
   scoop: "windows",
   winget: "windows",
   all: "all",

@@ -5,7 +5,7 @@ sidebar:
   order: 0
 ---
 
-Outfitting has a compiled `outfitting-manager` for macOS and Windows, plus installer and shell commands for Linux and WSL. The `outfit` alias is installed by the macOS and Windows profiles.
+Outfitting has a compiled `outfitting-manager` for macOS, Windows, and generic Linux, plus installer and shell commands for WSL. The `outfit` alias is installed by the macOS and Windows profiles.
 
 Run `outfitting-manager --help` or `outfit --help` to see the commands available in the current platform build. The [macOS](/docs/cli/macos/), [Windows](/docs/cli/windows/), and [Linux/WSL](/docs/cli/linux/) pages list the complete platform workflows.
 
@@ -35,7 +35,8 @@ The table covers every top-level `outfitting-manager` command. Platform-only com
 ## Platform-only command groups
 
 - [macOS shell helpers](/docs/cli/macos/shell/) — `hm-build`, `hm-test`, `hm-dry`, `hm-switch`, `hm-sync`, `hm-update`, `hm-rollback`, `hm-clean`, and `hm-recover`.
-- [Linux/WSL install](/docs/cli/linux/install/) — the hosted `--full-install`, `--update-only`, and `--nix-only` installer modes.
+- [Generic Linux install](/docs/cli/linux/install/) — the architecture-selecting `linux.jfa.dev` binary bootstrap.
+- [WSL install](/docs/cli/linux/install/) — the hosted `--full-install`, `--update-only`, and `--nix-only` installer modes.
 - [Linux/WSL Home Manager](/docs/cli/linux/home-manager/) — `hm-sync`, `hm-switch`, `hm-update`, `hm-rollback`, and `hm-clean`.
 - [Linux/WSL maintenance](/docs/cli/linux/maintenance/) — `update-all`, `remote-update`, and global `bun install -g`.
 
@@ -43,4 +44,4 @@ The table covers every top-level `outfitting-manager` command. Platform-only com
 
 - [macOS CLI](/docs/cli/macos/) — manager commands, Nix/Homebrew updates, snapshots, recovery, and Zsh helpers.
 - [Windows CLI](/docs/cli/windows/) — repository configuration, profiles, package tracking, and updates.
-- [Linux/WSL CLI](/docs/cli/linux/) — hosted installer modes, Home Manager helpers, and maintenance commands.
+- [Linux/WSL CLI](/docs/cli/linux/) — generic Linux package updates, hosted WSL installer modes, and Home Manager helpers.

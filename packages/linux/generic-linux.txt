@@ -1,0 +1,7 @@
+# Portable baseline for Debian-family and Arch-family Linux hosts.
+ca-certificates
+curl
+git
+tmux
+unzip
+wget

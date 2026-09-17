@@ -21,6 +21,12 @@ irm win.jfa.dev | iex # Running this shows all the options
 curl -L wsl.jfa.dev | bash # Installs the personal profile
 ```
 
+### [Generic Linux](https://outfitting.jfa.dev/docs/cli/linux)
+
+```bash
+curl -L linux.jfa.dev | bash # Detects apt or pacman and installs the generic profile
+```
+
 ### [macOS](https://outfitting.jfa.dev/docs/macos)
 
 ```bash

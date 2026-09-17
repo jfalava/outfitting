@@ -5,6 +5,7 @@ Cloudflare Worker that powers Outfitting install endpoints:
 - `win.jfa.dev`
 - `wsl.jfa.dev`
 - `mac.jfa.dev`
+- `linux.jfa.dev`
 
 The worker routes by `Host` header and serves scripts/config from `main` branch GitHub raw URLs.
 
@@ -35,6 +36,10 @@ The CLI migrates a saved mixed selection such as `base,msstore-base` to `base`. 
 ### WSL (`wsl.jfa.dev`)
 
 - `GET /` -> main WSL install script
+
+### Linux (`linux.jfa.dev`)
+
+- `GET /` -> architecture-selecting compiled CLI bootstrap for Linux x64/arm64
 
 ### macOS (`mac.jfa.dev`)
 
@@ -68,6 +73,7 @@ licenses permit delivery to every identity covered by the Access policy.
 - `src/index.ts`: host validation and host-based dispatch
 - `src/windows.ts`: Windows routes, profile composition, config APIs
 - `src/wsl.ts`: WSL routes
+- `src/linux.ts`: generic Linux route
 - `src/macos.ts`: macOS routes
 - `src/constants.ts`: route and script constants
 - `src/utils.ts`: response headers and fetch helpers

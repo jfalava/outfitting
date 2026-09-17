@@ -1,21 +1,18 @@
 #!/usr/bin/env bun
 
-/**
- * Dev / default entry. Darwin compile targets use index.macos.ts.
- * Linux still compiles this file until its platform entry lands.
- */
+/** Generic Linux entrypoint. Darwin and Windows compile their platform-specific files. */
 import { BunRuntime, BunServices } from "@effect/platform-bun";
 import { Effect } from "effect";
 import { CliError, Command } from "effect/unstable/cli";
 import pc from "picocolors";
 
 import { normalizeCommandAlias } from "@/arguments";
-import { makeMacosRootCommand } from "@/cli";
+import { makeLinuxRootCommand } from "@/cli/linux";
 
 import packageJson from "./package.json" with { type: "json" };
 
 const args = normalizeCommandAlias(Bun.argv.slice(2));
-const program = Command.runWith(makeMacosRootCommand(packageJson.version), {
+const program = Command.runWith(makeLinuxRootCommand(packageJson.version), {
   version: packageJson.version,
 })(args.length === 0 ? ["--help"] : args).pipe(
   Effect.provide(BunServices.layer),

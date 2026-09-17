@@ -1,16 +1,34 @@
 ---
 title: Linux
-description: Use the Linux and WSL installer modes and shell commands to maintain an Ubuntu-based distribution.
+description: Maintain generic Linux hosts with apt or pacman, or use the separate WSL shell workflow.
 sidebar:
   order: 20
 ---
 
-WSL uses the shell functions installed by the WSL Home Manager profile and `wsl-install-script.sh`, rather than the Windows `outfitting-manager` command tree.
+Generic Linux uses the compiled `outfitting-manager` binary. It detects `/etc/os-release` and the installed package-manager executable, selecting modern `apt` for Debian-family distributions and `pacman` for Arch-family distributions. WSL continues to use the shell functions installed by its Home Manager profile and `wsl-install-script.sh`.
+
+Install the generic Linux binary bootstrap with:
+
+```bash
+curl -L linux.jfa.dev | bash
+```
+
+The bootstrap selects the Linux x64 or arm64 release, verifies its checksum, and runs the manager. The manager stores state under `~/.config/outfitting` and fetches the `generic-linux` package profile.
+
+To override detection or select the opt-in OCI profile:
+
+```bash
+outfitting-manager update all --package-manager apt
+outfitting-manager setup --profile oci-agents --repo ~/code/outfitting
+outfitting-manager update all --profile oci-agents
+```
+
+The `oci-agents` profile runs the repository's Nix/Home Manager service bootstrap after the native package update. It requires an existing full repository checkout.
 
 ## Commands
 
-- [Install](/docs/cli/linux/install/) - run the hosted installer modes.
+- [Install](/docs/cli/linux/install/) - run the generic Linux or WSL hosted installer.
 - [Home Manager](/docs/cli/linux/home-manager/) - apply, update, roll back, or clean Nix state.
-- [Maintenance](/docs/cli/linux/maintenance/) - run the combined update and remote-update helpers.
+- [Maintenance](/docs/cli/linux/maintenance/) - run native Linux updates or the combined WSL helpers.
 
 The WSL repository is normally cloned to `$HOME/.config/outfitting/repo`; set `OUTFITTING_REPO` to use another checkout.

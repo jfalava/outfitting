@@ -1,0 +1,6 @@
+# Native prerequisites for the opt-in oci-agents Home Manager profile.
+ca-certificates
+curl
+git
+tmux
+unzip

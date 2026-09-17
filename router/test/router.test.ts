@@ -54,6 +54,17 @@ describe("router dispatch", () => {
     expect(env.DOCS_WORKER?.calls ?? []).toEqual([]);
   });
 
+  test("generic Linux installer host keeps path and never touches API or docs", async () => {
+    const env = bindings();
+    const { body, status } = await hit("/post-install", "linux.jfa.dev", env);
+
+    expect(status).toBe(200);
+    expect(body).toBe("installer");
+    expect(env.INSTALLER.calls).toEqual(["https://linux.jfa.dev/post-install"]);
+    expect(env.API.calls).toEqual([]);
+    expect(env.DOCS_WORKER?.calls ?? []).toEqual([]);
+  });
+
   test("same path /fonts goes to installer on platform host and docs on apex", async () => {
     const installerEnv = bindings();
     const apexEnv = bindings();

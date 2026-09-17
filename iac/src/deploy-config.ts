@@ -63,6 +63,7 @@ export const DEFAULT_INSTALLER_HOSTS = [
   "wsl.jfa.dev",
   "mac.jfa.dev",
   "nixos.jfa.dev",
+  "linux.jfa.dev",
 ] as const;
 
 export const DEFAULT_DEPLOY_CONFIG: Omit<DeployConfig, "configPath"> = {

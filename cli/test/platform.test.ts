@@ -12,8 +12,9 @@ import {
 describe("package manager availability table", () => {
   test("macos natives and foreign hint set", () => {
     expect([...MACOS_UPDATE_MANAGERS]).toEqual(["brew", "nix", "all"]);
-    expect(foreignPackageManagers("macos").sort()).toEqual(["scoop", "winget"]);
-    expect(foreignPackageManagers("windows").sort()).toEqual(["brew", "nix"]);
+    expect(foreignPackageManagers("macos").sort()).toEqual(["apt", "pacman", "scoop", "winget"]);
+    expect(foreignPackageManagers("windows").sort()).toEqual(["apt", "brew", "nix", "pacman"]);
+    expect(foreignPackageManagers("linux").sort()).toEqual(["brew", "nix", "scoop", "winget"]);
   });
 
   test("nix actions are build|switch|test|dry only", () => {

@@ -2,6 +2,7 @@ import { Hono } from "hono";
 
 import { ALLOWED_HOSTS } from "./constants";
 import fontsApp from "./fonts";
+import linuxApp from "./linux";
 import macosApp from "./macos";
 import nixosApp from "./nixos";
 import type { InstallerEnv } from "./types";
@@ -34,6 +35,9 @@ app.use("*", async (c) => {
   }
   if (host.includes("wsl.jfa.dev")) {
     return wslApp.fetch(c.req.raw, c.env, c.executionCtx);
+  }
+  if (host.includes("linux.jfa.dev")) {
+    return linuxApp.fetch(c.req.raw, c.env, c.executionCtx);
   }
   if (host.includes("mac.jfa.dev")) {
     return macosApp.fetch(c.req.raw, c.env, c.executionCtx);

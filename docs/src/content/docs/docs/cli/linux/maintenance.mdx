@@ -1,9 +1,21 @@
 ---
 title: Maintenance
-description: Run combined WSL package and configuration maintenance.
+description: Run generic Linux package updates or combined WSL maintenance.
 sidebar:
   order: 3
 ---
+
+## Generic Linux
+
+Update the detected native package manager and the `generic-linux` profile:
+
+```bash
+outfitting-manager update all
+```
+
+Use `update apt` or `update pacman` to select a manager explicitly, or pass `--package-manager apt|pacman` to `update all`. Use `--profile oci-agents` only on the managed OCI host.
+
+## WSL
 
 Run the complete local maintenance sequence with:
 

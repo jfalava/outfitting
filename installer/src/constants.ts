@@ -5,7 +5,13 @@
 export const GITHUB_RAW_BASE =
   "https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main";
 
-export const ALLOWED_HOSTS = ["wsl.jfa.dev", "win.jfa.dev", "mac.jfa.dev", "nixos.jfa.dev"];
+export const ALLOWED_HOSTS = [
+  "wsl.jfa.dev",
+  "win.jfa.dev",
+  "mac.jfa.dev",
+  "linux.jfa.dev",
+  "nixos.jfa.dev",
+];
 
 /** Private R2 release objects served only after Cloudflare Access authorization. */
 export const FONT_ARCHIVE_KEY = "releases/fonts.tar.gz";
@@ -21,6 +27,7 @@ export const SCRIPT_URLS = {
   windowsPostInstall: `${GITHUB_RAW_BASE}/windows-post-install-script.ps1`,
   scoopPackages: `${GITHUB_RAW_BASE}/packages/windows/scoop.txt`,
   wsl: `${GITHUB_RAW_BASE}/wsl-install-script.sh`,
+  linux: `${GITHUB_RAW_BASE}/linux-install-script.sh`,
   macos: `${GITHUB_RAW_BASE}/macos-install-script.sh`,
   macosPostInstall: `${GITHUB_RAW_BASE}/macos-post-install-script.sh`,
   nixos: `${GITHUB_RAW_BASE}/nixos-install-script.sh`,

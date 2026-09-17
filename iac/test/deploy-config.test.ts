@@ -51,6 +51,7 @@ test("defaults without file or env", () => {
     expect(config.domain).toBe(DEFAULT_DEPLOY_CONFIG.domain);
     expect(config.stackName).toBe(DEFAULT_DEPLOY_CONFIG.stackName);
     expect(config.workers.api).toBe("outfitting-api");
+    expect(config.installerHosts).toContain("linux.jfa.dev");
   });
 });
 
