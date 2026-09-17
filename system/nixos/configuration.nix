@@ -1,4 +1,4 @@
-{ config, pkgs, ... }:
+{ pkgs, ... }:
 {
   imports = [ ./hardware-configuration.nix ];
 
@@ -25,10 +25,11 @@
     openssh.authorizedKeys.keys =
       let
         extraKeyFile = "/tmp/outfitting-ssh-key";
-        extraKeys = if builtins.pathExists extraKeyFile then
-          builtins.filter (k: k != "") (pkgs.lib.splitString "\n" (builtins.readFile extraKeyFile))
-        else
-          [ ];
+        extraKeys =
+          if builtins.pathExists extraKeyFile then
+            builtins.filter (k: k != "") (pkgs.lib.splitString "\n" (builtins.readFile extraKeyFile))
+          else
+            [ ];
       in
       extraKeys;
   };
@@ -57,6 +58,8 @@
     22
     80
     443
+    4096
+    49374
   ];
   virtualisation.docker.enable = true;
 
