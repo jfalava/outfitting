@@ -105,8 +105,8 @@ in
       "powershell"
       "deno"
       "discord-presence"
-      "bearded-theme"
-      "bearded-icon-theme"
+      "tokyonight-dark"
+      "catpuccin-icons"
       "helm"
       "log"
       "oxc"
@@ -196,7 +196,7 @@ in
       };
 
       "linked_edits" = true;
-      "icon_theme" = "Bearded Icon Theme";
+      "icon_theme" = "Catppuccin Latte";
 
       "edit_predictions" = {
         "provider" = "copilot";
@@ -308,7 +308,7 @@ in
       "theme" = {
         "mode" = "system";
         "light" = "One Light";
-        "dark" = "Bearded Theme Arc";
+        "dark" = "Tokyo Night Dark";
       };
 
       # The `syntax` keys are tree-sitter capture paths: doc comments are
