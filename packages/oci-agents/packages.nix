@@ -8,4 +8,6 @@ with pkgs;
   _7zz
   tmux
   openssl
+  gnome-keyring
+  libsecret
 ]

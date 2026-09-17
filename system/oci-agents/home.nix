@@ -33,6 +33,42 @@ in
     PAGER = "less";
   };
 
+  # Headless Ubuntu has no graphical session to unlock GNOME Keyring. Start
+  # the secrets component on SSH login so libsecret-backed CLIs can use it.
+  # Do not request the SSH component: it would replace SSH_AUTH_SOCK and break
+  # forwarded SSH agents.
+  home.file = {
+    ".profile" = {
+      force = true;
+      text = ''
+        # Load Home Manager session env so home.sessionPath entries are applied.
+        for hm_session_file in "$HOME/.nix-profile/etc/profile.d/hm-session-vars.sh" "/nix/var/nix/profiles/default/etc/profile.d/hm-session-vars.sh"; do
+          if [ -r "$hm_session_file" ]; then
+            . "$hm_session_file"
+            break
+          fi
+        done
+
+        # SSH sessions on oci-agents are headless, so unlock a passwordless
+        # login keyring. The secrets component is activated through D-Bus;
+        # deliberately do not request the ssh component.
+        if [ -n "''${SSH_CONNECTION:-}" ] \
+          && command -v gnome-keyring-daemon >/dev/null 2>&1; then
+          printf '\n' | gnome-keyring-daemon --unlock >/dev/null 2>&1 || true
+        fi
+      '';
+    };
+    ".zprofile" = {
+      force = true;
+      text = ''
+        # Zsh login shells source .zprofile before .zshrc.
+        if [ -r "$HOME/.profile" ]; then
+          . "$HOME/.profile"
+        fi
+      '';
+    };
+  };
+
   # The shared profile targets graphical developer machines. Override the
   # editor defaults for this headless host.
   programs.zsh = {
