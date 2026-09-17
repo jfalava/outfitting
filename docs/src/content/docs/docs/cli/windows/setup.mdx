@@ -17,6 +17,7 @@ Options are `--machine-id`, `--manifest-base-url`, `--manifest-ref`, `--profile`
 
 - A new machine uses `defaultProfiles` from `config.json`, defaulting to `base`.
 - Without `--profile`, an existing machine reuses its saved profile selection.
+- A saved mixed legacy selection such as `base,msstore-base` migrates to the canonical `base` profile. A standalone `msstore-base` selection errors; choose its replacement explicitly with `--profile base` (or another regular profile).
 - `--winget-only` skips Scoop while bootstrapping a fresh machine.
 - `--no-push` writes the local lock without uploading it.
 

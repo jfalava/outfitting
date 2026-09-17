@@ -28,39 +28,9 @@ export const SCRIPT_URLS = {
 } as const;
 
 /**
- * Windows package file base URL
- */
-export const WINDOWS_PACKAGES_BASE = `${GITHUB_RAW_BASE}/packages/windows`;
-
-/**
- * Valid Windows package profiles
- */
-export const WINDOWS_PACKAGE_PROFILES = [
-  "base",
-  "dev",
-  "gaming",
-  "work",
-  "qol",
-  "network",
-] as const;
-
-/**
- * Legacy Microsoft Store-only profiles. New manifests fold these entries into
- * the regular profiles with `msstore:<id>` source tags.
- */
-export const MSSTORE_PACKAGE_PROFILES = [
-  "msstore-base",
-  "msstore-dev",
-  "msstore-gaming",
-  "msstore-work",
-  "msstore-qol",
-] as const;
-
-/**
  * Content types for different script types
  */
 export const CONTENT_TYPES = {
   powershell: "application/x-powershell",
   shellscript: "text/x-shellscript",
-  plaintext: "text/plain",
 } as const;

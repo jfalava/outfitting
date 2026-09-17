@@ -15,6 +15,8 @@ import {
   readWindowsLock,
   recordWindowsOperation,
   WINDOWS_LOCK_KIND,
+  wingetIdentity,
+  wingetSource,
   writeWindowsLock,
   type WindowsLock,
   type WindowsPackageRecord,
@@ -22,19 +24,7 @@ import {
 import { wingetPackageArgs } from "@/update/winget";
 
 /** Profiles shipped by the default repository; compatible repositories may add their own. */
-export const WINDOWS_PROFILE_NAMES = [
-  "base",
-  "dev",
-  "gaming",
-  "network",
-  "qol",
-  "work",
-  "msstore-base",
-  "msstore-dev",
-  "msstore-gaming",
-  "msstore-qol",
-  "msstore-work",
-] as const;
+export const WINDOWS_PROFILE_NAMES = ["base", "dev", "gaming", "network", "qol", "work"] as const;
 
 export function windowsWingetProfilePath(config: ManagerConfig, profile: string): string {
   return resolveWindowsRoutes(config.windows).wingetProfilePath.replaceAll("{profile}", profile);
@@ -62,61 +52,27 @@ export interface WindowsWingetPackage {
   source?: "msstore";
 }
 
-export function windowsWingetSourceForProfile(profile: string): WindowsWingetPackage["source"] {
-  return /^msstore-/i.test(profile) ? "msstore" : undefined;
-}
-
-type ParsedWindowsPackageLine =
-  | { kind: "skip" }
-  | { kind: "invalid"; message: string }
-  | { kind: "package"; value: WindowsWingetPackage };
-
-function parseWindowsPackageLine(
-  raw: string,
-  index: number,
-  defaultSource: WindowsWingetPackage["source"] | undefined,
-): ParsedWindowsPackageLine {
-  const value = raw.trim();
-  if (value.length === 0 || value.startsWith("#")) {
-    return { kind: "skip" };
-  }
-  const sourceTag = /^([A-Za-z][A-Za-z0-9_-]*):(.+)$/.exec(value);
-  const source = sourceTag === null ? defaultSource : sourceTag[1]?.toLowerCase();
-  const name = sourceTag === null ? value : sourceTag[2];
-  if (source !== undefined && source !== "msstore") {
-    return { kind: "invalid", message: `line ${index + 1}: ${value}` };
-  }
-  if (name === undefined || /\s/.test(name) || name.startsWith("-")) {
-    return { kind: "invalid", message: `line ${index + 1}: ${value}` };
-  }
-  return {
-    kind: "package",
-    value: source === undefined ? { name } : { name, source },
-  };
-}
-
 /** Parse a line-oriented package manifest without allowing command fragments. */
-export function parseWindowsPackageList(
-  content: string,
-  path: string,
-  defaultSource?: WindowsWingetPackage["source"],
-): WindowsWingetPackage[] {
+export function parseWindowsPackageList(content: string, path: string): WindowsWingetPackage[] {
   const packages: WindowsWingetPackage[] = [];
   const seen = new Set<string>();
   const invalid: string[] = [];
   for (const [index, raw] of content.split(/\r?\n/).entries()) {
-    const entry = parseWindowsPackageLine(raw, index, defaultSource);
-    if (entry.kind === "skip") {
+    const value = raw.trim();
+    if (value.length === 0 || value.startsWith("#")) {
       continue;
     }
-    if (entry.kind === "invalid") {
-      invalid.push(entry.message);
+    const isStore = /^msstore:/i.test(value);
+    const name = isStore ? value.slice("msstore:".length) : value;
+    if (!/^(?!-)[^\s:]+$/.test(name)) {
+      invalid.push(`line ${index + 1}: ${value}`);
       continue;
     }
-    const key = `${entry.value.source ?? "winget"}:${entry.value.name.toLowerCase()}`;
+    const source = isStore ? "msstore" : undefined;
+    const key = wingetIdentity(name, source);
     if (!seen.has(key)) {
       seen.add(key);
-      packages.push(entry.value);
+      packages.push(source === undefined ? { name } : { name, source });
     }
   }
   if (invalid.length > 0) {
@@ -149,7 +105,16 @@ export function resolveWindowsProfiles(
   if (normalized.length === 0) {
     throw new Error("At least one Windows profile must be selected.");
   }
-  return normalized;
+  const regular = normalized.filter((profile) => !/^msstore-/i.test(profile));
+  const unpaired = normalized.filter(
+    (profile) => /^msstore-/i.test(profile) && !regular.includes(profile.slice("msstore-".length)),
+  );
+  if (unpaired.length > 0) {
+    throw new Error(
+      `Store-only profiles have been removed: ${unpaired.join(", ")}. Select regular profiles explicitly with --profile (for example, --profile base). Regular profiles also install non-Store packages.`,
+    );
+  }
+  return regular;
 }
 
 function packageName(value: string): string {
@@ -161,7 +126,7 @@ function baselineWingetRecords(
 ): WindowsPackageRecord[] {
   return packages.map((packageInfo) => ({
     name: packageInfo.name,
-    args: wingetPackageArgs("install", packageInfo.name, packageInfo.source),
+    args: wingetPackageArgs("install", packageInfo.name, packageInfo.source ?? "winget"),
     origin: "baseline",
   }));
 }
@@ -181,15 +146,20 @@ function cleanCandidates(
   desiredScoop: ScoopManifest | undefined,
 ): CleanPackage[] {
   const desiredWingetNames = new Set(
-    desiredWinget.map((packageInfo) => packageInfo.name.toLowerCase()),
+    desiredWinget.map((packageInfo) => wingetIdentity(packageInfo.name, packageInfo.source)),
   );
   const desiredScoopNames = new Set(
     (desiredScoop?.packages ?? []).map((spec) => packageName(spec).toLowerCase()),
   );
   return [
     ...current.packages.winget
-      .filter((record) => !desiredWingetNames.has(record.name.toLowerCase()))
-      .map((record) => ({ manager: "WinGet" as const, name: record.name })),
+      .filter(
+        (record) => !desiredWingetNames.has(wingetIdentity(record.name, wingetSource(record.args))),
+      )
+      .map((record) => ({
+        manager: "WinGet" as const,
+        name: `${wingetSource(record.args)}:${record.name}`,
+      })),
     ...current.packages.scoop
       .filter((record) => !desiredScoopNames.has(record.name.toLowerCase()))
       .map((record) => ({ manager: "Scoop" as const, name: record.name })),
@@ -234,11 +204,11 @@ interface WingetRunContext {
   executable: string;
   action: "install" | "uninstall";
   name: string;
-  source?: "msstore";
+  source?: "winget" | "msstore";
 }
 
 function runWinget({ run, executable, action, name, source }: WingetRunContext) {
-  const args = wingetPackageArgs(action, name, source);
+  const args = wingetPackageArgs(action, name, source ?? "winget");
   return Effect.gen(function* () {
     const result = yield* tryPromise(() => run(executable, args, { inherit: true }));
     const alreadyInstalled = action === "install" && isWingetAlreadyInstalledExitCode(result.code);
@@ -272,12 +242,7 @@ const fetchWingetPackages = Effect.fn("fetchWingetPackages")(function* (
       yield* Console.log(ui.muted(manifest.warning));
     }
     const entries = yield* Effect.try({
-      try: () =>
-        parseWindowsPackageList(
-          manifest.text,
-          manifest.path,
-          windowsWingetSourceForProfile(profile),
-        ),
+      try: () => parseWindowsPackageList(manifest.text, manifest.path),
       catch: (cause) =>
         new CliFailure({ message: cause instanceof Error ? cause.message : String(cause) }),
     });
@@ -286,7 +251,7 @@ const fetchWingetPackages = Effect.fn("fetchWingetPackages")(function* (
   return [
     ...new Map(
       packages.map((packageInfo) => [
-        `${packageInfo.source ?? "winget"}:${packageInfo.name.toLowerCase()}`,
+        wingetIdentity(packageInfo.name, packageInfo.source),
         packageInfo,
       ]),
     ).values(),
@@ -354,9 +319,11 @@ const cleanWingetPackages = Effect.fn("cleanWingetPackages")(function* ({
   current,
   desired,
 }: CleanWingetContext) {
-  const desiredNames = new Set(desired.map((packageInfo) => packageInfo.name.toLowerCase()));
+  const desiredNames = new Set(
+    desired.map((packageInfo) => wingetIdentity(packageInfo.name, packageInfo.source)),
+  );
   for (const packageRecord of current.packages.winget) {
-    if (desiredNames.has(packageRecord.name.toLowerCase())) {
+    if (desiredNames.has(wingetIdentity(packageRecord.name, wingetSource(packageRecord.args)))) {
       continue;
     }
     const { args } = yield* runWinget({
@@ -364,7 +331,7 @@ const cleanWingetPackages = Effect.fn("cleanWingetPackages")(function* ({
       executable,
       action: "uninstall",
       name: packageRecord.name,
-      source: packageRecord.args.includes("msstore") ? "msstore" : undefined,
+      source: wingetSource(packageRecord.args),
     });
     yield* tryPromise(() =>
       recordWindowsOperation({
@@ -579,7 +546,7 @@ export const syncWindows = <ConfirmR = never>(options: WindowsSyncOptions<Confir
 const profileFlag = Flag.string("profile").pipe(
   Flag.optional,
   Flag.withDescription(
-    "Comma-separated profile names from the configured repository (msstore-* uses the Microsoft Store).",
+    "Comma-separated regular profiles from the configured repository, including their Store packages.",
   ),
 );
 

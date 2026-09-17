@@ -12,7 +12,7 @@ import {
 } from "@/commands/windows-sync";
 import type { ManagerConfig } from "@/config";
 import type { RunCommandResult } from "@/process";
-import { readWindowsLock, writeWindowsLock } from "@/update/windows-lock";
+import { readWindowsLock, recordWindowsOperation, writeWindowsLock } from "@/update/windows-lock";
 
 const configFor = (stateRoot: string): ManagerConfig => ({
   stateRoot,
@@ -100,17 +100,145 @@ describe("Windows profile selection", () => {
     );
   });
 
-  test("parses explicit Store sources and preserves legacy Store profiles", async () => {
+  test("migrates only paired profiles and allows an explicit replacement", () => {
+    expect(
+      resolveWindowsProfiles(undefined, ["base", "msstore-base", "dev", "msstore-dev"]),
+    ).toEqual(["base", "dev"]);
+    expect(() => resolveWindowsProfiles(undefined, ["base", "msstore-dev"])).toThrow(
+      "Store-only profiles have been removed: msstore-dev",
+    );
+    expect(resolveWindowsProfiles(["dev"], ["msstore-base"])).toEqual(["dev"]);
+  });
+
+  test("rejects saved Store-only selections before fetching or changing state", async () => {
+    const root = await mkdtemp(join(tmpdir(), "outfitting-store-only-"));
+    try {
+      const config = configFor(root);
+      const lock = await readWindowsLock(config);
+      lock.profiles = ["msstore-base"];
+      const path = await writeWindowsLock(lock, { root });
+      const before = await readFile(path, "utf8");
+      await expect(
+        Effect.runPromise(
+          syncWindows({
+            config,
+            noPush: true,
+            fetcher: async () => {
+              throw new Error("must not fetch");
+            },
+            run: async () => {
+              throw new Error("must not run");
+            },
+          }),
+        ),
+      ).rejects.toThrow("Store-only profiles have been removed");
+      expect(await readFile(path, "utf8")).toBe(before);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  test.each([false, true])(
+    "removes only the tracked Store source after confirmation (%s)",
+    async (confirmed) => {
+      const root = await mkdtemp(join(tmpdir(), "outfitting-source-clean-"));
+      try {
+        const config = configFor(root);
+        for (const source of ["winget", "msstore"]) {
+          await recordWindowsOperation({
+            config,
+            manager: "winget",
+            action: "install",
+            name: "Same.ID",
+            args: ["--source", source],
+            status: "success",
+          });
+        }
+        expect((await readWindowsLock(config)).packages.winget).toHaveLength(2);
+        const calls: string[][] = [];
+        await Effect.runPromise(
+          syncWindows({
+            config,
+            noPush: true,
+            wingetOnly: true,
+            profiles: ["base"],
+            confirmClean: Effect.succeed(confirmed),
+            which: async (name) => (name === "winget" ? "winget" : undefined),
+            fetcher: async (url) =>
+              url.endsWith("base.txt") ? new Response("Same.ID\n") : responseFor(url),
+            run: async (_command, args) => {
+              calls.push([...args]);
+              return { code: 0, stdout: "", stderr: "" };
+            },
+          }),
+        );
+        expect(calls.filter((args) => args[0] === "uninstall")).toEqual(
+          confirmed
+            ? [
+                [
+                  "uninstall",
+                  "--id",
+                  "Same.ID",
+                  "--exact",
+                  "--source",
+                  "msstore",
+                  "--accept-source-agreements",
+                ],
+              ]
+            : [],
+        );
+        const records = (await readWindowsLock(config)).packages.winget;
+        expect(records.map((record) => record.args[record.args.indexOf("--source") + 1])).toEqual(
+          confirmed ? ["winget"] : ["winget", "msstore"],
+        );
+        if (!confirmed) expect(calls).toEqual([]);
+        await recordWindowsOperation({
+          config,
+          manager: "winget",
+          action: "uninstall",
+          name: "same.id",
+          args: ["--source", "msstore"],
+          status: "success",
+        });
+        expect(
+          (await readWindowsLock(config)).packages.winget.map((record) => record.name),
+        ).toEqual(["Same.ID"]);
+      } finally {
+        await rm(root, { recursive: true, force: true });
+      }
+    },
+  );
+
+  test.each(["msstore:", "msstore::App", "other:App", "msstore:--id", "msstore:two words"])(
+    "rejects malformed source entry %s",
+    (entry) => {
+      expect(() => parseWindowsPackageList(`# comment\n${entry}\n`, "base.txt")).toThrow(
+        `Invalid WinGet manifest entries in base.txt: line 2: ${entry}`,
+      );
+    },
+  );
+
+  test("deduplicates source tags case-insensitively without merging different sources", () => {
+    expect(
+      parseWindowsPackageList("Same.ID\nMSSTORE:Same.ID\nmsstore:same.id\n", "base.txt"),
+    ).toEqual([{ name: "Same.ID" }, { name: "Same.ID", source: "msstore" }]);
+  });
+
+  test("migrates paired saved Store profiles without changing package coverage", async () => {
     const root = await mkdtemp(join(tmpdir(), "outfitting-windows-store-migration-"));
     try {
       const config = configFor(root);
       const calls: string[][] = [];
+      const saved = await readWindowsLock(config);
+      saved.profiles = ["base", "msstore-base"];
+      saved.packages.winget = [
+        { name: "Store.App", args: ["--source", "msstore"], origin: "baseline" },
+      ];
+      await writeWindowsLock(saved, { root });
       const fetcher = async (url: string) => {
+        expect(url).not.toContain("msstore-");
         if (url.endsWith("packages/windows/base.txt")) {
           return new Response("Regular.Package\nmsstore:Store.App\n");
-        }
-        if (url.endsWith("packages/windows/msstore-base.txt")) {
-          return new Response("Store.App\nLegacy.Store.App\n");
         }
         return responseFor(url);
       };
@@ -120,7 +248,6 @@ describe("Windows profile selection", () => {
           config,
           fetcher,
           noPush: true,
-          profiles: ["base", "msstore-base"],
           run: async (command, args) => {
             calls.push([command, ...args]);
             return { code: 0, stdout: "", stderr: "" };
@@ -137,6 +264,8 @@ describe("Windows profile selection", () => {
           "--id",
           "Regular.Package",
           "--exact",
+          "--source",
+          "winget",
           "--accept-source-agreements",
           "--accept-package-agreements",
         ],
@@ -151,20 +280,9 @@ describe("Windows profile selection", () => {
           "--accept-source-agreements",
           "--accept-package-agreements",
         ],
-        [
-          "C:\\winget.exe",
-          "install",
-          "--id",
-          "Legacy.Store.App",
-          "--exact",
-          "--source",
-          "msstore",
-          "--accept-source-agreements",
-          "--accept-package-agreements",
-        ],
       ]);
+      expect((await readWindowsLock(config)).profiles).toEqual(["base"]);
       expect((await readWindowsLock(config)).packages.winget.map((entry) => entry.name)).toEqual([
-        "Legacy.Store.App",
         "Regular.Package",
         "Store.App",
       ]);
@@ -368,7 +486,7 @@ describe("Windows profile selection", () => {
         "OpenAI.Codex",
       ]);
       expect(calls.filter((call) => call.includes("uninstall"))).toEqual([
-        "C:\\winget.exe uninstall --id Git.Git --exact --accept-source-agreements",
+        "C:\\winget.exe uninstall --id Git.Git --exact --source winget --accept-source-agreements",
       ]);
     } finally {
       await rm(root, { force: true, recursive: true });
@@ -447,7 +565,7 @@ describe("Windows profile selection", () => {
         }).pipe(Effect.provideService(Console.Console, testConsole)),
       );
 
-      expect(output.join("\n")).toContain("WinGet: Old.Package");
+      expect(output.join("\n")).toContain("WinGet: winget:Old.Package");
       expect(output.join("\n")).toContain("Aborted. No packages were removed.");
       expect(calls).toEqual([]);
       expect((await readWindowsLock(config)).packages.winget.map((entry) => entry.name)).toEqual([

@@ -72,6 +72,76 @@ package "not-homebrew"
 });
 
 describe("collectDiff", () => {
+  test("does not satisfy a Store requirement with a WinGet source package", async () => {
+    const root = await mkdtemp(join(tmpdir(), "outfitting-diff-source-"));
+    roots.push(root);
+    const result = await collectDiff({
+      platform: "windows",
+      manager: "winget",
+      config: config(root),
+      which: async () => "winget",
+      fetcher: async () => new Response("msstore:Same.ID\n"),
+      run: async (_command, args) => {
+        await writeFile(
+          String(args[2]),
+          JSON.stringify({
+            Sources: [
+              {
+                SourceDetails: { Name: "winget" },
+                Packages: [{ PackageIdentifier: "Same.ID" }],
+              },
+            ],
+          }),
+        );
+        return ok();
+      },
+    });
+    expect(result.sections[0]).toMatchObject({
+      status: "different",
+      missing: ["msstore:Same.ID"],
+      extra: ["Same.ID"],
+    });
+  });
+
+  test("compares Scoop URLs case-sensitively with continuous item progress", async () => {
+    const root = await mkdtemp(join(tmpdir(), "outfitting-diff-scoop-"));
+    roots.push(root);
+    const progress: DiffProgress[] = [];
+    const result = await collectDiff({
+      platform: "windows",
+      manager: "scoop",
+      config: config(root),
+      which: async () => "scoop",
+      onProgress: (event) => progress.push(event),
+      fetcher: async () => new Response('bucket "https://example.test/Tools"\npackage "jq"\n'),
+      run: async () =>
+        ok(
+          JSON.stringify({
+            buckets: [{ Name: "tools", Source: "https://example.test/tools" }],
+            apps: [
+              { Name: "jq", Version: "1", Info: "" },
+              { Name: "extra", Version: "2", Info: "" },
+            ],
+          }),
+        ),
+    });
+    expect(result.sections[0]).toMatchObject({
+      status: "different",
+      missing: [],
+      extra: ["package: extra"],
+      changed: ["bucket: Tools: https://example.test/tools → https://example.test/Tools"],
+    });
+    expect(
+      progress
+        .filter((event) => event.phase === "item")
+        .map((event) => [event.itemIndex, event.itemTotal]),
+    ).toEqual([
+      [1, 3],
+      [2, 3],
+      [3, 3],
+    ]);
+  });
+
   test("compares Homebrew direct state without invoking mutating commands", async () => {
     const root = await mkdtemp(join(tmpdir(), "outfitting-diff-brew-"));
     roots.push(root);
@@ -186,11 +256,11 @@ describe("collectDiff", () => {
           JSON.stringify({
             Sources: [
               {
-                Packages: [
-                  { PackageIdentifier: "git.git" },
-                  { PackageIdentifier: "Store.App" },
-                  { PackageIdentifier: "Extra.App" },
-                ],
+                Packages: [{ PackageIdentifier: "git.git" }, { PackageIdentifier: "Extra.App" }],
+              },
+              {
+                SourceDetails: { Name: "msstore" },
+                Packages: [{ PackageIdentifier: "Store.App" }],
               },
             ],
           }),
@@ -232,7 +302,7 @@ describe("collectDiff", () => {
         total: 1,
         manager: "winget",
         phase: "item",
-        item: "Store.App",
+        item: "msstore:Store.App",
         itemIndex: 3,
         itemTotal: 4,
       },

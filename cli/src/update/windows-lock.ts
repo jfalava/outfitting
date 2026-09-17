@@ -10,6 +10,15 @@ export const WINDOWS_LOCK_KIND = "windows";
 export const WINDOWS_LOCK_FORMAT = "outfitting-windows-lock-v1";
 const MAX_OPERATION_HISTORY = 100;
 
+export function wingetSource(args: ReadonlyArray<string>): "winget" | "msstore" {
+  const index = args.indexOf("--source");
+  return index >= 0 && args[index + 1]?.toLowerCase() === "msstore" ? "msstore" : "winget";
+}
+
+export function wingetIdentity(name: string, source = "winget"): string {
+  return `${source}:${name}`.toLowerCase();
+}
+
 /** WinGet uses either representation for update-not-applicable on Windows. */
 export function isWingetAlreadyInstalledExitCode(code: number): boolean {
   return code === 43 || code === -1978335189;
@@ -188,7 +197,12 @@ export async function recordWindowsOperation(
 
   if (input.status === "success" && (input.action === "install" || input.action === "uninstall")) {
     const entries = lock.packages[input.manager];
-    const index = entries.findIndex((entry) => entry.name.toLowerCase() === identity.toLowerCase());
+    const index = entries.findIndex((entry) =>
+      input.manager === "winget"
+        ? wingetIdentity(entry.name, wingetSource(entry.args)) ===
+          wingetIdentity(identity, wingetSource(input.args))
+        : entry.name.toLowerCase() === identity.toLowerCase(),
+    );
     if (input.action === "install") {
       const record: WindowsPackageRecord = {
         name: identity,

@@ -1,8 +1,6 @@
 import { Hono } from "hono";
 
 import helpRouter from "./routes/help";
-import msstoreRouter from "./routes/msstore";
-import packagesRouter from "./routes/packages";
 import postInstallRouter from "./routes/post-install";
 import profileRouter from "./routes/profile";
 import registryRouter from "./routes/registry";
@@ -11,13 +9,6 @@ const windowsApp = new Hono();
 
 // GET /
 windowsApp.route("/", helpRouter);
-
-// GET /packages/msstore/:profile  GET /packages/:profile
-// NOTE: msstore sub-route is registered first inside packagesRouter to avoid wildcard swallowing
-windowsApp.route("/packages", packagesRouter);
-
-// GET /msstore/:profile
-windowsApp.route("/msstore", msstoreRouter);
 
 // GET /registry
 windowsApp.route("/registry", registryRouter);

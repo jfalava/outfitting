@@ -16,14 +16,14 @@ import {
 export function wingetPackageArgs(
   action: WindowsPackageAction,
   name: string,
-  source?: "msstore",
+  source?: "winget" | "msstore",
 ): string[] {
   return [
     action,
     "--id",
     name,
     "--exact",
-    ...(source === "msstore" ? ["--source", "msstore"] : []),
+    ...(source === undefined ? [] : ["--source", source]),
     "--accept-source-agreements",
     ...(action === "uninstall" ? [] : ["--accept-package-agreements"]),
   ];

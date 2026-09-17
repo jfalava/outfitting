@@ -4,11 +4,7 @@ import { join } from "node:path";
 
 import { Console, Effect, Option, Schema } from "effect";
 
-import {
-  parseWindowsPackageList,
-  resolveWindowsProfiles,
-  windowsWingetSourceForProfile,
-} from "@/commands/windows-sync";
+import { parseWindowsPackageList, resolveWindowsProfiles } from "@/commands/windows-sync";
 import {
   loadConfig,
   resolveOutfittingRepo,
@@ -118,11 +114,7 @@ function compareSets(
     const current = actualMap.get(key);
     if (current === undefined) {
       missing.push(item.name);
-    } else if (
-      item.value !== undefined &&
-      current.value !== undefined &&
-      item.value.toLowerCase() !== current.value.toLowerCase()
-    ) {
+    } else if (item.value !== undefined && item.value !== current.value) {
       changed.push(`${item.name}: ${current.value} → ${item.value}`);
     }
     if (desiredMap.get(key) === undefined) {
@@ -178,52 +170,25 @@ function compareScoop(
   onItem?: DiffContext["reportItem"],
 ): DiffSection {
   const desiredBuckets = desired.buckets.map((bucket) => ({
-    name: bucket.name,
+    name: `bucket: ${bucket.name}`,
     value: bucket.url,
   }));
   const actualBuckets = actual.buckets.map((bucket) => ({
-    name: bucket.Name,
+    name: `bucket: ${bucket.Name}`,
     value: bucket.Source,
   }));
-  const desiredPackages = desired.packages.map((spec) => ({ name: packageName(spec) }));
+  const desiredPackages = desired.packages.map((spec) => ({
+    name: `package: ${packageName(spec)}`,
+  }));
   const actualPackages = actual.apps
     .filter((app) => !/\bGlobal install\b/i.test(app.Info))
-    .map((app) => ({ name: app.Name }));
-  const buckets = compareSets(
+    .map((app) => ({ name: `package: ${app.Name}` }));
+  return compareSets(
     "scoop",
-    desiredBuckets,
-    actualBuckets,
-    onItem === undefined
-      ? undefined
-      : (item, itemIndex, itemTotal) => onItem(`bucket: ${item}`, itemIndex, itemTotal),
+    [...desiredBuckets, ...desiredPackages],
+    [...actualBuckets, ...actualPackages],
+    onItem,
   );
-  const packages = compareSets(
-    "scoop",
-    desiredPackages,
-    actualPackages,
-    onItem === undefined
-      ? undefined
-      : (item, itemIndex, itemTotal) => onItem(`package: ${item}`, itemIndex, itemTotal),
-  );
-  const missing = [
-    ...buckets.missing.map((name) => `bucket: ${name}`),
-    ...packages.missing.map((name) => `package: ${name}`),
-  ];
-  const extra = [
-    ...buckets.extra.map((name) => `bucket: ${name}`),
-    ...packages.extra.map((name) => `package: ${name}`),
-  ];
-  const changed = [...buckets.changed, ...packages.changed.map((name) => `package: ${name}`)];
-  missing.sort((left, right) => left.localeCompare(right, "en"));
-  extra.sort((left, right) => left.localeCompare(right, "en"));
-  changed.sort((left, right) => left.localeCompare(right, "en"));
-  return {
-    manager: "scoop",
-    status: sectionStatus(missing, extra, changed),
-    missing,
-    extra,
-    changed,
-  };
 }
 
 function packageName(value: string): string {
@@ -237,6 +202,7 @@ const WingetPackageSchema = Schema.Struct({
 const WingetExportSchema = Schema.Struct({
   Sources: Schema.ArrayEnsure(
     Schema.Struct({
+      SourceDetails: Schema.optionalKey(Schema.Struct({ Name: Schema.String })),
       Packages: Schema.ArrayEnsure(WingetPackageSchema),
     }),
   ),
@@ -259,7 +225,11 @@ export function parseWingetExport(content: string): string[] {
   return [
     ...new Set(
       decoded.value.Sources.flatMap((source) =>
-        source.Packages.map((pkg) => pkg.PackageIdentifier),
+        source.Packages.map((pkg) =>
+          source.SourceDetails?.Name.toLowerCase() === "msstore"
+            ? `msstore:${pkg.PackageIdentifier}`
+            : pkg.PackageIdentifier,
+        ),
       ),
     ),
   ].toSorted((left, right) => left.localeCompare(right, "en"));
@@ -379,11 +349,10 @@ async function compareWindowsSection(
     for (const profile of selectedProfiles) {
       const path = routes.wingetProfilePath.replaceAll("{profile}", profile);
       desired.push(
-        ...parseWindowsPackageList(
-          await fetchDiffManifest(path, context),
-          path,
-          windowsWingetSourceForProfile(profile),
-        ).map((packageInfo) => packageInfo.name),
+        ...parseWindowsPackageList(await fetchDiffManifest(path, context), path).map(
+          (packageInfo) =>
+            packageInfo.source === "msstore" ? `msstore:${packageInfo.name}` : packageInfo.name,
+        ),
       );
     }
     const actual = await captureWingetPackages(executable, context.run);

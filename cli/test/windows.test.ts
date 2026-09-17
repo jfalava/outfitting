@@ -266,7 +266,7 @@ describe("Windows desired state and lock", () => {
       await expect(
         readFile(join(root, "manifests/dotfiles/Microsoft.PowerShell_profile.ps1"), "utf8"),
       ).resolves.toBe("Git.Git\n");
-      expect(output.join("\n")).toContain("WinGet: Manual.Package");
+      expect(output.join("\n")).toContain("WinGet: winget:Manual.Package");
       expect(output.join("\n")).toContain("Scoop: extra-scoop");
       expect(calls.some((call) => call.includes("Manual.Package"))).toBe(true);
       expect(calls.some((call) => call.includes("extra-scoop"))).toBe(true);

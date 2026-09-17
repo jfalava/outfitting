@@ -15,21 +15,12 @@ export function generateHelpScript(host: string): string {
 #   qol      - Quality of life improvements
 #   network  - Network tools and utilities
 #
-# Legacy Microsoft Store-only profiles:
-#   msstore-base    - Core Microsoft Store apps
-#   msstore-dev     - Development-related Store apps
-#   msstore-gaming  - Gaming-related Store apps
-#   msstore-work    - Work-related Store apps
-#   msstore-qol     - Quality of life Store apps
-#
 # Additional Installations:
 #   registry - Install Windows registry tweaks only
 #
 # Examples:
 #   irm ${host}/base | iex                              # Install base + Store packages
 #   irm ${host}/dev+gaming | iex                        # Install dev + gaming packages
-#   irm ${host}/msstore/msstore-base | iex              # Legacy: Store-only base apps
-#   irm ${host}/msstore/msstore-base+msstore-qol | iex  # Install Store base + qol apps
 #   irm ${host}/registry | iex                          # Install registry tweaks only
 #
 # Note: Packages must be explicitly specified. There is no default installation.
@@ -45,13 +36,6 @@ Write-Host "  • work     - Work-related applications" -ForegroundColor White
 Write-Host "  • qol      - Quality of life improvements" -ForegroundColor White
 Write-Host "  • network  - Network tools and utilities" -ForegroundColor White
 Write-Host ""
-Write-Host "Legacy Microsoft Store-only profiles:" -ForegroundColor Yellow
-Write-Host "  • msstore-base    - Core Microsoft Store apps" -ForegroundColor White
-Write-Host "  • msstore-dev     - Development-related Store apps" -ForegroundColor White
-Write-Host "  • msstore-gaming  - Gaming-related Store apps" -ForegroundColor White
-Write-Host "  • msstore-work    - Work-related Store apps" -ForegroundColor White
-Write-Host "  • msstore-qol     - Quality of life Store apps" -ForegroundColor White
-Write-Host ""
 Write-Host "Additional Installations:" -ForegroundColor Yellow
 Write-Host "  • registry - Install Windows registry tweaks only" -ForegroundColor White
 Write-Host ""
@@ -59,10 +43,6 @@ Write-Host "Usage Examples:" -ForegroundColor Yellow
 Write-Host "  WinGet packages:" -ForegroundColor Cyan
 Write-Host "    irm ${host}/base | iex" -ForegroundColor Green
 Write-Host "    irm ${host}/dev+gaming+qol | iex" -ForegroundColor Green
-Write-Host ""
-Write-Host "  Legacy Store-only packages:" -ForegroundColor Cyan
-Write-Host "    irm ${host}/msstore/msstore-base | iex" -ForegroundColor Green
-Write-Host "    irm ${host}/msstore/msstore-base+msstore-gaming | iex" -ForegroundColor Green
 Write-Host ""
 Write-Host "  Registry tweaks only:" -ForegroundColor Cyan
 Write-Host "    irm ${host}/registry | iex" -ForegroundColor Green

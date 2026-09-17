@@ -6,6 +6,10 @@ import { generateProfileErrorScript } from "../scripts/profile";
 
 const profileRouter = new Hono();
 
+function isRetiredProfileRoute(profile: string): boolean {
+  return profile === "msstore" || profile === "packages" || profile.startsWith("msstore-");
+}
+
 // GET /:profile - CLI bootstrap script with injected desired-state profiles (supports "base+dev+gaming")
 profileRouter.get("/:profile", async (c) => {
   const profileParam = c.req.param("profile");
@@ -13,7 +17,9 @@ profileRouter.get("/:profile", async (c) => {
 
   const requestedProfiles = profileParam.split("+").map((p) => p.trim().toLowerCase());
 
-  const invalidProfiles = requestedProfiles.filter((profile) => !isSafeProfileName(profile));
+  const invalidProfiles = requestedProfiles.filter(
+    (profile) => !isSafeProfileName(profile) || isRetiredProfileRoute(profile),
+  );
 
   if (invalidProfiles.length > 0) {
     setScriptHeaders(c, CONTENT_TYPES.powershell);
