@@ -11,10 +11,7 @@ import { foreignPackageManagerMessage } from "@/platform";
 const execFileAsync = promisify(execFile);
 const cliEntry = fileURLToPath(new URL("../index.macos.ts", import.meta.url));
 
-const runCliWithEnv = async (
-  args: string[],
-  env: Record<string, string | undefined> = {},
-) => {
+const runCliWithEnv = async (args: string[], env: Record<string, string | undefined> = {}) => {
   try {
     const result = await execFileAsync("bun", [cliEntry, ...args], {
       encoding: "utf8",

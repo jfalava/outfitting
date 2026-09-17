@@ -49,18 +49,12 @@ const bunCommand = Command.make("bun", {}, () => updateBun).pipe(
   Command.withDescription("Deprecated; run `bun update -g` directly."),
 );
 
-const brewCommand = Command.make(
-  "brew",
-  { noSync: noSyncFlag },
-  ({ noSync }) => updateBrew({ noSync }),
-).pipe(
-  Command.withDescription("Full Homebrew path from the managed Brewfile desired state."),
-);
+const brewCommand = Command.make("brew", { noSync: noSyncFlag }, ({ noSync }) =>
+  updateBrew({ noSync }),
+).pipe(Command.withDescription("Full Homebrew path from the managed Brewfile desired state."));
 
-const allCommand = Command.make(
-  "all",
-  { noSync: noSyncFlag },
-  ({ noSync }) => updateAll({ noSync }),
+const allCommand = Command.make("all", { noSync: noSyncFlag }, ({ noSync }) =>
+  updateAll({ noSync }),
 ).pipe(
   Command.withDescription(
     "Run nix switch → brew (inventory sync via brew unless --no-sync); continue on failure; exit ≠0 if any step failed.",
@@ -76,12 +70,6 @@ export const makeMacosUpdateCommand = () => {
     Command.withDescription(
       "Update machine packages (brew, nix, or all); Bun updates use `bun update -g`.",
     ),
-    Command.withSubcommands([
-      bunCommand,
-      brewCommand,
-      makeNixCommand(),
-      allCommand,
-      ...foreign,
-    ]),
+    Command.withSubcommands([bunCommand, brewCommand, makeNixCommand(), allCommand, ...foreign]),
   );
 };

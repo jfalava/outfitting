@@ -4,10 +4,7 @@ import { dirname, join } from "node:path";
 import { loadConfig, manifestCacheDir, manifestsDir, type ManagerConfig } from "@/config";
 import { readCachedManifest, writeCachedManifest, type CachedManifest } from "@/fetch/cache";
 
-export type ManifestFetcher = (
-  input: string,
-  init?: RequestInit,
-) => Promise<Response>;
+export type ManifestFetcher = (input: string, init?: RequestInit) => Promise<Response>;
 
 export interface FetchManifestOptions {
   /** Repo-relative path, e.g. `packages/macos/Brewfile`. */

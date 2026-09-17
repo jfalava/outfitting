@@ -36,10 +36,7 @@ function baseArgs(mode: NixBuildMode, lockPath: string | undefined): string[] {
  */
 export async function buildNixSystem(options: NixBuildOptions): Promise<string> {
   const run = options.run ?? runCommand;
-  const args = [
-    ...baseArgs(options.mode, options.lockPath),
-    flakeRef(options.repo.flakePath),
-  ];
+  const args = [...baseArgs(options.mode, options.lockPath), flakeRef(options.repo.flakePath)];
 
   const env: NodeJS.ProcessEnv = {
     ...process.env,
@@ -54,9 +51,7 @@ export async function buildNixSystem(options: NixBuildOptions): Promise<string> 
 
   if (result.code !== 0) {
     const detail = (result.stderr || result.stdout).trim();
-    throw new Error(
-      `nix build failed (exit ${result.code})${detail ? `: ${detail}` : ""}`,
-    );
+    throw new Error(`nix build failed (exit ${result.code})${detail ? `: ${detail}` : ""}`);
   }
 
   if (options.mode === "dry") {

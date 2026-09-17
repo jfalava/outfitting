@@ -1,8 +1,5 @@
 export { updateAll, type UpdateAllOptions, type UpdateStepResult } from "@/update/all";
-export {
-  updateBun,
-  parseBunGlobalList,
-} from "@/update/bun";
+export { updateBun, parseBunGlobalList } from "@/update/bun";
 export { updateBrew, parseBrewfileTaps, BREWFILE_MANIFEST_PATH } from "@/update/brew";
 export {
   captureHomebrewInventory,

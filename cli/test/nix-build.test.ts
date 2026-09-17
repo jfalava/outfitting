@@ -1,8 +1,8 @@
 import { describe, expect, test } from "vitest";
 
+import type { RunCommandResult } from "@/process";
 import { buildNixSystem } from "@/update/nix/build";
 import { NIX_SYSTEM_ATTR } from "@/update/nix/types";
-import type { RunCommandResult } from "@/process";
 
 const fakeRepo = {
   root: "/repo",
@@ -12,10 +12,7 @@ const fakeRepo = {
 
 describe("buildNixSystem", () => {
   test("passes remote lock flags and returns store path", async () => {
-    const run = async (
-      command: string,
-      args: ReadonlyArray<string>,
-    ): Promise<RunCommandResult> => {
+    const run = async (command: string, args: ReadonlyArray<string>): Promise<RunCommandResult> => {
       expect(command).toBe("nix");
       expect(args).toContain("build");
       expect(args).toContain("--impure");
@@ -60,8 +57,8 @@ describe("buildNixSystem", () => {
       stdout: "",
       stderr: "boom",
     });
-    await expect(
-      buildNixSystem({ repo: fakeRepo, mode: "build", run }),
-    ).rejects.toThrow(/nix build failed/);
+    await expect(buildNixSystem({ repo: fakeRepo, mode: "build", run })).rejects.toThrow(
+      /nix build failed/,
+    );
   });
 });

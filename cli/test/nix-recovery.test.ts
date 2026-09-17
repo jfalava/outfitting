@@ -7,6 +7,7 @@ import { afterEach, describe, expect, test } from "vitest";
 
 import type { ManagerConfig } from "@/config";
 import { CliFailure } from "@/errors";
+import { recoverNix, type RecoverNixOptions } from "@/update/nix/recover";
 import {
   clearNixRecovery,
   hasNixRecovery,
@@ -15,7 +16,6 @@ import {
   readNixRecovery,
   setNixRecoveryPhase,
 } from "@/update/nix/recovery";
-import { recoverNix, type RecoverNixOptions } from "@/update/nix/recover";
 
 const temps: string[] = [];
 

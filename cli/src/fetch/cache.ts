@@ -32,9 +32,7 @@ function entryDir(cacheRoot: string, url: string): string {
 
 function isNotFound(cause: unknown): boolean {
   return (
-    cause instanceof Error &&
-    "code" in cause &&
-    (cause as NodeJS.ErrnoException).code === "ENOENT"
+    cause instanceof Error && "code" in cause && (cause as NodeJS.ErrnoException).code === "ENOENT"
   );
 }
 

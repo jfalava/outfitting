@@ -3,10 +3,7 @@ import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 
 import { envValue } from "@/secrets";
-import {
-  isNixRecoveryPhase,
-  type NixRecoveryPhase,
-} from "@/update/nix/types";
+import { isNixRecoveryPhase, type NixRecoveryPhase } from "@/update/nix/types";
 
 export interface NixRecoveryState {
   dir: string;
@@ -118,9 +115,7 @@ export async function clearNixRecovery(recoveryDir = defaultNixRecoveryDir()): P
 }
 
 /** Pure transition table for recovery phases (used by recover + tests). */
-export function nextRecoveryAction(
-  phase: NixRecoveryPhase,
-): "activate" | "publish" {
+export function nextRecoveryAction(phase: NixRecoveryPhase): "activate" | "publish" {
   switch (phase) {
     case "prepared":
       return "activate";
