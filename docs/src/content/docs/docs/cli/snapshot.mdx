@@ -1,0 +1,14 @@
+---
+title: Snapshot
+description: Capture observed package state without changing desired configuration.
+sidebar:
+  order: 4
+---
+
+`snapshot` records observed state so it can be inspected or used by the remote inventory workflow. The manager currently exposes this command on macOS for Homebrew.
+
+## Platform command
+
+- [macOS snapshot](/docs/cli/macos/snapshot/) — run `outfit snapshot brew` to capture and push installed taps, formulae, and casks.
+
+Windows `sync` writes its desired package baseline instead of providing a separate snapshot command. Linux/WSL has no manager snapshot command.

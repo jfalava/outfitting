@@ -1,0 +1,45 @@
+---
+title: Overview
+description: Command reference for Outfitting managers, installers, and shell helpers.
+sidebar:
+  order: 0
+---
+
+Outfitting has a compiled `outfitting-manager` for macOS and Windows, plus installer and shell commands for Linux and WSL. The `outfit` alias is installed by the macOS and Windows profiles.
+
+Run `outfitting-manager --help` or `outfit --help` to see the commands available in the current platform build. The [macOS](/docs/cli/macos/), [Windows](/docs/cli/windows/), and [Linux/WSL](/docs/cli/linux/) pages list the complete platform workflows.
+
+## Manager commands
+
+The table covers every top-level `outfitting-manager` command. Platform-only commands are grouped below; their linked pages list each accepted name and option.
+
+| Command     | Purpose                                                                                   | Overview                          |
+| ----------- | ----------------------------------------------------------------------------------------- | --------------------------------- |
+| `setup`     | Initialize the platform state and apply the first configuration.                          | [Setup](/docs/cli/setup/)         |
+| `update`    | Apply package, system, or configuration updates.                                          | [Update](/docs/cli/update/)       |
+| `sync`      | Reconcile Windows desired state or transport remote lockfiles, depending on the platform. | [Sync](/docs/cli/sync/)           |
+| `snapshot`  | Capture observed package state.                                                           | [Snapshot](/docs/cli/snapshot/)   |
+| `recover`   | Resume an interrupted managed operation.                                                  | [Recover](/docs/cli/recover/)     |
+| `config`    | Configure the Windows repository and route map.                                           | [Config](/docs/cli/config/)       |
+| `init`      | Initialize Windows state and cache its manifests.                                         | [Init](/docs/cli/init/)           |
+| `winget`    | Install or remove a tracked WinGet package.                                               | [WinGet](/docs/cli/winget/)       |
+| `scoop`     | Install or remove a tracked Scoop package.                                                | [Scoop](/docs/cli/scoop/)         |
+| `lockfiles` | Push, pull, and inspect remote lockfile snapshots.                                        | [Lockfiles](/docs/cli/lockfiles/) |
+| `fonts`     | List and manage the private font archive.                                                 | [Fonts](/docs/cli/fonts/)         |
+| `provision` | Deploy the Outfitting infrastructure stack.                                               | [Provision](/docs/cli/provision/) |
+| `upgrade`   | Check for and install the latest manager release.                                         | [Upgrade](/docs/cli/upgrade/)     |
+
+`lockfiles` remains available for direct remote lockfile transport on macOS and Windows. On macOS it aliases `sync`; on Windows, `sync` itself is reserved for package-profile reconciliation. `outfit update bun` is deprecated; run `bun update -g` directly.
+
+## Platform-only command groups
+
+- [macOS shell helpers](/docs/cli/macos/shell/) — `hm-build`, `hm-test`, `hm-dry`, `hm-switch`, `hm-sync`, `hm-update`, `hm-rollback`, `hm-clean`, and `hm-recover`.
+- [Linux/WSL install](/docs/cli/linux/install/) — the hosted `--full-install`, `--update-only`, and `--nix-only` installer modes.
+- [Linux/WSL Home Manager](/docs/cli/linux/home-manager/) — `hm-sync`, `hm-switch`, `hm-update`, `hm-rollback`, and `hm-clean`.
+- [Linux/WSL maintenance](/docs/cli/linux/maintenance/) — `update-all`, `remote-update`, and global `bun install -g`.
+
+## Platform references
+
+- [macOS CLI](/docs/cli/macos/) — manager commands, Nix/Homebrew updates, snapshots, recovery, and Zsh helpers.
+- [Windows CLI](/docs/cli/windows/) — repository configuration, profiles, package tracking, and updates.
+- [Linux/WSL CLI](/docs/cli/linux/) — hosted installer modes, Home Manager helpers, and maintenance commands.

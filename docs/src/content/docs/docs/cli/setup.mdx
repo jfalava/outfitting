@@ -1,0 +1,16 @@
+---
+title: Setup
+description: Initialize Outfitting state and apply the first platform configuration.
+sidebar:
+  order: 1
+---
+
+`setup` prepares the local state that later commands use. Its work is platform-specific: macOS fetches a sparse source and repairs Nix links, while Windows initializes its cache and applies selected package profiles.
+
+## Platform commands
+
+- [macOS setup](/docs/cli/macos/setup/) — create the state root, fetch the sparse source, and ensure Home Manager and nix-darwin links.
+- [Windows setup](/docs/cli/windows/setup/) — initialize state, apply WinGet and Scoop profiles, and cache the PowerShell profile.
+- [Linux/WSL installation](/docs/cli/linux/install/) — run the hosted installer modes. Linux/WSL does not use the Windows `outfitting-manager setup` command.
+
+Use the platform page for flags, source overrides, profile selection, and collision behavior.

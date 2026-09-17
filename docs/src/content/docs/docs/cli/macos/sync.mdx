@@ -1,0 +1,19 @@
+---
+title: Sync
+description: Push, pull, and inspect macOS remote lockfile state.
+sidebar:
+  order: 5
+---
+
+On macOS, `sync` is the primary name for the remote inventory and lockfile transport. It exposes the same subcommands as `lockfiles`:
+
+```bash
+outfit sync configure-worker "https://url-to-your-worker"
+outfit sync configure-token
+outfit sync push machine-name:aarch64-darwin nix updated-flake.lock
+outfit sync pull machine-name:aarch64-darwin nix
+outfit sync list machine-name:aarch64-darwin
+outfit sync history machine-name:aarch64-darwin nix
+```
+
+See [Lockfiles](/docs/cli/lockfiles/) for remote storage, optimistic concurrency, and the API routes. `outfit lockfiles` remains an alias for this macOS command tree.

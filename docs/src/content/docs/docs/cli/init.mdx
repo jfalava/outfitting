@@ -1,0 +1,14 @@
+---
+title: Init
+description: Initialize platform state without applying package changes.
+sidebar:
+  order: 7
+---
+
+`init` creates the local state needed for later commands but does not apply the package baseline. It is a Windows-only manager command; macOS setup and the Linux/WSL installer combine initialization with their platform-specific source preparation.
+
+## Platform command
+
+- [Windows init](/docs/cli/windows/init/) — cache the configured Scoop and Bun manifests; pass `--no-fetch` to skip prefetching.
+- [macOS setup](/docs/cli/macos/setup/) — initialize the macOS state root and sparse source.
+- [Linux/WSL installation](/docs/cli/linux/install/) — initialize the WSL checkout and selected installation mode.

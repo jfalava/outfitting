@@ -1,0 +1,14 @@
+---
+title: Recover
+description: Resume an interrupted Outfitting-managed operation.
+sidebar:
+  order: 5
+---
+
+`recover` resumes work from a manager-owned checkpoint instead of starting an update over. The manager currently exposes recovery for interrupted macOS Nix operations.
+
+## Platform command
+
+- [macOS recover](/docs/cli/macos/recover/) — run `outfit recover nix` to resume and publish a pending Nix operation.
+
+Windows and Linux/WSL do not expose a manager `recover` command. Their platform pages describe package retry and generation rollback workflows separately.
