@@ -30,7 +30,7 @@ in
       "font-family" = "JetBrainsMono NFP";
       "font-family-italic" = "Dank Mono";
       "font-size" = 16;
-      theme = "light:tokyonight day,dark:tokyonight storm";
+      theme = "light:tokyonight day,dark:tokyonight night";
     };
   };
 

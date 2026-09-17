@@ -1,4 +1,6 @@
-import nimbus, { defineConfig as defineNimbusConfig } from "@cloudflare/nimbus-docs";
+import nimbus, {
+  defineConfig as defineNimbusConfig,
+} from "@cloudflare/nimbus-docs";
 import { tableScroll } from "@cloudflare/nimbus-docs/markdown";
 import tailwindcss from "@tailwindcss/vite";
 import icon from "astro-icon";
@@ -41,6 +43,11 @@ const nimbusConfig = defineNimbusConfig({
 
 export default defineConfig({
   output: "static",
+  // Listen on all interfaces so remote development clients can reach the
+  // server over Tailscale; localhost access continues to work as usual.
+  server: {
+    host: "0.0.0.0",
+  },
   // Tailwind v4 via its Vite plugin (the integration Astro recommends for
   // Tailwind v4 — replaces the PostCSS plugin, which doesn't build under
   // Astro 7's Vite 8 bundler).
