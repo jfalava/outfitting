@@ -1,9 +1,17 @@
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 let
   repoFromEnvironment = builtins.getEnv "OUTFITTING_REPO";
   outfittingRepo =
-    if repoFromEnvironment != "" then repoFromEnvironment else "/Users/jfalava/.config/outfitting/source";
+    if repoFromEnvironment != "" then
+      repoFromEnvironment
+    else
+      "/Users/jfalava/.config/outfitting/source";
 in
 {
   imports = [
@@ -19,7 +27,7 @@ in
     enableZshIntegration = false;
 
     settings = {
-      "font-family" = "GoogleSansCode NFP";
+      "font-family" = "JetBrainsMono NFP";
       "font-family-italic" = "Dank Mono";
       "font-size" = 16;
       theme = "light:tokyonight day,dark:tokyonight storm";
@@ -61,16 +69,16 @@ in
 
   # Create the token env file only if missing; never overwrite user edits.
   home.activation.createTwitchTokenEnv = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-    token_env="${config.xdg.configHome}/twt/token.env"
-    if [ ! -f "$token_env" ]; then
-      mkdir -p "$(dirname "$token_env")"
-      umask 177
-      cat > "$token_env" <<'EOF'
-oauth:REPLACE_WITH_YOUR_TWITCH_TOKEN
-EOF
-      chmod 600 "$token_env"
-      echo "twitch-tui: created $token_env — set TWT_TOKEN to your Twitch OAuth token."
-    fi
+        token_env="${config.xdg.configHome}/twt/token.env"
+        if [ ! -f "$token_env" ]; then
+          mkdir -p "$(dirname "$token_env")"
+          umask 177
+          cat > "$token_env" <<'EOF'
+    oauth:REPLACE_WITH_YOUR_TWITCH_TOKEN
+    EOF
+          chmod 600 "$token_env"
+          echo "twitch-tui: created $token_env — set TWT_TOKEN to your Twitch OAuth token."
+        fi
   '';
 
   programs.zsh = {
