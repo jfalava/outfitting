@@ -36,6 +36,17 @@ export interface CollectDiffOptions {
   fetcher?: ManifestFetcher;
   run?: typeof runCommand;
   which?: typeof which;
+  onProgress?: (progress: DiffProgress) => void;
+}
+
+export interface DiffProgress {
+  completed: number;
+  total: number;
+  manager: DiffManager;
+  phase: "started" | "item" | "completed";
+  item?: string;
+  itemIndex?: number;
+  itemTotal?: number;
 }
 
 interface NamedValue {
@@ -50,6 +61,7 @@ interface DiffContext {
   fetcher: ManifestFetcher | undefined;
   offline: boolean;
   warnings: string[];
+  reportItem: (item: string, itemIndex: number, itemTotal: number) => void;
 }
 
 interface WindowsDiffOptions {
@@ -84,14 +96,21 @@ function compareSets(
   manager: DiffManager,
   desired: ReadonlyArray<NamedValue>,
   actual: ReadonlyArray<NamedValue>,
+  onItem?: DiffContext["reportItem"],
 ): DiffSection {
   const desiredMap = new Map(desired.map((item) => [item.name.toLowerCase(), item]));
   const actualMap = new Map(actual.map((item) => [item.name.toLowerCase(), item]));
   const missing: string[] = [];
   const extra: string[] = [];
   const changed: string[] = [];
+  const keys = new Set([...desiredMap.keys(), ...actualMap.keys()]);
+  let itemIndex = 0;
 
-  for (const [key, item] of desiredMap) {
+  for (const key of keys) {
+    const item = desiredMap.get(key) ?? actualMap.get(key);
+    if (item === undefined) {
+      continue;
+    }
     const current = actualMap.get(key);
     if (current === undefined) {
       missing.push(item.name);
@@ -102,11 +121,11 @@ function compareSets(
     ) {
       changed.push(`${item.name}: ${current.value} → ${item.value}`);
     }
-  }
-  for (const [key, item] of actualMap) {
-    if (!desiredMap.has(key)) {
+    if (desiredMap.get(key) === undefined) {
       extra.push(item.name);
     }
+    itemIndex += 1;
+    onItem?.(item.name, itemIndex, keys.size);
   }
 
   missing.sort((left, right) => left.localeCompare(right, "en"));
@@ -128,6 +147,7 @@ function prefixed(values: ReadonlyArray<string>, prefix: string): NamedValue[] {
 function compareBrew(
   desired: ReturnType<typeof parseBrewfileManifest>,
   actual: ReturnType<typeof parseBrewfileManifest>,
+  onItem?: DiffContext["reportItem"],
 ): DiffSection {
   const result = compareSets(
     "brew",
@@ -141,13 +161,18 @@ function compareBrew(
       ...prefixed(actual.formulae, "formula"),
       ...prefixed(actual.casks, "cask"),
     ],
+    onItem,
   );
   result.message =
     "Checks all installed formulae for required packages; only explicitly installed formulae count as extras.";
   return result;
 }
 
-function compareScoop(desired: ScoopManifest, actual: ScoopExportState): DiffSection {
+function compareScoop(
+  desired: ScoopManifest,
+  actual: ScoopExportState,
+  onItem?: DiffContext["reportItem"],
+): DiffSection {
   const desiredBuckets = desired.buckets.map((bucket) => ({
     name: bucket.name,
     value: bucket.url,
@@ -160,8 +185,22 @@ function compareScoop(desired: ScoopManifest, actual: ScoopExportState): DiffSec
   const actualPackages = actual.apps
     .filter((app) => !/\bGlobal install\b/i.test(app.Info))
     .map((app) => ({ name: app.Name }));
-  const buckets = compareSets("scoop", desiredBuckets, actualBuckets);
-  const packages = compareSets("scoop", desiredPackages, actualPackages);
+  const buckets = compareSets(
+    "scoop",
+    desiredBuckets,
+    actualBuckets,
+    onItem === undefined
+      ? undefined
+      : (item, itemIndex, itemTotal) => onItem(`bucket: ${item}`, itemIndex, itemTotal),
+  );
+  const packages = compareSets(
+    "scoop",
+    desiredPackages,
+    actualPackages,
+    onItem === undefined
+      ? undefined
+      : (item, itemIndex, itemTotal) => onItem(`package: ${item}`, itemIndex, itemTotal),
+  );
   const missing = [
     ...buckets.missing.map((name) => `bucket: ${name}`),
     ...packages.missing.map((name) => `package: ${name}`),
@@ -312,7 +351,7 @@ async function compareBrewSection(context: DiffContext): Promise<DiffSection> {
   }
   const desired = parseBrewfileManifest(await fetchDiffManifest(BREWFILE_MANIFEST_PATH, context));
   const actual = await captureBrew(executable, context.run, desired.formulae);
-  return compareBrew(desired, actual);
+  return compareBrew(desired, actual, context.reportItem);
 }
 
 async function compareWindowsSection(
@@ -342,6 +381,7 @@ async function compareWindowsSection(
       "winget",
       desired.map((name) => ({ name })),
       actual.map((name) => ({ name })),
+      context.reportItem,
     );
   }
 
@@ -359,7 +399,7 @@ async function compareWindowsSection(
         `scoop export failed (exit ${actualResult.code}): ${actualResult.stderr || actualResult.stdout}`.trim(),
       );
     }
-    return compareScoop(desired, parseScoopExport(actualResult.stdout));
+    return compareScoop(desired, parseScoopExport(actualResult.stdout), context.reportItem);
   }
 
   throw new Error(`Unsupported Windows diff manager: ${options.manager}`);
@@ -392,6 +432,7 @@ async function compareNixSection(context: DiffContext): Promise<DiffSection> {
     pullLockfile(options).pipe(Effect.provideService(Console.Console, quietConsole)),
   );
   try {
+    context.reportItem("system", 1, 1);
     const active = await realpath("/run/current-system");
     const env: NodeJS.ProcessEnv = { ...process.env, OUTFITTING_REPO: repo.root };
     delete env.NIX_PATH;
@@ -453,11 +494,29 @@ export async function collectDiff(options: CollectDiffOptions): Promise<Platform
     fetcher: options.fetcher,
     offline: options.offline === true,
     warnings: [],
+    reportItem: () => undefined,
   };
   const sections: DiffSection[] = [];
+  const managers = selectedManagers(options.platform, options.manager);
 
-  for (const manager of selectedManagers(options.platform, options.manager)) {
+  for (const manager of managers) {
     context.warnings = [];
+    context.reportItem = (item, itemIndex, itemTotal) =>
+      options.onProgress?.({
+        completed: sections.length,
+        total: managers.length,
+        manager,
+        phase: "item",
+        item,
+        itemIndex,
+        itemTotal,
+      });
+    options.onProgress?.({
+      completed: sections.length,
+      total: managers.length,
+      manager,
+      phase: "started",
+    });
     let section: DiffSection;
     try {
       if (manager === "brew") {
@@ -474,6 +533,12 @@ export async function collectDiff(options: CollectDiffOptions): Promise<Platform
       section.warnings = context.warnings;
     }
     sections.push(section);
+    options.onProgress?.({
+      completed: sections.length,
+      total: managers.length,
+      manager,
+      phase: "completed",
+    });
   }
 
   return {

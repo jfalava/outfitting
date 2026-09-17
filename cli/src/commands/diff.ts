@@ -1,7 +1,14 @@
+import * as cliProgress from "cli-progress";
 import { Console, Effect, Option } from "effect";
 import { Command, Flag } from "effect/unstable/cli";
 
-import { collectDiff, hasDifferences, type DiffPlatform, type DiffSection } from "@/diff";
+import {
+  collectDiff,
+  hasDifferences,
+  type DiffPlatform,
+  type DiffProgress,
+  type DiffSection,
+} from "@/diff";
 import { CliFailure } from "@/errors";
 import { tryPromise } from "@/lockfiles/effect";
 import { ui } from "@/ui";
@@ -30,6 +37,55 @@ const jsonFlag = Flag.boolean("json").pipe(
 
 function platformLabel(platform: DiffPlatform): string {
   return platform === "macos" ? "macOS" : "Windows";
+}
+
+interface DiffProgressRenderer {
+  update: (progress: DiffProgress) => void;
+  finish: () => void;
+}
+
+function makeProgressRenderer(platform: DiffPlatform): DiffProgressRenderer {
+  const bar = new cliProgress.SingleBar({
+    format: `${platformLabel(platform)} [{bar}] {percentage}% | {managerProgress} | {status} {manager}{item}`,
+    stream: process.stderr,
+    barsize: 20,
+    hideCursor: true,
+    linewrap: true,
+  });
+  let started = false;
+  return {
+    update: (progress) => {
+      const value =
+        progress.phase === "item" &&
+        progress.itemIndex !== undefined &&
+        progress.itemTotal !== undefined
+          ? progress.completed + progress.itemIndex / progress.itemTotal
+          : progress.completed;
+      const payload = {
+        item:
+          progress.item === undefined
+            ? ""
+            : `: ${progress.item} (${progress.itemIndex}/${progress.itemTotal})`,
+        manager: progress.manager,
+        managerProgress: `${progress.completed}/${progress.total}`,
+        status:
+          progress.phase === "started"
+            ? "loading"
+            : progress.phase === "item"
+              ? "comparing"
+              : "done",
+      };
+      if (!started) {
+        bar.start(progress.total, value, payload);
+        started = true;
+      } else {
+        bar.update(value, payload);
+      }
+    },
+    finish: () => {
+      bar.stop();
+    },
+  };
 }
 
 function printSection(section: DiffSection): Effect.Effect<void> {
@@ -94,14 +150,16 @@ function makeDiffCommand(platform: DiffPlatform) {
     },
     ({ manager, profile, offline, json }) =>
       Effect.gen(function* () {
+        const progress = makeProgressRenderer(platform);
         const result = yield* tryPromise(() =>
           collectDiff({
             platform,
             manager: Option.getOrUndefined(manager),
             profiles: Option.isSome(profile) ? profile.value.split(",") : undefined,
             offline,
+            onProgress: progress.update,
           }),
-        );
+        ).pipe(Effect.ensuring(Effect.sync(progress.finish)));
 
         if (json) {
           yield* Console.log(JSON.stringify(result, null, 2));

@@ -1,4 +1,4 @@
-export { collectDiff, type CollectDiffOptions } from "@/diff/compare";
+export { collectDiff, type CollectDiffOptions, type DiffProgress } from "@/diff/compare";
 export {
   hasDifferences,
   type DiffManager,

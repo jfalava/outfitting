@@ -1,4 +1,5 @@
 import { access, readFile, writeFile } from "node:fs/promises";
+import { dirname, join } from "node:path";
 
 import { Effect } from "effect";
 import { describe, expect, test } from "vitest";
@@ -26,7 +27,7 @@ describe("openNixLock", () => {
     const lock = await openNixLock(config, pull);
     try {
       expect(await readFile(lock.lockPath, "utf8")).toContain('"version": 7');
-      expect(lock.lockPath).toBe(`${lock.lockDir}/flake.lock`);
+      expect(lock.lockPath).toBe(join(lock.lockDir, "flake.lock"));
     } finally {
       await closeNixLock(lock.lockDir);
     }
@@ -45,7 +46,7 @@ describe("openNixLock", () => {
       /Could not pull the required remote Nix lock.*service unavailable.*retry/,
     );
     expect(attemptedPath).toBeDefined();
-    await expect(access(attemptedPath!.replace(/\/flake\.lock$/, ""))).rejects.toMatchObject({
+    await expect(access(dirname(attemptedPath!))).rejects.toMatchObject({
       code: "ENOENT",
     });
   });

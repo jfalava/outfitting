@@ -4,7 +4,12 @@ import { join } from "node:path";
 
 import { afterEach, describe, expect, test, vi } from "vitest";
 
-import { collectDiff, parseWingetExport, type CollectDiffOptions } from "@/diff/compare";
+import {
+  collectDiff,
+  parseWingetExport,
+  type CollectDiffOptions,
+  type DiffProgress,
+} from "@/diff/compare";
 import { hasDifferences } from "@/diff/types";
 import { fetchManifest, type ManifestFetcher } from "@/fetch";
 import { type runCommand, type RunCommandResult } from "@/process";
@@ -71,13 +76,20 @@ describe("collectDiff", () => {
     const root = await mkdtemp(join(tmpdir(), "outfitting-diff-brew-"));
     roots.push(root);
     const calls: string[] = [];
+    const progress: DiffProgress[] = [];
+    const trace: string[] = [];
     const result = await collectDiff({
       platform: "macos",
       manager: "brew",
       config: config(root),
+      onProgress: (event) => {
+        progress.push(event);
+        trace.push(`progress:${event.phase}`);
+      },
       which: async () => "brew",
       fetcher: async () => new Response('tap "cloudflare/cloudflare"\nbrew "jq"\ncask "Firefox"\n'),
       run: async (command, args) => {
+        trace.push("run");
         calls.push(`${command} ${args.join(" ")}`);
         if (args[0] === "tap") return ok("cloudflare/cloudflare\n");
         if (args.includes("--formula")) return ok("jq\n");
@@ -93,6 +105,39 @@ describe("collectDiff", () => {
       "brew list --cask",
       "brew list --formula --installed-on-request",
     ]);
+    expect(progress).toEqual([
+      { completed: 0, total: 1, manager: "brew", phase: "started" },
+      {
+        completed: 0,
+        total: 1,
+        manager: "brew",
+        phase: "item",
+        item: "tap: cloudflare/cloudflare",
+        itemIndex: 1,
+        itemTotal: 3,
+      },
+      {
+        completed: 0,
+        total: 1,
+        manager: "brew",
+        phase: "item",
+        item: "formula: jq",
+        itemIndex: 2,
+        itemTotal: 3,
+      },
+      {
+        completed: 0,
+        total: 1,
+        manager: "brew",
+        phase: "item",
+        item: "cask: Firefox",
+        itemIndex: 3,
+        itemTotal: 3,
+      },
+      { completed: 1, total: 1, manager: "brew", phase: "completed" },
+    ]);
+    expect(trace[0]).toBe("progress:started");
+    expect(trace.at(-1)).toBe("progress:completed");
   });
 
   test("counts required dependencies as present and excludes unrequested extras", async () => {
@@ -126,10 +171,12 @@ describe("collectDiff", () => {
     const root = await mkdtemp(join(tmpdir(), "outfitting-diff-winget-"));
     roots.push(root);
     const calls: string[] = [];
+    const progress: DiffProgress[] = [];
     const result = await collectDiff({
       platform: "windows",
       manager: "winget",
       config: config(root),
+      onProgress: (event) => progress.push(event),
       which: async () => "winget.exe",
       fetcher: async () => new Response("Git.Git\nOven-sh.Bun\n"),
       run: async (command, args) => {
@@ -154,6 +201,37 @@ describe("collectDiff", () => {
     });
     expect(calls).toHaveLength(1);
     expect(calls[0]).toMatch(/export/);
+    expect(progress).toEqual([
+      { completed: 0, total: 1, manager: "winget", phase: "started" },
+      {
+        completed: 0,
+        total: 1,
+        manager: "winget",
+        phase: "item",
+        item: "Git.Git",
+        itemIndex: 1,
+        itemTotal: 3,
+      },
+      {
+        completed: 0,
+        total: 1,
+        manager: "winget",
+        phase: "item",
+        item: "Oven-sh.Bun",
+        itemIndex: 2,
+        itemTotal: 3,
+      },
+      {
+        completed: 0,
+        total: 1,
+        manager: "winget",
+        phase: "item",
+        item: "Extra.App",
+        itemIndex: 3,
+        itemTotal: 3,
+      },
+      { completed: 1, total: 1, manager: "winget", phase: "completed" },
+    ]);
   });
 });
 
