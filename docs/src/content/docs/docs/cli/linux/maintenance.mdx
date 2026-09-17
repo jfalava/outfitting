@@ -21,8 +21,8 @@ remote-update
 
 This is equivalent to `curl -L https://wsl.jfa.dev | bash -s -- --update-only`.
 
-For global Bun packages without the full sequence:
+For global Bun packages, use Bun directly:
 
 ```bash
-curl -fsSL wsl.jfa.dev/packages/bun | xargs -I {} bun install -g {}
+bun update -g
 ```

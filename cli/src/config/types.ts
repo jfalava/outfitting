@@ -11,7 +11,6 @@ export interface WindowsRoutesConfig {
   /** Template for WinGet profile files; `{profile}` is replaced at sync time. */
   wingetProfilePath: string;
   scoopPath: string;
-  bunPath: string;
   powershellProfilePath: string;
   fontListPath: string;
   registryPath: string;
@@ -45,7 +44,6 @@ export const DEFAULT_MANIFEST_REF = "main";
 export const DEFAULT_WINDOWS_ROUTES: WindowsRoutesConfig = {
   wingetProfilePath: "packages/windows/{profile}.txt",
   scoopPath: "packages/windows/scoop.txt",
-  bunPath: "packages/bun.txt",
   powershellProfilePath: "dotfiles/Microsoft.PowerShell_profile.ps1",
   fontListPath: "fonts/fontget.txt",
   registryPath: "system/windows/registry",

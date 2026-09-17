@@ -171,7 +171,6 @@ describe("Windows profile selection", () => {
         windows: {
           wingetProfilePath: "profiles/{profile}.list",
           scoopPath: "manifests/scoop.list",
-          bunPath: "manifests/bun.list",
           powershellProfilePath: "dotfiles/powershell/profile.ps1",
           fontListPath: "fonts/public.list",
           registryPath: "windows/registry",

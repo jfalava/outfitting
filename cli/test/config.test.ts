@@ -113,7 +113,6 @@ describe("loadConfig", () => {
         windows: {
           wingetProfilePath: "profiles/{profile}.list",
           scoopPath: "packages/scoop.list",
-          bunPath: "packages/global-bun.list",
           powershellProfilePath: "dotfiles/powershell/profile.ps1",
           fontListPath: "fonts/public.list",
           registryPath: "windows/registry",
@@ -127,7 +126,6 @@ describe("loadConfig", () => {
     expect(config.windows).toEqual({
       wingetProfilePath: "profiles/{profile}.list",
       scoopPath: "packages/scoop.list",
-      bunPath: "packages/global-bun.list",
       powershellProfilePath: "dotfiles/powershell/profile.ps1",
       fontListPath: "fonts/public.list",
       registryPath: "windows/registry",
@@ -150,7 +148,6 @@ describe("loadConfig", () => {
         machineId: "work:x86_64-windows",
         wingetProfilePath: "profiles/{profile}.txt",
         scoopPath: "packages/scoop.txt",
-        bunPath: "packages/bun.txt",
         powershellProfilePath: "dotfiles/profile.ps1",
         fontListPath: "fonts/list.txt",
         registryPath: "registry",
@@ -162,7 +159,6 @@ describe("loadConfig", () => {
       windows: {
         wingetProfilePath: "profiles/{profile}.txt",
         scoopPath: "packages/scoop.txt",
-        bunPath: "packages/bun.txt",
         powershellProfilePath: "dotfiles/profile.ps1",
         fontListPath: "fonts/list.txt",
         registryPath: "registry",

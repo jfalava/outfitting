@@ -4,8 +4,8 @@ import { Command, Flag } from "effect/unstable/cli";
 import { runSetup } from "@/setup/run";
 
 /**
- * Materialize the Windows state root and cache the configured Scoop + Bun
- * manifests. Windows session environment remains owned by PowerShell.
+ * Materialize the Windows state root and cache the configured Scoop manifest.
+ * Windows session environment remains owned by PowerShell.
  */
 export const windowsInitCommand = Command.make(
   "init",
@@ -25,7 +25,7 @@ export const windowsInitCommand = Command.make(
     noFetch: Flag.boolean("no-fetch").pipe(
       Flag.withDefault(false),
       Flag.withDescription(
-        "Skip prefetching configured Scoop / Bun manifests into the state root.",
+        "Skip prefetching the configured Scoop manifest into the state root.",
       ),
     ),
   },

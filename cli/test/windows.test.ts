@@ -85,6 +85,7 @@ describe("Windows CLI entrypoint", () => {
     const config = await runWindowsCli(["config", "--help"]);
     const init = await runWindowsCli(["init", "--help"]);
     const setup = await runWindowsCli(["setup", "--help"]);
+    const diff = await runWindowsCli(["diff", "--help"]);
     const sync = await runWindowsCli(["sync", "--help"]);
     const winget = await runWindowsCli(["winget", "--help"]);
     const scoop = await runWindowsCli(["scoop", "--help"]);
@@ -104,6 +105,7 @@ describe("Windows CLI entrypoint", () => {
     expect(config.text).toMatch(/repository|route/i);
     expect(init.text).toMatch(/initialize/i);
     expect(setup.text).toMatch(/apply|profiles/i);
+    expect(diff.text).toMatch(/compare|repository/i);
     expect(sync.text).not.toMatch(/--clean/);
     expect(sync.text).toMatch(/--winget-only/);
     expect(winget.text).toMatch(/install/);
@@ -529,7 +531,6 @@ describe("Windows setup manifest selection", () => {
 
       expect(fetched).toEqual([
         "https://raw.githubusercontent.com/acme/workstation-config/work/packages/windows/scoop.txt",
-        "https://raw.githubusercontent.com/acme/workstation-config/work/packages/bun.txt",
       ]);
       expect(JSON.parse(await readFile(join(root, "config.json"), "utf8"))).toMatchObject({
         manifest: {
@@ -542,7 +543,7 @@ describe("Windows setup manifest selection", () => {
     }
   });
 
-  test("materializes Scoop and Bun without macOS symlink work", async () => {
+  test("materializes Scoop without macOS symlink work", async () => {
     const root = await mkdtemp(join(tmpdir(), "outfitting-windows-setup-"));
     try {
       const fetched: string[] = [];
@@ -559,7 +560,6 @@ describe("Windows setup manifest selection", () => {
       );
       expect(fetched).toEqual([
         "https://raw.githubusercontent.com/jfalava/outfitting/main/packages/windows/scoop.txt",
-        "https://raw.githubusercontent.com/jfalava/outfitting/main/packages/bun.txt",
       ]);
       await expect(
         readFile(join(root, "manifests/packages/windows/scoop.txt"), "utf8"),
@@ -569,7 +569,7 @@ describe("Windows setup manifest selection", () => {
     }
   });
 
-  test("init prefetches configured Scoop and Bun routes", async () => {
+  test("init prefetches the configured Scoop route", async () => {
     const root = await mkdtemp(join(tmpdir(), "outfitting-windows-init-routes-"));
     try {
       await saveConfigFile(
@@ -577,7 +577,6 @@ describe("Windows setup manifest selection", () => {
           windows: {
             wingetProfilePath: "profiles/{profile}.list",
             scoopPath: "manifests/scoop.list",
-            bunPath: "manifests/bun.list",
           },
         },
         { stateRoot: root },
@@ -595,7 +594,6 @@ describe("Windows setup manifest selection", () => {
       );
       expect(fetched).toEqual([
         "https://raw.githubusercontent.com/jfalava/outfitting/main/manifests/scoop.list",
-        "https://raw.githubusercontent.com/jfalava/outfitting/main/manifests/bun.list",
       ]);
     } finally {
       await rm(root, { force: true, recursive: true });

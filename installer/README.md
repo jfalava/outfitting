@@ -34,13 +34,11 @@ The worker routes by `Host` header and serves scripts/config from `main` branch 
 ### WSL (`wsl.jfa.dev`)
 
 - `GET /` -> main WSL install script
-- `GET /packages/bun` -> Bun package list
 
 ### macOS (`mac.jfa.dev`)
 
 - `GET /` -> main macOS install script
 - `GET /post-install` -> post-install shell script (requires `sudo`)
-- `GET /packages/bun` -> Bun package list
 - `GET|HEAD /fonts` -> protected private-font archive from R2
 - `GET|HEAD /fonts/checksum` -> protected SHA-256 sidecar for the archive
 

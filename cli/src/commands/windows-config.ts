@@ -16,7 +16,6 @@ interface ConfigAnswers {
   readonly machineId: string;
   readonly wingetProfilePath: string;
   readonly scoopPath: string;
-  readonly bunPath: string;
   readonly powershellProfilePath: string;
   readonly fontListPath: string;
   readonly registryPath: string;
@@ -66,7 +65,6 @@ function answersToPatch(answers: ConfigAnswers): ManagerConfigFile {
     windows: {
       wingetProfilePath: answers.wingetProfilePath,
       scoopPath: answers.scoopPath,
-      bunPath: answers.bunPath,
       powershellProfilePath: answers.powershellProfilePath,
       fontListPath: answers.fontListPath,
       registryPath: answers.registryPath,
@@ -109,11 +107,6 @@ export const runWindowsConfigWizard = Effect.fn("runWindowsConfigWizard")(functi
       message: "Scoop manifest route",
       default: windows.scoopPath,
       validate: (value) => routeText(value, "Scoop manifest route"),
-    }),
-    bunPath: Prompt.text({
-      message: "Bun package manifest route",
-      default: windows.bunPath,
-      validate: (value) => routeText(value, "Bun package manifest route"),
     }),
     powershellProfilePath: Prompt.text({
       message: "PowerShell profile route",

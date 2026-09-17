@@ -1,5 +1,6 @@
 import { Command } from "effect/unstable/cli";
 
+import { makeMacosDiffCommand } from "@/commands/diff";
 import { fontsCommand } from "@/commands/fonts";
 import { lockfilesCommand } from "@/commands/lockfiles";
 import { provisionCommand } from "@/commands/provision";
@@ -20,6 +21,7 @@ export const makeMacosRootCommand = (currentVersion: string) =>
     Command.withSubcommands([
       setupCommand,
       makeMacosUpdateCommand(),
+      makeMacosDiffCommand(),
       snapshotCommand,
       recoverCommand,
       syncCommand,

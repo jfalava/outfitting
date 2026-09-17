@@ -24,7 +24,6 @@ export const SCRIPT_URLS = {
   macos: `${GITHUB_RAW_BASE}/macos-install-script.sh`,
   macosPostInstall: `${GITHUB_RAW_BASE}/macos-post-install-script.sh`,
   nixos: `${GITHUB_RAW_BASE}/nixos-install-script.sh`,
-  bunPackages: `${GITHUB_RAW_BASE}/packages/bun.txt`,
   fontgetList: `${GITHUB_RAW_BASE}/fonts/fontget.txt`,
 } as const;
 

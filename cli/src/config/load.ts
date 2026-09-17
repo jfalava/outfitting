@@ -29,7 +29,6 @@ const ManifestFileSchema = Schema.Struct({
 const WindowsFileSchema = Schema.Struct({
   wingetProfilePath: Schema.optionalKey(Schema.NonEmptyString),
   scoopPath: Schema.optionalKey(Schema.NonEmptyString),
-  bunPath: Schema.optionalKey(Schema.NonEmptyString),
   powershellProfilePath: Schema.optionalKey(Schema.NonEmptyString),
   fontListPath: Schema.optionalKey(Schema.NonEmptyString),
   registryPath: Schema.optionalKey(Schema.NonEmptyString),
@@ -51,7 +50,6 @@ function stripTrailingSlash(url: string): string {
 const ROUTE_KEYS = [
   "wingetProfilePath",
   "scoopPath",
-  "bunPath",
   "powershellProfilePath",
   "fontListPath",
   "registryPath",

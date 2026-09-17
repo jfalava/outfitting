@@ -13,17 +13,42 @@ import { pushHomebrewInventory } from "@/update/snapshot";
 
 export const BREWFILE_MANIFEST_PATH = "packages/macos/Brewfile";
 
+export interface BrewfileManifest {
+  taps: string[];
+  formulae: string[];
+  casks: string[];
+}
+
+/** Parse the direct Homebrew entries understood by the manager. */
+export function parseBrewfileManifest(brewfile: string): BrewfileManifest {
+  const manifest: BrewfileManifest = { taps: [], formulae: [], casks: [] };
+  const seen = {
+    taps: new Set<string>(),
+    formulae: new Set<string>(),
+    casks: new Set<string>(),
+  };
+  const pattern = /^\s*(tap|brew|cask)\s+['"]([^'"]+)['"]/gm;
+
+  for (const match of brewfile.matchAll(pattern)) {
+    const kind = match[1];
+    const name = match[2]?.trim();
+    if (name === undefined || name.length === 0) {
+      continue;
+    }
+    const key = kind === "tap" ? "taps" : kind === "brew" ? "formulae" : "casks";
+    if (seen[key].has(name.toLowerCase())) {
+      continue;
+    }
+    seen[key].add(name.toLowerCase());
+    manifest[key].push(name);
+  }
+
+  return manifest;
+}
+
 /** Extract tap names from Brewfile lines like `tap "owner/name", trusted: true`. */
 export function parseBrewfileTaps(brewfile: string): string[] {
-  const taps: string[] = [];
-  const pattern = /^\s*tap\s+['"]([^'"]+)['"]/gm;
-  for (const match of brewfile.matchAll(pattern)) {
-    const name = match[1];
-    if (name !== undefined && name.length > 0) {
-      taps.push(name);
-    }
-  }
-  return taps;
+  return parseBrewfileManifest(brewfile).taps;
 }
 
 async function trustTaps(taps: ReadonlyArray<string>, run: typeof runCommand): Promise<void> {

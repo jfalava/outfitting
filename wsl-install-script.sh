@@ -350,64 +350,6 @@ set_default_shell_zsh() {
 }
 #################################################
 
-############################# Bun Global Packages
-install_bun_packages() {
-    info "Installing Bun global packages..."
-
-    if ! command -v bun >/dev/null 2>&1; then
-        echo "❖ Bun not found, skipping global package installations"
-        return 0
-    fi
-
-    local bunPackagesUrl="https://raw.githubusercontent.com/jfalava/outfitting/refs/heads/main/packages/bun.txt"
-    local bunPackagesFile="/tmp/bun-packages.txt"
-
-    if ! curl -fsSL "$bunPackagesUrl" -o "$bunPackagesFile" 2>/dev/null; then
-        echo "❖ Warning: Failed to fetch Bun packages list, skipping"
-        return 0
-    fi
-
-    # Validate file is not empty and remove if empty
-    if [ ! -s "$bunPackagesFile" ]; then
-        rm -f "$bunPackagesFile"
-        echo "❖ Warning: Bun packages file is empty, skipping"
-        return 0
-    fi
-
-    local installed=0
-    local failed=0
-    while IFS= read -r package || [[ -n "$package" ]]; do
-        # Skip empty lines and comments
-        [[ -z "$package" || "$package" =~ ^[[:space:]]*# ]] && continue
-        # Remove leading/trailing whitespace
-        package=$(echo "$package" | xargs)
-        if [[ -n "$package" ]]; then
-            # Check existing global packages via bun pm ls -g
-            if bun pm ls -g 2>/dev/null | grep -q "^$package@"; then
-                info "Package already installed: $package"
-                ((installed++))
-            else
-                info "Installing Bun package: $package"
-                if bun install -g --trust "$package" 2>/dev/null; then
-                    ((installed++))
-                else
-                    echo "❖ Warning: Failed to install: $package"
-                    ((failed++))
-                fi
-            fi
-        fi
-    done < "$bunPackagesFile"
-    rm -f "$bunPackagesFile"
-
-    if [[ $installed -gt 0 ]]; then
-        success "Bun packages: $installed installed/verified"
-    fi
-    if [[ $failed -gt 0 ]]; then
-        echo "❖ Warning: Bun packages: $failed failed"
-    fi
-}
-#################################################
-
 ############################################ Main
 main() {
     echo ""
@@ -439,7 +381,6 @@ main() {
             setup_symlinks
             install_home_manager
             install_runtimes
-            install_bun_packages
             set_default_shell_zsh
             ;;
         nix|*)
@@ -448,7 +389,6 @@ main() {
             setup_symlinks
             install_home_manager
             install_runtimes
-            install_bun_packages
             ;;
     esac
 

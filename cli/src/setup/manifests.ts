@@ -27,12 +27,11 @@ export const SETUP_MANIFEST_PATHS = MACOS_SOURCE_PATHS;
 /** Default Windows artifacts setup materializes into the state root. */
 export const WINDOWS_SETUP_MANIFEST_PATHS = [
   "packages/windows/scoop.txt",
-  "packages/bun.txt",
 ] as const;
 
 /** Windows artifacts selected from the configured repository route map. */
 export function windowsSetupManifestPaths(routes: WindowsRoutesConfig): ReadonlyArray<string> {
-  return [routes.scoopPath, routes.bunPath];
+  return [routes.scoopPath];
 }
 
 export interface PrefetchResult {

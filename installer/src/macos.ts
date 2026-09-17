@@ -29,17 +29,4 @@ macosApp.get("/post-install", async (c) => {
   return c.body(scriptContent);
 });
 
-// Route: GET /packages/bun - Bun global packages list
-macosApp.get("/packages/bun", async (c) => {
-  console.warn("Bun Packages URL:", SCRIPT_URLS.bunPackages);
-
-  const packagesContent = await fetchScript(SCRIPT_URLS.bunPackages);
-  if (!packagesContent) {
-    return c.text("Failed to fetch bun packages list", 500);
-  }
-
-  setScriptHeaders(c, CONTENT_TYPES.plaintext);
-  return c.body(packagesContent);
-});
-
 export default macosApp;

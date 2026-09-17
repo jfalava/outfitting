@@ -50,6 +50,7 @@ describe("macos CLI scaffold (process)", () => {
     expect(code).toBe(0);
     expect(text).toMatch(/\bsetup\b/);
     expect(text).toMatch(/\bupdate\b/);
+    expect(text).toMatch(/\bdiff\b/);
     expect(text).toMatch(/\bsync\b/);
     expect(text).toMatch(/\blockfiles\b/);
     expect(text).toMatch(/\bsnapshot\b/);
