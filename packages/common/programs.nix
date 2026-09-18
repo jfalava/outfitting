@@ -25,7 +25,6 @@
     rust-analyzer
     rustc
     rustfmt
-    aliyun-cli
   ];
 
   programs.home-manager.enable = true;

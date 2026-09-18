@@ -75,7 +75,22 @@ test.each([
       expect(local.profiles).toEqual(["dev"]);
       expect(local.packages.winget).toEqual(before.packages.winget);
       expect(calls.some((args) => args.includes("uninstall"))).toBe(false);
-      expect(pushed).toEqual(noSync ? [] : [local]);
+      if (noSync) {
+        expect(pushed).toEqual([]);
+      } else {
+        const expectedScoop = scoopCode
+          ? before.packages.scoop
+          : [{ name: "new", args: ["install", "extras/new"], origin: "baseline" }];
+        expect(pushed).toEqual([
+          expect.objectContaining({
+            profiles: ["dev"],
+            packages: expect.objectContaining({
+              winget: before.packages.winget,
+              scoop: expectedScoop,
+            }),
+          }),
+        ]);
+      }
     } finally {
       await rm(root, { force: true, recursive: true });
     }

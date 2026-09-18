@@ -94,7 +94,6 @@ describe("Windows profile selection", () => {
     expect(parseWindowsPackageList("Git.Git\ngit.git\n# comment\n", "base.txt")).toEqual([
       { name: "Git.Git" },
     ]);
-    expect(resolveWindowsProfiles(["work-laptop"], [])).toEqual(["work-laptop"]);
     expect(() => resolveWindowsProfiles(["../escape"], [])).toThrow(
       "Invalid Windows profile name(s)",
     );

@@ -7,7 +7,7 @@ import { afterEach, describe, expect, test } from "vitest";
 
 import type { RunCommandResult } from "@/process";
 import { parseBrewfileTaps, updateBrew } from "@/update/brew";
-import { captureHomebrewInventory, HOMEBREW_INVENTORY_HEADER } from "@/update/snapshot";
+import { captureHomebrewInventory } from "@/update/snapshot";
 
 const temps: string[] = [];
 
@@ -44,7 +44,7 @@ describe("captureHomebrewInventory", () => {
     };
 
     const body = await Effect.runPromise(captureHomebrewInventory(run));
-    expect(body.startsWith(HOMEBREW_INVENTORY_HEADER)).toBe(true);
+    expect(body.startsWith("outfitting-homebrew-inventory-v1\n")).toBe(true);
     expect(body).toContain("[taps]\na/tap\nz/tap\n");
     expect(body).toContain("[formulae]\nbun 1.0\nzsh 5.9\n");
     expect(body).toContain("[casks]\nfirefox 120\n");

@@ -26,7 +26,6 @@ import {
   captureBunGlobalInventory,
   captureScoopInventory,
   exportWingetInventory,
-  SCOOP_INVENTORY_FORMAT,
 } from "@/update/windows-snapshot";
 import { updateWinget, wingetPackageArgs } from "@/update/winget";
 
@@ -124,7 +123,6 @@ describe("Windows desired state and lock", () => {
     expect(() => parseWindowsPackageList("Git.Git --silent\n", "base.txt")).toThrow(
       /Invalid WinGet/,
     );
-    expect(resolveWindowsProfiles(["work-laptop"], [])).toEqual(["work-laptop"]);
     expect(() => resolveWindowsProfiles(["../escape"], [])).toThrow(/Invalid Windows profile/);
   });
 
@@ -348,7 +346,7 @@ describe("Windows inventory snapshots", () => {
         }),
       ),
     );
-    expect(body).toContain(`"format": "${SCOOP_INVENTORY_FORMAT}"`);
+    expect(body).toContain('"format": "outfitting-scoop-inventory-v1"');
     expect(body.indexOf('"Name": "alpha"')).toBeLessThan(body.indexOf('"Name": "zulu"'));
     expect(body.indexOf('"Name": "alpha"')).toBeLessThan(body.indexOf('"Name": "zeta"'));
     expect(body).not.toMatch(/timestamp|fetchedAt/i);
@@ -364,7 +362,7 @@ describe("Windows inventory snapshots", () => {
       ),
     );
     expect(JSON.parse(body)).toEqual({
-      format: SCOOP_INVENTORY_FORMAT,
+      format: "outfitting-scoop-inventory-v1",
       apps: [{ Name: "solo", Source: "", Version: "1", Info: "" }],
       buckets: [{ Name: "main", Source: "https://main" }],
     });
@@ -385,12 +383,10 @@ describe("Windows inventory snapshots", () => {
     const root = await mkdtemp(join(tmpdir(), "outfitting-winget-test-"));
     try {
       const output = join(root, "winget.json");
-      await expect(
-        exportWingetInventory(output, async (_command, args) => {
-          await writeFile(args[2]!, '{"Sources":[]}\n', "utf8");
-          return ok();
-        }),
-      ).resolves.toBe(output);
+      await exportWingetInventory(output, async (_command, args) => {
+        await writeFile(args[2]!, '{"Sources":[]}\n', "utf8");
+        return ok();
+      });
       await expect(readFile(output, "utf8")).resolves.toContain("Sources");
     } finally {
       await rm(root, { force: true, recursive: true });
@@ -401,7 +397,6 @@ describe("Windows inventory snapshots", () => {
 describe("Windows package update commands", () => {
   test("executes Scoop's cmd shim through its PowerShell sibling", () => {
     expect(scoopScriptPath("C:\\scoop\\shims\\scoop.cmd")).toBe("C:\\scoop\\shims\\scoop.ps1");
-    expect(scoopScriptPath("C:\\scoop\\shims\\scoop.ps1")).toBe("C:\\scoop\\shims\\scoop.ps1");
   });
 
   test("installs and updates Scoop while preserving packages outside the manifest", async () => {

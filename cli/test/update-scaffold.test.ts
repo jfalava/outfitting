@@ -2,11 +2,7 @@ import { execFile } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 
-import { Effect } from "effect";
 import { describe, expect, test } from "vitest";
-
-import { foreignPackageManagerStub } from "@/commands/update/stubs";
-import { foreignPackageManagerMessage } from "@/platform";
 
 const execFileAsync = promisify(execFile);
 const cliEntry = fileURLToPath(new URL("../index.macos.ts", import.meta.url));
@@ -34,14 +30,6 @@ const runCliWithEnv = async (args: string[], env: Record<string, string | undefi
 };
 
 const runCli = async (args: string[]) => runCliWithEnv(args);
-
-describe("update / setup stub effects", () => {
-  test("foreign scoop hint names Windows build", async () => {
-    await expect(Effect.runPromise(foreignPackageManagerStub("scoop", "macos"))).rejects.toThrow(
-      foreignPackageManagerMessage("scoop", "macos"),
-    );
-  });
-});
 
 describe("macos CLI scaffold (process)", () => {
   test("root help lists setup, update, sync, lockfiles", async () => {

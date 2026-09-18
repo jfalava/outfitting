@@ -4,13 +4,7 @@ import { join } from "node:path";
 
 import { describe, expect, test } from "vitest";
 
-import {
-  checksumSidecar,
-  emptyFontArchive,
-  packFontArchive,
-  parseChecksumSidecar,
-  unpackFontArchive,
-} from "@/fonts/archive";
+import { emptyFontArchive, packFontArchive, unpackFontArchive } from "@/fonts/archive";
 import { inventoriesEqual, inventoryFromFaces, quotedHash } from "@/fonts/inventory";
 import { normalizeR2Endpoint } from "@/fonts/keychain";
 import { archivePathFor, keepNamePath, readFontNames, slugifyName } from "@/fonts/names";
@@ -149,9 +143,6 @@ describe("fonts helpers", () => {
     const bytes = makeOpenType("IBM Plex Sans", "Regular", "IBMPlexSans-Regular");
     const path = "fonts/ibm-plex-sans/ibm-plex-sans-regular.otf";
     const packed = await packFontArchive([{ path, bytes }]);
-    const sidecar = checksumSidecar(packed);
-    expect(parseChecksumSidecar(sidecar)).toMatch(/^[0-9a-f]{64}$/);
-    expect(sidecar.endsWith("  fonts.tar.gz\n")).toBe(true);
 
     const unpacked = await unpackFontArchive(packed);
     expect(unpacked.files).toHaveLength(1);

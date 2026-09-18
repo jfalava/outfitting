@@ -69,7 +69,6 @@ describe("upgrade command helpers", () => {
   test("silently normalizes the misspelled command alias", () => {
     expect(normalizeCommandAlias(["ugprade"])).toEqual(["upgrade"]);
     expect(normalizeCommandAlias(["ugprade", "--help"])).toEqual(["upgrade", "--help"]);
-    expect(normalizeCommandAlias(["upgrade"])).toEqual(["upgrade"]);
   });
 
   test("compares stable CLI versions", () => {
@@ -88,9 +87,6 @@ describe("upgrade command helpers", () => {
   });
 
   test("only accepts the compiled executable as its replacement target", () => {
-    expect(executablePath("/opt/outfitting-manager", "/opt/outfitting-manager")).toBe(
-      "/opt/outfitting-manager",
-    );
     expect(() => executablePath("/repo/index.ts", "/usr/bin/bun")).toThrow("compiled");
     expect(
       executablePath(

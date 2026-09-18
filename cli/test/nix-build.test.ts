@@ -2,7 +2,6 @@ import { describe, expect, test } from "vitest";
 
 import type { RunCommandResult } from "@/process";
 import { buildNixSystem } from "@/update/nix/build";
-import { NIX_SYSTEM_ATTR } from "@/update/nix/types";
 
 const fakeRepo = {
   root: "/repo",
@@ -19,7 +18,7 @@ describe("buildNixSystem", () => {
       expect(args).toContain("--reference-lock-file");
       expect(args).toContain("/tmp/flake.lock");
       expect(args).toContain("--no-write-lock-file");
-      expect(args.at(-1)).toBe(`path:/repo/system/macos#${NIX_SYSTEM_ATTR}`);
+      expect(args.at(-1)).toBe("path:/repo/system/macos#darwinConfigurations.macos.system");
       return { code: 0, stdout: "/nix/store/abc-darwin-system\n", stderr: "" };
     };
 

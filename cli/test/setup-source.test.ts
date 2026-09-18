@@ -5,7 +5,6 @@ import { join } from "node:path";
 import { afterEach, describe, expect, test } from "vitest";
 
 import { loadConfig, type ManagerConfig, sparseSourceRoot } from "@/config";
-import { MACOS_SOURCE_PATHS } from "@/setup/manifests";
 import { syncMacosSource } from "@/setup/source";
 
 const temps: string[] = [];
@@ -36,10 +35,25 @@ describe("syncMacosSource", () => {
       config,
       fetcher: async (url) => response(`source:${url}\n`),
     });
+    const expectedPaths = [
+      "system/macos/flake.nix",
+      "system/macos/darwin.nix",
+      "system/macos/home.nix",
+      "system/macos/zsh/macos.plugin.zsh",
+      "system/common/zsh.nix",
+      "system/common/zsh/outfitting.plugin.zsh",
+      "packages/common/programs.nix",
+      "packages/common/packages.nix",
+      "packages/macos/programs.nix",
+      "packages/macos/packages.nix",
+      "packages/macos/zed.nix",
+      "packages/macos/Brewfile",
+      "fonts/fontget.txt",
+    ];
 
     expect(result.root).toBe(sparseSourceRoot(root));
-    expect(result.files.map((file) => file.path)).toEqual([...MACOS_SOURCE_PATHS]);
-    for (const path of MACOS_SOURCE_PATHS) {
+    expect(result.files.map((file) => file.path)).toEqual(expectedPaths);
+    for (const path of expectedPaths) {
       await access(join(result.root, path));
     }
     await expect(access(join(result.root, "packages", "bun.txt"))).rejects.toThrow();
