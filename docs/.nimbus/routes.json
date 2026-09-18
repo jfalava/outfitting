@@ -43,6 +43,9 @@
     "/docs/cli/windows/sync",
     "/docs/cli/windows/update",
     "/docs/cli/winget",
+    "/docs/linux",
+    "/docs/linux/installation",
+    "/docs/linux/updates",
     "/docs/macos",
     "/docs/macos/installation",
     "/docs/macos/post-install",
@@ -51,10 +54,7 @@
     "/docs/windows",
     "/docs/windows/installation",
     "/docs/windows/post-install",
-    "/docs/windows/updates",
-    "/docs/wsl",
-    "/docs/wsl/installation",
-    "/docs/wsl/updates"
+    "/docs/windows/updates"
   ],
   "opaqueNamespaces": []
 }

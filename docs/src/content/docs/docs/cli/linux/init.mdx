@@ -5,25 +5,30 @@ sidebar:
   order: 0
 ---
 
-`init` creates the local state root, records the selected profile in `config.json` as `linux.profile`, and fetches a **profile-scoped** sparse source into `~/.config/outfitting/source`. Generic Linux materializes only its package list; `oci-agents` and `ubuntu-wsl` each pull shared Unix/Nix modules plus that profile's flake, bootstrap, and package manifests — never the macOS closure or the other Linux profile. For Nix-backed profiles, `init` applies Home Manager from that local source. Use `--repo` to choose and update an existing full checkout instead.
+`init` creates the local state root, records the selected profile in `config.json` as `linux.profile`, and fetches a **profile-scoped** sparse source into `~/.config/outfitting/source`.
+
+- `generic-linux` — package list only.
+- `ubuntu-wsl` / `oci-agents` — shared Unix/Nix modules plus that profile’s flake, bootstrap, and manifests.
+
+For Nix-backed profiles, `init` also applies Home Manager from the local source. Use `--repo` to point at a full checkout instead of the sparse tree.
 
 ```bash
 outfitting-manager init
-outfitting-manager init --profile oci-agents
+outfitting-manager init --profile generic-linux
 outfitting-manager init --profile ubuntu-wsl
 outfitting-manager init --profile oci-agents --repo ~/code/outfitting
 outfitting-manager init --no-fetch
 ```
 
-Use [setup](/docs/cli/linux/) after initialization to apply the cached native package profile. The hosted Linux installer runs both steps automatically. The Nix-backed profiles expect Nix to already be installed. The OCI bootstrap also installs its harnesses (Amp, T3, official OpenCode v2 into `~/.opencode/bin`, Bun), sets the login shell to zsh, ensures the user systemd session bus, starts Amp/T3/OpenCode, and the Zsh plugin starts a local `ssh-agent` (with auto-load of the elliptic GitHub key) when forwarding is absent; the WSL bootstrap only applies Home Manager configuration (install OpenCode with `curl -fsSL https://opencode.ai/v2/install | bash` if needed). Open a new SSH session after the first OCI activation so the zsh profile loads.
+Then run [setup](/docs/cli/linux/) (or let the hosted installer do both).
 
 ## Options
 
 ```text
---profile <generic-linux|oci-agents|ubuntu-wsl>  Package profile to cache.
+--profile <generic-linux|ubuntu-wsl|oci-agents>  Package profile to cache.
 --machine-id <id>                     Override the automatic machine id.
 --manifest-base-url <url>             Raw-compatible source URL without the ref.
 --manifest-ref <ref>                  Git branch, tag, or SHA for the source.
---repo <path>                         Optional full checkout to update for a Nix-backed profile.
+--repo <path>                         Full checkout instead of sparse source.
 --no-fetch                            Use the existing cached profile.
 ```

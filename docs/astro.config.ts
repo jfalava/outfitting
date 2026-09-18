@@ -21,8 +21,8 @@ const nimbusConfig = defineNimbusConfig({
         items: [{ autogenerate: { directory: "docs/windows" } }],
       },
       {
-        label: "Windows Subsystem for Linux",
-        items: [{ autogenerate: { directory: "docs/wsl" } }],
+        label: "Linux",
+        items: [{ autogenerate: { directory: "docs/linux" } }],
       },
       {
         label: "macOS",

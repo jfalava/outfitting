@@ -5,14 +5,13 @@ sidebar:
   order: 2
 ---
 
-`update` applies the desired state for the package managers owned by the current platform. macOS updates Nix and Homebrew, Windows updates WinGet and Scoop, generic Linux updates apt or pacman, and WSL uses shell maintenance helpers.
+`update` applies the desired state for the package managers owned by the current platform. macOS updates Nix and Homebrew, Windows updates WinGet and Scoop, and Linux updates apt or pacman (plus optional Home Manager via `update nix`).
 
 ## Platform commands
 
 - [macOS update](/docs/cli/macos/update/) — run `nix`, `brew`, or `all`; Nix supports `build`, `switch`, `test`, and `dry`.
 - [Windows update](/docs/cli/windows/update/) — run `winget`, `scoop`, or `all`.
-- [Generic Linux update](/docs/cli/linux/maintenance/) — run `update all`, or choose `update apt` / `update pacman`.
-- [WSL maintenance](/docs/cli/linux/maintenance/) — run `update-all` for the combined APT, Home Manager, Nix cleanup, and Bun workflow.
-- [Linux/WSL Home Manager](/docs/cli/linux/home-manager/) — apply or update the WSL Nix configuration directly.
+- [Linux update](/docs/cli/linux/maintenance/) — run `update all`, or choose `update apt` / `update pacman`.
+- [Linux Home Manager](/docs/cli/linux/home-manager/) — `update nix` and `hm-*` helpers on Nix-backed profiles.
 
 `outfit update bun` is retained only as a deprecation message. Use `bun update -g` on every platform.

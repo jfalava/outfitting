@@ -1,47 +1,49 @@
 ---
 title: Linux
-description: Maintain Linux hosts with apt or pacman and apply profile-specific Home Manager configuration.
+description: Maintain Linux hosts with apt or pacman and optional Home Manager configuration.
 sidebar:
   order: 20
 ---
 
-Linux uses the compiled `outfitting-manager` binary. It detects `/etc/os-release` and the installed package-manager executable, selecting modern `apt` for Debian-family distributions and `pacman` for Arch-family distributions. The `ubuntu-wsl` profile shares this command surface with the existing WSL shell helpers.
+Linux uses the compiled `outfitting-manager` binary. It detects `/etc/os-release` and the installed package-manager executable, selecting **apt** for Debian-family distributions and **pacman** for Arch-family distributions.
 
-Install the generic Linux binary bootstrap with:
+Install with:
 
 ```bash
 curl -L linux.jfa.dev | bash
 ```
 
-The bootstrap selects the Linux x64 or arm64 release, verifies its checksum, and runs the manager. The manager stores state under `~/.config/outfitting`.
+The bootstrap selects the Linux x64 or arm64 release, verifies its checksum, and runs the manager. State is stored under `~/.config/outfitting`.
 
-Initialize and apply the default profile separately:
+Initialize and apply the default profile separately when needed:
 
 ```bash
 outfitting-manager init
 outfitting-manager setup --no-fetch
 ```
 
-`init` fetches the complete Linux source bundle and caches the selected profile without changing native packages. For Nix-backed profiles it also applies Home Manager from the local source. `setup` consumes that cached profile, installs missing declared packages, and applies the profile bootstrap again. It does not upgrade the whole system; use `update` for that. Pass `--no-fetch` to `init` only when the local source and cached manifests already exist.
+`init` materializes the sparse source and records `linux.profile` in `config.json` without changing native packages (Nix-backed profiles also apply Home Manager). `setup` installs missing declared packages and re-runs the profile bootstrap. Use `update` for full upgrades.
 
-To override detection or select a profile:
+## Profiles
+
+| Profile | Packages | Home Manager |
+| --- | --- | --- |
+| `generic-linux` (default) | `packages/linux/generic-linux.txt` | No |
+| `ubuntu-wsl` | `packages/ubuntu-wsl/apt.txt` | `system/ubuntu-wsl` |
+| `oci-agents` | `packages/linux/oci-agents.txt` | `system/oci-agents` |
 
 ```bash
-outfitting-manager update all --package-manager apt
-outfitting-manager init --profile oci-agents
-outfitting-manager setup --profile oci-agents --repo ~/code/outfitting --no-fetch
+outfitting-manager init --profile generic-linux
 outfitting-manager init --profile ubuntu-wsl
-outfitting-manager setup --profile ubuntu-wsl --repo ~/.config/outfitting/repo --no-fetch
+outfitting-manager init --profile oci-agents --repo ~/code/outfitting
+outfitting-manager update all --package-manager apt
 ```
 
-The Linux source bundle is stored at `~/.config/outfitting/source` and includes the `oci-agents` and `ubuntu-wsl` flakes, lockfiles, Zsh files, common modules, dotfiles, Nix packages, and native package manifests. The profiles run their Nix/Home Manager bootstrap after initialization and after native package setup. Pass `--repo` to use and update another full checkout. `ubuntu-wsl` uses the existing `packages/ubuntu-wsl/apt.txt` package manifest and `system/ubuntu-wsl` Home Manager configuration.
+Without `--repo`, the sparse source is `$HOME/.config/outfitting/source`. Set `OUTFITTING_REPO` or pass `--repo` for a full checkout.
 
 ## Commands
 
-- [Init](/docs/cli/linux/init/) - materialize the complete Linux source bundle and bootstrap Nix-backed profiles without changing native packages.
-- [Setup](/docs/cli/linux/) - apply the selected apt or pacman package profile.
-- [Install](/docs/cli/linux/install/) - run the generic Linux or WSL hosted installer.
-- [Home Manager](/docs/cli/linux/home-manager/) - apply, update, roll back, or clean Nix state.
-- [Maintenance](/docs/cli/linux/maintenance/) - run native Linux updates or the combined WSL helpers.
-
-Without `--repo`, Linux profiles use the sparse source at `$HOME/.config/outfitting/source`. Set `OUTFITTING_REPO` or pass `--repo` to use and update another full checkout.
+- [Init](/docs/cli/linux/init/) — materialize source and record the profile.
+- [Install](/docs/cli/linux/install/) — hosted bootstrap.
+- [Home Manager](/docs/cli/linux/home-manager/) — `update nix` and `hm-*` helpers.
+- [Maintenance](/docs/cli/linux/maintenance/) — `update`, `diff`, `sync`.

@@ -1,21 +1,35 @@
 ---
 title: Maintenance
-description: Run generic Linux package updates or combined WSL maintenance.
+description: Update Linux packages with apt or pacman and optional Home Manager.
 sidebar:
   order: 3
 ---
 
-## Generic Linux
+## Packages
 
-Upgrade the system package set, then install only **missing** managed packages for the selected profile (default: `linux.profile` from `config.json`, else `generic-linux`):
+Upgrade the system set, then install only **missing** managed packages (profile from `config.json` `linux.profile`, else `generic-linux`):
 
 ```bash
 outfitting-manager update all
 ```
 
-Use `update apt` or `update pacman` to select a manager explicitly, or pass `--package-manager apt|pacman` to `update all`. Pass `--profile` to override the persisted profile; use `oci-agents` only on the managed OCI host and `ubuntu-wsl` only inside Ubuntu WSL.
+```bash
+outfitting-manager update apt
+outfitting-manager update pacman
+outfitting-manager update all --package-manager apt
+outfitting-manager update all --profile ubuntu-wsl
+```
 
-For Home Manager on `oci-agents` / `ubuntu-wsl` (same actions as macOS):
+```bash
+outfitting-manager diff
+outfitting-manager sync apt
+```
+
+`diff` and `sync` only care about declared packages; everything else on the host is ignored.
+
+## Home Manager
+
+On Nix-backed profiles:
 
 ```bash
 outfitting-manager update nix         # lists actions
@@ -23,34 +37,9 @@ outfitting-manager update nix build
 outfitting-manager update nix switch  # build + activate
 ```
 
-Check or install only missing declared packages with:
+Shell helpers: `hm-build`, `hm-test`, `hm-dry`, `hm-switch`, `hm-sync`, `hm-update`, `hm-rollback`, `hm-clean`. See [Home Manager](/docs/cli/linux/home-manager/).
 
-```bash
-outfitting-manager diff --manager apt
-outfitting-manager sync apt
-```
-
-Linux `diff` and `sync` use the same profile resolution and the correct package-list path per profile (including `packages/ubuntu-wsl/apt.txt`). Both report or install missing declared packages only and preserve every unrelated package already installed on the host.
-
-## WSL
-
-Run the complete local maintenance sequence with:
-
-```bash
-update-all
-```
-
-It refreshes APT packages, applies the Home Manager update, cleans old Nix generations, and updates global Bun packages.
-
-To run the hosted update-only path from an existing shell:
-
-```bash
-remote-update
-```
-
-This is equivalent to `curl -L https://wsl.jfa.dev | bash -s -- --update-only`.
-
-For global Bun packages, use Bun directly:
+## Bun
 
 ```bash
 bun update -g

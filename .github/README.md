@@ -15,16 +15,10 @@ Outfitting is a cross-platform bootstrap system for personal development machine
 irm win.jfa.dev | iex # Running this shows all the options
 ```
 
-### [WSL (Ubuntu-based)](https://outfitting.jfa.dev/docs/wsl)
+### [Linux](https://outfitting.jfa.dev/docs/linux)
 
 ```bash
-curl -L wsl.jfa.dev | bash # Installs the personal profile
-```
-
-### [Generic Linux](https://outfitting.jfa.dev/docs/cli/linux)
-
-```bash
-curl -L linux.jfa.dev | bash # Detects apt or pacman and installs the generic profile
+curl -L linux.jfa.dev | bash # Detects apt or pacman; default generic-linux profile
 ```
 
 ### [macOS](https://outfitting.jfa.dev/docs/macos)

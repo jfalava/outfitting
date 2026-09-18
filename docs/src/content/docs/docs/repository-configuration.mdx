@@ -38,16 +38,19 @@ Existing profiles are backed up with a timestamp before they are replaced. Windo
 
 The macOS manager fetches the allowlisted source paths into `~/.config/outfitting/source`; it does not clone the monorepo. `outfit init` validates the source before `outfit setup` applies it. A compatible repository must provide `system/macos/flake.nix`, `system/macos/darwin.nix`, and `packages/macos/Brewfile`; the flake must expose `darwinConfigurations`. Homebrew uses the local `packages/macos/Brewfile` during setup.
 
-## Linux and WSL
+## Linux
 
-Linux profiles keep the complete sparse source bundle at:
+Linux keeps a profile-scoped sparse source at:
 
 ```text
 ~/.config/outfitting/source
 ```
 
-The bundle contains the common modules and dotfiles, Linux flakes and lockfiles, Zsh profiles, Nix packages, and apt/package manifests. A user-supplied `--repo` can instead select a full checkout. WSL's Home Manager link points into the sparse source:
+The bundle contains common modules and dotfiles, the selected profile’s package manifest, and (for Nix-backed profiles) the flake, lockfile, bootstrap, and Zsh plugin. A user-supplied `--repo` can select a full checkout instead.
+
+Home Manager links (Nix-backed profiles):
 
 ```text
 ~/.config/home-manager -> ~/.config/outfitting/source/system/ubuntu-wsl
+~/.config/home-manager -> ~/.config/outfitting/source/system/oci-agents
 ```

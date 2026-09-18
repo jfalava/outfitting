@@ -1,39 +1,46 @@
 ---
 title: Home Manager
-description: Apply and maintain Linux profile Home Manager configurations.
+description: Apply Linux Home Manager configurations with the manager and shell helpers.
 sidebar:
   order: 2
 ---
 
-The Nix-backed `oci-agents` and `ubuntu-wsl` profiles apply Home Manager during `init`, `setup`, and `update nix`. Both pin **Home Manager release-26.05** (with `nixos-26.05` nixpkgs), matching macOS and NixOS.
+Nix-backed profiles (`ubuntu-wsl`, `oci-agents`) apply Home Manager during `init`, `setup`, and `update nix`. Pins match macOS: **Home Manager release-26.05** and **nixos-26.05**.
 
-## Manager commands (same as macOS)
+## Manager
 
 ```bash
 outfitting-manager update nix         # lists build | switch | test | dry
-outfitting-manager update nix build   # Build without activating
-outfitting-manager update nix test    # Test-build without activating
-outfitting-manager update nix dry     # Dry-run without activating
-outfitting-manager update nix switch  # Build and activate
+outfitting-manager update nix build
+outfitting-manager update nix test
+outfitting-manager update nix dry
+outfitting-manager update nix switch  # build and activate
 ```
 
-Bare `update nix` only lists subcommands. Explicit actions resolve the flake from `linux.profile` (`oci-agents` → `system/oci-agents#oci-agents`, `ubuntu-wsl` → `system/ubuntu-wsl#jfalava`), link `~/.config/home-manager`, and build or activate. Pass `--profile` to override the persisted profile. Unlike macOS, Linux uses the flake’s checked-in `flake.lock` (no remote lock pull).
+Bare `update nix` only lists subcommands. Actions resolve the flake from `linux.profile`:
 
-## Zsh helpers
+| Profile | Flake |
+| --- | --- |
+| `ubuntu-wsl` | `system/ubuntu-wsl#jfalava` |
+| `oci-agents` | `system/oci-agents#oci-agents` |
 
-Zsh `hm-*` helpers call the manager when available and fall back to native Home Manager otherwise. Shared implementation: `system/common/zsh/hm-profile.inc.zsh`.
+Linux uses the flake’s checked-in `flake.lock` (no remote lock pull). Pass `--profile` on the action subcommands when you need to override the persisted profile.
+
+## Shell helpers
+
+Shared implementation: `system/common/zsh/hm-profile.inc.zsh`, loaded by the profile Zsh plugin.
 
 ```bash
-hm-build     # Build without activating
-hm-test      # Test-build without activating
-hm-dry       # Dry-run without activating
-hm-switch    # Build and activate
-hm-sync      # Alias for hm-switch
-hm-update    # With the manager: switch only. Native fallback still runs nix flake update first.
-hm-rollback  # List generations and show activation instructions
-hm-clean     # Remove old Nix generations and store paths
+hm-build     # build without activating
+hm-test      # test-build without activating
+hm-dry       # dry-run without activating
+hm-switch    # build and activate
+hm-sync      # alias for hm-switch
+hm-update    # manager: switch only; native fallback may run nix flake update first
+hm-rollback  # list generations
+hm-clean     # remove old store paths
 ```
 
-The hosted installer uses the sparse source at `$HOME/.config/outfitting/source`. Set `OUTFITTING_REPO` or pass `--repo` at setup time to use another full checkout.
+When `outfitting-manager` is on `PATH`, helpers call `update nix <action>`. Otherwise they run native `nix build` / `home-manager switch` (or `nix run … home-manager`).
 
-The OCI bootstrap also installs upstream harness binaries (including OpenCode v2 via `https://opencode.ai/v2/install`), sets the login shell to zsh, enables user lingering, starts `user@uid` when the session bus is missing, and starts Amp/T3/OpenCode units. Home Manager owns OpenCode config and the web unit; the real `opencode` binary is not a Nix package. The OCI Zsh plugin starts a local `ssh-agent` when `SSH_AUTH_SOCK` is missing (forwarded agents are left alone), auto-loads `~/.ssh/jfalava-gitAuth-elliptic` when the agent is empty, and exports `DBUS_SESSION_BUS_ADDRESS` for libsecret. Open a new SSH session after the first activation so the profile takes effect. Shared SSH config prefers that elliptic auth key for `github.com`.
+Sparse source default: `$HOME/.config/outfitting/source`. Override with `OUTFITTING_REPO` or `--repo` at setup time.

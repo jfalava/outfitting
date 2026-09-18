@@ -1,39 +1,22 @@
 ---
 title: Install
-description: Install generic Linux with the compiled manager or choose a WSL installer mode.
+description: Install Outfitting on Linux with the hosted bootstrap.
 sidebar:
   order: 1
 ---
-
-## Generic Linux
-
-Run the architecture-selecting binary bootstrap:
 
 ```bash
 curl -L linux.jfa.dev | bash
 ```
 
-It supports Linux x64 and arm64 and delegates installation to `outfitting-manager`, which detects apt or pacman. The installer fetches the complete local source bundle, applies the selected Nix/Home Manager profile when applicable, and installs the declared native packages. The `oci-agents` and `ubuntu-wsl` profiles can be selected with `--profile`.
+Supports Linux x64 and arm64. The script installs `outfitting-manager`, runs `init` and `setup`, detects apt or pacman, and applies the selected profile (default: `generic-linux`).
+
+## Profile examples
 
 ```bash
-curl -L linux.jfa.dev | bash -s -- --profile oci-agents
+curl -L linux.jfa.dev | bash -s -- --profile generic-linux
 curl -L linux.jfa.dev | bash -s -- --profile ubuntu-wsl
+curl -L linux.jfa.dev | bash -s -- --profile oci-agents
 ```
 
-## WSL
-
-Run the hosted installer from an interactive WSL shell:
-
-```bash
-curl -L wsl.jfa.dev | bash
-```
-
-The script accepts these modes:
-
-```bash
-curl -L wsl.jfa.dev | bash -s -- --full-install  # APT, Docker, HashiCorp, Nix, and Home Manager
-curl -L wsl.jfa.dev | bash -s -- --update-only   # APT-only update path
-curl -L wsl.jfa.dev | bash -s -- --nix-only      # Nix and Home Manager path
-```
-
-`--full` and `--apt-only` remain accepted aliases. Profile-selection flags are obsolete because WSL has one personal configuration.
+Nix-backed profiles expect Nix to be available on the machine (or installed by that profile’s bootstrap). See [init](/docs/cli/linux/init/) for `--repo` and offline flags.
