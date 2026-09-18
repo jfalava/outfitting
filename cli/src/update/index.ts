@@ -7,10 +7,16 @@ export {
   linuxPackageManagerArgs,
   LINUX_MANIFEST_PATH,
   LINUX_PROFILES,
+  listInstalledLinuxPackages,
+  linuxPackageIdentity,
+  missingLinuxPackages,
   parseLinuxPackageManifest,
+  syncLinux,
   updateLinux,
   type LinuxPackageAction,
+  type LinuxPackageInventoryOptions,
   type LinuxProfile,
+  type LinuxSyncOptions,
   type LinuxUpdateOptions,
 } from "@/update/linux";
 export {

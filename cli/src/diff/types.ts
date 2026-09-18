@@ -1,6 +1,6 @@
-export type DiffPlatform = "macos" | "windows";
+export type DiffPlatform = "macos" | "windows" | "linux";
 
-export type DiffManager = "brew" | "nix" | "winget" | "scoop";
+export type DiffManager = "brew" | "nix" | "winget" | "scoop" | "apt" | "pacman";
 
 export type DiffStatus = "same" | "different" | "unavailable";
 

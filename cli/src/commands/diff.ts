@@ -21,7 +21,7 @@ const managerFlag = Flag.string("manager").pipe(
 const profileFlag = Flag.string("profile").pipe(
   Flag.optional,
   Flag.withDescription(
-    "Comma-separated Windows profile names; defaults to the selected sync profiles.",
+    "Profile name; Windows accepts comma-separated profiles, Linux accepts one profile.",
   ),
 );
 
@@ -36,7 +36,10 @@ const jsonFlag = Flag.boolean("json").pipe(
 );
 
 function platformLabel(platform: DiffPlatform): string {
-  return platform === "macos" ? "macOS" : "Windows";
+  if (platform === "macos") {
+    return "macOS";
+  }
+  return platform === "windows" ? "Windows" : "Linux";
 }
 
 interface DiffProgressRenderer {
@@ -177,10 +180,13 @@ function makeDiffCommand(platform: DiffPlatform) {
     Command.withDescription(
       platform === "macos"
         ? "Compare live Homebrew and Nix state with the configured repository."
-        : "Compare live WinGet and Scoop state with the configured repository.",
+        : platform === "windows"
+          ? "Compare live WinGet and Scoop state with the configured repository."
+          : "Check declared Linux apt or pacman packages without reporting unrelated installed packages.",
     ),
   );
 }
 
 export const makeMacosDiffCommand = () => makeDiffCommand("macos");
 export const makeWindowsDiffCommand = () => makeDiffCommand("windows");
+export const makeLinuxDiffCommand = () => makeDiffCommand("linux");

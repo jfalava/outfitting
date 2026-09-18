@@ -15,6 +15,15 @@ outfitting-manager update all
 
 Use `update apt` or `update pacman` to select a manager explicitly, or pass `--package-manager apt|pacman` to `update all`. Use `--profile oci-agents` only on the managed OCI host.
 
+Check or install only missing declared packages with:
+
+```bash
+outfitting-manager diff --manager apt
+outfitting-manager sync apt
+```
+
+Linux `diff` reports missing declared packages only. Linux `sync` installs those missing packages and preserves every unrelated package already installed on the host; it never tries to make the complete APT inventory match the repository.
+
 ## WSL
 
 Run the complete local maintenance sequence with:

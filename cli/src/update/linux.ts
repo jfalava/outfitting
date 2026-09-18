@@ -47,6 +47,81 @@ export function parseLinuxPackageManifest(content: string): string[] {
 
 export type LinuxPackageAction = "update" | "upgrade" | "install" | "remove";
 
+export interface LinuxPackageInventoryOptions {
+  run?: typeof runCommand;
+  which?: typeof which;
+}
+
+/** Normalize a package spec for presence checks while preserving the install spec. */
+export function linuxPackageIdentity(packageSpec: string): string {
+  return packageSpec
+    .split("=", 1)[0]!
+    .replace(/:[A-Za-z0-9.+_-]+$/, "")
+    .toLowerCase();
+}
+
+function linuxInventoryArgs(manager: LinuxPackageManager): string[] {
+  return manager === "apt" ? ["-W", "-f=${binary:Package}\\t${Status}\\n"] : ["-Qq"];
+}
+
+function parseInstalledLinuxPackages(
+  manager: LinuxPackageManager,
+  output: string,
+): Set<string> {
+  const installed = new Set<string>();
+  for (const line of output.split(/\r?\n/)) {
+    const [packageName, status] = line.split("\t");
+    if (manager === "apt" && status !== "install ok installed") {
+      continue;
+    }
+    if (packageName?.trim()) {
+      installed.add(linuxPackageIdentity(packageName));
+    }
+  }
+  return installed;
+}
+
+/** Return installed package identities without exposing the host's full package inventory. */
+export async function listInstalledLinuxPackages(
+  manager: LinuxPackageManager,
+  options: LinuxPackageInventoryOptions = {},
+): Promise<Set<string>> {
+  const run = options.run ?? runCommand;
+  const whichFn = options.which ?? which;
+  const executableName = manager === "apt" ? "dpkg-query" : "pacman";
+  const executable = await whichFn(executableName);
+  if (executable === undefined) {
+    throw new Error(`${executableName} is not installed or not in PATH.`);
+  }
+
+  const result = await run(executable, linuxInventoryArgs(manager), { inherit: false });
+  if (result.code !== 0) {
+    const detail = (result.stderr || result.stdout).trim();
+    throw new Error(
+      `${executableName} package inventory failed (exit ${result.code})${detail.length > 0 ? `: ${detail}` : "."}`,
+    );
+  }
+
+  return parseInstalledLinuxPackages(manager, result.stdout);
+}
+
+/** Find declared packages that are absent; unrelated installed packages are intentionally ignored. */
+export function missingLinuxPackages(
+  declared: ReadonlyArray<string>,
+  installed: ReadonlySet<string>,
+): string[] {
+  const missing: string[] = [];
+  const seen = new Set<string>();
+  for (const packageSpec of declared) {
+    const identity = linuxPackageIdentity(packageSpec);
+    if (!seen.has(identity) && !installed.has(identity)) {
+      seen.add(identity);
+      missing.push(packageSpec);
+    }
+  }
+  return missing;
+}
+
 function aptPackageManagerArgs(
   action: LinuxPackageAction,
   packages: ReadonlyArray<string>,
@@ -141,6 +216,8 @@ export interface LinuxUpdateOptions {
   bootstrapOci?: boolean;
 }
 
+export type LinuxSyncOptions = Omit<LinuxUpdateOptions, "bootstrapOci">;
+
 function resolveProfile(value: string | undefined): LinuxProfile {
   const profile = value ?? "generic-linux";
   if (!isLinuxProfile(profile)) {
@@ -221,6 +298,73 @@ export const updateLinux = (options: LinuxUpdateOptions = {}) =>
     }
 
     yield* Console.log(ui.success(`Linux ${manager} update complete.`));
+  });
+
+/** Install missing declared Linux packages without removing unrelated packages. */
+export const syncLinux = (options: LinuxSyncOptions = {}) =>
+  Effect.gen(function* () {
+    const run = options.run ?? runCommand;
+    const whichFn = options.which ?? which;
+    const config = options.config ?? (yield* tryPromise(() => loadConfig()));
+    const profile = yield* Effect.try({
+      try: () => resolveProfile(options.profile),
+      catch: toCliFailure,
+    });
+    const manager = yield* tryPromise(() =>
+      detectLinuxPackageManager({
+        requested: options.packageManager,
+        osReleasePath: options.osReleasePath,
+        readOsRelease: options.readOsRelease,
+        which: whichFn,
+      }),
+    );
+    const executable = yield* tryPromise(() => whichFn(manager));
+    if (executable === undefined) {
+      return yield* new CliFailure({
+        message: `Linux package manager \`${manager}\` is not installed or not in PATH.`,
+      });
+    }
+    const manifest = yield* tryPromise(() =>
+      fetchManifest({
+        path: linuxManifestPath(profile),
+        config,
+        fetcher: options.fetcher,
+        offline: options.offline,
+      }),
+    );
+    if (manifest.warning) {
+      yield* Console.log(ui.muted(manifest.warning));
+    }
+    const declared = yield* Effect.try({
+      try: () => parseLinuxPackageManifest(manifest.text),
+      catch: toCliFailure,
+    });
+    const installed = yield* tryPromise(() =>
+      listInstalledLinuxPackages(manager, { run, which: whichFn }),
+    );
+    const missing = missingLinuxPackages(declared, installed);
+
+    if (missing.length === 0) {
+      yield* Console.log(ui.success(`Linux ${manager} packages are present (${profile}).`));
+      return;
+    }
+
+    yield* Console.log(
+      ui.heading(`Installing ${missing.length} missing ${manager} package(s) (${profile})…`),
+    );
+    const commandOptions = {
+      manager,
+      executable,
+      run,
+      which: whichFn,
+    } satisfies LinuxCommandOptions;
+    if (manager === "apt") {
+      yield* tryPromise(() => runLinuxPackageCommand(commandOptions, "update"));
+    }
+    yield* tryPromise(() => runLinuxPackageCommand(commandOptions, "install", missing));
+    yield* Console.log(
+      ui.success(`Linux ${manager} sync complete; unrelated installed packages were preserved.`),
+    );
   });
 
 export { runLinuxPackageCommand };

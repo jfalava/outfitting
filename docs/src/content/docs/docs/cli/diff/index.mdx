@@ -11,7 +11,7 @@ sidebar:
 outfit diff
 ```
 
-Use `--manager` to inspect one source, `--profile` to select Windows profiles, `--offline` to use cached manifests, or `--json` for automation:
+Use `--manager` to inspect one source, `--profile` to select a profile, `--offline` to use cached manifests, or `--json` for automation:
 
 ```sh
 outfit diff --manager brew
@@ -23,6 +23,7 @@ outfit diff --offline --json
 
 - macOS compares Homebrew taps, formulae, casks, and the active Nix system.
 - Windows compares selected WinGet profiles and Scoop buckets/packages. WinGet manifests may mark Microsoft Store entries as `msstore:<id>`; diff compares the package ID against the unified WinGet export regardless of source.
+- Linux checks whether declared apt or pacman packages are present. Unrelated installed packages are ignored and never reported as extras.
 
 Repository package manifests do not generally pin versions, so the command reports missing, extra, and changed entries rather than version drift. Homebrew checks required formulae against all installed formulae. Only explicitly installed formulae count as extras; dependencies do not.
 

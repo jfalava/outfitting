@@ -210,6 +210,30 @@ describe("collectDiff", () => {
     expect(trace.at(-1)).toBe("progress:completed");
   });
 
+  test("checks only declared apt packages and ignores unrelated installed packages", async () => {
+    const root = await mkdtemp(join(tmpdir(), "outfitting-diff-apt-"));
+    roots.push(root);
+    const result = await collectDiff({
+      platform: "linux",
+      manager: "apt",
+      config: config(root),
+      which: async (command) =>
+        ({ apt: "/usr/bin/apt", "dpkg-query": "/usr/bin/dpkg-query" })[command],
+      fetcher: async () => new Response("curl\ngit\n"),
+      run: async () =>
+        ok("curl:amd64\tinstall ok installed\nvim\tinstall ok installed\n"),
+    });
+
+    expect(result.sections[0]).toMatchObject({
+      manager: "apt",
+      status: "different",
+      missing: ["git"],
+      extra: [],
+      changed: [],
+      message: expect.stringContaining("unrelated installed packages are ignored"),
+    });
+  });
+
   test("counts required dependencies as present and excludes unrequested extras", async () => {
     const root = await mkdtemp(join(tmpdir(), "outfitting-diff-brew-"));
     roots.push(root);

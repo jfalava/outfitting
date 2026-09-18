@@ -19,6 +19,13 @@ import { runCommand, which } from "@/process";
 import { parseBrewfileManifest, BREWFILE_MANIFEST_PATH } from "@/update/brew";
 import { closeNixLock, openNixLock } from "@/update/nix/lock";
 import { NIX_SYSTEM_ATTR } from "@/update/nix/types";
+import {
+  isLinuxProfile,
+  listInstalledLinuxPackages,
+  missingLinuxPackages,
+  parseLinuxPackageManifest,
+} from "@/update/linux";
+import type { LinuxPackageManager } from "@/platform/linux";
 import { parseScoopManifest, type ScoopManifest } from "@/update/scoop";
 import { runScoopCommand } from "@/update/scoop-command";
 import { readWindowsLock } from "@/update/windows-lock";
@@ -26,6 +33,7 @@ import { parseScoopExport, type ScoopExportState } from "@/update/windows-snapsh
 
 const MACOS_MANAGERS = ["brew", "nix"] as const satisfies ReadonlyArray<DiffManager>;
 const WINDOWS_MANAGERS = ["winget", "scoop"] as const satisfies ReadonlyArray<DiffManager>;
+const LINUX_MANAGERS = ["apt", "pacman"] as const satisfies ReadonlyArray<DiffManager>;
 
 export interface CollectDiffOptions {
   platform: DiffPlatform;
@@ -66,6 +74,11 @@ interface DiffContext {
 
 interface WindowsDiffOptions {
   manager: Extract<DiffManager, "winget" | "scoop">;
+  profiles: ReadonlyArray<string> | undefined;
+}
+
+interface LinuxDiffOptions {
+  manager: Extract<DiffManager, "apt" | "pacman">;
   profiles: ReadonlyArray<string> | undefined;
 }
 
@@ -384,6 +397,46 @@ async function compareWindowsSection(
   throw new Error(`Unsupported Windows diff manager: ${options.manager}`);
 }
 
+async function compareLinuxSection(
+  options: LinuxDiffOptions,
+  context: DiffContext,
+): Promise<DiffSection> {
+  const profile = options.profiles?.[0] ?? "generic-linux";
+  if (options.profiles !== undefined && options.profiles.length !== 1) {
+    throw new Error("Linux diff accepts one profile at a time.");
+  }
+  if (!isLinuxProfile(profile)) {
+    throw new Error(`Unknown Linux profile \`${profile}\`.`);
+  }
+
+  const manager = options.manager satisfies LinuxPackageManager;
+  const executable = await context.which(manager);
+  if (executable === undefined) {
+    return unavailableSection(manager, `${manager} is not installed or not in PATH.`);
+  }
+
+  const desired = parseLinuxPackageManifest(
+    await fetchDiffManifest(`packages/linux/${profile}.txt`, context),
+  );
+  const installed = await listInstalledLinuxPackages(manager, {
+    run: context.run,
+    which: context.which,
+  });
+  const missing = missingLinuxPackages(desired, installed);
+  for (const [index, declaredPackage] of desired.entries()) {
+    context.reportItem(declaredPackage, index + 1, desired.length);
+  }
+
+  return {
+    manager,
+    status: missing.length === 0 ? "same" : "different",
+    missing,
+    extra: [],
+    changed: [],
+    message: `Checks only declared ${manager} packages; unrelated installed packages are ignored.`,
+  };
+}
+
 const quietConsole = Object.assign(Object.create(console), {
   log: () => undefined,
 }) as Console.Console;
@@ -451,9 +504,14 @@ async function compareNixSection(context: DiffContext): Promise<DiffSection> {
 }
 
 function selectedManagers(platform: DiffPlatform, requested: string | undefined): DiffManager[] {
-  const allowed = platform === "macos" ? MACOS_MANAGERS : WINDOWS_MANAGERS;
+  const allowed =
+    platform === "macos"
+      ? MACOS_MANAGERS
+      : platform === "windows"
+        ? WINDOWS_MANAGERS
+        : LINUX_MANAGERS;
   if (requested === undefined || requested === "all") {
-    return [...allowed];
+    return platform === "linux" ? ["apt"] : [...allowed];
   }
   const manager = allowed.find((candidate) => candidate === requested.toLowerCase());
   if (manager === undefined) {
@@ -462,6 +520,23 @@ function selectedManagers(platform: DiffPlatform, requested: string | undefined)
     );
   }
   return [manager];
+}
+
+async function compareSection(
+  manager: DiffManager,
+  profiles: ReadonlyArray<string> | undefined,
+  context: DiffContext,
+): Promise<DiffSection> {
+  if (manager === "brew") {
+    return compareBrewSection(context);
+  }
+  if (manager === "nix") {
+    return compareNixSection(context);
+  }
+  if (manager === "winget" || manager === "scoop") {
+    return compareWindowsSection({ manager, profiles }, context);
+  }
+  return compareLinuxSection({ manager, profiles }, context);
 }
 
 export async function collectDiff(options: CollectDiffOptions): Promise<PlatformDiff> {
@@ -498,13 +573,7 @@ export async function collectDiff(options: CollectDiffOptions): Promise<Platform
     });
     let section: DiffSection;
     try {
-      if (manager === "brew") {
-        section = await compareBrewSection(context);
-      } else if (manager === "nix") {
-        section = await compareNixSection(context);
-      } else {
-        section = await compareWindowsSection({ manager, profiles: options.profiles }, context);
-      }
+      section = await compareSection(manager, options.profiles, context);
     } catch (cause) {
       section = unavailableSection(manager, errorMessage(cause));
     }

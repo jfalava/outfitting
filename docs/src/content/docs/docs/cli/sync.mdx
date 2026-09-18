@@ -5,13 +5,13 @@ sidebar:
   order: 3
 ---
 
-`sync` has platform-specific meaning. On macOS it is the primary name for the remote lockfile transport. On Windows it reconciles selected package profiles and writes the unified machine lock. Generic Linux uses it for the shared remote lockfile transport; WSL's hosted equivalent is `remote-update`.
+`sync` has platform-specific meaning. On macOS it is the primary name for the remote lockfile transport. On Windows it reconciles selected package profiles and writes the unified machine lock. Generic Linux installs missing packages from the selected apt or pacman profile without removing unrelated packages; its shared remote lockfile operations remain available as subcommands. WSL's hosted equivalent is `remote-update`.
 
 ## Platform commands
 
 - [macOS sync](/docs/cli/macos/sync/) — use the remote lockfile transport; `lockfiles` remains an alias.
 - [Windows sync](/docs/cli/windows/sync/) — fetch profiles, reconcile WinGet and Scoop, materialize the PowerShell profile, and update `windows.lock.json`.
-- [Linux sync](/docs/cli/lockfiles/) — use the shared remote lockfile transport.
+- [Linux sync](/docs/cli/linux/maintenance/) — install missing declared apt or pacman packages; use `lockfiles` for shared remote lockfile transport.
 - [WSL maintenance](/docs/cli/linux/maintenance/) — use `remote-update` for the hosted update-only installer path.
 
 For the shared `configure-worker`, `configure-token`, `push`, `pull`, `list`, and `history` operations, see [lockfiles](/docs/cli/lockfiles/).

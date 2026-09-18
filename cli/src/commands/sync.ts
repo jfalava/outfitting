@@ -6,7 +6,7 @@ import { listCommand } from "@/commands/lockfiles/list";
 import { pullCommand } from "@/commands/lockfiles/pull";
 import { pushCommand } from "@/commands/lockfiles/push";
 
-const syncSubcommands = [
+export const syncSubcommands = [
   configureWorkerCommand,
   configureTokenCommand,
   pushCommand,

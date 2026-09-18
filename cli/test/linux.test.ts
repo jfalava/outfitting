@@ -13,7 +13,15 @@ import {
   linuxDistributionFamily,
   parseOsRelease,
 } from "@/platform/linux";
-import { linuxPackageManagerArgs, parseLinuxPackageManifest, updateLinux } from "@/update/linux";
+import {
+  linuxPackageIdentity,
+  linuxPackageManagerArgs,
+  listInstalledLinuxPackages,
+  missingLinuxPackages,
+  parseLinuxPackageManifest,
+  syncLinux,
+  updateLinux,
+} from "@/update/linux";
 
 const execFileAsync = promisify(execFile);
 const linuxEntry = fileURLToPath(new URL("../index.ts", import.meta.url));
@@ -27,6 +35,16 @@ test("Linux entrypoint registers the distro-agnostic update commands", async () 
   expect(text).toMatch(/\bapt\b/);
   expect(text).toMatch(/\bpacman\b/);
   expect(text).toContain("--package-manager");
+
+  const diff = await execFileAsync("bun", [linuxEntry, "diff", "--help"], {
+    encoding: "utf8",
+  });
+  expect(`${diff.stdout}\n${diff.stderr}`).toMatch(/apt|pacman/);
+
+  const sync = await execFileAsync("bun", [linuxEntry, "sync", "--help"], {
+    encoding: "utf8",
+  });
+  expect(`${sync.stdout}\n${sync.stderr}`).toMatch(/apt|pacman/);
 });
 
 describe("Linux host detection", () => {
@@ -99,6 +117,23 @@ describe("Linux package adapter", () => {
     ]);
   });
 
+  test("checks declared package presence without treating unrelated installs as extras", async () => {
+    expect(linuxPackageIdentity("curl:amd64=8.5.0")).toBe("curl");
+    expect(missingLinuxPackages(["curl", "git", "git"], new Set(["curl", "vim"]))).toEqual([
+      "git",
+    ]);
+
+    const installed = await listInstalledLinuxPackages("apt", {
+      which: async (command) => (command === "dpkg-query" ? "/usr/bin/dpkg-query" : undefined),
+      run: async () => ({
+        code: 0,
+        stdout: "curl:amd64\tinstall ok installed\nold-package\tdeinstall ok config-files\n",
+        stderr: "",
+      }),
+    });
+    expect(installed).toEqual(new Set(["curl"]));
+  });
+
   test("updates an apt host from the selected profile manifest", async () => {
     const stateRoot = await mkdtemp(join(tmpdir(), "outfitting-linux-update-"));
     const calls: Array<{ command: string; args: ReadonlyArray<string> }> = [];
@@ -132,6 +167,51 @@ describe("Linux package adapter", () => {
         command: "/usr/bin/sudo",
         args: ["/usr/bin/apt", "install", "-y", "curl", "git"],
       },
+    ]);
+  });
+
+  test("syncs only missing apt packages and never upgrades or removes extras", async () => {
+    const stateRoot = await mkdtemp(join(tmpdir(), "outfitting-linux-sync-"));
+    const calls: Array<{ command: string; args: ReadonlyArray<string> }> = [];
+    try {
+      await Effect.runPromise(
+        syncLinux({
+          config: {
+            stateRoot,
+            machineId: "test:x86_64-linux",
+            machineIdOverridden: true,
+            manifest: { baseUrl: "https://example.test/outfitting", ref: "main" },
+          },
+          packageManager: "apt",
+          readOsRelease: async () => "ID=ubuntu\n",
+          which: async (command) =>
+            ({
+              apt: "/usr/bin/apt",
+              "dpkg-query": "/usr/bin/dpkg-query",
+              sudo: "/usr/bin/sudo",
+            })[command],
+          fetcher: async () => new Response("curl\ngit\n"),
+          run: async (command, args) => {
+            calls.push({ command, args });
+            if (command === "/usr/bin/dpkg-query") {
+              return {
+                code: 0,
+                stdout: "curl:amd64\tinstall ok installed\nvim\tinstall ok installed\n",
+                stderr: "",
+              };
+            }
+            return { code: 0, stdout: "", stderr: "" };
+          },
+        }),
+      );
+    } finally {
+      await rm(stateRoot, { force: true, recursive: true });
+    }
+
+    expect(calls).toEqual([
+      { command: "/usr/bin/dpkg-query", args: ["-W", "-f=${binary:Package}\\t${Status}\\n"] },
+      { command: "/usr/bin/sudo", args: ["/usr/bin/apt", "update"] },
+      { command: "/usr/bin/sudo", args: ["/usr/bin/apt", "install", "-y", "git"] },
     ]);
   });
 });
