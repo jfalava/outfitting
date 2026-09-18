@@ -2,8 +2,10 @@
 title: Installation
 description: Install Outfitting on macOS with Homebrew, Nix, and nix-darwin configuration.
 sidebar:
-  order: 2
+  order: 1
 ---
+
+Outfitting manages an Apple Silicon macOS development environment with Homebrew, Nix, nix-darwin, Home Manager, and the repository's inventory tools.
 
 ## Prerequisites
 
@@ -20,3 +22,5 @@ curl -L mac.jfa.dev | bash
 The installer downloads the verified macOS manager, installs Homebrew and Nix when needed, fetches the sparse source, links the macOS configuration, and activates nix-darwin. It does not clone the monorepo or create a repository `flake.lock`.
 
 Open a new shell after installation. See the [macOS setup command](/docs/cli/macos/setup/) for state-source options and the [update commands](/docs/cli/macos/update/) for ongoing maintenance.
+
+The complete manager command tree and Zsh compatibility helpers are in the [macOS CLI reference](/docs/cli/macos/).
