@@ -77,11 +77,10 @@ const makeNixCommand = () => {
     ).pipe(Command.withDescription(nixActionDescription[action])),
   );
 
-  return Command.make("nix", { profile: linuxOptionalProfileFlag }, ({ profile }) =>
-    updateNix({ action: "switch", profile: optionalString(profile) }),
-  ).pipe(
+  // No default action: bare `update nix` only lists subcommands.
+  return Command.make("nix").pipe(
     Command.withDescription(
-      "Update Home Manager (switch by default); build | switch | test | dry are available as subcommands.",
+      "Home Manager actions: build | switch | test | dry (pick one; bare nix lists them).",
     ),
     Command.withSubcommands(actions),
   );

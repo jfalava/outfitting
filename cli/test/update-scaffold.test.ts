@@ -82,17 +82,17 @@ describe("macos CLI scaffold (process)", () => {
     );
   });
 
-  test("update nix defaults to switch while retaining build actions", async () => {
-    const { code, stdout, stderr } = await runCliWithEnv(["update", "nix"], {
+  test("update nix without an action lists subcommands and does not switch", async () => {
+    const { stdout, stderr } = await runCliWithEnv(["update", "nix"], {
       OUTFITTING_REPO: "/tmp/definitely-not-an-outfitting-repo",
     });
     const text = `${stdout}\n${stderr}`;
-    expect(code).not.toBe(0);
-    expect(text).not.toMatch(/Usage:.*update nix/i);
     expect(text).not.toMatch(/not implemented yet/i);
-    expect(text).toMatch(
-      /missing system\/macos\/flake\.nix|does not exist|not configured|not installed/i,
+    // Must not attempt a real switch/build when no action is given.
+    expect(text).not.toMatch(
+      /missing system\/macos\/flake\.nix|Building nix-darwin|Activating nix-darwin/i,
     );
+    expect(text).toMatch(/build|switch|test|dry/i);
 
     const help = await runCli(["update", "nix", "--help"]);
     expect(help.code).toBe(0);

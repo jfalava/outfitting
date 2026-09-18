@@ -10,14 +10,14 @@ The Nix-backed `oci-agents` and `ubuntu-wsl` profiles apply Home Manager during 
 ## Manager commands (same as macOS)
 
 ```bash
-outfitting-manager update nix         # switch (default)
+outfitting-manager update nix         # lists build | switch | test | dry
 outfitting-manager update nix build   # Build without activating
 outfitting-manager update nix test    # Test-build without activating
 outfitting-manager update nix dry     # Dry-run without activating
 outfitting-manager update nix switch  # Build and activate
 ```
 
-`update nix` resolves the flake from `linux.profile` (`oci-agents` → `system/oci-agents#oci-agents`, `ubuntu-wsl` → `system/ubuntu-wsl#jfalava`), links `~/.config/home-manager`, builds the activation package, and activates it. Pass `--profile` to override the persisted profile. Unlike macOS, Linux uses the flake’s checked-in `flake.lock` (no remote lock pull).
+Bare `update nix` only lists subcommands. Explicit actions resolve the flake from `linux.profile` (`oci-agents` → `system/oci-agents#oci-agents`, `ubuntu-wsl` → `system/ubuntu-wsl#jfalava`), link `~/.config/home-manager`, and build or activate. Pass `--profile` to override the persisted profile. Unlike macOS, Linux uses the flake’s checked-in `flake.lock` (no remote lock pull).
 
 ## Zsh helpers
 

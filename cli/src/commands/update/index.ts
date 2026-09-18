@@ -37,9 +37,10 @@ const makeNixCommand = () => {
     ),
   );
 
-  return Command.make("nix", {}, () => updateNix({ action: "switch" })).pipe(
+  // No default action: bare `update nix` only lists subcommands.
+  return Command.make("nix").pipe(
     Command.withDescription(
-      "Update nix-darwin (switch by default); build | switch | test | dry are available as subcommands.",
+      "Nix-darwin actions: build | switch | test | dry (pick one; bare nix lists them).",
     ),
     Command.withSubcommands(actions),
   );

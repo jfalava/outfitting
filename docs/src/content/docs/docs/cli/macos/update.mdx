@@ -15,9 +15,10 @@ outfit update all
 
 ## Nix-darwin
 
-`update nix` defaults to `switch`. The explicit actions are:
+Bare `update nix` only lists subcommands. The actions are:
 
 ```bash
+outfit update nix         # lists build | switch | test | dry
 outfit update nix build   # Build without activating
 outfit update nix test    # Test-build without activating
 outfit update nix dry     # Dry-run without activating

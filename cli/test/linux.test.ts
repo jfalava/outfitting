@@ -54,6 +54,18 @@ test("Linux entrypoint registers update nix alongside apt/pacman", async () => {
   });
   expect(`${nixHelp.stdout}\n${nixHelp.stderr}`).toMatch(/build|switch|test|dry/);
 
+  // Bare `update nix` must list actions, not activate Home Manager.
+  let bareText = "";
+  try {
+    const bare = await execFileAsync("bun", [linuxEntry, "update", "nix"], { encoding: "utf8" });
+    bareText = `${bare.stdout}\n${bare.stderr}`;
+  } catch (error) {
+    const err = error as { stdout?: string; stderr?: string };
+    bareText = `${err.stdout ?? ""}\n${err.stderr ?? ""}`;
+  }
+  expect(bareText).toMatch(/build|switch|test|dry/i);
+  expect(bareText).not.toMatch(/Building Home Manager|Activating Home Manager/i);
+
   const diff = await execFileAsync("bun", [linuxEntry, "diff", "--help"], {
     encoding: "utf8",
   });

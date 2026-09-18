@@ -19,7 +19,7 @@ cd /home/jfalava/.config/outfitting/repo
 Same commands as macOS:
 
 ```sh
-outfitting-manager update nix         # build + activate (default)
+outfitting-manager update nix         # lists build | switch | test | dry
 outfitting-manager update nix build   # build only
 outfitting-manager update nix switch  # build + activate
 outfitting-manager update nix test
