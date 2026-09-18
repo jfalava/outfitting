@@ -31,6 +31,9 @@ in
     EDITOR = "vim";
     VISUAL = "vim";
     PAGER = "less";
+    # Standalone Bun binaries dlopen GLib/libsecret; exposing the Nix library
+    # paths lets Bun.secrets use the packages declared below.
+    LD_LIBRARY_PATH = lib.makeLibraryPath [ pkgs.glib pkgs.libsecret ];
   };
 
   # Headless Ubuntu has no graphical session to unlock GNOME Keyring. Start

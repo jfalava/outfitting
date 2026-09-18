@@ -59,6 +59,16 @@ describe("orb environment credentials", () => {
     expect(await baseUrl()).toBe("https://example.workers.dev/api");
   });
 
+  test("reads lockfiles credentials from env without requiring an Amp orb", async () => {
+    setEnv({
+      AMP_ORB: undefined,
+      OUTFITTING_LOCKFILES_TOKEN: "  host-token  ",
+      OUTFITTING_LOCKFILES_URL: "https://example.workers.dev/api/",
+    });
+    expect(await apiToken()).toBe("host-token");
+    expect(await baseUrl()).toBe("https://example.workers.dev/api");
+  });
+
   test("defaults the lockfiles Worker URL in an Amp orb", async () => {
     setEnv({
       AMP_ORB: "1",

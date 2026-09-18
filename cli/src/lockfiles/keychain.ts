@@ -32,8 +32,13 @@ export async function storeWorkerUrl(value: string): Promise<string> {
 }
 
 export async function baseUrl(): Promise<string> {
+  const fromEnv = envValue("OUTFITTING_LOCKFILES_URL");
+  if (fromEnv) {
+    return normalizeWorkerUrl(fromEnv);
+  }
+
   if (inAmpOrb()) {
-    return normalizeWorkerUrl(envValue("OUTFITTING_LOCKFILES_URL") ?? DEFAULT_WORKER_URL);
+    return normalizeWorkerUrl(DEFAULT_WORKER_URL);
   }
 
   const stored = await storedSecret(SECRET_SERVICE, URL_SECRET_NAME);
@@ -66,12 +71,13 @@ export async function promptAndStoreApiToken(): Promise<string> {
 }
 
 export async function apiToken(): Promise<string> {
-  if (inAmpOrb()) {
-    const fromEnv = envValue("OUTFITTING_LOCKFILES_TOKEN");
-    if (!fromEnv) {
-      throw new Error("OUTFITTING_LOCKFILES_TOKEN is required in an Amp orb.");
-    }
+  const fromEnv = envValue("OUTFITTING_LOCKFILES_TOKEN");
+  if (fromEnv) {
     return fromEnv;
+  }
+
+  if (inAmpOrb()) {
+    throw new Error("OUTFITTING_LOCKFILES_TOKEN is required in an Amp orb.");
   }
 
   // Bun.secrets is experimental and does not isolate credentials between scripts running as the same OS user. That is acceptable for this personal tool, but the keychain entry is not a hard security boundary.
