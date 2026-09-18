@@ -18,11 +18,18 @@ export interface WindowsRoutesConfig {
   defaultProfiles: string[];
 }
 
+/** Linux package/Nix profile selected for this machine. */
+export interface LinuxConfig {
+  /** One of generic-linux | oci-agents | ubuntu-wsl. */
+  profile: string;
+}
+
 export interface ManagerConfigFile {
   /** Optional override; when omitted, auto `user:arch-os` is used. */
   machineId?: string;
   manifest?: Partial<ManifestSourceConfig>;
   windows?: Partial<WindowsRoutesConfig>;
+  linux?: Partial<LinuxConfig>;
 }
 
 export interface ManagerConfig {
@@ -35,7 +42,11 @@ export interface ManagerConfig {
   manifest: ManifestSourceConfig;
   /** Resolved for configs loaded from disk; optional for backwards-compatible injected configs. */
   windows?: WindowsRoutesConfig;
+  /** Persisted Linux profile; absent on non-Linux or unconfigured hosts. */
+  linux?: LinuxConfig;
 }
+
+export const DEFAULT_LINUX_PROFILE = "generic-linux";
 
 export const DEFAULT_MANIFEST_BASE_URL = "https://raw.githubusercontent.com/jfalava/outfitting";
 

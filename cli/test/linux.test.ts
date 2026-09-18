@@ -73,13 +73,14 @@ test("Linux init materializes state without invoking a package manager", async (
   }
 });
 
-test("Linux OCI init materializes the complete sparse source", async () => {
+test("Linux OCI init materializes the oci-agents sparse source", async () => {
   const stateRoot = await mkdtemp(join(tmpdir(), "outfitting-linux-oci-sparse-state-"));
   const calls: Array<{ command: string; args: ReadonlyArray<string> }> = [];
   let sourceRoot: string | undefined;
   let persistedRepoPath: string | undefined;
   let flakeContents: string | undefined;
   let aptManifestContents: string | undefined;
+  let persistedProfile: string | undefined;
   try {
     await Effect.runPromise(
       runLinuxInit({
@@ -95,7 +96,11 @@ test("Linux OCI init materializes the complete sparse source", async () => {
     persistedRepoPath = await readFile(join(stateRoot, "repo-path"), "utf8");
     sourceRoot = await realpath(join(stateRoot, "source"));
     flakeContents = await readFile(join(sourceRoot, "system/oci-agents/flake.nix"), "utf8");
-    aptManifestContents = await readFile(join(sourceRoot, "packages/ubuntu-wsl/apt.txt"), "utf8");
+    aptManifestContents = await readFile(join(sourceRoot, "packages/linux/oci-agents.txt"), "utf8");
+    persistedProfile = JSON.parse(await readFile(join(stateRoot, "config.json"), "utf8")).linux
+      ?.profile;
+    await expect(readFile(join(sourceRoot, "packages/macos/Brewfile"), "utf8")).rejects.toThrow();
+    await expect(readFile(join(sourceRoot, "packages/ubuntu-wsl/apt.txt"), "utf8")).rejects.toThrow();
   } finally {
     await rm(stateRoot, { force: true, recursive: true });
   }
@@ -104,6 +109,7 @@ test("Linux OCI init materializes the complete sparse source", async () => {
   expect(persistedRepoPath).toBe(`${sourceRoot}\n`);
   expect(flakeContents).toBe("curl\ngit\n");
   expect(aptManifestContents).toBe("curl\ngit\n");
+  expect(persistedProfile).toBe("oci-agents");
   expect(calls).toEqual([
     {
       command: "bash",
@@ -117,10 +123,10 @@ test("Linux OCI init bootstraps Home Manager after persisting the repository", a
   const repo = await mkdtemp(join(tmpdir(), "outfitting-linux-oci-init-repo-"));
   const calls: Array<{ command: string; args: ReadonlyArray<string> }> = [];
   const repoRoot = await realpath(repo);
+  let persistedProfile: string | undefined;
   try {
-    await mkdir(join(repo, "system", "macos"), { recursive: true });
     await mkdir(join(repo, "system", "oci-agents"), { recursive: true });
-    await writeFile(join(repo, "system", "macos", "flake.nix"), "{}\n");
+    await writeFile(join(repo, "system", "oci-agents", "flake.nix"), "{}\n");
     await writeFile(join(repo, "system", "oci-agents", "bootstrap.sh"), "#!/bin/sh\n");
 
     await Effect.runPromise(
@@ -135,6 +141,8 @@ test("Linux OCI init bootstraps Home Manager after persisting the repository", a
         },
       }),
     );
+    persistedProfile = JSON.parse(await readFile(join(stateRoot, "config.json"), "utf8")).linux
+      ?.profile;
   } finally {
     await rm(stateRoot, { force: true, recursive: true });
     await rm(repo, { force: true, recursive: true });
@@ -158,6 +166,7 @@ test("Linux OCI init bootstraps Home Manager after persisting the repository", a
       args: [join(repoRoot, "system", "oci-agents", "bootstrap.sh")],
     },
   ]);
+  expect(persistedProfile).toBe("oci-agents");
 });
 
 test("Linux WSL profile uses its existing Ubuntu package manifest", () => {
@@ -169,10 +178,10 @@ test("Linux WSL init bootstraps the Ubuntu Home Manager configuration", async ()
   const repo = await mkdtemp(join(tmpdir(), "outfitting-linux-wsl-init-repo-"));
   const calls: Array<{ command: string; args: ReadonlyArray<string> }> = [];
   const repoRoot = await realpath(repo);
+  let persistedProfile: string | undefined;
   try {
-    await mkdir(join(repo, "system", "macos"), { recursive: true });
     await mkdir(join(repo, "system", "ubuntu-wsl"), { recursive: true });
-    await writeFile(join(repo, "system", "macos", "flake.nix"), "{}\n");
+    await writeFile(join(repo, "system", "ubuntu-wsl", "flake.nix"), "{}\n");
     await writeFile(join(repo, "system", "ubuntu-wsl", "bootstrap.sh"), "#!/bin/sh\n");
 
     await Effect.runPromise(
@@ -187,6 +196,8 @@ test("Linux WSL init bootstraps the Ubuntu Home Manager configuration", async ()
         },
       }),
     );
+    persistedProfile = JSON.parse(await readFile(join(stateRoot, "config.json"), "utf8")).linux
+      ?.profile;
   } finally {
     await rm(stateRoot, { force: true, recursive: true });
     await rm(repo, { force: true, recursive: true });
@@ -210,6 +221,7 @@ test("Linux WSL init bootstraps the Ubuntu Home Manager configuration", async ()
       args: [join(repoRoot, "system", "ubuntu-wsl", "bootstrap.sh")],
     },
   ]);
+  expect(persistedProfile).toBe("ubuntu-wsl");
 });
 
 describe("Linux host detection", () => {
@@ -272,7 +284,6 @@ describe("Linux package adapter", () => {
       "curl",
       "git",
     ]);
-    expect(linuxPackageManagerArgs("apt", "remove", ["git"])).toEqual(["remove", "-y", "git"]);
     expect(linuxPackageManagerArgs("pacman", "upgrade")).toEqual(["-Syu", "--noconfirm"]);
     expect(linuxPackageManagerArgs("pacman", "install", ["curl"])).toEqual([
       "-S",
@@ -297,7 +308,7 @@ describe("Linux package adapter", () => {
     expect(installed).toEqual(new Set(["curl"]));
   });
 
-  test("updates an apt host from the selected profile manifest", async () => {
+  test("updates an apt host and installs only missing managed packages", async () => {
     const stateRoot = await mkdtemp(join(tmpdir(), "outfitting-linux-update-"));
     const calls: Array<{ command: string; args: ReadonlyArray<string> }> = [];
     try {
@@ -311,10 +322,22 @@ describe("Linux package adapter", () => {
           },
           profile: "generic-linux",
           readOsRelease: async () => "ID=ubuntu\n",
-          which: async (command) => ({ apt: "/usr/bin/apt", sudo: "/usr/bin/sudo" })[command],
+          which: async (command) =>
+            ({
+              apt: "/usr/bin/apt",
+              "dpkg-query": "/usr/bin/dpkg-query",
+              sudo: "/usr/bin/sudo",
+            })[command],
           fetcher: async () => new Response("curl\ngit\n"),
           run: async (command, args) => {
             calls.push({ command, args });
+            if (command === "/usr/bin/dpkg-query") {
+              return {
+                code: 0,
+                stdout: "curl:amd64\tinstall ok installed\n",
+                stderr: "",
+              };
+            }
             return { code: 0, stdout: "", stderr: "" };
           },
         }),
@@ -324,11 +347,12 @@ describe("Linux package adapter", () => {
     }
 
     expect(calls).toEqual([
+      { command: "/usr/bin/dpkg-query", args: ["-W", "-f=${binary:Package}\\t${Status}\\n"] },
       { command: "/usr/bin/sudo", args: ["/usr/bin/apt", "update"] },
       { command: "/usr/bin/sudo", args: ["/usr/bin/apt", "upgrade", "-y"] },
       {
         command: "/usr/bin/sudo",
-        args: ["/usr/bin/apt", "install", "-y", "curl", "git"],
+        args: ["/usr/bin/apt", "install", "-y", "git"],
       },
     ]);
   });
@@ -383,6 +407,7 @@ test("Linux setup applies the cached selected profile", async () => {
   const stateRoot = await mkdtemp(join(tmpdir(), "outfitting-linux-setup-"));
   const calls: Array<{ command: string; args: ReadonlyArray<string> }> = [];
   let fetchCount = 0;
+  let persistedProfile: string | undefined;
   try {
     await Effect.runPromise(
       runLinuxSetup({
@@ -409,11 +434,15 @@ test("Linux setup applies the cached selected profile", async () => {
         },
       }),
     );
+    persistedProfile = JSON.parse(await readFile(join(stateRoot, "config.json"), "utf8")).linux
+      ?.profile;
   } finally {
     await rm(stateRoot, { force: true, recursive: true });
   }
 
+  // generic-linux sparse source is a single package list path
   expect(fetchCount).toBe(1);
+  expect(persistedProfile).toBe("generic-linux");
   expect(calls).toEqual([
     { command: "/usr/bin/dpkg-query", args: ["-W", "-f=${binary:Package}\\t${Status}\\n"] },
     { command: "/usr/bin/sudo", args: ["/usr/bin/apt", "update"] },
@@ -427,9 +456,8 @@ test("Linux OCI setup preserves the baseline flow and runs the OCI bootstrap", a
   const calls: Array<{ command: string; args: ReadonlyArray<string> }> = [];
   const repoRoot = await realpath(repo);
   try {
-    await mkdir(join(repo, "system", "macos"), { recursive: true });
     await mkdir(join(repo, "system", "oci-agents"), { recursive: true });
-    await writeFile(join(repo, "system", "macos", "flake.nix"), "{}\n");
+    await writeFile(join(repo, "system", "oci-agents", "flake.nix"), "{}\n");
     await writeFile(join(repo, "system", "oci-agents", "bootstrap.sh"), "#!/bin/sh\n");
     await Effect.runPromise(
       runLinuxSetup({
@@ -447,6 +475,9 @@ test("Linux OCI setup preserves the baseline flow and runs the OCI bootstrap", a
         fetcher: async () => new Response("curl\ngit\n"),
         run: async (command, args) => {
           calls.push({ command, args });
+          if (command === "/usr/bin/dpkg-query") {
+            return { code: 0, stdout: "", stderr: "" };
+          }
           return { code: 0, stdout: "", stderr: "" };
         },
       }),

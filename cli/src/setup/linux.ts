@@ -1,10 +1,16 @@
 import { Console, Effect } from "effect";
 
-import { loadConfig, syncOutfittingRepo, tryResolveOutfittingRepo, writeRepoPath } from "@/config";
+import {
+  loadConfig,
+  saveConfigFile,
+  syncOutfittingRepo,
+  tryResolveOutfittingRepo,
+  writeRepoPath,
+} from "@/config";
 import { tryPromise } from "@/lockfiles/effect";
 import { runCommand } from "@/process";
 import { envValue } from "@/secrets";
-import { LINUX_SOURCE_PATHS } from "@/setup/manifests";
+import { linuxSourcePaths } from "@/setup/manifests";
 import { runSetup, type SetupOptions } from "@/setup/run";
 import { ui } from "@/ui";
 import {
@@ -31,6 +37,15 @@ export interface LinuxInitOptions extends SetupOptions {
   bootstrapNix?: LinuxUpdateOptions["bootstrapNix"];
 }
 
+function persistLinuxProfile(profile: LinuxProfile, stateRoot: string | undefined) {
+  return tryPromise(() =>
+    saveConfigFile(
+      { linux: { profile } },
+      stateRoot === undefined ? undefined : { stateRoot },
+    ),
+  );
+}
+
 /** Prepare Linux state and bootstrap the selected profile's Nix configuration. */
 export const runLinuxInit = (options: LinuxInitOptions) =>
   Effect.gen(function* () {
@@ -41,13 +56,14 @@ export const runLinuxInit = (options: LinuxInitOptions) =>
     const linuxSetupOptions: SetupOptions = {
       ...setupOptions,
       manifestPaths: [linuxManifestPath(profile)],
-      sourcePaths: LINUX_SOURCE_PATHS,
+      sourcePaths: linuxSourcePaths(profile),
       nextCommand: "Next: outfitting-manager setup",
     };
     if (configuredRepo !== undefined) {
       linuxSetupOptions.repo = configuredRepo;
     }
     yield* runSetup(linuxSetupOptions);
+    yield* persistLinuxProfile(profile, options.stateRoot);
 
     if (profile !== "generic-linux" && bootstrapNix !== false) {
       const config = yield* tryPromise(() =>
@@ -88,9 +104,10 @@ export const runLinuxSetup = (options: LinuxSetupOptions) =>
     yield* runSetup({
       ...setupOptions,
       manifestPaths: [linuxManifestPath(profile)],
-      sourcePaths: profile === "generic-linux" ? undefined : LINUX_SOURCE_PATHS,
+      sourcePaths: linuxSourcePaths(profile),
       nextCommand: "Applying Linux package configuration…",
     });
+    yield* persistLinuxProfile(profile, options.stateRoot);
 
     const config = yield* tryPromise(() =>
       loadConfig(options.stateRoot === undefined ? undefined : { stateRoot: options.stateRoot }),

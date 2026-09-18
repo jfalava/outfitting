@@ -28,14 +28,17 @@ export const MACOS_SOURCE_PATHS = [
   "fonts/fontget.txt",
 ] as const;
 
-/** Complete Linux source closure for native package and Nix/Home Manager setup. */
-export const LINUX_SOURCE_PATHS = [
-  ...MACOS_SOURCE_PATHS,
-  "packages/linux/generic-linux.txt",
+/** Shared Unix/Nix modules required by every Linux Home Manager profile. */
+export const LINUX_COMMON_SOURCE_PATHS = [...COMMON_SOURCE_PATHS] as const;
+
+/** Native package list for the portable generic-linux profile. */
+export const GENERIC_LINUX_SOURCE_PATHS = ["packages/linux/generic-linux.txt"] as const;
+
+/** Sparse source for the headless oci-agents Home Manager profile. */
+export const OCI_AGENTS_SOURCE_PATHS = [
+  ...LINUX_COMMON_SOURCE_PATHS,
   "packages/linux/oci-agents.txt",
   "packages/oci-agents/packages.nix",
-  "packages/ubuntu-wsl/apt.txt",
-  "packages/ubuntu-wsl/packages.nix",
   "system/oci-agents/agent-guidance.md",
   "system/oci-agents/agents.nix",
   "system/oci-agents/bootstrap.sh",
@@ -43,12 +46,44 @@ export const LINUX_SOURCE_PATHS = [
   "system/oci-agents/flake.nix",
   "system/oci-agents/home.nix",
   "system/oci-agents/zsh/oci-agents.plugin.zsh",
+] as const;
+
+/** Sparse source for the Ubuntu WSL Home Manager profile. */
+export const UBUNTU_WSL_SOURCE_PATHS = [
+  ...LINUX_COMMON_SOURCE_PATHS,
+  "packages/ubuntu-wsl/apt.txt",
+  "packages/ubuntu-wsl/packages.nix",
   "system/ubuntu-wsl/base.nix",
   "system/ubuntu-wsl/bootstrap.sh",
   "system/ubuntu-wsl/flake.lock",
   "system/ubuntu-wsl/flake.nix",
   "system/ubuntu-wsl/zsh/wsl.plugin.zsh",
 ] as const;
+
+/** Union of every Linux profile path (allowlist + tests). */
+export const LINUX_SOURCE_PATHS = [
+  ...GENERIC_LINUX_SOURCE_PATHS,
+  ...OCI_AGENTS_SOURCE_PATHS,
+  ...UBUNTU_WSL_SOURCE_PATHS,
+] as const;
+
+/** Resolve the sparse source closure for a Linux profile. */
+export function linuxSourcePaths(
+  profile: "generic-linux" | "oci-agents" | "ubuntu-wsl",
+): ReadonlyArray<string> {
+  switch (profile) {
+    case "generic-linux":
+      return GENERIC_LINUX_SOURCE_PATHS;
+    case "oci-agents":
+      return OCI_AGENTS_SOURCE_PATHS;
+    case "ubuntu-wsl":
+      return UBUNTU_WSL_SOURCE_PATHS;
+    default: {
+      const exhaustive: never = profile;
+      return exhaustive;
+    }
+  }
+}
 
 /** Backwards-compatible name for the default macOS setup path set. */
 export const SETUP_MANIFEST_PATHS = MACOS_SOURCE_PATHS;

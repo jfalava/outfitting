@@ -1,5 +1,5 @@
 export { autoMachineId, defaultUsername, hostSystemTriple } from "@/config/machine-id";
-export { ensureStateRoot, loadConfig, saveConfigFile } from "@/config/load";
+export { ensureStateRoot, loadConfig, resolveLinuxConfig, saveConfigFile } from "@/config/load";
 export {
   configFilePath,
   defaultStateRoot,
@@ -21,9 +21,11 @@ export {
   type OutfittingRepo,
 } from "@/config/repo";
 export {
+  DEFAULT_LINUX_PROFILE,
   DEFAULT_MANIFEST_BASE_URL,
   DEFAULT_MANIFEST_REF,
   DEFAULT_WINDOWS_ROUTES,
+  type LinuxConfig,
   type ManagerConfig,
   type ManagerConfigFile,
   type ManifestSourceConfig,

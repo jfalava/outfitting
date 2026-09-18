@@ -5,7 +5,6 @@ export {
   isLinuxProfile,
   linuxManifestPath,
   linuxPackageManagerArgs,
-  LINUX_MANIFEST_PATH,
   LINUX_PROFILES,
   listInstalledLinuxPackages,
   linuxPackageIdentity,

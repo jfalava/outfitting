@@ -14,6 +14,7 @@ import {
   DEFAULT_MANIFEST_BASE_URL,
   DEFAULT_MANIFEST_REF,
   DEFAULT_WINDOWS_ROUTES,
+  type LinuxConfig,
   type ManagerConfig,
   type ManagerConfigFile,
   type ManifestSourceConfig,
@@ -35,10 +36,15 @@ const WindowsFileSchema = Schema.Struct({
   defaultProfiles: Schema.optionalKey(Schema.Array(Schema.NonEmptyString)),
 });
 
+const LinuxFileSchema = Schema.Struct({
+  profile: Schema.optionalKey(Schema.NonEmptyString),
+});
+
 const ConfigFileSchema = Schema.Struct({
   machineId: Schema.optionalKey(Schema.NonEmptyString),
   manifest: Schema.optionalKey(ManifestFileSchema),
   windows: Schema.optionalKey(WindowsFileSchema),
+  linux: Schema.optionalKey(LinuxFileSchema),
 });
 
 const decodeConfigFile = Schema.decodeUnknownOption(ConfigFileSchema);
@@ -77,6 +83,22 @@ function validateProfile(value: string): string {
     throw new Error(`outfitting config.json has an invalid Windows profile: ${value}.`);
   }
   return profile;
+}
+
+function validateLinuxProfile(value: string): string {
+  const profile = value.trim();
+  if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(profile)) {
+    throw new Error(`outfitting config.json has an invalid Linux profile: ${value}.`);
+  }
+  return profile;
+}
+
+/** Resolve the Linux profile block from a config file fragment. */
+export function resolveLinuxConfig(file: ManagerConfigFile["linux"] = {}): LinuxConfig | undefined {
+  if (file.profile === undefined) {
+    return undefined;
+  }
+  return { profile: validateLinuxProfile(file.profile) };
 }
 
 export function resolveWindowsRoutes(file: ManagerConfigFile["windows"] = {}): WindowsRoutesConfig {
@@ -130,6 +152,13 @@ function normalizeConfigFile(decoded: DecodedConfig): ManagerConfigFile {
     }
     file.windows = windows;
   }
+  if (decoded.linux !== undefined) {
+    const linux: Partial<LinuxConfig> = {};
+    if (decoded.linux.profile !== undefined) {
+      linux.profile = validateLinuxProfile(decoded.linux.profile);
+    }
+    file.linux = linux;
+  }
   return file;
 }
 
@@ -143,7 +172,7 @@ function parseConfigFile(raw: string): ManagerConfigFile {
   const decoded = decodeConfigFile(parsed);
   if (Option.isNone(decoded)) {
     throw new Error(
-      "outfitting config.json must be an object with optional machineId, manifest.{baseUrl,ref}, and windows route fields.",
+      "outfitting config.json must be an object with optional machineId, manifest.{baseUrl,ref}, windows route fields, and linux.profile.",
     );
   }
   return normalizeConfigFile(decoded.value);
@@ -207,13 +236,18 @@ export async function loadConfig(options?: {
   const file = (await readConfigFile(path)) ?? {};
   const resolved = resolveMachineId(file);
 
-  return {
+  const linux = resolveLinuxConfig(file.linux);
+  const config: ManagerConfig = {
     stateRoot: root,
     machineId: resolved.machineId,
     machineIdOverridden: resolved.machineIdOverridden,
     manifest: resolveManifest(file),
     windows: resolveWindowsRoutes(file.windows),
   };
+  if (linux !== undefined) {
+    config.linux = linux;
+  }
+  return config;
 }
 
 /** Create state root layout (config parent, cache, manifests). Does not fetch. */
@@ -265,6 +299,15 @@ function mergeConfigFiles(
     };
     next.windows = windows;
   }
+  const linuxPatch = patch.linux;
+  const linuxExisting = existing.linux;
+  if (linuxPatch !== undefined || linuxExisting !== undefined) {
+    const linux: Partial<LinuxConfig> = {
+      ...linuxExisting,
+      ...linuxPatch,
+    };
+    next.linux = linux;
+  }
   return next;
 }
 
@@ -281,6 +324,9 @@ export async function saveConfigFile(
   const next = mergeConfigFiles(existing, patch);
   if (next.windows !== undefined) {
     resolveWindowsRoutes(next.windows);
+  }
+  if (next.linux !== undefined) {
+    resolveLinuxConfig(next.linux);
   }
   const serialized = `${JSON.stringify(next, null, 2)}\n`;
   await mkdir(dirname(path), { recursive: true });

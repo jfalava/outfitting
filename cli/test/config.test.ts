@@ -107,6 +107,18 @@ describe("loadConfig", () => {
     });
   });
 
+  test("persists and loads the Linux profile", async () => {
+    const root = await tempRoot();
+    await saveConfigFile({ linux: { profile: "oci-agents" } }, { stateRoot: root });
+    const config = await loadConfig({ stateRoot: root });
+    expect(config.linux).toEqual({ profile: "oci-agents" });
+    await saveConfigFile({ linux: { profile: "ubuntu-wsl" } }, { stateRoot: root });
+    expect((await loadConfig({ stateRoot: root })).linux).toEqual({ profile: "ubuntu-wsl" });
+    await expect(
+      saveConfigFile({ linux: { profile: "../escape" } }, { stateRoot: root }),
+    ).rejects.toThrow(/invalid Linux profile/);
+  });
+
   test("resolves custom Windows routes and defaults", async () => {
     const root = await tempRoot();
     await saveConfigFile(

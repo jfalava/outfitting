@@ -6,6 +6,7 @@ import { Console, Effect, Option, Schema } from "effect";
 
 import { parseWindowsPackageList, resolveWindowsProfiles } from "@/commands/windows-sync";
 import {
+  DEFAULT_LINUX_PROFILE,
   loadConfig,
   resolveOutfittingRepo,
   resolveWindowsRoutes,
@@ -15,17 +16,19 @@ import {
 import type { DiffManager, DiffPlatform, DiffSection, PlatformDiff } from "@/diff/types";
 import { fetchManifest, type ManifestFetcher } from "@/fetch";
 import { pullLockfile } from "@/lockfiles";
+import type { LinuxPackageManager } from "@/platform/linux";
 import { runCommand, which } from "@/process";
 import { parseBrewfileManifest, BREWFILE_MANIFEST_PATH } from "@/update/brew";
-import { closeNixLock, openNixLock } from "@/update/nix/lock";
-import { NIX_SYSTEM_ATTR } from "@/update/nix/types";
 import {
   isLinuxProfile,
+  linuxManifestPath,
   listInstalledLinuxPackages,
   missingLinuxPackages,
   parseLinuxPackageManifest,
+  type LinuxProfile,
 } from "@/update/linux";
-import type { LinuxPackageManager } from "@/platform/linux";
+import { closeNixLock, openNixLock } from "@/update/nix/lock";
+import { NIX_SYSTEM_ATTR } from "@/update/nix/types";
 import { parseScoopManifest, type ScoopManifest } from "@/update/scoop";
 import { runScoopCommand } from "@/update/scoop-command";
 import { readWindowsLock } from "@/update/windows-lock";
@@ -397,17 +400,25 @@ async function compareWindowsSection(
   throw new Error(`Unsupported Windows diff manager: ${options.manager}`);
 }
 
+function resolveLinuxDiffProfile(
+  profiles: ReadonlyArray<string> | undefined,
+  config: ManagerConfig,
+): LinuxProfile {
+  if (profiles !== undefined && profiles.length !== 1) {
+    throw new Error("Linux diff accepts one profile at a time.");
+  }
+  const profile = profiles?.[0] ?? config.linux?.profile ?? DEFAULT_LINUX_PROFILE;
+  if (!isLinuxProfile(profile)) {
+    throw new Error(`Unknown Linux profile \`${profile}\`.`);
+  }
+  return profile;
+}
+
 async function compareLinuxSection(
   options: LinuxDiffOptions,
   context: DiffContext,
 ): Promise<DiffSection> {
-  const profile = options.profiles?.[0] ?? "generic-linux";
-  if (options.profiles !== undefined && options.profiles.length !== 1) {
-    throw new Error("Linux diff accepts one profile at a time.");
-  }
-  if (!isLinuxProfile(profile)) {
-    throw new Error(`Unknown Linux profile \`${profile}\`.`);
-  }
+  const profile = resolveLinuxDiffProfile(options.profiles, context.config);
 
   const manager = options.manager satisfies LinuxPackageManager;
   const executable = await context.which(manager);
@@ -416,7 +427,7 @@ async function compareLinuxSection(
   }
 
   const desired = parseLinuxPackageManifest(
-    await fetchDiffManifest(`packages/linux/${profile}.txt`, context),
+    await fetchDiffManifest(linuxManifestPath(profile), context),
   );
   const installed = await listInstalledLinuxPackages(manager, {
     run: context.run,

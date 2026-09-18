@@ -234,6 +234,33 @@ describe("collectDiff", () => {
     });
   });
 
+  test("loads the ubuntu-wsl package manifest path instead of packages/linux/ubuntu-wsl.txt", async () => {
+    const root = await mkdtemp(join(tmpdir(), "outfitting-diff-wsl-"));
+    roots.push(root);
+    const fetched: string[] = [];
+    const result = await collectDiff({
+      platform: "linux",
+      manager: "apt",
+      profiles: ["ubuntu-wsl"],
+      config: config(root),
+      which: async (command) =>
+        ({ apt: "/usr/bin/apt", "dpkg-query": "/usr/bin/dpkg-query" })[command],
+      fetcher: async (url) => {
+        fetched.push(url);
+        return new Response("curl\nwget\n");
+      },
+      run: async () => ok("curl:amd64\tinstall ok installed\n"),
+    });
+
+    expect(fetched.some((url) => url.includes("packages/ubuntu-wsl/apt.txt"))).toBe(true);
+    expect(fetched.some((url) => url.includes("packages/linux/ubuntu-wsl.txt"))).toBe(false);
+    expect(result.sections[0]).toMatchObject({
+      manager: "apt",
+      status: "different",
+      missing: ["wget"],
+    });
+  });
+
   test("counts required dependencies as present and excludes unrequested extras", async () => {
     const root = await mkdtemp(join(tmpdir(), "outfitting-diff-brew-"));
     roots.push(root);

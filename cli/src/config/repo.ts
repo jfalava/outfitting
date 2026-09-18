@@ -20,6 +20,14 @@ import { envValue } from "@/secrets";
 const FLAKE_RELATIVE = join("system", "macos");
 export const DEFAULT_OUTFITTING_REPO_URL = "https://github.com/jfalava/outfitting.git";
 
+/** Paths that identify a valid Outfitting source (full checkout or sparse tree). */
+const SOURCE_MARKERS = [
+  join("system", "macos", "flake.nix"),
+  join("system", "oci-agents", "flake.nix"),
+  join("system", "ubuntu-wsl", "flake.nix"),
+  join("packages", "linux", "generic-linux.txt"),
+] as const;
+
 export interface OutfittingRepo {
   /** Absolute path to the full repository or sparse source root. */
   root: string;
@@ -73,10 +81,11 @@ export async function validateOutfittingRepo(candidate: string): Promise<Outfitt
 
   const flakePath = join(absolute, FLAKE_RELATIVE);
   const darwinNixPath = join(flakePath, "darwin.nix");
-
-  if (!(await pathExists(join(flakePath, "flake.nix")))) {
+  const markers = SOURCE_MARKERS.map((relative) => join(absolute, relative));
+  const present = await Promise.all(markers.map((path) => pathExists(path)));
+  if (!present.some(Boolean)) {
     throw new Error(
-      `Outfitting repo at ${absolute} is missing system/macos/flake.nix. Check OUTFITTING_REPO / repo-path.`,
+      `Outfitting repo at ${absolute} is missing a recognized source marker (system/macos, system/oci-agents, system/ubuntu-wsl, or packages/linux/generic-linux.txt). Check OUTFITTING_REPO / repo-path.`,
     );
   }
 

@@ -57,9 +57,9 @@ describe("writeRepoPath / validateOutfittingRepo", () => {
     expect((await stat(join(state, "repo-path"))).mode & 0o777).toBe(0o600);
   });
 
-  test("rejects paths without flake.nix", async () => {
+  test("rejects paths without a recognized source marker", async () => {
     const empty = await tempDir("outfitting-empty-");
-    await expect(validateOutfittingRepo(empty)).rejects.toThrow(/flake\.nix/);
+    await expect(validateOutfittingRepo(empty)).rejects.toThrow(/recognized source marker/);
   });
 });
 

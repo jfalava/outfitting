@@ -5,7 +5,7 @@ sidebar:
   order: 0
 ---
 
-`init` creates the local state root and fetches a complete Linux source bundle into `~/.config/outfitting/source`. The bundle includes the shared Nix modules and dotfiles, both Linux Home Manager flakes and lockfiles, Zsh profiles, Nix package declarations, and all supported Linux package manifests. It also keeps copies under `~/.config/outfitting/manifests` for offline package setup. For the Nix-backed `oci-agents` and `ubuntu-wsl` profiles, `init` applies the selected Home Manager configuration from that local source. Use `--repo` to choose and update an existing full checkout instead.
+`init` creates the local state root, records the selected profile in `config.json` as `linux.profile`, and fetches a **profile-scoped** sparse source into `~/.config/outfitting/source`. Generic Linux materializes only its package list; `oci-agents` and `ubuntu-wsl` each pull shared Unix/Nix modules plus that profile's flake, bootstrap, and package manifests — never the macOS closure or the other Linux profile. For Nix-backed profiles, `init` applies Home Manager from that local source. Use `--repo` to choose and update an existing full checkout instead.
 
 ```bash
 outfitting-manager init

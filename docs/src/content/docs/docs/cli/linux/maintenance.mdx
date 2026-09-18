@@ -7,13 +7,13 @@ sidebar:
 
 ## Generic Linux
 
-Update the detected native package manager and the `generic-linux` profile:
+Upgrade the system package set, then install only **missing** managed packages for the selected profile (default: `linux.profile` from `config.json`, else `generic-linux`):
 
 ```bash
 outfitting-manager update all
 ```
 
-Use `update apt` or `update pacman` to select a manager explicitly, or pass `--package-manager apt|pacman` to `update all`. Use `--profile oci-agents` only on the managed OCI host and `--profile ubuntu-wsl` only inside Ubuntu WSL.
+Use `update apt` or `update pacman` to select a manager explicitly, or pass `--package-manager apt|pacman` to `update all`. Pass `--profile` to override the persisted profile; use `oci-agents` only on the managed OCI host and `ubuntu-wsl` only inside Ubuntu WSL.
 
 Check or install only missing declared packages with:
 
@@ -22,7 +22,7 @@ outfitting-manager diff --manager apt
 outfitting-manager sync apt
 ```
 
-Linux `diff` reports missing declared packages only. Linux `sync` installs those missing packages and preserves every unrelated package already installed on the host; it never tries to make the complete APT inventory match the repository.
+Linux `diff` and `sync` use the same profile resolution and the correct package-list path per profile (including `packages/ubuntu-wsl/apt.txt`). Both report or install missing declared packages only and preserve every unrelated package already installed on the host.
 
 ## WSL
 

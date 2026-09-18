@@ -2,7 +2,12 @@ import { join } from "node:path";
 
 import { Console, Effect } from "effect";
 
-import { loadConfig, resolveOutfittingRepo, type ManagerConfig } from "@/config";
+import {
+  DEFAULT_LINUX_PROFILE,
+  loadConfig,
+  resolveOutfittingRepo,
+  type ManagerConfig,
+} from "@/config";
 import { CliFailure, toCliFailure } from "@/errors";
 import { fetchManifest, type ManifestFetcher } from "@/fetch";
 import { tryPromise } from "@/lockfiles/effect";
@@ -16,8 +21,6 @@ import { ui } from "@/ui";
 
 export const LINUX_PROFILES = ["generic-linux", "oci-agents", "ubuntu-wsl"] as const;
 export type LinuxProfile = (typeof LINUX_PROFILES)[number];
-
-export const LINUX_MANIFEST_PATH = "packages/linux/{profile}.txt";
 
 const LINUX_PROFILE_MANIFEST_PATHS = {
   "generic-linux": "packages/linux/generic-linux.txt",
@@ -51,7 +54,7 @@ export function parseLinuxPackageManifest(content: string): string[] {
   return packages;
 }
 
-export type LinuxPackageAction = "update" | "upgrade" | "install" | "remove";
+export type LinuxPackageAction = "update" | "upgrade" | "install";
 
 export interface LinuxPackageInventoryOptions {
   run?: typeof runCommand;
@@ -136,8 +139,6 @@ function aptPackageManagerArgs(
       return ["upgrade", "-y"];
     case "install":
       return ["install", "-y", ...packages];
-    case "remove":
-      return ["remove", "-y", ...packages];
     default: {
       const exhaustive: never = action;
       return exhaustive;
@@ -155,8 +156,6 @@ function pacmanPackageManagerArgs(
       return ["-Syu", "--noconfirm"];
     case "install":
       return ["-S", "--needed", "--noconfirm", ...packages];
-    case "remove":
-      return ["-Rns", "--noconfirm", ...packages];
     default: {
       const exhaustive: never = action;
       return exhaustive;
@@ -170,7 +169,7 @@ export function linuxPackageManagerArgs(
   action: LinuxPackageAction,
   packages: ReadonlyArray<string> = [],
 ): string[] {
-  if ((action === "install" || action === "remove") && packages.length === 0) {
+  if (action === "install" && packages.length === 0) {
     throw new Error(`${manager} ${action} requires at least one package.`);
   }
 
@@ -221,8 +220,8 @@ export interface LinuxUpdateOptions {
 
 export type LinuxSyncOptions = Omit<LinuxUpdateOptions, "bootstrapNix">;
 
-function resolveProfile(value: string | undefined): LinuxProfile {
-  const profile = value ?? "generic-linux";
+function resolveProfile(value: string | undefined, config?: ManagerConfig): LinuxProfile {
+  const profile = value ?? config?.linux?.profile ?? DEFAULT_LINUX_PROFILE;
   if (!isLinuxProfile(profile)) {
     throw new Error(`Unknown Linux profile \`${profile}\`. Choose: ${LINUX_PROFILES.join(", ")}.`);
   }
@@ -283,7 +282,7 @@ export const updateLinux = (options: LinuxUpdateOptions = {}) =>
     const whichFn = options.which ?? which;
     const config = options.config ?? (yield* tryPromise(() => loadConfig()));
     const profile = yield* Effect.try({
-      try: () => resolveProfile(options.profile),
+      try: () => resolveProfile(options.profile, config),
       catch: toCliFailure,
     });
     const manager = yield* tryPromise(() =>
@@ -312,10 +311,14 @@ export const updateLinux = (options: LinuxUpdateOptions = {}) =>
     if (manifest.warning) {
       yield* Console.log(ui.muted(manifest.warning));
     }
-    const packages = yield* Effect.try({
+    const declared = yield* Effect.try({
       try: () => parseLinuxPackageManifest(manifest.text),
       catch: toCliFailure,
     });
+    const installed = yield* tryPromise(() =>
+      listInstalledLinuxPackages(manager, { run, which: whichFn }),
+    );
+    const missing = missingLinuxPackages(declared, installed);
     const commandOptions = {
       manager,
       executable,
@@ -328,9 +331,13 @@ export const updateLinux = (options: LinuxUpdateOptions = {}) =>
       yield* tryPromise(() => runLinuxPackageCommand(commandOptions, "update"));
     }
     yield* tryPromise(() => runLinuxPackageCommand(commandOptions, "upgrade"));
-    if (packages.length > 0) {
-      yield* Console.log(ui.heading(`Installing ${packages.length} managed package(s)…`));
-      yield* tryPromise(() => runLinuxPackageCommand(commandOptions, "install", packages));
+    if (missing.length > 0) {
+      yield* Console.log(
+        ui.heading(`Installing ${missing.length} missing managed package(s)…`),
+      );
+      yield* tryPromise(() => runLinuxPackageCommand(commandOptions, "install", missing));
+    } else {
+      yield* Console.log(ui.muted(`All ${declared.length} managed package(s) already present.`));
     }
 
     if (profile !== "generic-linux" && options.bootstrapNix !== false) {
@@ -348,7 +355,7 @@ export const syncLinux = (options: LinuxSyncOptions = {}) =>
     const whichFn = options.which ?? which;
     const config = options.config ?? (yield* tryPromise(() => loadConfig()));
     const profile = yield* Effect.try({
-      try: () => resolveProfile(options.profile),
+      try: () => resolveProfile(options.profile, config),
       catch: toCliFailure,
     });
     const manager = yield* tryPromise(() =>
@@ -407,5 +414,3 @@ export const syncLinux = (options: LinuxSyncOptions = {}) =>
       ui.success(`Linux ${manager} sync complete; unrelated installed packages were preserved.`),
     );
   });
-
-export { runLinuxPackageCommand };
