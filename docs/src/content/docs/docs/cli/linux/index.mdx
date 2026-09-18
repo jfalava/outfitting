@@ -1,11 +1,11 @@
 ---
 title: Linux
-description: Maintain generic Linux hosts with apt or pacman, or use the separate WSL shell workflow.
+description: Maintain Linux hosts with apt or pacman and apply profile-specific Home Manager configuration.
 sidebar:
   order: 20
 ---
 
-Generic Linux uses the compiled `outfitting-manager` binary. It detects `/etc/os-release` and the installed package-manager executable, selecting modern `apt` for Debian-family distributions and `pacman` for Arch-family distributions. WSL continues to use the shell functions installed by its Home Manager profile and `wsl-install-script.sh`.
+Linux uses the compiled `outfitting-manager` binary. It detects `/etc/os-release` and the installed package-manager executable, selecting modern `apt` for Debian-family distributions and `pacman` for Arch-family distributions. The `ubuntu-wsl` profile shares this command surface with the existing WSL shell helpers.
 
 Install the generic Linux binary bootstrap with:
 
@@ -22,21 +22,23 @@ outfitting-manager init
 outfitting-manager setup --no-fetch
 ```
 
-`init` fetches and caches the selected profile without changing installed packages. `setup` consumes that cached profile, installs missing declared packages, and preserves unrelated packages. It does not upgrade the whole system; use `update` for that. Pass `--no-fetch` to `init` only when a cached profile already exists.
+`init` fetches and caches the selected profile without changing native packages. For Nix-backed profiles it also applies Home Manager. `setup` consumes that cached profile, installs missing declared packages, and applies the profile bootstrap again. It does not upgrade the whole system; use `update` for that. Pass `--no-fetch` to `init` only when a cached profile already exists.
 
-To override detection or select the opt-in OCI profile:
+To override detection or select a profile:
 
 ```bash
 outfitting-manager update all --package-manager apt
-outfitting-manager init --profile oci-agents --repo ~/code/outfitting
+outfitting-manager init --profile oci-agents
 outfitting-manager setup --profile oci-agents --repo ~/code/outfitting --no-fetch
+outfitting-manager init --profile ubuntu-wsl
+outfitting-manager setup --profile ubuntu-wsl --repo ~/.config/outfitting/repo --no-fetch
 ```
 
-The `oci-agents` profile runs the repository's Nix/Home Manager service bootstrap after the native package update. It requires an existing full repository checkout.
+The `oci-agents` and `ubuntu-wsl` profiles clone or update their full repository checkout at `~/.config/outfitting/repo`, then run their Nix/Home Manager bootstrap after initialization and after native package setup. Pass `--repo` to use another checkout path. `ubuntu-wsl` uses the existing `packages/ubuntu-wsl/apt.txt` package manifest and `system/ubuntu-wsl` Home Manager configuration.
 
 ## Commands
 
-- [Init](/docs/cli/linux/init/) - cache a package profile without changing installed packages.
+- [Init](/docs/cli/linux/init/) - cache a package profile and bootstrap Nix-backed profiles without changing native packages.
 - [Setup](/docs/cli/linux/) - apply the selected apt or pacman package profile.
 - [Install](/docs/cli/linux/install/) - run the generic Linux or WSL hosted installer.
 - [Home Manager](/docs/cli/linux/home-manager/) - apply, update, roll back, or clean Nix state.

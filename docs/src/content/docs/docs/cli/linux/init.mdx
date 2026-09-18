@@ -5,23 +5,25 @@ sidebar:
   order: 0
 ---
 
-`init` creates the local state root and fetches the selected Linux package profile. It does not run `apt`, `pacman`, or the OCI bootstrap.
+`init` creates the local state root and fetches the selected Linux package profile. It does not run `apt` or `pacman`. For the Nix-backed `oci-agents` and `ubuntu-wsl` profiles, it also clones or updates the full Outfitting checkout at `~/.config/outfitting/repo` before running the profile's Home Manager bootstrap. Use `--repo` to choose another checkout path.
 
 ```bash
 outfitting-manager init
+outfitting-manager init --profile oci-agents
+outfitting-manager init --profile ubuntu-wsl
 outfitting-manager init --profile oci-agents --repo ~/code/outfitting
 outfitting-manager init --no-fetch
 ```
 
-Use [setup](/docs/cli/linux/) after initialization to apply the cached profile.
+Use [setup](/docs/cli/linux/) after initialization to apply the cached native package profile. The Nix-backed profiles expect Nix to already be installed. The OCI bootstrap also installs its harnesses and starts its services; the WSL bootstrap only applies Home Manager configuration.
 
 ## Options
 
 ```text
---profile <generic-linux|oci-agents>  Package profile to cache.
+--profile <generic-linux|oci-agents|ubuntu-wsl>  Package profile to cache.
 --machine-id <id>                     Override the automatic machine id.
 --manifest-base-url <url>             Raw-compatible source URL without the ref.
 --manifest-ref <ref>                  Git branch, tag, or SHA for the source.
---repo <path>                         Existing checkout for the oci-agents profile.
+--repo <path>                         Checkout path for a Nix-backed profile (default: ~/.config/outfitting/repo).
 --no-fetch                            Use the existing cached profile.
 ```

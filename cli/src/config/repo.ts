@@ -1,13 +1,24 @@
 import { constants } from "node:fs";
-import { access, chmod, mkdir, readFile, realpath, writeFile } from "node:fs/promises";
+import {
+  access,
+  chmod,
+  mkdir,
+  readFile,
+  readdir,
+  realpath,
+  stat,
+  writeFile,
+} from "node:fs/promises";
 import { dirname, isAbsolute, join, resolve } from "node:path";
 
 import { loadConfig } from "@/config/load";
 import { repoPathFile } from "@/config/paths";
 import type { ManagerConfig } from "@/config/types";
+import { runCommand } from "@/process";
 import { envValue } from "@/secrets";
 
 const FLAKE_RELATIVE = join("system", "macos");
+export const DEFAULT_OUTFITTING_REPO_URL = "https://github.com/jfalava/outfitting.git";
 
 export interface OutfittingRepo {
   /** Absolute path to the full repository or sparse source root. */
@@ -25,6 +36,12 @@ async function pathExists(path: string): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+function isNotFound(cause: unknown): boolean {
+  return (
+    cause instanceof Error && "code" in cause && (cause as NodeJS.ErrnoException).code === "ENOENT"
+  );
 }
 
 export async function readRepoPathFile(config: ManagerConfig): Promise<string | undefined> {
@@ -87,6 +104,70 @@ export async function writeRepoPath(
   await writeFile(pathFile, `${repo.root}\n`, { mode: 0o600, encoding: "utf8" });
   await chmod(pathFile, 0o600);
   return { repo, pathFile };
+}
+
+/** Clone or fast-forward the repository used by Linux Nix-backed profiles. */
+export async function syncOutfittingRepo(
+  candidate: string,
+  options: {
+    ref: string;
+    run?: typeof runCommand;
+  },
+): Promise<OutfittingRepo> {
+  const root = isAbsolute(candidate) ? candidate : resolve(candidate);
+  const run = options.run ?? runCommand;
+  await mkdir(dirname(root), { recursive: true });
+
+  let clone = false;
+  try {
+    const info = await stat(root);
+    clone = info.isDirectory() && (await readdir(root)).length === 0;
+  } catch (cause) {
+    if (!isNotFound(cause)) {
+      throw cause;
+    }
+    clone = true;
+  }
+
+  if (clone) {
+    await runGit(run, ["clone", "--depth", "1", DEFAULT_OUTFITTING_REPO_URL, root], {
+      cwd: dirname(root),
+      inherit: true,
+    });
+  } else {
+    const status = await runGit(run, ["-C", root, "status", "--porcelain"], {
+      inherit: false,
+    });
+    if (status.stdout.trim().length > 0) {
+      throw new Error(
+        `Outfitting repository at ${root} has uncommitted changes; refusing to pull.`,
+      );
+    }
+  }
+
+  await runGit(run, ["-C", root, "fetch", "--prune", "origin", options.ref], {
+    inherit: true,
+  });
+  await runGit(run, ["-C", root, "checkout", "--detach", "FETCH_HEAD"], {
+    inherit: true,
+  });
+
+  return validateOutfittingRepo(root);
+}
+
+async function runGit(
+  run: typeof runCommand,
+  args: ReadonlyArray<string>,
+  options: Parameters<typeof runCommand>[2],
+) {
+  const result = await run("git", args, options);
+  if (result.code !== 0) {
+    const detail = (result.stderr || result.stdout).trim();
+    throw new Error(
+      `git ${args.join(" ")} failed (exit ${result.code})${detail.length > 0 ? `: ${detail}` : "."}`,
+    );
+  }
+  return result;
 }
 
 /**

@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { mkdir, mkdtemp, realpath, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, realpath, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -8,13 +8,15 @@ import { promisify } from "node:util";
 import { Effect } from "effect";
 import { describe, expect, test } from "vitest";
 
+import { DEFAULT_OUTFITTING_REPO_URL } from "@/config";
 import {
   detectLinuxPackageManager,
   linuxDistributionFamily,
   parseOsRelease,
 } from "@/platform/linux";
-import { runLinuxSetup } from "@/setup/linux";
+import { runLinuxInit, runLinuxSetup } from "@/setup/linux";
 import {
+  linuxManifestPath,
   linuxPackageIdentity,
   linuxPackageManagerArgs,
   listInstalledLinuxPackages,
@@ -31,7 +33,7 @@ test("Linux entrypoint registers the distro-agnostic update commands", async () 
   const init = await execFileAsync("bun", [linuxEntry, "init", "--help"], {
     encoding: "utf8",
   });
-  expect(`${init.stdout}\n${init.stderr}`).toContain("without changing installed packages");
+  expect(`${init.stdout}\n${init.stderr}`).toContain("without changing packages");
 
   const setup = await execFileAsync("bun", [linuxEntry, "setup", "--help"], {
     encoding: "utf8",
@@ -70,6 +72,164 @@ test("Linux init materializes state without invoking a package manager", async (
   } finally {
     await rm(stateRoot, { force: true, recursive: true });
   }
+});
+
+test("Linux OCI init clones the repository into the default state path", async () => {
+  const stateRoot = await mkdtemp(join(tmpdir(), "outfitting-linux-oci-clone-state-"));
+  const calls: Array<{ command: string; args: ReadonlyArray<string> }> = [];
+  let cloneTarget: string | undefined;
+  let resolvedCloneTarget: string | undefined;
+  let persistedRepoPath: string | undefined;
+  try {
+    await Effect.runPromise(
+      runLinuxInit({
+        stateRoot,
+        profile: "oci-agents",
+        fetcher: async () => new Response("curl\ngit\n"),
+        run: async (command, args) => {
+          calls.push({ command, args });
+          if (command === "git" && args[0] === "clone") {
+            const target = args.at(-1);
+            if (target === undefined) {
+              throw new Error("clone target missing");
+            }
+            cloneTarget = target;
+            await mkdir(join(target, "system", "macos"), { recursive: true });
+            await mkdir(join(target, "system", "oci-agents"), { recursive: true });
+            await writeFile(join(target, "system", "macos", "flake.nix"), "{}\n");
+            await writeFile(join(target, "system", "oci-agents", "bootstrap.sh"), "#!/bin/sh\n");
+          }
+          return { code: 0, stdout: "", stderr: "" };
+        },
+      }),
+    );
+    persistedRepoPath = await readFile(join(stateRoot, "repo-path"), "utf8");
+    resolvedCloneTarget = await realpath(cloneTarget!);
+  } finally {
+    await rm(stateRoot, { force: true, recursive: true });
+  }
+
+  expect(cloneTarget).toBe(join(stateRoot, "repo"));
+  expect(resolvedCloneTarget).toBeDefined();
+  expect(persistedRepoPath).toBe(`${resolvedCloneTarget}\n`);
+  expect(calls).toEqual([
+    {
+      command: "git",
+      args: ["clone", "--depth", "1", DEFAULT_OUTFITTING_REPO_URL, join(stateRoot, "repo")],
+    },
+    {
+      command: "git",
+      args: ["-C", join(stateRoot, "repo"), "fetch", "--prune", "origin", "main"],
+    },
+    {
+      command: "git",
+      args: ["-C", join(stateRoot, "repo"), "checkout", "--detach", "FETCH_HEAD"],
+    },
+    {
+      command: "bash",
+      args: [join(resolvedCloneTarget!, "system", "oci-agents", "bootstrap.sh")],
+    },
+  ]);
+});
+
+test("Linux OCI init bootstraps Home Manager after persisting the repository", async () => {
+  const stateRoot = await mkdtemp(join(tmpdir(), "outfitting-linux-oci-init-state-"));
+  const repo = await mkdtemp(join(tmpdir(), "outfitting-linux-oci-init-repo-"));
+  const calls: Array<{ command: string; args: ReadonlyArray<string> }> = [];
+  const repoRoot = await realpath(repo);
+  try {
+    await mkdir(join(repo, "system", "macos"), { recursive: true });
+    await mkdir(join(repo, "system", "oci-agents"), { recursive: true });
+    await writeFile(join(repo, "system", "macos", "flake.nix"), "{}\n");
+    await writeFile(join(repo, "system", "oci-agents", "bootstrap.sh"), "#!/bin/sh\n");
+
+    await Effect.runPromise(
+      runLinuxInit({
+        stateRoot,
+        repo,
+        profile: "oci-agents",
+        fetcher: async () => new Response("curl\ngit\n"),
+        run: async (command, args) => {
+          calls.push({ command, args });
+          return { code: 0, stdout: "", stderr: "" };
+        },
+      }),
+    );
+  } finally {
+    await rm(stateRoot, { force: true, recursive: true });
+    await rm(repo, { force: true, recursive: true });
+  }
+
+  expect(calls).toEqual([
+    {
+      command: "git",
+      args: ["-C", repo, "status", "--porcelain"],
+    },
+    {
+      command: "git",
+      args: ["-C", repo, "fetch", "--prune", "origin", "main"],
+    },
+    {
+      command: "git",
+      args: ["-C", repo, "checkout", "--detach", "FETCH_HEAD"],
+    },
+    {
+      command: "bash",
+      args: [join(repoRoot, "system", "oci-agents", "bootstrap.sh")],
+    },
+  ]);
+});
+
+test("Linux WSL profile uses its existing Ubuntu package manifest", () => {
+  expect(linuxManifestPath("ubuntu-wsl")).toBe("packages/ubuntu-wsl/apt.txt");
+});
+
+test("Linux WSL init bootstraps the Ubuntu Home Manager configuration", async () => {
+  const stateRoot = await mkdtemp(join(tmpdir(), "outfitting-linux-wsl-init-state-"));
+  const repo = await mkdtemp(join(tmpdir(), "outfitting-linux-wsl-init-repo-"));
+  const calls: Array<{ command: string; args: ReadonlyArray<string> }> = [];
+  const repoRoot = await realpath(repo);
+  try {
+    await mkdir(join(repo, "system", "macos"), { recursive: true });
+    await mkdir(join(repo, "system", "ubuntu-wsl"), { recursive: true });
+    await writeFile(join(repo, "system", "macos", "flake.nix"), "{}\n");
+    await writeFile(join(repo, "system", "ubuntu-wsl", "bootstrap.sh"), "#!/bin/sh\n");
+
+    await Effect.runPromise(
+      runLinuxInit({
+        stateRoot,
+        repo,
+        profile: "ubuntu-wsl",
+        fetcher: async () => new Response("curl\ngit\n"),
+        run: async (command, args) => {
+          calls.push({ command, args });
+          return { code: 0, stdout: "", stderr: "" };
+        },
+      }),
+    );
+  } finally {
+    await rm(stateRoot, { force: true, recursive: true });
+    await rm(repo, { force: true, recursive: true });
+  }
+
+  expect(calls).toEqual([
+    {
+      command: "git",
+      args: ["-C", repo, "status", "--porcelain"],
+    },
+    {
+      command: "git",
+      args: ["-C", repo, "fetch", "--prune", "origin", "main"],
+    },
+    {
+      command: "git",
+      args: ["-C", repo, "checkout", "--detach", "FETCH_HEAD"],
+    },
+    {
+      command: "bash",
+      args: [join(repoRoot, "system", "ubuntu-wsl", "bootstrap.sh")],
+    },
+  ]);
 });
 
 describe("Linux host detection", () => {

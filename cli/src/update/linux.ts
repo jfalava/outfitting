@@ -14,17 +14,23 @@ import {
 import { runCommand, which } from "@/process";
 import { ui } from "@/ui";
 
-export const LINUX_PROFILES = ["generic-linux", "oci-agents"] as const;
+export const LINUX_PROFILES = ["generic-linux", "oci-agents", "ubuntu-wsl"] as const;
 export type LinuxProfile = (typeof LINUX_PROFILES)[number];
 
 export const LINUX_MANIFEST_PATH = "packages/linux/{profile}.txt";
+
+const LINUX_PROFILE_MANIFEST_PATHS = {
+  "generic-linux": "packages/linux/generic-linux.txt",
+  "oci-agents": "packages/linux/oci-agents.txt",
+  "ubuntu-wsl": "packages/ubuntu-wsl/apt.txt",
+} satisfies Record<LinuxProfile, string>;
 
 export function isLinuxProfile(value: string): value is LinuxProfile {
   return (LINUX_PROFILES as ReadonlyArray<string>).includes(value);
 }
 
 export function linuxManifestPath(profile: LinuxProfile): string {
-  return LINUX_MANIFEST_PATH.replace("{profile}", profile);
+  return LINUX_PROFILE_MANIFEST_PATHS[profile];
 }
 
 /** Parse a Linux package manifest as one package name per line. */
@@ -209,11 +215,11 @@ export interface LinuxUpdateOptions {
   fetcher?: ManifestFetcher;
   osReleasePath?: string;
   readOsRelease?: DetectLinuxPackageManagerOptions["readOsRelease"];
-  /** Disable the OCI bootstrap for tests or callers that only want packages. */
-  bootstrapOci?: boolean;
+  /** Disable the profile's Nix/Home Manager bootstrap for tests or package-only callers. */
+  bootstrapNix?: boolean;
 }
 
-export type LinuxSyncOptions = Omit<LinuxUpdateOptions, "bootstrapOci">;
+export type LinuxSyncOptions = Omit<LinuxUpdateOptions, "bootstrapNix">;
 
 function resolveProfile(value: string | undefined): LinuxProfile {
   const profile = value ?? "generic-linux";
@@ -227,15 +233,50 @@ export async function runLinuxOciBootstrap(
   config: ManagerConfig,
   run: typeof runCommand,
 ): Promise<void> {
-  const repo = await resolveOutfittingRepo({ config });
-  const script = join(repo.root, "system", "oci-agents", "bootstrap.sh");
-  const result = await run("bash", [script], { cwd: repo.root, inherit: true });
-  if (result.code !== 0) {
-    throw new Error(`OCI bootstrap failed (exit ${result.code}).`);
+  return runLinuxBootstrapScript(config, run, "system/oci-agents/bootstrap.sh", "OCI");
+}
+
+export async function runLinuxWslBootstrap(
+  config: ManagerConfig,
+  run: typeof runCommand,
+): Promise<void> {
+  return runLinuxBootstrapScript(config, run, "system/ubuntu-wsl/bootstrap.sh", "WSL");
+}
+
+export async function runLinuxProfileBootstrap(
+  profile: LinuxProfile,
+  config: ManagerConfig,
+  run: typeof runCommand,
+): Promise<void> {
+  switch (profile) {
+    case "generic-linux":
+      return;
+    case "oci-agents":
+      return runLinuxOciBootstrap(config, run);
+    case "ubuntu-wsl":
+      return runLinuxWslBootstrap(config, run);
+    default: {
+      const exhaustive: never = profile;
+      return exhaustive;
+    }
   }
 }
 
-/** Update native Linux packages, optionally followed by the explicit OCI profile bootstrap. */
+async function runLinuxBootstrapScript(
+  config: ManagerConfig,
+  run: typeof runCommand,
+  relativeScript: string,
+  profileLabel: string,
+): Promise<void> {
+  const repo = await resolveOutfittingRepo({ config });
+  const script = join(repo.root, relativeScript);
+  const result = await run("bash", [script], { cwd: repo.root, inherit: true });
+  if (result.code !== 0) {
+    throw new Error(`${profileLabel} bootstrap failed (exit ${result.code}).`);
+  }
+}
+
+/** Update native Linux packages, optionally followed by the profile bootstrap. */
 export const updateLinux = (options: LinuxUpdateOptions = {}) =>
   Effect.gen(function* () {
     const run = options.run ?? runCommand;
@@ -292,9 +333,9 @@ export const updateLinux = (options: LinuxUpdateOptions = {}) =>
       yield* tryPromise(() => runLinuxPackageCommand(commandOptions, "install", packages));
     }
 
-    if (profile === "oci-agents" && options.bootstrapOci !== false) {
-      yield* Console.log(ui.heading("Applying oci-agents Nix/Home Manager services…"));
-      yield* tryPromise(() => runLinuxOciBootstrap(config, run));
+    if (profile !== "generic-linux" && options.bootstrapNix !== false) {
+      yield* Console.log(ui.heading(`Applying ${profile} Nix/Home Manager configuration…`));
+      yield* tryPromise(() => runLinuxProfileBootstrap(profile, config, run));
     }
 
     yield* Console.log(ui.success(`Linux ${manager} update complete.`));

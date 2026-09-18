@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -12,6 +12,7 @@ import {
   loadConfig,
   resolveWindowsRoutes,
   saveConfigFile,
+  syncOutfittingRepo,
 } from "@/config";
 
 const temps: string[] = [];
@@ -165,5 +166,25 @@ describe("loadConfig", () => {
         defaultProfiles: ["base", "work"],
       },
     });
+  });
+});
+
+describe("repository synchronization", () => {
+  test("refuses to pull a dirty checkout", async () => {
+    const root = await tempRoot();
+    await mkdir(join(root, "system", "macos"), { recursive: true });
+    await writeFile(join(root, "system", "macos", "flake.nix"), "{}\n");
+    const commands: string[][] = [];
+
+    await expect(
+      syncOutfittingRepo(root, {
+        ref: "main",
+        run: async (command, args) => {
+          commands.push([command, ...args]);
+          return { code: 0, stdout: " M local-change\n", stderr: "" };
+        },
+      }),
+    ).rejects.toThrow("uncommitted changes");
+    expect(commands).toEqual([["git", "-C", root, "status", "--porcelain"]]);
   });
 });

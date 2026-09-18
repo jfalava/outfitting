@@ -14,6 +14,7 @@ Generic Linux Outfitting Installer
 Usage:
   curl -L linux.jfa.dev | bash
   curl -L linux.jfa.dev | bash -s -- --profile oci-agents
+  curl -L linux.jfa.dev | bash -s -- --profile ubuntu-wsl
 EOF
     exit 0
 elif [[ $# -gt 0 ]]; then
@@ -50,5 +51,10 @@ mkdir -p "$INSTALL_DIR"
 install -m 755 "$TEMP_DIR/outfitting-manager" "$INSTALL_DIR/outfitting-manager"
 export PATH="$INSTALL_DIR:$PATH"
 
-outfitting-manager init --profile "$PROFILE"
-outfitting-manager setup --profile "$PROFILE" --no-fetch
+PROFILE_ARGS=(--profile "$PROFILE")
+if [[ ("$PROFILE" == "oci-agents" || "$PROFILE" == "ubuntu-wsl") && -n "${OUTFITTING_REPO:-}" ]]; then
+    PROFILE_ARGS+=(--repo "$OUTFITTING_REPO")
+fi
+
+outfitting-manager init "${PROFILE_ARGS[@]}"
+outfitting-manager setup "${PROFILE_ARGS[@]}" --no-fetch

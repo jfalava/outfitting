@@ -9,7 +9,7 @@ import { makeLinuxSyncCommand } from "@/commands/sync/linux";
 import { makeLinuxUpdateCommand } from "@/commands/update/linux";
 import { makeUpgradeCommand } from "@/commands/upgrade";
 
-/** Generic Linux root command surface; WSL shell helpers remain separate. */
+/** Linux root command surface, including the explicit Ubuntu WSL profile. */
 export const makeLinuxRootCommand = (currentVersion: string) =>
   Command.make("outfitting-manager").pipe(
     Command.withDescription("Portable maintenance tools for Outfitting-managed machines."),

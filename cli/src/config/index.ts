@@ -11,8 +11,10 @@ export {
 } from "@/config/paths";
 export {
   physicalPath,
+  DEFAULT_OUTFITTING_REPO_URL,
   readRepoPathFile,
   resolveOutfittingRepo,
+  syncOutfittingRepo,
   tryResolveOutfittingRepo,
   validateOutfittingRepo,
   writeRepoPath,

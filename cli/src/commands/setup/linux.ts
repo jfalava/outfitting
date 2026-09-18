@@ -2,13 +2,12 @@ import { Option } from "effect";
 import { Command, Flag } from "effect/unstable/cli";
 
 import { type LinuxPackageManager } from "@/platform/linux";
-import { runLinuxSetup } from "@/setup/linux";
-import { runSetup } from "@/setup/run";
-import { isLinuxProfile, linuxManifestPath } from "@/update/linux";
+import { runLinuxInit, runLinuxSetup } from "@/setup/linux";
+import { isLinuxProfile, LINUX_PROFILES } from "@/update/linux";
 
 const profileFlag = Flag.String("profile").pipe(
   Flag.withDefault("generic-linux"),
-  Flag.withDescription("Linux package profile (generic-linux or oci-agents)."),
+  Flag.withDescription(`Linux package profile (${LINUX_PROFILES.join(", ")}).`),
 );
 
 const machineIdFlag = Flag.String("machine-id").pipe(
@@ -28,7 +27,9 @@ const manifestRefFlag = Flag.String("manifest-ref").pipe(
 
 const repoFlag = Flag.String("repo").pipe(
   Flag.optional,
-  Flag.withDescription("Existing monorepo path to store for the opt-in oci-agents profile."),
+  Flag.withDescription(
+    "Checkout path for a Nix-backed profile (default: ~/.config/outfitting/repo).",
+  ),
 );
 
 const noFetchFlag = Flag.Boolean("no-fetch").pipe(
@@ -56,7 +57,7 @@ function requestedPackageManager(value: Option.Option<string>): LinuxPackageMana
   return manager;
 }
 
-/** Prepare and validate Linux state without changing the package manager. */
+/** Prepare Linux state and, for Nix-backed profiles, apply Home Manager. */
 export const linuxInitCommand = Command.make(
   "init",
   {
@@ -69,21 +70,22 @@ export const linuxInitCommand = Command.make(
   },
   ({ profile, machineId, manifestBaseUrl, manifestRef, repo, noFetch }) => {
     if (!isLinuxProfile(profile)) {
-      throw new Error(`Unknown Linux profile \`${profile}\`. Choose: generic-linux or oci-agents.`);
+      throw new Error(
+        `Unknown Linux profile \`${profile}\`. Choose: ${LINUX_PROFILES.join(", ")}.`,
+      );
     }
-    return runSetup({
+    return runLinuxInit({
+      profile,
       machineId: optional(machineId),
       manifestBaseUrl: optional(manifestBaseUrl),
       manifestRef: optional(manifestRef),
       repo: optional(repo),
       fetchManifests: !noFetch,
-      manifestPaths: [linuxManifestPath(profile)],
-      nextCommand: "Next: outfitting-manager setup",
     });
   },
 ).pipe(
   Command.withDescription(
-    "Prepare the Linux state root and cache a package profile without changing installed packages.",
+    "Prepare Linux state and bootstrap the selected profile's Nix configuration without changing packages.",
   ),
 );
 
@@ -101,7 +103,9 @@ export const linuxSetupCommand = Command.make(
   },
   ({ profile, machineId, manifestBaseUrl, manifestRef, repo, noFetch, packageManager }) => {
     if (!isLinuxProfile(profile)) {
-      throw new Error(`Unknown Linux profile \`${profile}\`. Choose: generic-linux or oci-agents.`);
+      throw new Error(
+        `Unknown Linux profile \`${profile}\`. Choose: ${LINUX_PROFILES.join(", ")}.`,
+      );
     }
     return runLinuxSetup({
       profile,
