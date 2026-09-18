@@ -43,9 +43,10 @@ in
     "amp.terminal.detailsExpandedByDefault" = false;
   };
 
-  # The OpenCode Home Manager module already owns the web service and binds it
-  # to 0.0.0.0:4096. Keep its password in the user-owned file referenced by
-  # packages/common/programs.nix rather than putting it in the Nix store.
+  # OpenCode's real binary lives at ~/.opencode/bin (official installer). The
+  # shared programs.opencode module still owns config + the web unit (wrapper
+  # package → that binary) and binds 0.0.0.0:4096. Keep the password in the
+  # user-owned file rather than putting it in the Nix store.
   home.activation.ensureOpenCodeServiceEnv = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
     env_file="${config.xdg.configHome}/opencode/service.env"
     if [ -L "$env_file" ]; then

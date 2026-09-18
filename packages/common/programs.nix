@@ -230,9 +230,24 @@
     '';
   };
 
+  # Official OpenCode binary only (https://opencode.ai/v2/install → ~/.opencode/bin).
+  # Never pkgs.opencode — Nix lags upstream and blocks installing V2. Home Manager still
+  # owns opencode.json, MCP settings, AGENTS.md, and the web unit; the package is a thin
+  # wrapper so systemd/getExe resolve without putting the real binary in the store.
   programs.opencode = {
     enable = true;
-    package = pkgs.opencode;
+    package = pkgs.writeShellApplication {
+      name = "opencode";
+      text = ''
+        bin="${config.home.homeDirectory}/.opencode/bin/opencode"
+        if [ ! -x "$bin" ]; then
+          printf '%s\n' "opencode: missing $bin" \
+            "Install with: curl -fsSL https://opencode.ai/v2/install | bash" >&2
+          exit 127
+        fi
+        exec "$bin" "$@"
+      '';
+    };
     settings = {
       lsp = true;
       small_model = "opencode/nemotron-3.5-lightning-free";

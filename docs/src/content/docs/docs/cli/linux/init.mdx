@@ -15,7 +15,7 @@ outfitting-manager init --profile oci-agents --repo ~/code/outfitting
 outfitting-manager init --no-fetch
 ```
 
-Use [setup](/docs/cli/linux/) after initialization to apply the cached native package profile. The hosted Linux installer runs both steps automatically. The Nix-backed profiles expect Nix to already be installed. The OCI bootstrap also installs its harnesses, sets the login shell to zsh, ensures the user systemd session bus, starts Amp/T3/OpenCode, and the Zsh plugin starts a local `ssh-agent` (with auto-load of the elliptic GitHub key) when forwarding is absent; the WSL bootstrap only applies Home Manager configuration. Open a new SSH session after the first OCI activation so the zsh profile loads.
+Use [setup](/docs/cli/linux/) after initialization to apply the cached native package profile. The hosted Linux installer runs both steps automatically. The Nix-backed profiles expect Nix to already be installed. The OCI bootstrap also installs its harnesses (Amp, T3, official OpenCode v2 into `~/.opencode/bin`, Bun), sets the login shell to zsh, ensures the user systemd session bus, starts Amp/T3/OpenCode, and the Zsh plugin starts a local `ssh-agent` (with auto-load of the elliptic GitHub key) when forwarding is absent; the WSL bootstrap only applies Home Manager configuration (install OpenCode with `curl -fsSL https://opencode.ai/v2/install | bash` if needed). Open a new SSH session after the first OCI activation so the zsh profile loads.
 
 ## Options
 

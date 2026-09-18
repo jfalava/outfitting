@@ -43,7 +43,7 @@ ensure_nix_setting() {
 ensure_nix_setting 'experimental-features = nix-command flakes'
 ensure_nix_setting 'auto-optimise-store = true'
 
-export PATH="$HOME/.local/bin:$HOME/.amp/bin:$HOME/.nix-profile/bin:$PATH"
+export PATH="$HOME/.local/bin:$HOME/.amp/bin:$HOME/.opencode/bin:$HOME/.nix-profile/bin:$PATH"
 
 if ! command -v t3 >/dev/null 2>&1; then
   log "installing T3 Code"
@@ -55,6 +55,13 @@ if ! command -v amp >/dev/null 2>&1; then
   curl -fsSL https://ampcode.com/install.sh | bash
 fi
 
+# Official OpenCode only (https://opencode.ai/v2/install → ~/.opencode/bin).
+# Never pkgs.opencode — Home Manager owns config/service; the binary is upstream.
+if [[ ! -x "$HOME/.opencode/bin/opencode" ]]; then
+  log "installing OpenCode (official v2 installer)"
+  curl -fsSL https://opencode.ai/v2/install | bash
+fi
+
 # Official Bun only (https://bun.com/install). Never pkgs.bun — Nix ships a
 # different Zig-based build that is not the upstream runtime.
 export BUN_INSTALL="${BUN_INSTALL:-$HOME/.bun}"
@@ -64,14 +71,21 @@ if [[ ! -x "$BUN_INSTALL/bin/bun" ]]; then
   curl -fsSL https://bun.com/install | bash
 fi
 
-export PATH="$HOME/.local/bin:$HOME/.amp/bin:$BUN_INSTALL/bin:$HOME/.nix-profile/bin:$PATH"
+export PATH="$HOME/.local/bin:$HOME/.amp/bin:$HOME/.opencode/bin:$BUN_INSTALL/bin:$HOME/.nix-profile/bin:$PATH"
 command -v t3 >/dev/null 2>&1 || fail "T3 Code did not install on $(uname -m)"
 command -v amp >/dev/null 2>&1 || fail "Amp did not install on $(uname -m)"
 command -v bun >/dev/null 2>&1 || fail "Bun did not install on $(uname -m)"
+[[ -x "$HOME/.opencode/bin/opencode" ]] || fail "OpenCode did not install on $(uname -m)"
 # Refuse a Nix-store Bun if it somehow still wins PATH.
 case "$(command -v bun)" in
   /nix/store/*)
     fail "Bun resolved to Nix store path $(command -v bun); remove pkgs.bun and use $BUN_INSTALL/bin/bun"
+    ;;
+esac
+# Refuse a Nixpkgs OpenCode binary if it somehow still wins over ~/.opencode/bin.
+case "$(command -v opencode 2>/dev/null || true)" in
+  /nix/store/*-opencode-*/bin/opencode)
+    fail "OpenCode resolved to Nixpkgs package $(command -v opencode); remove pkgs.opencode and use $HOME/.opencode/bin/opencode"
     ;;
 esac
 

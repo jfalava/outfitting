@@ -14,10 +14,13 @@ cd /home/jfalava/.config/outfitting/repo
 ./system/oci-agents/bootstrap.sh
 ```
 
-The bootstrap installs the upstream Amp and T3 Code CLIs, activates the locked
-Home Manager profile, sets the login shell to zsh, enables user lingering,
-brings up the user systemd session bus when needed, and starts the Amp, T3, and
-OpenCode services. It does not authenticate any service.
+The bootstrap installs the upstream Amp, T3 Code, and OpenCode (v2) CLIs,
+activates the locked Home Manager profile, sets the login shell to zsh, enables
+user lingering, brings up the user systemd session bus when needed, and starts
+the Amp, T3, and OpenCode services. It does not authenticate any service.
+
+OpenCode’s binary is the official installer (`~/.opencode/bin`); Home Manager
+only owns its config (`opencode.json`, MCP, `AGENTS.md`) and the web unit.
 
 After bootstrap, open a **new SSH session** (or `exec zsh`) so the Home Manager
 zsh profile loads. The profile:
