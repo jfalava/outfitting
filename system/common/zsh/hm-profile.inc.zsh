@@ -18,19 +18,76 @@ _ensure_home_manager_link() {
     fi
 }
 
-# Native Home Manager path used when the compiled manager is missing or offline.
-hm-sync() {
+# Prefer outfitting-manager (same surface as macOS: update nix build|switch|test|dry).
+# Fall back to native Home Manager when the binary is missing.
+hm-nix() {
+    local action="${1:-switch}"
+    case "$action" in
+        build|switch|test|dry)
+            ;;
+        *)
+            echo "Usage: hm-build | hm-switch | hm-test | hm-dry"
+            return 1
+            ;;
+    esac
+
+    if command -v outfitting-manager >/dev/null 2>&1; then
+        command outfitting-manager update nix "$action"
+        return $?
+    fi
+
     local repo_path
     repo_path=$(_outfitting_repo)
     _ensure_home_manager_link || return 1
-    home-manager switch --flake "path:$repo_path/${OUTFITTING_HM_DIR}#${OUTFITTING_HM_ATTR:?}" --impure
+    local flake_ref="path:$repo_path/${OUTFITTING_HM_DIR:?OUTFITTING_HM_DIR is required}#${OUTFITTING_HM_ATTR:?}"
+    export OUTFITTING_REPO="$repo_path"
+    case "$action" in
+        build|test)
+            nix build --no-link --impure \
+                "$repo_path/${OUTFITTING_HM_DIR}#homeConfigurations.${OUTFITTING_HM_ATTR}.activationPackage"
+            ;;
+        dry)
+            nix build --dry-run --no-link --impure \
+                "$repo_path/${OUTFITTING_HM_DIR}#homeConfigurations.${OUTFITTING_HM_ATTR}.activationPackage"
+            ;;
+        switch)
+            if command -v home-manager >/dev/null 2>&1; then
+                home-manager switch --flake "$flake_ref" --impure
+            else
+                nix run github:nix-community/home-manager/release-26.05 -- \
+                    switch --impure --flake "$flake_ref"
+            fi
+            ;;
+    esac
+}
+
+hm-build() {
+    hm-nix build
+}
+
+hm-test() {
+    hm-nix test
+}
+
+hm-dry() {
+    hm-nix dry
+}
+
+hm-sync() {
+    hm-nix switch
 }
 
 hm-switch() {
-    hm-sync
+    hm-nix switch
 }
 
 hm-update() {
+    # Manager path does not bump flake inputs (same as macOS v1).
+    if command -v outfitting-manager >/dev/null 2>&1; then
+        echo "Note: hm-update no longer bumps flake inputs via the manager; switching only."
+        hm-nix switch
+        return $?
+    fi
     local repo_path
     repo_path=$(_outfitting_repo)
     _ensure_home_manager_link || return 1

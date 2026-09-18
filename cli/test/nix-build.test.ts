@@ -7,6 +7,17 @@ const fakeRepo = {
   root: "/repo",
   flakePath: "/repo/system/macos",
   darwinNixPath: "/repo/system/macos/darwin.nix",
+  flakeKind: "macos" as const,
+  systemAttr: "darwinConfigurations.macos.system",
+};
+
+const fakeHomeManagerRepo = {
+  root: "/repo",
+  flakePath: "/repo/system/oci-agents",
+  darwinNixPath: "",
+  flakeKind: "home-manager" as const,
+  systemAttr: "homeConfigurations.oci-agents.activationPackage",
+  homeManagerName: "oci-agents",
 };
 
 describe("buildNixSystem", () => {
@@ -59,5 +70,22 @@ describe("buildNixSystem", () => {
     await expect(buildNixSystem({ repo: fakeRepo, mode: "build", run })).rejects.toThrow(
       /nix build failed/,
     );
+  });
+
+  test("builds Home Manager activationPackage attr", async () => {
+    const run = async (command: string, args: ReadonlyArray<string>): Promise<RunCommandResult> => {
+      expect(command).toBe("nix");
+      expect(args.at(-1)).toBe(
+        "path:/repo/system/oci-agents#homeConfigurations.oci-agents.activationPackage",
+      );
+      return { code: 0, stdout: "/nix/store/hm-activation\n", stderr: "" };
+    };
+
+    const path = await buildNixSystem({
+      repo: fakeHomeManagerRepo,
+      mode: "build",
+      run,
+    });
+    expect(path).toBe("/nix/store/hm-activation");
   });
 });

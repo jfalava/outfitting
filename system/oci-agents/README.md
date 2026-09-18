@@ -14,6 +14,20 @@ cd /home/jfalava/.config/outfitting/repo
 ./system/oci-agents/bootstrap.sh
 ```
 
+## Day-to-day rebuild
+
+Same commands as macOS:
+
+```sh
+outfitting-manager update nix         # build + activate (default)
+outfitting-manager update nix build   # build only
+outfitting-manager update nix switch  # build + activate
+outfitting-manager update nix test
+outfitting-manager update nix dry
+```
+
+Or the zsh helpers: `hm-switch`, `hm-build`, `hm-test`, `hm-dry`.
+
 The bootstrap installs the upstream Amp, T3 Code, and OpenCode (v2) CLIs,
 activates the locked Home Manager profile, sets the login shell to zsh, enables
 user lingering, brings up the user systemd session bus when needed, and starts

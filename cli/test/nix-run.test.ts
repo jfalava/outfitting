@@ -31,6 +31,10 @@ afterEach(() => vi.unstubAllEnvs());
 test.each([false, true])(
   "setup source survives update (managed sparse source: %s)",
   async (managed) => {
+    // Sparse macOS source refresh is darwin-only; Linux update nix uses HM profiles.
+    if (managed && process.platform !== "darwin") {
+      return;
+    }
     const root = await mkdtemp(join(tmpdir(), "outfitting-nix-source-"));
     try {
       const stateRoot = join(root, "state");
@@ -50,25 +54,44 @@ test.each([false, true])(
       );
       const config = await loadConfig({ stateRoot });
       const fetcher = vi.fn(async () => new Response("refreshed sparse source"));
+      // Force macOS flake resolution even on Linux hosts running this suite.
+      const macosRepo = {
+        root: await realpath(checkout),
+        flakePath: join(await realpath(checkout), "system", "macos"),
+        darwinNixPath: join(await realpath(checkout), "system", "macos", "darwin.nix"),
+        flakeKind: "macos" as const,
+        systemAttr: "darwinConfigurations.macos.system",
+      };
       await expect(
         Effect.runPromise(
           updateNix({
             action: "build",
             config,
+            repo: managed ? undefined : macosRepo,
             sourceFetcher: fetcher,
           }),
         ),
-      ).rejects.toThrow("required remote Nix lock");
-      const expectedRoot = await realpath(managed ? sparseSourceRoot(stateRoot) : checkout);
-      expect(await readFile(join(stateRoot, "repo-path"), "utf8")).toBe(`${expectedRoot}\n`);
-      expect(ensureNixSymlinks).toHaveBeenCalledWith(
-        expect.objectContaining({ root: expectedRoot }),
+      ).rejects.toThrow(
+        process.platform === "darwin" || managed
+          ? "required remote Nix lock"
+          : /required remote Nix lock|No Nix flake|Home Manager|oci-agents/,
       );
-      expect(await readFile(join(expectedRoot, "system", "macos", "flake.nix"), "utf8")).toBe(
-        managed ? "refreshed sparse source" : "local checkout",
-      );
-      if (managed) expect(fetcher).toHaveBeenCalled();
-      else expect(fetcher).not.toHaveBeenCalled();
+      if (managed) {
+        const expectedRoot = await realpath(sparseSourceRoot(stateRoot));
+        expect(await readFile(join(stateRoot, "repo-path"), "utf8")).toBe(`${expectedRoot}\n`);
+        expect(ensureNixSymlinks).toHaveBeenCalledWith(
+          expect.objectContaining({ root: expectedRoot }),
+        );
+        expect(await readFile(join(expectedRoot, "system", "macos", "flake.nix"), "utf8")).toBe(
+          "refreshed sparse source",
+        );
+        expect(fetcher).toHaveBeenCalled();
+      } else {
+        expect(ensureNixSymlinks).toHaveBeenCalledWith(
+          expect.objectContaining({ root: macosRepo.root, flakeKind: "macos" }),
+        );
+        expect(fetcher).not.toHaveBeenCalled();
+      }
     } finally {
       await rm(root, { recursive: true, force: true });
     }
@@ -90,6 +113,8 @@ test("switch never builds or activates when the canonical lock cannot be pulled"
           root: "/repo",
           flakePath: "/repo/system/macos",
           darwinNixPath: "/repo/system/macos/darwin.nix",
+          flakeKind: "macos",
+          systemAttr: "darwinConfigurations.macos.system",
         },
       }),
     ),

@@ -6,6 +6,13 @@ export interface ActivateNixSystemOptions {
   user?: string;
 }
 
+export interface ActivateHomeManagerOptions {
+  /** Store path of the built homeConfigurations.*.activationPackage. */
+  activationPackage: string;
+  run?: typeof runCommand;
+  env?: NodeJS.ProcessEnv;
+}
+
 function sudoEnv(extra: Record<string, string>): NodeJS.ProcessEnv {
   const env: NodeJS.ProcessEnv = { ...process.env, ...extra };
   delete env.SUDO_HOME;
@@ -54,5 +61,23 @@ export async function activateNixSystem(options: ActivateNixSystemOptions): Prom
   });
   if (activate.code !== 0) {
     throw new Error(`darwin-rebuild activate failed (exit ${activate.code}).`);
+  }
+}
+
+/**
+ * Activate a built Home Manager activationPackage (no sudo).
+ * Runs `<pkg>/activate` with OUTFITTING_REPO preserved in the environment.
+ */
+export async function activateHomeManager(options: ActivateHomeManagerOptions): Promise<void> {
+  const run = options.run ?? runCommand;
+  const env: NodeJS.ProcessEnv = { ...(options.env ?? process.env) };
+  delete env.NIX_PATH;
+
+  const activate = await run(`${options.activationPackage}/activate`, [], {
+    inherit: true,
+    env,
+  });
+  if (activate.code !== 0) {
+    throw new Error(`Home Manager activate failed (exit ${activate.code}).`);
   }
 }

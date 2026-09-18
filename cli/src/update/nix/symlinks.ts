@@ -29,10 +29,21 @@ async function ensureSymlink(linkPath: string, target: string): Promise<void> {
   await symlink(target, linkPath);
 }
 
-/** Ensure ~/.nixpkgs/darwin-configuration.nix and ~/.config/home-manager point at the repo. */
+/**
+ * Ensure profile symlinks for the active flake.
+ * macOS: ~/.nixpkgs/darwin-configuration.nix + ~/.config/home-manager → system/macos
+ * Home Manager (oci-agents / ubuntu-wsl): ~/.config/home-manager → flake root only
+ */
 export async function ensureNixSymlinks(repo: OutfittingRepo, home = homedir()): Promise<void> {
-  await mkdir(join(home, ".nixpkgs"), { recursive: true });
-  await ensureSymlink(join(home, ".nixpkgs", "darwin-configuration.nix"), repo.darwinNixPath);
+  if (repo.flakeKind === "none" || repo.flakePath.length === 0) {
+    return;
+  }
+
   await mkdir(join(home, ".config"), { recursive: true });
   await ensureSymlink(join(home, ".config", "home-manager"), repo.flakePath);
+
+  if (repo.flakeKind === "macos" && repo.darwinNixPath.length > 0) {
+    await mkdir(join(home, ".nixpkgs"), { recursive: true });
+    await ensureSymlink(join(home, ".nixpkgs", "darwin-configuration.nix"), repo.darwinNixPath);
+  }
 }

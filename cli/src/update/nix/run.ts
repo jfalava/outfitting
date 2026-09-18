@@ -1,3 +1,6 @@
+import { access } from "node:fs/promises";
+import { join } from "node:path";
+
 import { Console, Effect } from "effect";
 
 import { loadConfig, sparseSourceRoot, type ManagerConfig } from "@/config";
@@ -15,7 +18,7 @@ import { which } from "@/process";
 import { envValue } from "@/secrets";
 import { syncMacosSource } from "@/setup/source";
 import { ui } from "@/ui";
-import { activateNixSystem } from "@/update/nix/activate";
+import { activateHomeManager, activateNixSystem } from "@/update/nix/activate";
 import { buildNixSystem } from "@/update/nix/build";
 import { closeNixLock, openNixLock } from "@/update/nix/lock";
 import { readNixRecovery } from "@/update/nix/recovery";
@@ -28,6 +31,8 @@ export interface UpdateNixOptions {
   repo?: OutfittingRepo;
   sourceFetcher?: ManifestFetcher;
   offline?: boolean;
+  /** Override Linux profile used to pick the Home Manager flake. */
+  profile?: string;
 }
 
 function resolveMacosRepo(options: UpdateNixOptions, config: ManagerConfig) {
@@ -62,9 +67,48 @@ function resolveMacosRepo(options: UpdateNixOptions, config: ManagerConfig) {
   });
 }
 
+function resolveLinuxNixRepo(options: UpdateNixOptions, config: ManagerConfig) {
+  return Effect.gen(function* () {
+    if (options.repo !== undefined) {
+      return options.repo;
+    }
+    const profile = options.profile ?? config.linux?.profile;
+    return yield* tryPromise(() => resolveOutfittingRepo({ config, profile }));
+  });
+}
+
+function nixTargetLabel(repo: OutfittingRepo): string {
+  switch (repo.flakeKind) {
+    case "macos":
+      return "nix-darwin system";
+    case "home-manager":
+      return `Home Manager (${repo.homeManagerName ?? "profile"})`;
+    case "none":
+      return "Nix profile";
+    default: {
+      const exhaustive: never = repo.flakeKind;
+      return exhaustive;
+    }
+  }
+}
+
+async function localFlakeLockPath(repo: OutfittingRepo): Promise<string | undefined> {
+  if (repo.flakePath.length === 0) {
+    return undefined;
+  }
+  const lockPath = join(repo.flakePath, "flake.lock");
+  try {
+    await access(lockPath);
+    return lockPath;
+  } catch {
+    return undefined;
+  }
+}
+
 /**
  * `update nix build|switch|test|dry` — no flake-input upgrade in v1.
  * switch builds then activates in-process.
+ * macOS uses the remote canonical lock; Home Manager uses the flake's local lock.
  */
 export const updateNix = (options: UpdateNixOptions) =>
   Effect.gen(function* () {
@@ -82,20 +126,45 @@ export const updateNix = (options: UpdateNixOptions) =>
       });
     }
 
-    const repo = yield* resolveMacosRepo(options, config);
+    // Prefer an injected repo; otherwise darwin uses sparse macOS refresh,
+    // Linux uses the configured Home Manager profile.
+    const repo =
+      options.repo !== undefined
+        ? options.repo
+        : process.platform === "darwin"
+          ? yield* resolveMacosRepo(options, config)
+          : yield* resolveLinuxNixRepo(options, config);
+
+    if (repo.flakeKind === "none" || repo.flakePath.length === 0) {
+      return yield* new CliFailure({
+        message:
+          "No Nix flake for this machine. Set linux.profile to oci-agents or ubuntu-wsl, or use a macOS source.",
+      });
+    }
 
     yield* tryPromise(() => ensureNixSymlinks(repo));
 
-    const lock = yield* tryPromise(() => openNixLock(config));
+    const label = nixTargetLabel(repo);
+    let lockPath: string | undefined;
+    let lockDir: string | undefined;
+
+    if (repo.flakeKind === "macos") {
+      const lock = yield* tryPromise(() => openNixLock(config));
+      lockPath = lock.lockPath;
+      lockDir = lock.lockDir;
+    } else {
+      // Home Manager: prefer the flake's checked-in lock (matches bootstrap).
+      lockPath = yield* tryPromise(() => localFlakeLockPath(repo));
+    }
 
     try {
       switch (options.action) {
         case "build": {
-          yield* Console.log(ui.heading("Building nix-darwin system (remote lock)…"));
+          yield* Console.log(ui.heading(`Building ${label}…`));
           const path = yield* tryPromise(() =>
             buildNixSystem({
               repo,
-              lockPath: lock.lockPath,
+              lockPath,
               mode: "build",
             }),
           );
@@ -103,11 +172,11 @@ export const updateNix = (options: UpdateNixOptions) =>
           break;
         }
         case "test": {
-          yield* Console.log(ui.heading("Testing nix-darwin build (remote lock)…"));
+          yield* Console.log(ui.heading(`Testing ${label} build…`));
           yield* tryPromise(() =>
             buildNixSystem({
               repo,
-              lockPath: lock.lockPath,
+              lockPath,
               mode: "test",
             }),
           );
@@ -115,11 +184,11 @@ export const updateNix = (options: UpdateNixOptions) =>
           break;
         }
         case "dry": {
-          yield* Console.log(ui.heading("Dry-run nix-darwin build (remote lock)…"));
+          yield* Console.log(ui.heading(`Dry-run ${label} build…`));
           yield* tryPromise(() =>
             buildNixSystem({
               repo,
-              lockPath: lock.lockPath,
+              lockPath,
               mode: "dry",
             }),
           );
@@ -127,17 +196,29 @@ export const updateNix = (options: UpdateNixOptions) =>
           break;
         }
         case "switch": {
-          yield* Console.log(ui.heading("Building nix-darwin system (remote lock)…"));
+          yield* Console.log(ui.heading(`Building ${label}…`));
           const systemConfig = yield* tryPromise(() =>
             buildNixSystem({
               repo,
-              lockPath: lock.lockPath,
+              lockPath,
               mode: "build",
             }),
           );
-          yield* Console.log(ui.heading("Activating nix-darwin system…"));
-          yield* tryPromise(() => activateNixSystem({ systemConfig }));
-          yield* Console.log(ui.success("nix-darwin switch complete."));
+          if (repo.flakeKind === "home-manager") {
+            yield* Console.log(ui.heading("Activating Home Manager…"));
+            const env: NodeJS.ProcessEnv = {
+              ...process.env,
+              OUTFITTING_REPO: repo.root,
+            };
+            yield* tryPromise(() =>
+              activateHomeManager({ activationPackage: systemConfig, env }),
+            );
+            yield* Console.log(ui.success("Home Manager switch complete."));
+          } else {
+            yield* Console.log(ui.heading("Activating nix-darwin system…"));
+            yield* tryPromise(() => activateNixSystem({ systemConfig }));
+            yield* Console.log(ui.success("nix-darwin switch complete."));
+          }
           break;
         }
         default: {
@@ -146,6 +227,8 @@ export const updateNix = (options: UpdateNixOptions) =>
         }
       }
     } finally {
-      yield* tryPromise(() => closeNixLock(lock.lockDir));
+      if (lockDir !== undefined) {
+        yield* tryPromise(() => closeNixLock(lockDir));
+      }
     }
   });

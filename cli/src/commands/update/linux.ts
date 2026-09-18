@@ -9,10 +9,17 @@ import {
   requestedLinuxPackageManager,
 } from "@/commands/linux-flags";
 import { foreignPackageManagerStub } from "@/commands/update/stubs";
-import { foreignPackageManagers, type HostPlatform, type PackageManager } from "@/platform";
+import {
+  foreignPackageManagers,
+  NIX_ACTIONS,
+  type HostPlatform,
+  type NixAction,
+  type PackageManager,
+} from "@/platform";
 import { type LinuxPackageManager } from "@/platform/linux";
 import { updateBun } from "@/update/bun";
 import { updateLinux } from "@/update/linux";
+import { updateNix } from "@/update/nix";
 
 function runLinuxUpdate(
   flags: {
@@ -56,6 +63,30 @@ const bunCommand = Command.make("bun", {}, () => updateBun).pipe(
   Command.withDescription("Deprecated; run `bun update -g` directly."),
 );
 
+const nixActionDescription = {
+  build: "Build the Home Manager activation package without activating.",
+  switch: "Build and activate Home Manager (oci-agents / ubuntu-wsl).",
+  test: "Test-build the Home Manager activation package without activating.",
+  dry: "Dry-run the Home Manager build without activating.",
+} as const satisfies Record<NixAction, string>;
+
+const makeNixCommand = () => {
+  const actions = NIX_ACTIONS.map((action) =>
+    Command.make(action, { profile: linuxOptionalProfileFlag }, ({ profile }) =>
+      updateNix({ action, profile: optionalString(profile) }),
+    ).pipe(Command.withDescription(nixActionDescription[action])),
+  );
+
+  return Command.make("nix", { profile: linuxOptionalProfileFlag }, ({ profile }) =>
+    updateNix({ action: "switch", profile: optionalString(profile) }),
+  ).pipe(
+    Command.withDescription(
+      "Update Home Manager (switch by default); build | switch | test | dry are available as subcommands.",
+    ),
+    Command.withSubcommands(actions),
+  );
+};
+
 /** Distro-agnostic Linux update tree; WSL remains owned by its shell workflow. */
 export const makeLinuxUpdateCommand = () => {
   const host = "linux" as const satisfies HostPlatform;
@@ -70,12 +101,13 @@ export const makeLinuxUpdateCommand = () => {
     (flags) => runLinuxUpdate(flags),
   ).pipe(
     Command.withDescription(
-      "Update Linux packages with detected apt or pacman; use --package-manager to override detection.",
+      "Update Linux packages with detected apt or pacman; use update nix for Home Manager.",
     ),
     Command.withSubcommands([
       makeLinuxManagerCommand(),
       makeLinuxManagerCommand("apt"),
       makeLinuxManagerCommand("pacman"),
+      makeNixCommand(),
       bunCommand,
       ...foreign,
     ]),

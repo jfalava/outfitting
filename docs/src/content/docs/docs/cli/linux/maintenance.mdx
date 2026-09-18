@@ -15,6 +15,14 @@ outfitting-manager update all
 
 Use `update apt` or `update pacman` to select a manager explicitly, or pass `--package-manager apt|pacman` to `update all`. Pass `--profile` to override the persisted profile; use `oci-agents` only on the managed OCI host and `ubuntu-wsl` only inside Ubuntu WSL.
 
+For Home Manager on `oci-agents` / `ubuntu-wsl` (same actions as macOS):
+
+```bash
+outfitting-manager update nix         # switch
+outfitting-manager update nix build
+outfitting-manager update nix switch
+```
+
 Check or install only missing declared packages with:
 
 ```bash

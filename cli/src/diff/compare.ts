@@ -488,7 +488,7 @@ async function compareNixSection(context: DiffContext): Promise<DiffSection> {
         "--reference-lock-file",
         lock.lockPath,
         "--no-write-lock-file",
-        `path:${repo.flakePath}#${NIX_SYSTEM_ATTR}.outPath`,
+        `path:${repo.flakePath}#${repo.systemAttr.length > 0 ? repo.systemAttr : NIX_SYSTEM_ATTR}.outPath`,
       ],
       { inherit: false, env },
     );

@@ -100,6 +100,8 @@ describe("recoverNix", () => {
       root: "/repo",
       flakePath: "/repo/system/macos",
       darwinNixPath: "/repo/system/macos/darwin.nix",
+      flakeKind: "macos" as const,
+      systemAttr: "darwinConfigurations.macos.system",
     };
     const calls: string[] = [];
     let pushed: Parameters<NonNullable<RecoverNixOptions["push"]>>[0] | undefined;
@@ -165,6 +167,8 @@ describe("recoverNix", () => {
       root: "/repo",
       flakePath: "/repo/system/macos",
       darwinNixPath: "/repo/system/macos/darwin.nix",
+      flakeKind: "macos" as const,
+      systemAttr: "darwinConfigurations.macos.system",
     };
     const push: NonNullable<RecoverNixOptions["push"]> = () =>
       Effect.fail(new CliFailure({ message: "stale remote lock" }));

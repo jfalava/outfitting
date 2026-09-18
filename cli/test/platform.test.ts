@@ -5,8 +5,8 @@ import { foreignPackageManagerMessage, foreignPackageManagers, platformLabel } f
 describe("package manager availability table", () => {
   test("macos natives and foreign hint set", () => {
     expect(foreignPackageManagers("macos").sort()).toEqual(["apt", "pacman", "scoop", "winget"]);
-    expect(foreignPackageManagers("windows").sort()).toEqual(["apt", "brew", "nix", "pacman"]);
-    expect(foreignPackageManagers("linux").sort()).toEqual(["brew", "nix", "scoop", "winget"]);
+    expect(foreignPackageManagers("windows").sort()).toEqual(["apt", "brew", "pacman"]);
+    expect(foreignPackageManagers("linux").sort()).toEqual(["brew", "scoop", "winget"]);
   });
 
   test("foreign PM messages name the owning OS build", () => {

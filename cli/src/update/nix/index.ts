@@ -1,4 +1,4 @@
-export { activateNixSystem } from "@/update/nix/activate";
+export { activateHomeManager, activateNixSystem } from "@/update/nix/activate";
 export { buildNixSystem } from "@/update/nix/build";
 export { closeNixLock, openNixLock } from "@/update/nix/lock";
 export {
@@ -14,6 +14,7 @@ export { updateNix } from "@/update/nix/run";
 export { recoverNix, type RecoverNixOptions } from "@/update/nix/recover";
 export { ensureNixSymlinks } from "@/update/nix/symlinks";
 export {
+  homeManagerActivationAttr,
   isNixRecoveryPhase,
   NIX_LOCK_KIND,
   NIX_RECOVERY_PHASES,

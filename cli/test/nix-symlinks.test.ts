@@ -22,16 +22,43 @@ afterEach(async () => {
   await Promise.all(temps.splice(0).map((dir) => rm(dir, { force: true, recursive: true })));
 });
 
-async function fixture(): Promise<{ home: string; repo: OutfittingRepo }> {
+async function fixture(
+  kind: "macos" | "home-manager" = "macos",
+): Promise<{ home: string; repo: OutfittingRepo }> {
   const root = await mkdtemp(join(tmpdir(), "outfitting-nix-links-"));
   temps.push(root);
   const home = join(root, "home");
   const repoRoot = join(root, "repo");
+  if (kind === "home-manager") {
+    const flakePath = join(repoRoot, "system", "oci-agents");
+    await mkdir(flakePath, { recursive: true });
+    await writeFile(join(flakePath, "flake.nix"), "{}\n");
+    return {
+      home,
+      repo: {
+        root: repoRoot,
+        flakePath,
+        darwinNixPath: "",
+        flakeKind: "home-manager",
+        systemAttr: "homeConfigurations.oci-agents.activationPackage",
+        homeManagerName: "oci-agents",
+      },
+    };
+  }
   const flakePath = join(repoRoot, "system", "macos");
   const darwinNixPath = join(flakePath, "darwin.nix");
   await mkdir(flakePath, { recursive: true });
   await writeFile(darwinNixPath, "{}\n");
-  return { home, repo: { root: repoRoot, flakePath, darwinNixPath } };
+  return {
+    home,
+    repo: {
+      root: repoRoot,
+      flakePath,
+      darwinNixPath,
+      flakeKind: "macos",
+      systemAttr: "darwinConfigurations.macos.system",
+    },
+  };
 }
 
 describe("ensureNixSymlinks", () => {
@@ -74,5 +101,12 @@ describe("ensureNixSymlinks", () => {
     );
     expect((await lstat(linkPath)).isDirectory()).toBe(true);
     expect(await readFile(join(linkPath, "keep"), "utf8")).toBe("safe\n");
+  });
+
+  test("Home Manager profile only links ~/.config/home-manager", async () => {
+    const { home, repo } = await fixture("home-manager");
+    await ensureNixSymlinks(repo, home);
+    expect(await readlink(join(home, ".config", "home-manager"))).toBe(repo.flakePath);
+    await expect(lstat(join(home, ".nixpkgs", "darwin-configuration.nix"))).rejects.toThrow();
   });
 });

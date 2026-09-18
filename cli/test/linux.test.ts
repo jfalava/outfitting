@@ -28,7 +28,7 @@ import {
 const execFileAsync = promisify(execFile);
 const linuxEntry = fileURLToPath(new URL("../index.ts", import.meta.url));
 
-test("Linux entrypoint registers the distro-agnostic update commands", async () => {
+test("Linux entrypoint registers update nix alongside apt/pacman", async () => {
   const init = await execFileAsync("bun", [linuxEntry, "init", "--help"], {
     encoding: "utf8",
   });
@@ -46,7 +46,13 @@ test("Linux entrypoint registers the distro-agnostic update commands", async () 
   expect(text).toMatch(/\ball\b/);
   expect(text).toMatch(/\bapt\b/);
   expect(text).toMatch(/\bpacman\b/);
+  expect(text).toMatch(/\bnix\b/);
   expect(text).toContain("--package-manager");
+
+  const nixHelp = await execFileAsync("bun", [linuxEntry, "update", "nix", "--help"], {
+    encoding: "utf8",
+  });
+  expect(`${nixHelp.stdout}\n${nixHelp.stderr}`).toMatch(/build|switch|test|dry/);
 
   const diff = await execFileAsync("bun", [linuxEntry, "diff", "--help"], {
     encoding: "utf8",

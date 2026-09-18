@@ -12,8 +12,9 @@ export interface NixBuildOptions {
   run?: typeof runCommand;
 }
 
-function flakeRef(flakePath: string): string {
-  return `path:${flakePath}#${NIX_SYSTEM_ATTR}`;
+function flakeRef(repo: OutfittingRepo): string {
+  const attr = repo.systemAttr.length > 0 ? repo.systemAttr : NIX_SYSTEM_ATTR;
+  return `path:${repo.flakePath}#${attr}`;
 }
 
 function baseArgs(mode: NixBuildMode, lockPath: string | undefined): string[] {
@@ -31,12 +32,17 @@ function baseArgs(mode: NixBuildMode, lockPath: string | undefined): string[] {
 }
 
 /**
- * Build (or dry-run) the nix-darwin system derivation.
+ * Build (or dry-run) the active flake derivation (nix-darwin system or HM activationPackage).
  * Returns the store path when mode is build|test; empty for dry.
  */
 export async function buildNixSystem(options: NixBuildOptions): Promise<string> {
   const run = options.run ?? runCommand;
-  const args = [...baseArgs(options.mode, options.lockPath), flakeRef(options.repo.flakePath)];
+  if (options.repo.flakePath.length === 0 || options.repo.flakeKind === "none") {
+    throw new Error(
+      "No Nix flake is configured for this Outfitting source (generic-linux has no Home Manager profile).",
+    );
+  }
+  const args = [...baseArgs(options.mode, options.lockPath), flakeRef(options.repo)];
 
   const env: NodeJS.ProcessEnv = {
     ...process.env,

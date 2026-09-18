@@ -35,6 +35,8 @@ beforeEach(() => {
     root: "/repo",
     flakePath: "/repo/system/macos",
     darwinNixPath: "/repo/system/macos/darwin.nix",
+    flakeKind: "macos",
+    systemAttr: "darwinConfigurations.macos.system",
   });
   vi.mocked(openNixLock).mockResolvedValue({ lockDir: "/lock", lockPath: "/lock/flake.lock" });
   vi.mocked(realpath).mockResolvedValue("/nix/store/active-system");

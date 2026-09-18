@@ -17,7 +17,6 @@ import type { ManagerConfig } from "@/config/types";
 import { runCommand } from "@/process";
 import { envValue } from "@/secrets";
 
-const FLAKE_RELATIVE = join("system", "macos");
 export const DEFAULT_OUTFITTING_REPO_URL = "https://github.com/jfalava/outfitting.git";
 
 /** Paths that identify a valid Outfitting source (full checkout or sparse tree). */
@@ -28,13 +27,135 @@ const SOURCE_MARKERS = [
   join("packages", "linux", "generic-linux.txt"),
 ] as const;
 
+/** Which Nix flake root a checkout is driving. */
+export type NixFlakeKind = "macos" | "home-manager" | "none";
+
 export interface OutfittingRepo {
   /** Absolute path to the full repository or sparse source root. */
   root: string;
-  /** Absolute path to `system/macos` (flake root for darwinConfigurations.macos). */
+  /**
+   * Absolute path to the active flake root (`system/macos`, `system/oci-agents`,
+   * or `system/ubuntu-wsl`). Empty when the source has no Nix flake (generic-linux).
+   */
   flakePath: string;
-  /** Absolute path to `system/macos/darwin.nix`. */
+  /** Absolute path to `system/macos/darwin.nix` when present; otherwise empty. */
   darwinNixPath: string;
+  /** Active flake kind derived from on-disk markers and optional Linux profile. */
+  flakeKind: NixFlakeKind;
+  /**
+   * Flake output attribute for build/switch.
+   * macOS: `darwinConfigurations.macos.system`
+   * Home Manager: `homeConfigurations.<name>.activationPackage`
+   */
+  systemAttr: string;
+  /** Home Manager configuration name when flakeKind is home-manager. */
+  homeManagerName?: string;
+}
+
+interface FlakeSelection {
+  flakePath: string;
+  darwinNixPath: string;
+  flakeKind: NixFlakeKind;
+  systemAttr: string;
+  homeManagerName?: string;
+}
+
+const MACOS_SYSTEM_ATTR = "darwinConfigurations.macos.system";
+
+function homeManagerSystemAttr(name: string): string {
+  return `homeConfigurations.${name}.activationPackage`;
+}
+
+function selectFlake(absolute: string, profile?: string): FlakeSelection {
+  const macosFlake = join(absolute, "system", "macos");
+  const ociFlake = join(absolute, "system", "oci-agents");
+  const wslFlake = join(absolute, "system", "ubuntu-wsl");
+  const macosDarwin = join(macosFlake, "darwin.nix");
+
+  // Prefer an explicit Linux profile when the matching flake exists.
+  if (profile === "oci-agents") {
+    return {
+      flakePath: ociFlake,
+      darwinNixPath: "",
+      flakeKind: "home-manager",
+      systemAttr: homeManagerSystemAttr("oci-agents"),
+      homeManagerName: "oci-agents",
+    };
+  }
+  if (profile === "ubuntu-wsl") {
+    return {
+      flakePath: wslFlake,
+      darwinNixPath: "",
+      flakeKind: "home-manager",
+      systemAttr: homeManagerSystemAttr("jfalava"),
+      homeManagerName: "jfalava",
+    };
+  }
+
+  // Marker priority for full checkouts without a Linux profile: macOS first,
+  // then headless HM profiles (oci-agents before WSL).
+  return {
+    flakePath: macosFlake,
+    darwinNixPath: macosDarwin,
+    flakeKind: "macos",
+    systemAttr: MACOS_SYSTEM_ATTR,
+  };
+}
+
+async function resolveFlakeSelection(
+  absolute: string,
+  profile: string | undefined,
+  markersPresent: boolean[],
+): Promise<FlakeSelection> {
+  const hasMacos = markersPresent[0] === true;
+  const hasOci = markersPresent[1] === true;
+  const hasWsl = markersPresent[2] === true;
+
+  if (profile === "oci-agents") {
+    if (!hasOci) {
+      throw new Error(
+        `Linux profile oci-agents requires ${join(absolute, "system", "oci-agents", "flake.nix")}.`,
+      );
+    }
+    return selectFlake(absolute, "oci-agents");
+  }
+  if (profile === "ubuntu-wsl") {
+    if (!hasWsl) {
+      throw new Error(
+        `Linux profile ubuntu-wsl requires ${join(absolute, "system", "ubuntu-wsl", "flake.nix")}.`,
+      );
+    }
+    return selectFlake(absolute, "ubuntu-wsl");
+  }
+
+  // generic-linux (and unknown profiles): never bind a flake just because the
+  // monorepo checkout also contains macOS/HM trees.
+  if (profile === "generic-linux") {
+    return {
+      flakePath: "",
+      darwinNixPath: "",
+      flakeKind: "none",
+      systemAttr: "",
+    };
+  }
+
+  if (hasMacos) {
+    return selectFlake(absolute);
+  }
+  if (hasOci) {
+    return selectFlake(absolute, "oci-agents");
+  }
+  if (hasWsl) {
+    return selectFlake(absolute, "ubuntu-wsl");
+  }
+
+  // generic-linux (or other non-Nix source): no flake root.
+  return {
+    flakePath: "",
+    darwinNixPath: "",
+    flakeKind: "none",
+    systemAttr: "",
+  };
 }
 
 async function pathExists(path: string): Promise<boolean> {
@@ -70,7 +191,10 @@ export async function readRepoPathFile(config: ManagerConfig): Promise<string | 
 }
 
 /** Validate a repository or sparse source root and return structured paths. */
-export async function validateOutfittingRepo(candidate: string): Promise<OutfittingRepo> {
+export async function validateOutfittingRepo(
+  candidate: string,
+  options?: { profile?: string },
+): Promise<OutfittingRepo> {
   let absolute: string;
   try {
     absolute = isAbsolute(candidate) ? candidate : resolve(candidate);
@@ -79,8 +203,6 @@ export async function validateOutfittingRepo(candidate: string): Promise<Outfitt
     throw new Error(`Outfitting repository path does not exist: ${candidate}`);
   }
 
-  const flakePath = join(absolute, FLAKE_RELATIVE);
-  const darwinNixPath = join(flakePath, "darwin.nix");
   const markers = SOURCE_MARKERS.map((relative) => join(absolute, relative));
   const present = await Promise.all(markers.map((path) => pathExists(path)));
   if (!present.some(Boolean)) {
@@ -89,10 +211,24 @@ export async function validateOutfittingRepo(candidate: string): Promise<Outfitt
     );
   }
 
+  const selection = await resolveFlakeSelection(absolute, options?.profile, present);
+  if (
+    (options?.profile === "oci-agents" || options?.profile === "ubuntu-wsl") &&
+    selection.flakeKind === "home-manager"
+  ) {
+    const flakeNix = join(selection.flakePath, "flake.nix");
+    if (!(await pathExists(flakeNix))) {
+      throw new Error(`Missing flake at ${flakeNix}.`);
+    }
+  }
+
   return {
     root: absolute,
-    flakePath,
-    darwinNixPath,
+    flakePath: selection.flakePath,
+    darwinNixPath: selection.darwinNixPath,
+    flakeKind: selection.flakeKind,
+    systemAttr: selection.systemAttr,
+    homeManagerName: selection.homeManagerName,
   };
 }
 
@@ -102,12 +238,13 @@ export async function validateOutfittingRepo(candidate: string): Promise<Outfitt
  */
 export async function writeRepoPath(
   repoRoot: string,
-  options?: { stateRoot?: string },
+  options?: { stateRoot?: string; profile?: string },
 ): Promise<{ repo: OutfittingRepo; pathFile: string }> {
-  const repo = await validateOutfittingRepo(repoRoot);
   const config = await loadConfig(
     options?.stateRoot === undefined ? undefined : { stateRoot: options.stateRoot },
   );
+  const profile = options?.profile ?? config.linux?.profile;
+  const repo = await validateOutfittingRepo(repoRoot, { profile });
   const pathFile = repoPathFile(config.stateRoot);
   await mkdir(dirname(pathFile), { recursive: true });
   await writeFile(pathFile, `${repo.root}\n`, { mode: 0o600, encoding: "utf8" });
@@ -182,10 +319,12 @@ async function runGit(
 /**
  * Resolve monorepo root.
  * Precedence: `OUTFITTING_REPO` → legacy `repo-path` file → fail.
+ * Pass `profile` (or rely on `config.linux.profile`) so Linux HM flakes resolve correctly.
  */
 export async function resolveOutfittingRepo(options?: {
   config?: ManagerConfig;
   envRepo?: string;
+  profile?: string;
 }): Promise<OutfittingRepo> {
   const config = options?.config ?? (await loadConfig());
   const fromEnv = options?.envRepo ?? envValue("OUTFITTING_REPO");
@@ -198,7 +337,8 @@ export async function resolveOutfittingRepo(options?: {
     );
   }
 
-  return validateOutfittingRepo(candidate);
+  const profile = options?.profile ?? config.linux?.profile;
+  return validateOutfittingRepo(candidate, { profile });
 }
 
 /** Soft resolve: returns undefined when unset / invalid (setup reporting). */

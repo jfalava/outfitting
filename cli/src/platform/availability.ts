@@ -12,7 +12,8 @@ export const PACKAGE_MANAGER_PLATFORM = {
   apt: "linux",
   bun: "all",
   brew: "macos",
-  nix: "macos",
+  // nix-darwin on macOS; Home Manager on Linux (oci-agents / ubuntu-wsl)
+  nix: "all",
   pacman: "linux",
   scoop: "windows",
   winget: "windows",
