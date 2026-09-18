@@ -67,14 +67,23 @@ in
     fi
   '';
 
+  # systemd --user does not import a login environment. OpenCode reads $SHELL
+  # for summoned PTYs (`$SHELL -l`) and inherits PATH for `/bin/bash -c` tools.
+  # Without these, the web UI gets /bin/bash and a distro PATH.
   systemd.user.services.opencode-web = {
     Unit = {
       Description = "OpenCode Web Service";
       After = [ "network.target" ];
     };
     Service = {
+      WorkingDirectory = codeRoot;
       ExecStart = "${home}/.opencode/bin/opencode serve --hostname 0.0.0.0 --port 4096";
       EnvironmentFile = "${config.xdg.configHome}/opencode/service.env";
+      Environment = [
+        "HOME=${home}"
+        "PATH=${servicePath}"
+        "SHELL=${config.home.profileDirectory}/bin/zsh"
+      ];
       Restart = "always";
       RestartSec = 5;
     };
