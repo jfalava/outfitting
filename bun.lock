@@ -15,7 +15,7 @@
     },
     "api": {
       "name": "@outfitting/api",
-      "version": "0.27.0",
+      "version": "0.28.0",
       "dependencies": {
         "@outfitting/contract": "workspace:*",
         "effect": "catalog:effect",
@@ -34,7 +34,7 @@
     },
     "cli": {
       "name": "@outfitting/cli",
-      "version": "0.27.0",
+      "version": "0.28.0",
       "bin": {
         "outfitting-manager": "index.ts",
       },
@@ -60,7 +60,7 @@
     },
     "contract": {
       "name": "@outfitting/contract",
-      "version": "0.27.0",
+      "version": "0.28.0",
       "dependencies": {
         "effect": "catalog:effect",
       },
@@ -76,7 +76,7 @@
     },
     "docs": {
       "name": "@outfitting/docs",
-      "version": "0.27.0",
+      "version": "0.28.0",
       "dependencies": {
         "@cloudflare/nimbus-docs": "0.13.1",
         "@fontsource/google-sans-code": "5.3.0",
