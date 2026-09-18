@@ -13,7 +13,7 @@ Run the architecture-selecting binary bootstrap:
 curl -L linux.jfa.dev | bash
 ```
 
-It supports Linux x64 and arm64 and delegates package installation to `outfitting-manager`, which detects apt or pacman. The `oci-agents` and `ubuntu-wsl` profiles can be selected with `--profile`; `init` clones or updates their Outfitting checkout automatically.
+It supports Linux x64 and arm64 and delegates installation to `outfitting-manager`, which detects apt or pacman. The installer fetches the complete local source bundle, applies the selected Nix/Home Manager profile when applicable, and installs the declared native packages. The `oci-agents` and `ubuntu-wsl` profiles can be selected with `--profile`.
 
 ```bash
 curl -L linux.jfa.dev | bash -s -- --profile oci-agents

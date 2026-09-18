@@ -8,7 +8,6 @@ import { promisify } from "node:util";
 import { Effect } from "effect";
 import { describe, expect, test } from "vitest";
 
-import { DEFAULT_OUTFITTING_REPO_URL } from "@/config";
 import {
   detectLinuxPackageManager,
   linuxDistributionFamily,
@@ -74,12 +73,13 @@ test("Linux init materializes state without invoking a package manager", async (
   }
 });
 
-test("Linux OCI init clones the repository into the default state path", async () => {
-  const stateRoot = await mkdtemp(join(tmpdir(), "outfitting-linux-oci-clone-state-"));
+test("Linux OCI init materializes the complete sparse source", async () => {
+  const stateRoot = await mkdtemp(join(tmpdir(), "outfitting-linux-oci-sparse-state-"));
   const calls: Array<{ command: string; args: ReadonlyArray<string> }> = [];
-  let cloneTarget: string | undefined;
-  let resolvedCloneTarget: string | undefined;
+  let sourceRoot: string | undefined;
   let persistedRepoPath: string | undefined;
+  let flakeContents: string | undefined;
+  let aptManifestContents: string | undefined;
   try {
     await Effect.runPromise(
       runLinuxInit({
@@ -88,46 +88,26 @@ test("Linux OCI init clones the repository into the default state path", async (
         fetcher: async () => new Response("curl\ngit\n"),
         run: async (command, args) => {
           calls.push({ command, args });
-          if (command === "git" && args[0] === "clone") {
-            const target = args.at(-1);
-            if (target === undefined) {
-              throw new Error("clone target missing");
-            }
-            cloneTarget = target;
-            await mkdir(join(target, "system", "macos"), { recursive: true });
-            await mkdir(join(target, "system", "oci-agents"), { recursive: true });
-            await writeFile(join(target, "system", "macos", "flake.nix"), "{}\n");
-            await writeFile(join(target, "system", "oci-agents", "bootstrap.sh"), "#!/bin/sh\n");
-          }
           return { code: 0, stdout: "", stderr: "" };
         },
       }),
     );
     persistedRepoPath = await readFile(join(stateRoot, "repo-path"), "utf8");
-    resolvedCloneTarget = await realpath(cloneTarget!);
+    sourceRoot = await realpath(join(stateRoot, "source"));
+    flakeContents = await readFile(join(sourceRoot, "system/oci-agents/flake.nix"), "utf8");
+    aptManifestContents = await readFile(join(sourceRoot, "packages/ubuntu-wsl/apt.txt"), "utf8");
   } finally {
     await rm(stateRoot, { force: true, recursive: true });
   }
 
-  expect(cloneTarget).toBe(join(stateRoot, "repo"));
-  expect(resolvedCloneTarget).toBeDefined();
-  expect(persistedRepoPath).toBe(`${resolvedCloneTarget}\n`);
+  expect(sourceRoot).toBeDefined();
+  expect(persistedRepoPath).toBe(`${sourceRoot}\n`);
+  expect(flakeContents).toBe("curl\ngit\n");
+  expect(aptManifestContents).toBe("curl\ngit\n");
   expect(calls).toEqual([
     {
-      command: "git",
-      args: ["clone", "--depth", "1", DEFAULT_OUTFITTING_REPO_URL, join(stateRoot, "repo")],
-    },
-    {
-      command: "git",
-      args: ["-C", join(stateRoot, "repo"), "fetch", "--prune", "origin", "main"],
-    },
-    {
-      command: "git",
-      args: ["-C", join(stateRoot, "repo"), "checkout", "--detach", "FETCH_HEAD"],
-    },
-    {
       command: "bash",
-      args: [join(resolvedCloneTarget!, "system", "oci-agents", "bootstrap.sh")],
+      args: [join(sourceRoot!, "system", "oci-agents", "bootstrap.sh")],
     },
   ]);
 });

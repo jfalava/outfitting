@@ -4,7 +4,7 @@ import { dirname, join } from "node:path";
 import { sparseSourceRoot } from "@/config/paths";
 import type { ManagerConfig } from "@/config/types";
 import { fetchManifest, type ManifestFetcher } from "@/fetch";
-import { MACOS_SOURCE_PATHS } from "@/setup/manifests";
+import { LINUX_SOURCE_PATHS, MACOS_SOURCE_PATHS } from "@/setup/manifests";
 
 export interface SparseSourceFile {
   path: string;
@@ -17,9 +17,7 @@ export interface SparseSourceResult {
   files: SparseSourceFile[];
 }
 
-function isAllowedSourcePath(path: string): boolean {
-  return (MACOS_SOURCE_PATHS as ReadonlyArray<string>).includes(path);
-}
+const ALLOWED_SOURCE_PATHS = new Set<string>([...MACOS_SOURCE_PATHS, ...LINUX_SOURCE_PATHS]);
 
 function isNotFound(cause: unknown): boolean {
   return (
@@ -65,10 +63,10 @@ async function replaceSourceTree(staged: string, target: string): Promise<void> 
 }
 
 /**
- * Fetch the fixed macOS source closure and atomically publish a clean sparse
- * tree. Existing files are never used as a partially refreshed source.
+ * Fetch a fixed source closure and atomically publish a clean sparse tree.
+ * Existing files are never used as a partially refreshed source.
  */
-export async function syncMacosSource(options: {
+export async function syncSparseSource(options: {
   config: ManagerConfig;
   sourceRoot?: string;
   fetcher?: ManifestFetcher;
@@ -82,12 +80,13 @@ export async function syncMacosSource(options: {
 
   try {
     for (const path of options.paths ?? MACOS_SOURCE_PATHS) {
-      if (!isAllowedSourcePath(path)) {
-        throw new Error(`Refusing to fetch non-allowlisted macOS source path: ${path}`);
+      if (!ALLOWED_SOURCE_PATHS.has(path)) {
+        throw new Error(`Refusing to fetch non-allowlisted source path: ${path}`);
       }
       const fetched = await fetchManifest({
         path,
         config: options.config,
+        materialize: true,
         fetcher: options.fetcher,
         offline: options.offline,
       });
@@ -108,3 +107,6 @@ export async function syncMacosSource(options: {
     throw cause;
   }
 }
+
+/** Backwards-compatible macOS name for the shared sparse-source synchronizer. */
+export const syncMacosSource = syncSparseSource;

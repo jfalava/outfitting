@@ -7,7 +7,10 @@
 }:
 
 {
-  imports = [ ../../system/common/zsh.nix ];
+  imports = [
+    ../../system/common/dotfiles.nix
+    ../../system/common/zsh.nix
+  ];
 
   nixpkgs.config.allowUnfree = true;
 

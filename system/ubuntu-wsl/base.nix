@@ -8,7 +8,7 @@
 let
   repoFromEnvironment = builtins.getEnv "OUTFITTING_REPO";
   outfittingRepo =
-    if repoFromEnvironment != "" then repoFromEnvironment else "/home/jfalava/.config/outfitting/repo";
+    if repoFromEnvironment != "" then repoFromEnvironment else "/home/jfalava/.config/outfitting/source";
 in
 {
   imports = [ (builtins.toPath "${outfittingRepo}/packages/common/programs.nix") ];

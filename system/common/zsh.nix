@@ -19,6 +19,17 @@ in
     autocd = true;
     defaultKeymap = "emacs";
 
+    # Ghostty advertises a terminal type that may not exist in a remote
+    # Linux host's terminfo database. Keep terminals with valid entries
+    # unchanged, but make basic commands such as `clear` work over SSH.
+    initContent = ''
+      if [[ "''${TERM:-}" == "xterm-ghostty" ]] && {
+        ! command -v infocmp >/dev/null 2>&1 || ! infocmp "$TERM" >/dev/null 2>&1
+      }; then
+        export TERM=xterm-256color
+      fi
+    '';
+
     completionInit = ''
       fpath=("${completionDirectory}" $fpath)
       autoload -Uz compinit

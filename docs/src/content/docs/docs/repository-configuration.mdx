@@ -5,7 +5,7 @@ sidebar:
   order: 4
 ---
 
-Each platform uses a different source layout. WSL keeps a full checkout, while macOS and Windows use the manager's state root and fetch only the files they need.
+Each platform uses a different source layout. macOS and Linux use the manager's state root and fetch only the files needed by their platform source bundle; Windows uses cached manifests.
 
 ## Windows
 
@@ -38,16 +38,16 @@ Existing profiles are backed up with a timestamp before they are replaced. Windo
 
 The macOS manager fetches the allowlisted source paths into `~/.config/outfitting/source`; it does not clone the monorepo. `outfit init` validates the source before `outfit setup` applies it. A compatible repository must provide `system/macos/flake.nix`, `system/macos/darwin.nix`, and `packages/macos/Brewfile`; the flake must expose `darwinConfigurations`. Homebrew uses the local `packages/macos/Brewfile` during setup.
 
-## WSL
+## Linux and WSL
 
-WSL keeps a full checkout at:
+Linux profiles keep the complete sparse source bundle at:
 
 ```text
-~/.config/outfitting/repo
+~/.config/outfitting/source
 ```
 
-Its Home Manager link points into that checkout:
+The bundle contains the common modules and dotfiles, Linux flakes and lockfiles, Zsh profiles, Nix packages, and apt/package manifests. A user-supplied `--repo` can instead select a full checkout. WSL's Home Manager link points into the sparse source:
 
 ```text
-~/.config/home-manager -> ~/.config/outfitting/repo/system/ubuntu-wsl
+~/.config/home-manager -> ~/.config/outfitting/source/system/ubuntu-wsl
 ```

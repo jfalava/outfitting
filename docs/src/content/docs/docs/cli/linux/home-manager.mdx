@@ -15,4 +15,4 @@ hm-rollback  # List generations and show activation instructions
 hm-clean     # Remove old Nix generations and store paths
 ```
 
-`hm-update` runs `nix flake update` against `$HOME/.config/outfitting/repo/system/ubuntu-wsl` before switching. `hm-sync` and `hm-switch` apply the current checkout without updating inputs.
+`hm-update` runs `nix flake update` against `$HOME/.config/outfitting/repo/system/ubuntu-wsl` before switching when a full checkout is configured. The hosted installer uses the sparse source at `$HOME/.config/outfitting/source`; `hm-sync` and `hm-switch` apply whichever local source is linked by the profile without updating inputs.

@@ -11,7 +11,7 @@ let
     if repoFromEnvironment != "" then
       repoFromEnvironment
     else
-      "${config.home.homeDirectory}/.config/outfitting/repo";
+      "${config.home.homeDirectory}/.config/outfitting/source";
 in
 {
   imports = [

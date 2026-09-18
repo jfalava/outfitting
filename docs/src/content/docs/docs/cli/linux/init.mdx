@@ -5,7 +5,7 @@ sidebar:
   order: 0
 ---
 
-`init` creates the local state root and fetches the selected Linux package profile. It does not run `apt` or `pacman`. For the Nix-backed `oci-agents` and `ubuntu-wsl` profiles, it also clones or updates the full Outfitting checkout at `~/.config/outfitting/repo` before running the profile's Home Manager bootstrap. Use `--repo` to choose another checkout path.
+`init` creates the local state root and fetches a complete Linux source bundle into `~/.config/outfitting/source`. The bundle includes the shared Nix modules and dotfiles, both Linux Home Manager flakes and lockfiles, Zsh profiles, Nix package declarations, and all supported Linux package manifests. It also keeps copies under `~/.config/outfitting/manifests` for offline package setup. For the Nix-backed `oci-agents` and `ubuntu-wsl` profiles, `init` applies the selected Home Manager configuration from that local source. Use `--repo` to choose and update an existing full checkout instead.
 
 ```bash
 outfitting-manager init
@@ -15,7 +15,7 @@ outfitting-manager init --profile oci-agents --repo ~/code/outfitting
 outfitting-manager init --no-fetch
 ```
 
-Use [setup](/docs/cli/linux/) after initialization to apply the cached native package profile. The Nix-backed profiles expect Nix to already be installed. The OCI bootstrap also installs its harnesses and starts its services; the WSL bootstrap only applies Home Manager configuration.
+Use [setup](/docs/cli/linux/) after initialization to apply the cached native package profile. The hosted Linux installer runs both steps automatically. The Nix-backed profiles expect Nix to already be installed. The OCI bootstrap also installs its harnesses and starts its services; the WSL bootstrap only applies Home Manager configuration.
 
 ## Options
 
@@ -24,6 +24,6 @@ Use [setup](/docs/cli/linux/) after initialization to apply the cached native pa
 --machine-id <id>                     Override the automatic machine id.
 --manifest-base-url <url>             Raw-compatible source URL without the ref.
 --manifest-ref <ref>                  Git branch, tag, or SHA for the source.
---repo <path>                         Checkout path for a Nix-backed profile (default: ~/.config/outfitting/repo).
+--repo <path>                         Optional full checkout to update for a Nix-backed profile.
 --no-fetch                            Use the existing cached profile.
 ```

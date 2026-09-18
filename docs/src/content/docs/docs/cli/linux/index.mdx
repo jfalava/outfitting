@@ -22,7 +22,7 @@ outfitting-manager init
 outfitting-manager setup --no-fetch
 ```
 
-`init` fetches and caches the selected profile without changing native packages. For Nix-backed profiles it also applies Home Manager. `setup` consumes that cached profile, installs missing declared packages, and applies the profile bootstrap again. It does not upgrade the whole system; use `update` for that. Pass `--no-fetch` to `init` only when a cached profile already exists.
+`init` fetches the complete Linux source bundle and caches the selected profile without changing native packages. For Nix-backed profiles it also applies Home Manager from the local source. `setup` consumes that cached profile, installs missing declared packages, and applies the profile bootstrap again. It does not upgrade the whole system; use `update` for that. Pass `--no-fetch` to `init` only when the local source and cached manifests already exist.
 
 To override detection or select a profile:
 
@@ -34,14 +34,14 @@ outfitting-manager init --profile ubuntu-wsl
 outfitting-manager setup --profile ubuntu-wsl --repo ~/.config/outfitting/repo --no-fetch
 ```
 
-The `oci-agents` and `ubuntu-wsl` profiles clone or update their full repository checkout at `~/.config/outfitting/repo`, then run their Nix/Home Manager bootstrap after initialization and after native package setup. Pass `--repo` to use another checkout path. `ubuntu-wsl` uses the existing `packages/ubuntu-wsl/apt.txt` package manifest and `system/ubuntu-wsl` Home Manager configuration.
+The Linux source bundle is stored at `~/.config/outfitting/source` and includes the `oci-agents` and `ubuntu-wsl` flakes, lockfiles, Zsh files, common modules, dotfiles, Nix packages, and native package manifests. The profiles run their Nix/Home Manager bootstrap after initialization and after native package setup. Pass `--repo` to use and update another full checkout. `ubuntu-wsl` uses the existing `packages/ubuntu-wsl/apt.txt` package manifest and `system/ubuntu-wsl` Home Manager configuration.
 
 ## Commands
 
-- [Init](/docs/cli/linux/init/) - cache a package profile and bootstrap Nix-backed profiles without changing native packages.
+- [Init](/docs/cli/linux/init/) - materialize the complete Linux source bundle and bootstrap Nix-backed profiles without changing native packages.
 - [Setup](/docs/cli/linux/) - apply the selected apt or pacman package profile.
 - [Install](/docs/cli/linux/install/) - run the generic Linux or WSL hosted installer.
 - [Home Manager](/docs/cli/linux/home-manager/) - apply, update, roll back, or clean Nix state.
 - [Maintenance](/docs/cli/linux/maintenance/) - run native Linux updates or the combined WSL helpers.
 
-The WSL repository is normally cloned to `$HOME/.config/outfitting/repo`; set `OUTFITTING_REPO` to use another checkout.
+Without `--repo`, Linux profiles use the sparse source at `$HOME/.config/outfitting/source`. Set `OUTFITTING_REPO` or pass `--repo` to use and update another full checkout.

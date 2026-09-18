@@ -28,7 +28,7 @@ const manifestRefFlag = Flag.String("manifest-ref").pipe(
 const repoFlag = Flag.String("repo").pipe(
   Flag.optional,
   Flag.withDescription(
-    "Checkout path for a Nix-backed profile (default: ~/.config/outfitting/repo).",
+    "Optional full checkout path for a Nix-backed profile; omit to use the sparse source.",
   ),
 );
 

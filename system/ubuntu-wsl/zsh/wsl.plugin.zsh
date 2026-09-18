@@ -11,7 +11,7 @@ port() {
 }
 
 _outfitting_repo() {
-    echo "${OUTFITTING_REPO:-$HOME/.config/outfitting/repo}"
+    echo "${OUTFITTING_REPO:-$HOME/.config/outfitting/source}"
 }
 
 _ensure_home_manager_link() {

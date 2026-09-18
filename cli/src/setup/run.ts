@@ -18,7 +18,7 @@ import type { OutfittingRepo } from "@/config/repo";
 import type { ManifestFetcher } from "@/fetch";
 import { tryPromise } from "@/lockfiles/effect";
 import { prefetchSetupManifests, windowsSetupManifestPaths } from "@/setup/manifests";
-import { syncMacosSource, type SparseSourceResult } from "@/setup/source";
+import { syncSparseSource, type SparseSourceResult } from "@/setup/source";
 import { validateMacosSource } from "@/setup/validate";
 import { ui } from "@/ui";
 
@@ -37,9 +37,9 @@ export interface SetupOptions {
   manifestPaths?: ReadonlyArray<string>;
   /** Use configured Windows routes when no explicit manifest paths are supplied. */
   useWindowsRoutes?: boolean;
-  /** Fetch and publish a sparse macOS source tree instead of loose manifests. */
+  /** Fetch and publish a sparse source tree instead of loose manifests. */
   sourcePaths?: ReadonlyArray<string>;
-  /** Override the sparse macOS source root. */
+  /** Override the sparse source root. */
   sourceRoot?: string;
   /** Skip nix-darwin / home-manager symlink ensure. */
   skipSymlinks?: boolean;
@@ -90,9 +90,9 @@ function logSparseSource(source: SparseSourceResult) {
 
 function setupSparseSource(options: SetupOptions, config: ManagerConfig, root: string) {
   return Effect.gen(function* () {
-    yield* Console.log(ui.heading("Fetching sparse macOS source…"));
+    yield* Console.log(ui.heading("Fetching sparse source…"));
     const source = yield* tryPromise(() =>
-      syncMacosSource({
+      syncSparseSource({
         config,
         sourceRoot: options.sourceRoot,
         paths: options.sourcePaths,

@@ -1,11 +1,10 @@
-import { join } from "node:path";
-
 import { Console, Effect } from "effect";
 
 import { loadConfig, syncOutfittingRepo, tryResolveOutfittingRepo, writeRepoPath } from "@/config";
 import { tryPromise } from "@/lockfiles/effect";
 import { runCommand } from "@/process";
 import { envValue } from "@/secrets";
+import { LINUX_SOURCE_PATHS } from "@/setup/manifests";
 import { runSetup, type SetupOptions } from "@/setup/run";
 import { ui } from "@/ui";
 import {
@@ -36,14 +35,17 @@ export interface LinuxInitOptions extends SetupOptions {
 export const runLinuxInit = (options: LinuxInitOptions) =>
   Effect.gen(function* () {
     const { profile, repo, run, bootstrapNix, ...setupOptions } = options;
+    const envRepo = envValue("OUTFITTING_REPO");
+    const configuredRepo = repo ?? envRepo;
 
     const linuxSetupOptions: SetupOptions = {
       ...setupOptions,
       manifestPaths: [linuxManifestPath(profile)],
+      sourcePaths: LINUX_SOURCE_PATHS,
       nextCommand: "Next: outfitting-manager setup",
     };
-    if (profile === "generic-linux" && repo !== undefined) {
-      linuxSetupOptions.repo = repo;
+    if (configuredRepo !== undefined) {
+      linuxSetupOptions.repo = configuredRepo;
     }
     yield* runSetup(linuxSetupOptions);
 
@@ -51,16 +53,19 @@ export const runLinuxInit = (options: LinuxInitOptions) =>
       const config = yield* tryPromise(() =>
         loadConfig(options.stateRoot === undefined ? undefined : { stateRoot: options.stateRoot }),
       );
-      const envRepo = envValue("OUTFITTING_REPO");
-      const existingRepo =
-        repo === undefined && envRepo === undefined
-          ? yield* tryPromise(() => tryResolveOutfittingRepo({ config }))
-          : undefined;
-      const repoRoot = repo ?? envRepo ?? existingRepo?.root ?? join(config.stateRoot, "repo");
-      const syncedRepo = yield* tryPromise(() =>
-        syncOutfittingRepo(repoRoot, { ref: config.manifest.ref, run: run ?? runCommand }),
-      );
-      yield* tryPromise(() => writeRepoPath(syncedRepo.root, { stateRoot: config.stateRoot }));
+      if (configuredRepo !== undefined) {
+        const syncedRepo = yield* tryPromise(() =>
+          syncOutfittingRepo(configuredRepo, { ref: config.manifest.ref, run: run ?? runCommand }),
+        );
+        yield* tryPromise(() => writeRepoPath(syncedRepo.root, { stateRoot: config.stateRoot }));
+      } else {
+        const sourceRepo = yield* tryPromise(() => tryResolveOutfittingRepo({ config }));
+        if (sourceRepo === undefined) {
+          throw new Error(
+            "Linux Nix source is not configured. Run init without --no-fetch or pass --repo.",
+          );
+        }
+      }
       yield* Console.log(ui.heading(`Applying ${profile} Nix/Home Manager configuration…`));
       yield* tryPromise(() => runLinuxProfileBootstrap(profile, config, run ?? runCommand));
     }
@@ -83,6 +88,7 @@ export const runLinuxSetup = (options: LinuxSetupOptions) =>
     yield* runSetup({
       ...setupOptions,
       manifestPaths: [linuxManifestPath(profile)],
+      sourcePaths: profile === "generic-linux" ? undefined : LINUX_SOURCE_PATHS,
       nextCommand: "Applying Linux package configuration…",
     });
 

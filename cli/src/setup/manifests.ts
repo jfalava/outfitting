@@ -1,6 +1,16 @@
 import type { ManagerConfig, WindowsRoutesConfig } from "@/config/types";
 import { fetchManifest, type ManifestFetcher } from "@/fetch";
 
+/** Shared Nix modules, packages, and Unix dotfiles used by every profile. */
+export const COMMON_SOURCE_PATHS = [
+  "system/common/dotfiles.nix",
+  "system/common/zsh.nix",
+  "system/common/zsh/outfitting.plugin.zsh",
+  "packages/common/programs.nix",
+  "packages/common/packages.nix",
+  "dotfiles/ssh.config",
+] as const;
+
 /**
  * Complete macOS source closure required to evaluate the Nix flake and load
  * the manager-owned Brewfile and Zsh plugins.
@@ -10,15 +20,33 @@ export const MACOS_SOURCE_PATHS = [
   "system/macos/darwin.nix",
   "system/macos/home.nix",
   "system/macos/zsh/macos.plugin.zsh",
-  "system/common/zsh.nix",
-  "system/common/zsh/outfitting.plugin.zsh",
-  "packages/common/programs.nix",
-  "packages/common/packages.nix",
+  ...COMMON_SOURCE_PATHS,
   "packages/macos/programs.nix",
   "packages/macos/packages.nix",
   "packages/macos/zed.nix",
   "packages/macos/Brewfile",
   "fonts/fontget.txt",
+] as const;
+
+/** Complete Linux source closure for native package and Nix/Home Manager setup. */
+export const LINUX_SOURCE_PATHS = [
+  ...MACOS_SOURCE_PATHS,
+  "packages/linux/generic-linux.txt",
+  "packages/linux/oci-agents.txt",
+  "packages/oci-agents/packages.nix",
+  "packages/ubuntu-wsl/apt.txt",
+  "packages/ubuntu-wsl/packages.nix",
+  "system/oci-agents/agent-guidance.md",
+  "system/oci-agents/agents.nix",
+  "system/oci-agents/bootstrap.sh",
+  "system/oci-agents/flake.lock",
+  "system/oci-agents/flake.nix",
+  "system/oci-agents/home.nix",
+  "system/ubuntu-wsl/base.nix",
+  "system/ubuntu-wsl/bootstrap.sh",
+  "system/ubuntu-wsl/flake.lock",
+  "system/ubuntu-wsl/flake.nix",
+  "system/ubuntu-wsl/zsh/wsl.plugin.zsh",
 ] as const;
 
 /** Backwards-compatible name for the default macOS setup path set. */
