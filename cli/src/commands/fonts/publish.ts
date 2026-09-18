@@ -10,30 +10,30 @@ import { tryPromise } from "@/lockfiles/effect";
 export const publishCommand = Command.make(
   "publish",
   {
-    directory: Argument.directory("dir", { mustExist: true }).pipe(
+    directory: Argument.Directory("dir", { mustExist: true }).pipe(
       Argument.withDescription("Directory of OpenType fonts to merge into the remote archive."),
     ),
-    dryRun: Flag.boolean("dry-run").pipe(
+    dryRun: Flag.Boolean("dry-run").pipe(
       Flag.withDefault(false),
       Flag.withDescription("Print the planned face table without writing R2 or lockfiles."),
     ),
-    yes: Flag.boolean("yes").pipe(
+    yes: Flag.Boolean("yes").pipe(
       Flag.withDefault(false),
       Flag.withDescription("Skip the confirmation prompt."),
     ),
-    replace: Flag.boolean("replace").pipe(
+    replace: Flag.Boolean("replace").pipe(
       Flag.withDefault(false),
       Flag.withDescription("Allow overwriting an existing archive path."),
     ),
-    keepNames: Flag.boolean("keep-names").pipe(
+    keepNames: Flag.Boolean("keep-names").pipe(
       Flag.withDefault(false),
       Flag.withDescription("Sanitize source filenames instead of OpenType family/style paths."),
     ),
-    allowSystemNames: Flag.boolean("allow-system-names").pipe(
+    allowSystemNames: Flag.Boolean("allow-system-names").pipe(
       Flag.withDefault(false),
       Flag.withDescription("Allow reserved system families such as Helvetica or Arial."),
     ),
-    repopulate: Flag.boolean("repopulate").pipe(
+    repopulate: Flag.Boolean("repopulate").pipe(
       Flag.withDefault(false),
       Flag.withDescription("Rebuild the lockfiles inventory from the live R2 archive first."),
     ),

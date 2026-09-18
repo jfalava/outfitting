@@ -10,19 +10,19 @@ import { runSetup } from "@/setup/run";
 export const windowsInitCommand = Command.make(
   "init",
   {
-    machineId: Flag.string("machine-id").pipe(
+    machineId: Flag.String("machine-id").pipe(
       Flag.optional,
       Flag.withDescription("Override machine id (default: auto user:arch-os)."),
     ),
-    manifestBaseUrl: Flag.string("manifest-base-url").pipe(
+    manifestBaseUrl: Flag.String("manifest-base-url").pipe(
       Flag.optional,
       Flag.withDescription("Raw-compatible repository base URL without ref."),
     ),
-    manifestRef: Flag.string("manifest-ref").pipe(
+    manifestRef: Flag.String("manifest-ref").pipe(
       Flag.optional,
       Flag.withDescription("Git ref for manifests (default: main)."),
     ),
-    noFetch: Flag.boolean("no-fetch").pipe(
+    noFetch: Flag.Boolean("no-fetch").pipe(
       Flag.withDefault(false),
       Flag.withDescription(
         "Skip prefetching the configured Scoop manifest into the state root.",

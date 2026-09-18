@@ -10,27 +10,27 @@ import { MACOS_SOURCE_PATHS } from "@/setup/manifests";
 export const setupCommand = Command.make(
   "setup",
   {
-    machineId: Flag.string("machine-id").pipe(
+    machineId: Flag.String("machine-id").pipe(
       Flag.optional,
       Flag.withDescription("Override machine id (default: auto user:arch-os)."),
     ),
-    manifestBaseUrl: Flag.string("manifest-base-url").pipe(
+    manifestBaseUrl: Flag.String("manifest-base-url").pipe(
       Flag.optional,
       Flag.withDescription(
         "GitHub raw base URL without ref (default: raw.githubusercontent.com/jfalava/outfitting).",
       ),
     ),
-    manifestRef: Flag.string("manifest-ref").pipe(
+    manifestRef: Flag.String("manifest-ref").pipe(
       Flag.optional,
       Flag.withDescription("Git ref for manifests (default: main)."),
     ),
-    repo: Flag.string("repo").pipe(
+    repo: Flag.String("repo").pipe(
       Flag.optional,
       Flag.withDescription(
         "Existing local repository checkout to validate and use; omit for sparse source.",
       ),
     ),
-    noFetch: Flag.boolean("no-fetch").pipe(
+    noFetch: Flag.Boolean("no-fetch").pipe(
       Flag.withDefault(false),
       Flag.withDescription("Skip fetching; apply the source already in the state root."),
     ),

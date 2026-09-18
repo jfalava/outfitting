@@ -6,37 +6,37 @@ import { runLinuxSetup } from "@/setup/linux";
 import { runSetup } from "@/setup/run";
 import { isLinuxProfile, linuxManifestPath } from "@/update/linux";
 
-const profileFlag = Flag.string("profile").pipe(
+const profileFlag = Flag.String("profile").pipe(
   Flag.withDefault("generic-linux"),
   Flag.withDescription("Linux package profile (generic-linux or oci-agents)."),
 );
 
-const machineIdFlag = Flag.string("machine-id").pipe(
+const machineIdFlag = Flag.String("machine-id").pipe(
   Flag.optional,
   Flag.withDescription("Override machine id (default: auto user:arch-os)."),
 );
 
-const manifestBaseUrlFlag = Flag.string("manifest-base-url").pipe(
+const manifestBaseUrlFlag = Flag.String("manifest-base-url").pipe(
   Flag.optional,
   Flag.withDescription("Raw-compatible repository base URL without ref."),
 );
 
-const manifestRefFlag = Flag.string("manifest-ref").pipe(
+const manifestRefFlag = Flag.String("manifest-ref").pipe(
   Flag.optional,
   Flag.withDescription("Git ref for manifests (default: main)."),
 );
 
-const repoFlag = Flag.string("repo").pipe(
+const repoFlag = Flag.String("repo").pipe(
   Flag.optional,
   Flag.withDescription("Existing monorepo path to store for the opt-in oci-agents profile."),
 );
 
-const noFetchFlag = Flag.boolean("no-fetch").pipe(
+const noFetchFlag = Flag.Boolean("no-fetch").pipe(
   Flag.withDefault(false),
   Flag.withDescription("Use the selected Linux package manifest already in the cache."),
 );
 
-const packageManagerFlag = Flag.string("package-manager").pipe(
+const packageManagerFlag = Flag.String("package-manager").pipe(
   Flag.optional,
   Flag.withDescription("Override distro detection with apt or pacman."),
 );

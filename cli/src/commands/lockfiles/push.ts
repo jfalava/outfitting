@@ -9,10 +9,10 @@ export const pushCommand = Command.make(
   {
     machine: machineArgument,
     kind: kindArgument,
-    path: Argument.file("path", { mustExist: true }).pipe(
+    path: Argument.File("path", { mustExist: true }).pipe(
       Argument.withDescription("File to upload."),
     ),
-    ifMatch: Flag.string("if-match").pipe(
+    ifMatch: Flag.String("if-match").pipe(
       Flag.optional,
       Flag.withDescription("Only promote when the current hash matches this SHA-256."),
     ),

@@ -31,11 +31,11 @@
         "@cloudflare/workers-types": "5.20260918.1"
       },
       "effect": {
-        "effect": "4.0.0-rc.112",
+        "effect": "4.0.0-rc.115",
         "@effect/tsgo": "0.45.0",
-        "@effect/platform-bun": "4.0.0-rc.112",
-        "@effect/platform-node": "4.0.0-rc.112",
-        "@effect/platform-node-shared": "4.0.0-rc.112"
+        "@effect/platform-bun": "4.0.0-rc.115",
+        "@effect/platform-node": "4.0.0-rc.115",
+        "@effect/platform-node-shared": "4.0.0-rc.115"
       }
     }
   },
@@ -67,6 +67,6 @@
     "typescript": "catalog:build"
   },
   "overrides": {
-    "@effect/platform-node-shared": "4.0.0-rc.112"
+    "@effect/platform-node-shared": "4.0.0-rc.115"
   }
 }

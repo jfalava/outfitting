@@ -13,24 +13,24 @@ import { CliFailure } from "@/errors";
 import { tryPromise } from "@/lockfiles/effect";
 import { ui } from "@/ui";
 
-const managerFlag = Flag.string("manager").pipe(
+const managerFlag = Flag.String("manager").pipe(
   Flag.optional,
   Flag.withDescription("Compare one manager instead of the complete platform set."),
 );
 
-const profileFlag = Flag.string("profile").pipe(
+const profileFlag = Flag.String("profile").pipe(
   Flag.optional,
   Flag.withDescription(
     "Profile name; Windows accepts comma-separated profiles, Linux accepts one profile.",
   ),
 );
 
-const offlineFlag = Flag.boolean("offline").pipe(
+const offlineFlag = Flag.Boolean("offline").pipe(
   Flag.withDefault(false),
   Flag.withDescription("Use cached repository manifests and skip the remote Nix comparison."),
 );
 
-const jsonFlag = Flag.boolean("json").pipe(
+const jsonFlag = Flag.Boolean("json").pipe(
   Flag.withDefault(false),
   Flag.withDescription("Print the comparison as JSON."),
 );

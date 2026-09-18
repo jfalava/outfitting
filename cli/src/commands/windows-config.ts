@@ -83,47 +83,47 @@ export const runWindowsConfigWizard = Effect.fn("runWindowsConfigWizard")(functi
   const config = yield* tryPromise(() => loadConfig());
   const windows = config.windows ?? DEFAULT_WINDOWS_ROUTES;
   const answers = yield* Prompt.all({
-    baseUrl: Prompt.text({
+    baseUrl: Prompt.String({
       message: "Repository raw base URL",
       default: config.manifest.baseUrl,
       validate: (value) => requiredText(value, "Repository raw base URL"),
     }),
-    ref: Prompt.text({
+    ref: Prompt.String({
       message: "Repository ref",
       default: config.manifest.ref,
       validate: (value) => requiredText(value, "Repository ref"),
     }),
-    machineId: Prompt.text({
+    machineId: Prompt.String({
       message: "Machine id",
       default: config.machineId,
       validate: (value) => requiredText(value, "Machine id"),
     }),
-    wingetProfilePath: Prompt.text({
+    wingetProfilePath: Prompt.String({
       message: "WinGet profile route ({profile} is replaced with the selected profile)",
       default: windows.wingetProfilePath,
       validate: (value) => routeText(value, "WinGet profile route"),
     }),
-    scoopPath: Prompt.text({
+    scoopPath: Prompt.String({
       message: "Scoop manifest route",
       default: windows.scoopPath,
       validate: (value) => routeText(value, "Scoop manifest route"),
     }),
-    powershellProfilePath: Prompt.text({
+    powershellProfilePath: Prompt.String({
       message: "PowerShell profile route",
       default: windows.powershellProfilePath,
       validate: (value) => routeText(value, "PowerShell profile route"),
     }),
-    fontListPath: Prompt.text({
+    fontListPath: Prompt.String({
       message: "FontGet list route",
       default: windows.fontListPath,
       validate: (value) => routeText(value, "FontGet list route"),
     }),
-    registryPath: Prompt.text({
+    registryPath: Prompt.String({
       message: "Registry tweaks directory route",
       default: windows.registryPath,
       validate: (value) => routeText(value, "Registry route"),
     }),
-    defaultProfiles: Prompt.text({
+    defaultProfiles: Prompt.String({
       message: "Default WinGet profiles (comma-separated)",
       default: windows.defaultProfiles.join(","),
       validate: profilesText,

@@ -543,7 +543,7 @@ export const syncWindows = <ConfirmR = never>(options: WindowsSyncOptions<Confir
     yield* Console.log(ui.success("Windows packages and windows.lock.json are synchronized."));
   });
 
-const profileFlag = Flag.string("profile").pipe(
+const profileFlag = Flag.String("profile").pipe(
   Flag.optional,
   Flag.withDescription(
     "Comma-separated regular profiles from the configured repository, including their Store packages.",
@@ -554,11 +554,11 @@ export const windowsSyncCommand = Command.make(
   "sync",
   {
     profile: profileFlag,
-    wingetOnly: Flag.boolean("winget-only").pipe(
+    wingetOnly: Flag.Boolean("winget-only").pipe(
       Flag.withDefault(false),
       Flag.withDescription("Skip Scoop while bootstrapping WinGet on a fresh machine."),
     ),
-    noPush: Flag.boolean("no-push").pipe(
+    noPush: Flag.Boolean("no-push").pipe(
       Flag.withDefault(false),
       Flag.withDescription("Write the local lockfile without pushing it to the Worker."),
     ),
@@ -568,7 +568,7 @@ export const windowsSyncCommand = Command.make(
       profiles: Option.isSome(profile) ? [profile.value] : undefined,
       wingetOnly,
       noPush,
-      confirmClean: Prompt.confirm({ message: "Remove the listed packages?", initial: false }).pipe(
+      confirmClean: Prompt.Confirm({ message: "Remove the listed packages?", initial: false }).pipe(
         Effect.orDie,
       ),
     }),

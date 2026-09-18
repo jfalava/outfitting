@@ -13,7 +13,7 @@ import { updateBrew } from "@/update/brew";
 import { updateBun } from "@/update/bun";
 import { updateNix } from "@/update/nix";
 
-const noSyncFlag = Flag.boolean("no-sync").pipe(
+const noSyncFlag = Flag.Boolean("no-sync").pipe(
   Flag.withDefault(false),
   Flag.withDescription("Skip pushing inventory/lock blobs after a successful update."),
 );

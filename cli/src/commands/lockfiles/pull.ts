@@ -9,7 +9,7 @@ export const pullCommand = Command.make(
   {
     machine: machineArgument,
     kind: kindArgument,
-    outPath: Argument.string("out-path").pipe(
+    outPath: Argument.String("out-path").pipe(
       Argument.optional,
       Argument.withDescription("Destination path; inferred for known kinds when omitted."),
     ),

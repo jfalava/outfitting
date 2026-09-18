@@ -18,12 +18,12 @@ import {
 } from "@/update/windows-lock";
 import { wingetPackageArgs } from "@/update/winget";
 
-const packageArguments = Argument.string("package").pipe(
+const packageArguments = Argument.String("package").pipe(
   Argument.variadic({ min: 1 }),
   Argument.withDescription("Package IDs or Scoop package names."),
 );
 
-const noSyncFlag = Flag.boolean("no-sync").pipe(
+const noSyncFlag = Flag.Boolean("no-sync").pipe(
   Flag.withDefault(false),
   Flag.withDescription("Only update the local windows.lock.json; do not push it to the Worker."),
 );

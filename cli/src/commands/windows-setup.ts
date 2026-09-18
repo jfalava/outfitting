@@ -8,27 +8,27 @@ import { runSetup } from "@/setup/run";
 export const windowsSetupCommand = Command.make(
   "setup",
   {
-    machineId: Flag.string("machine-id").pipe(
+    machineId: Flag.String("machine-id").pipe(
       Flag.optional,
       Flag.withDescription("Override machine id (default: configured or auto user:arch-os)."),
     ),
-    manifestBaseUrl: Flag.string("manifest-base-url").pipe(
+    manifestBaseUrl: Flag.String("manifest-base-url").pipe(
       Flag.optional,
       Flag.withDescription("Raw-compatible repository base URL without ref."),
     ),
-    manifestRef: Flag.string("manifest-ref").pipe(
+    manifestRef: Flag.String("manifest-ref").pipe(
       Flag.optional,
       Flag.withDescription("Repository ref (branch, tag, or SHA)."),
     ),
-    profile: Flag.string("profile").pipe(
+    profile: Flag.String("profile").pipe(
       Flag.optional,
       Flag.withDescription("Comma-separated profile names from the configured repository."),
     ),
-    wingetOnly: Flag.boolean("winget-only").pipe(
+    wingetOnly: Flag.Boolean("winget-only").pipe(
       Flag.withDefault(false),
       Flag.withDescription("Skip Scoop while bootstrapping WinGet."),
     ),
-    noPush: Flag.boolean("no-push").pipe(
+    noPush: Flag.Boolean("no-push").pipe(
       Flag.withDefault(false),
       Flag.withDescription("Write the local lockfile without pushing it to the Worker."),
     ),
@@ -46,7 +46,7 @@ export const windowsSetupCommand = Command.make(
           profiles: Option.isSome(profile) ? [profile.value] : undefined,
           wingetOnly,
           noPush,
-          confirmClean: Prompt.confirm({
+          confirmClean: Prompt.Confirm({
             message: "Remove the listed packages?",
             initial: false,
           }).pipe(Effect.orDie),

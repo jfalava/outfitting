@@ -7,7 +7,7 @@ import { updateScoop } from "@/update/scoop";
 import { updateWindowsAll } from "@/update/windows-all";
 import { updateWinget } from "@/update/winget";
 
-const noSyncFlag = Flag.boolean("no-sync").pipe(
+const noSyncFlag = Flag.Boolean("no-sync").pipe(
   Flag.withDefault(false),
   Flag.withDescription("Skip updating and pushing the Windows lock after a successful update."),
 );

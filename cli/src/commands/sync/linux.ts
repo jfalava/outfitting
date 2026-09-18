@@ -5,12 +5,12 @@ import { syncSubcommands } from "@/commands/sync";
 import { type LinuxPackageManager } from "@/platform/linux";
 import { LINUX_PROFILES, syncLinux } from "@/update/linux";
 
-const profileFlag = Flag.string("profile").pipe(
+const profileFlag = Flag.String("profile").pipe(
   Flag.optional,
   Flag.withDescription(`Linux profile (default: ${LINUX_PROFILES[0]}).`),
 );
 
-const offlineFlag = Flag.boolean("offline").pipe(
+const offlineFlag = Flag.Boolean("offline").pipe(
   Flag.withDefault(false),
   Flag.withDescription("Use the cached Linux package manifest without a network request."),
 );
