@@ -3,6 +3,10 @@ ca-certificates
 curl
 dbus-user-session
 git
+# Secret Service for Bun.secrets (outfit, machine-memory). Must be apt, not
+# Nix: standalone Bun binaries dlopen the Ubuntu libsecret.
+gnome-keyring
+libsecret-1-0
 openssh-client
 tmux
 unzip

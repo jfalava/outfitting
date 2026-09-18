@@ -9,8 +9,7 @@ with pkgs;
   tmux
   openssl
   openssh
-  gnome-keyring
+  # secret-tool plus the store path Bun.secrets dlopens via LD_LIBRARY_PATH.
+  # The daemon itself is Ubuntu gnome-keyring from oci-agents.txt.
   libsecret
-  # Headless libsecret consumers need a session bus; dbus is the transport.
-  dbus
 ]

@@ -42,4 +42,5 @@ If results look relevant, fetch full records before editing: `machine-memory get
 - [ ] I will document significant findings and decisions after completing the task
 
 Project preference: replace obsolete systems when practical; preserve backwards compatibility only when it is explicitly required.
+Project preference: no tautological tests — do not assert that a source file contains the strings we just wrote into it.
 <!-- machine-memory:end -->

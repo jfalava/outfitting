@@ -12,6 +12,23 @@ let
       repoFromEnvironment
     else
       "${config.home.homeDirectory}/.config/outfitting/source";
+  # Compiled outfitting-manager uses the Nix glibc interpreter, so it cannot
+  # see Ubuntu libsecret in ldconfig. Official Bun binaries (machine-memory)
+  # dlopen /usr/lib instead; both need to work on this host.
+  libsecretLibraries = lib.makeLibraryPath [
+    pkgs.glib
+    pkgs.libsecret
+  ];
+  # Headless Ubuntu has no graphical session to unlock GNOME Keyring. The
+  # secrets daemon is started unlocked with an empty password. Do not request
+  # the SSH component: it would replace SSH_AUTH_SOCK and break forwarded
+  # SSH agents.
+  maskUserUnit =
+    name: pkgs.runCommand "masked-${name}" { } "ln -s /dev/null $out";
+  # Passwordless login keyring. A leftover locked login.keyring (from PAM or
+  # from --unlock spawning a second daemon) must be removed once; the service
+  # then creates an empty-password keyring on first start.
+  emptyKeyringPassword = pkgs.writeText "oci-agents-empty-keyring-password" "\n";
 in
 {
   imports = [
@@ -31,15 +48,38 @@ in
     EDITOR = "vim";
     VISUAL = "vim";
     PAGER = "less";
-    # Standalone Bun binaries dlopen GLib/libsecret; exposing the Nix library
-    # paths lets Bun.secrets use the packages declared below.
-    LD_LIBRARY_PATH = lib.makeLibraryPath [ pkgs.glib pkgs.libsecret ];
+    LD_LIBRARY_PATH = libsecretLibraries;
   };
 
-  # Headless Ubuntu has no graphical session to unlock GNOME Keyring. Start
-  # the secrets component on SSH login so libsecret-backed CLIs can use it.
-  # Do not request the SSH component: it would replace SSH_AUTH_SOCK and break
-  # forwarded SSH agents.
+  # OpenCode/Amp/T3 run as user systemd services and never source .zshenv.
+  systemd.user.sessionVariables.LD_LIBRARY_PATH = libsecretLibraries;
+
+  # Ubuntu gnome-keyring enables a graphical-session daemon plus gcr-ssh-agent.
+  # The vendor socket steals %t/keyring/control so --unlock cannot talk to the
+  # running daemon; gcr-ssh-agent would replace SSH_AUTH_SOCK.
+  xdg.configFile."systemd/user/gcr-ssh-agent.socket".source = maskUserUnit "gcr-ssh-agent.socket";
+  xdg.configFile."systemd/user/gcr-ssh-agent.service".source = maskUserUnit "gcr-ssh-agent.service";
+  xdg.configFile."systemd/user/gnome-keyring-daemon.socket".source =
+    maskUserUnit "gnome-keyring-daemon.socket";
+  xdg.configFile."systemd/user/gnome-keyring-daemon.service".source =
+    maskUserUnit "gnome-keyring-daemon.service";
+
+  systemd.user.services.gnome-keyring-secrets = {
+    Unit = {
+      Description = "GNOME Keyring secrets component";
+      After = [ "dbus.service" ];
+    };
+    Service = {
+      Type = "simple";
+      Environment = [ "GNOME_KEYRING_CONTROL=%t/keyring" ];
+      StandardInput = "file:${emptyKeyringPassword}";
+      ExecStart = "/usr/bin/gnome-keyring-daemon --foreground --components=secrets --control-directory=%t/keyring --unlock";
+      Restart = "on-failure";
+      RestartSec = "2s";
+    };
+    Install.WantedBy = [ "default.target" ];
+  };
+
   home.file = {
     ".profile" = {
       force = true;
@@ -62,22 +102,13 @@ in
         fi
 
         # User systemd / libsecret need a session bus address in SSH sessions.
+        # gnome-keyring-secrets.service owns the unlocked Secret Service.
         if [ -z "''${XDG_RUNTIME_DIR:-}" ] && [ -d "/run/user/$(id -u)" ]; then
           export XDG_RUNTIME_DIR="/run/user/$(id -u)"
         fi
         if [ -z "''${DBUS_SESSION_BUS_ADDRESS:-}" ] && [ -n "''${XDG_RUNTIME_DIR:-}" ] \
           && [ -S "$XDG_RUNTIME_DIR/bus" ]; then
           export DBUS_SESSION_BUS_ADDRESS="unix:path=$XDG_RUNTIME_DIR/bus"
-        fi
-
-        # SSH sessions on oci-agents are headless, so unlock a passwordless
-        # login keyring. The secrets component is activated through D-Bus;
-        # deliberately do not request the ssh component.
-        if [ -n "''${SSH_CONNECTION:-}" ] \
-          && command -v gnome-keyring-daemon >/dev/null 2>&1; then
-          if [ -n "''${DBUS_SESSION_BUS_ADDRESS:-}" ]; then
-            printf '\n' | gnome-keyring-daemon --unlock --components=secrets >/dev/null 2>&1 || true
-          fi
         fi
       '';
     };

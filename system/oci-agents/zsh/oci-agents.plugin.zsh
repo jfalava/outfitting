@@ -37,6 +37,7 @@ _oci_source_hm_profile
 unset -f _oci_source_hm_profile
 
 # Ensure the user bus address exists for libsecret / gnome-keyring consumers.
+# The daemon itself is started by gnome-keyring-unlock.service / .profile.
 if [ -z "${DBUS_SESSION_BUS_ADDRESS:-}" ]; then
     _oci_runtime_dir="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
     if [ -S "$_oci_runtime_dir/bus" ]; then
