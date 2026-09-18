@@ -7,6 +7,7 @@ import {
   repoPathFile,
   saveConfigFile,
   resolveWindowsRoutes,
+  resolveOutfittingRepo,
   tryResolveOutfittingRepo,
   writeRepoPath,
   type ManagerConfig,
@@ -18,6 +19,7 @@ import type { ManifestFetcher } from "@/fetch";
 import { tryPromise } from "@/lockfiles/effect";
 import { prefetchSetupManifests, windowsSetupManifestPaths } from "@/setup/manifests";
 import { syncMacosSource, type SparseSourceResult } from "@/setup/source";
+import { validateMacosSource } from "@/setup/validate";
 import { ui } from "@/ui";
 
 export interface SetupOptions {
@@ -43,6 +45,8 @@ export interface SetupOptions {
   skipSymlinks?: boolean;
   /** Platform-specific symlink setup, supplied only by the macOS entrypoint. */
   ensureSymlinks?: (repo: OutfittingRepo) => Promise<void>;
+  /** Validate the configured macOS repository before returning. */
+  validateSource?: boolean;
   /** Command shown as the next step after setup. */
   nextCommand?: string;
   /** Override state root (tests / OUTFITTING_STATE_ROOT already handled in load). */
@@ -165,6 +169,12 @@ export const runSetup = (options: SetupOptions = {}) =>
       const written = yield* tryPromise(() => writeRepoPath(options.repo!, { stateRoot: root }));
       yield* Console.log(ui.success(`Repository path set to: ${written.repo.root}`));
       yield* Console.log(ui.muted(`repo-path: ${written.pathFile}`));
+    }
+
+    if (options.validateSource === true) {
+      const repo = yield* tryPromise(() => resolveOutfittingRepo({ config }));
+      yield* tryPromise(() => validateMacosSource(repo));
+      yield* Console.log(ui.success(`macOS repository contract valid: ${repo.root}`));
     }
 
     if (options.ensureSymlinks !== undefined && options.skipSymlinks !== true) {

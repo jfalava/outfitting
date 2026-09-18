@@ -253,9 +253,8 @@ main() {
     install_homebrew || exit 1
     install_nix || exit 1
 
+    run_outfitting_manager init || exit 1
     run_outfitting_manager setup || exit 1
-    run_outfitting_manager update brew --no-sync || exit 1
-    run_outfitting_manager update nix || exit 1
 
     install_astral_uv
 

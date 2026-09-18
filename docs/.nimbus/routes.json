@@ -19,6 +19,7 @@
     "/docs/cli/linux/maintenance",
     "/docs/cli/lockfiles",
     "/docs/cli/macos",
+    "/docs/cli/macos/init",
     "/docs/cli/macos/recover",
     "/docs/cli/macos/setup",
     "/docs/cli/macos/shell",

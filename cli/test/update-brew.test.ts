@@ -1,9 +1,19 @@
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
 import { Effect } from "effect";
-import { describe, expect, test } from "vitest";
+import { afterEach, describe, expect, test } from "vitest";
 
 import type { RunCommandResult } from "@/process";
-import { parseBrewfileTaps } from "@/update/brew";
+import { parseBrewfileTaps, updateBrew } from "@/update/brew";
 import { captureHomebrewInventory, HOMEBREW_INVENTORY_HEADER } from "@/update/snapshot";
+
+const temps: string[] = [];
+
+afterEach(async () => {
+  await Promise.all(temps.splice(0).map((path) => rm(path, { force: true, recursive: true })));
+});
 
 describe("parseBrewfileTaps", () => {
   test("extracts tap names", () => {
@@ -39,4 +49,33 @@ describe("captureHomebrewInventory", () => {
     expect(body).toContain("[formulae]\nbun 1.0\nzsh 5.9\n");
     expect(body).toContain("[casks]\nfirefox 120\n");
   });
+});
+
+test("setup applies the local Brewfile without upgrading or cleaning extras", async () => {
+  const root = await mkdtemp(join(tmpdir(), "outfitting-brew-setup-"));
+  temps.push(root);
+  const brewfile = join(root, "Brewfile");
+  await writeFile(brewfile, 'brew "jq"\n', "utf8");
+  const recorded: Array<ReadonlyArray<string>> = [];
+
+  const setupEffect = updateBrew({
+    config: {
+      stateRoot: root,
+      machineId: "test:aarch64-darwin",
+      machineIdOverridden: true,
+      manifest: { baseUrl: "https://example.test/outfitting", ref: "main" },
+    },
+    brewfilePath: brewfile,
+    noSync: true,
+    upgrade: false,
+    cleanup: false,
+    which: async () => "/opt/homebrew/bin/brew",
+    run: async (command, args) => {
+      recorded.push([command, ...args]);
+      return { code: 0, stdout: "", stderr: "" } satisfies RunCommandResult;
+    },
+  }) as unknown as Effect.Effect<void, unknown, never>;
+  await Effect.runPromise(setupEffect);
+
+  expect(recorded).toEqual([["brew", "bundle", `--file=${brewfile}`]]);
 });

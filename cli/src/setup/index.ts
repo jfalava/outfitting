@@ -6,4 +6,6 @@ export {
   windowsSetupManifestPaths,
 } from "@/setup/manifests";
 export { runSetup, type SetupOptions } from "@/setup/run";
+export { runMacosSetup, type MacosSetupOptions } from "@/setup/macos";
 export { syncMacosSource, type SparseSourceFile, type SparseSourceResult } from "@/setup/source";
+export { validateMacosSource } from "@/setup/validate";

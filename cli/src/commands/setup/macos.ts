@@ -1,14 +1,15 @@
 import { Option } from "effect";
 import { Command, Flag } from "effect/unstable/cli";
 
-import { runMacosSetup } from "@/setup/macos";
 import { MACOS_SOURCE_PATHS } from "@/setup/manifests";
+import { runSetup } from "@/setup/run";
 
 /**
- * Prepare and apply a repository's declared macOS configuration.
+ * Prepare and validate the macOS state root and repository source. This
+ * command never activates Nix, changes Homebrew, or publishes inventory.
  */
-export const setupCommand = Command.make(
-  "setup",
+export const macosInitCommand = Command.make(
+  "init",
   {
     machineId: Flag.string("machine-id").pipe(
       Flag.optional,
@@ -16,37 +17,37 @@ export const setupCommand = Command.make(
     ),
     manifestBaseUrl: Flag.string("manifest-base-url").pipe(
       Flag.optional,
-      Flag.withDescription(
-        "GitHub raw base URL without ref (default: raw.githubusercontent.com/jfalava/outfitting).",
-      ),
+      Flag.withDescription("Override the raw-compatible repository base URL without the ref."),
     ),
     manifestRef: Flag.string("manifest-ref").pipe(
       Flag.optional,
-      Flag.withDescription("Git ref for manifests (default: main)."),
+      Flag.withDescription("Git ref for the sparse source (default: main)."),
     ),
     repo: Flag.string("repo").pipe(
       Flag.optional,
-      Flag.withDescription(
-        "Existing local repository checkout to validate and use; omit for sparse source.",
-      ),
+      Flag.withDescription("Existing local repository checkout to validate and use."),
     ),
     noFetch: Flag.boolean("no-fetch").pipe(
       Flag.withDefault(false),
-      Flag.withDescription("Skip fetching; apply the source already in the state root."),
+      Flag.withDescription("Skip fetching; validate the source already in the state root."),
     ),
   },
   ({ machineId, manifestBaseUrl, manifestRef, repo, noFetch }) => {
     const repoPath = Option.getOrUndefined(repo);
-    return runMacosSetup({
+    return runSetup({
       machineId: Option.getOrUndefined(machineId),
       manifestBaseUrl: Option.getOrUndefined(manifestBaseUrl),
       manifestRef: Option.getOrUndefined(manifestRef),
       repo: repoPath,
       fetchManifests: !noFetch && repoPath === undefined,
       sourcePaths: MACOS_SOURCE_PATHS,
-      nextCommand: "Applying macOS repository configuration…",
+      skipSymlinks: true,
+      validateSource: true,
+      nextCommand: "Next: outfit setup",
     });
   },
 ).pipe(
-  Command.withDescription("Prepare and apply the declared macOS Nix and Homebrew configuration."),
+  Command.withDescription(
+    "Prepare and validate the macOS source without applying Nix or Homebrew state.",
+  ),
 );

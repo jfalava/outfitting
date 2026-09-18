@@ -118,23 +118,20 @@ describe("macos CLI scaffold (process)", () => {
     expect(`${stdout}\n${stderr}`).toMatch(/scoop/i);
   });
 
-  test("setup materializes a state root", async () => {
-    const { mkdtemp, rm } = await import("node:fs/promises");
-    const { tmpdir } = await import("node:os");
-    const { join } = await import("node:path");
-    const root = await mkdtemp(join(tmpdir(), "outfitting-setup-cli-"));
-    try {
-      const { code, stdout, stderr } = await runCliWithEnv(
-        ["setup", "--no-fetch", "--skip-symlinks"],
-        {
-          OUTFITTING_STATE_ROOT: root,
-        },
-      );
-      expect(code).toBe(0);
-      expect(`${stdout}\n${stderr}`).toMatch(/State root ready/i);
-    } finally {
-      await rm(root, { force: true, recursive: true });
-    }
+  test("init is the non-applying macOS preparation command", async () => {
+    const { code, stdout, stderr } = await runCli(["init", "--help"]);
+    const text = `${stdout}\n${stderr}`;
+    expect(code).toBe(0);
+    expect(text).toMatch(/prepare and validate/i);
+    expect(text).toMatch(/without applying/i);
+  });
+
+  test("setup is the applying macOS command", async () => {
+    const { code, stdout, stderr } = await runCli(["setup", "--help"]);
+    const text = `${stdout}\n${stderr}`;
+    expect(code).toBe(0);
+    expect(text).toMatch(/apply/i);
+    expect(text).toMatch(/Nix and Homebrew/i);
   });
 
   test("sync and lockfiles both expose push subcommand help", async () => {

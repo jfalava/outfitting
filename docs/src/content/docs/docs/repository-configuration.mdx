@@ -36,7 +36,7 @@ Existing profiles are backed up with a timestamp before they are replaced. Windo
 ~/.nixpkgs/darwin-configuration.nix -> ~/.config/outfitting/source/system/macos/darwin.nix
 ```
 
-The macOS manager fetches the allowlisted source paths into `~/.config/outfitting/source`; it does not clone the monorepo. Homebrew uses `packages/macos/Brewfile` from that sparse source.
+The macOS manager fetches the allowlisted source paths into `~/.config/outfitting/source`; it does not clone the monorepo. `outfit init` validates the source before `outfit setup` applies it. A compatible repository must provide `system/macos/flake.nix`, `system/macos/darwin.nix`, and `packages/macos/Brewfile`; the flake must expose `darwinConfigurations`. Homebrew uses the local `packages/macos/Brewfile` during setup.
 
 ## WSL
 

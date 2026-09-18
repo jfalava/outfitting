@@ -1,4 +1,4 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import { Console, Effect } from "effect";
@@ -69,13 +69,74 @@ async function writeBrewfile(config: ManagerConfig, contents: string): Promise<s
   return path;
 }
 
+interface ResolvedBrewfile {
+  path: string;
+  text: string;
+  warning?: string;
+}
+
+async function resolveBrewfile(
+  options: Pick<UpdateBrewOptions, "brewfilePath" | "fetcher">,
+  config: ManagerConfig,
+): Promise<ResolvedBrewfile> {
+  if (options.brewfilePath !== undefined) {
+    return {
+      path: options.brewfilePath,
+      text: await readFile(options.brewfilePath, "utf8"),
+    };
+  }
+
+  const manifest = await fetchManifest({
+    path: BREWFILE_MANIFEST_PATH,
+    config,
+    materialize: true,
+    fetcher: options.fetcher,
+  });
+  const path = manifest.materializedPath ?? (await writeBrewfile(config, manifest.text));
+  const result: ResolvedBrewfile = {
+    path,
+    text: manifest.text,
+  };
+  if (manifest.warning !== undefined) {
+    result.warning = manifest.warning;
+  }
+  return result;
+}
+
+function runBrewMaintenance(
+  options: Pick<UpdateBrewOptions, "upgrade" | "cleanup">,
+  run: typeof runCommand,
+  brewfilePath: string,
+) {
+  return Effect.gen(function* () {
+    if (options.upgrade !== false) {
+      yield* requireBrewOk(run, ["upgrade"], "brew upgrade");
+      yield* requireBrewOk(run, ["upgrade", "--cask"], "brew upgrade --cask");
+    }
+    if (options.cleanup !== false) {
+      yield* requireBrewOk(
+        run,
+        ["bundle", "cleanup", `--file=${brewfilePath}`, "--cask", "--force"],
+        "brew bundle cleanup",
+      );
+    }
+  });
+}
+
 export interface UpdateBrewOptions {
   config?: ManagerConfig;
   /** Skip inventory push after success. */
   noSync?: boolean;
+  /** Use a repository-local Brewfile instead of fetching the configured URL. */
+  brewfilePath?: string;
+  /** Skip package upgrades; setup uses this to apply declarations only. */
+  upgrade?: boolean;
+  /** Skip bundle cleanup; setup must not remove undeclared packages. */
+  cleanup?: boolean;
   /** Injected for tests. */
   run?: typeof runCommand;
   which?: typeof which;
+  fetcher?: typeof fetch;
 }
 
 /**
@@ -91,21 +152,19 @@ export const updateBrew = (options: UpdateBrewOptions = {}) =>
     }
 
     const config = options.config ?? (yield* tryPromise(() => loadConfig()));
-    yield* Console.log(ui.heading("Fetching Homebrew Brewfile…"));
-    const manifest = yield* tryPromise(() =>
-      fetchManifest({
-        path: BREWFILE_MANIFEST_PATH,
-        config,
-        materialize: true,
-      }),
+    yield* Console.log(
+      ui.heading(
+        options.brewfilePath === undefined
+          ? "Fetching Homebrew Brewfile…"
+          : "Reading repository Homebrew Brewfile…",
+      ),
     );
-    if (manifest.warning) {
-      yield* Console.log(ui.muted(manifest.warning));
+    const brewfile = yield* tryPromise(() => resolveBrewfile(options, config));
+    if (brewfile.warning !== undefined) {
+      yield* Console.log(ui.muted(brewfile.warning));
     }
-    const brewfilePath =
-      manifest.materializedPath ?? (yield* tryPromise(() => writeBrewfile(config, manifest.text)));
 
-    const taps = parseBrewfileTaps(manifest.text);
+    const taps = parseBrewfileTaps(brewfile.text);
     if (taps.length > 0) {
       yield* Console.log(ui.muted(`Trusting ${taps.length} tap(s)…`));
       yield* tryPromise(() => trustTaps(taps, run));
@@ -113,19 +172,13 @@ export const updateBrew = (options: UpdateBrewOptions = {}) =>
 
     yield* Console.log(ui.heading("Syncing Homebrew manifest…"));
     const bundle = yield* tryPromise(() =>
-      run("brew", ["bundle", `--file=${brewfilePath}`], { inherit: true }),
+      run("brew", ["bundle", `--file=${brewfile.path}`], { inherit: true }),
     );
     if (bundle.code !== 0) {
       return yield* new CliFailure({ message: `brew bundle failed (exit ${bundle.code}).` });
     }
 
-    yield* requireBrewOk(run, ["upgrade"], "brew upgrade");
-    yield* requireBrewOk(run, ["upgrade", "--cask"], "brew upgrade --cask");
-    yield* requireBrewOk(
-      run,
-      ["bundle", "cleanup", `--file=${brewfilePath}`, "--cask", "--force"],
-      "brew bundle cleanup",
-    );
+    yield* runBrewMaintenance(options, run, brewfile.path);
 
     yield* Console.log(ui.success("Homebrew update complete."));
 

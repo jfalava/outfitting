@@ -102,4 +102,47 @@ describe("runSetup", () => {
       await access(join(sparseSourceRoot(state), path));
     }
   });
+
+  test("validates the complete macOS source contract before symlink setup", async () => {
+    const state = await tempDir("outfitting-validated-setup-");
+    const ensureSymlinks = async () => {};
+
+    await Effect.runPromise(
+      runSetup({
+        stateRoot: state,
+        sourcePaths: MACOS_SOURCE_PATHS,
+        fetcher: async (url) => {
+          const body = url.endsWith("flake.nix")
+            ? "darwinConfigurations = {};\n"
+            : url.endsWith("Brewfile")
+              ? 'brew "jq"\n'
+              : "{}\n";
+          return new Response(body, { status: 200 });
+        },
+        validateSource: true,
+        ensureSymlinks,
+      }),
+    );
+  });
+
+  test("rejects a malformed sparse flake before symlink setup", async () => {
+    const state = await tempDir("outfitting-invalid-setup-");
+    let symlinksCalled = false;
+
+    await expect(
+      Effect.runPromise(
+        runSetup({
+          stateRoot: state,
+          sourcePaths: MACOS_SOURCE_PATHS,
+          fetcher: async (url) =>
+            new Response(url.endsWith("flake.nix") ? "not a flake\n" : "{}\n", { status: 200 }),
+          validateSource: true,
+          ensureSymlinks: async () => {
+            symlinksCalled = true;
+          },
+        }),
+      ),
+    ).rejects.toThrow(/darwinConfigurations/);
+    expect(symlinksCalled).toBe(false);
+  });
 });

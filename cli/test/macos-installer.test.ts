@@ -14,9 +14,8 @@ describe("macOS installer delegation", () => {
 
     expect(script).toContain("outfitting-manager-darwin-arm64.zip");
     expect(script).toContain("$release_base/$asset.sha256");
+    expect(script).toContain("run_outfitting_manager init");
     expect(script).toContain("run_outfitting_manager setup");
-    expect(script).toContain("run_outfitting_manager update brew --no-sync");
-    expect(script).toContain("run_outfitting_manager update nix");
     expect(script).not.toContain(["/usr/local", "bin/brew"].join("/"));
     expect(script).not.toContain("x86_64");
 
@@ -50,15 +49,13 @@ describe("macOS installer delegation", () => {
     const manager = script.indexOf("install_outfitting_manager || exit 1");
     const brew = script.indexOf("install_homebrew || exit 1");
     const nix = script.indexOf("install_nix || exit 1");
+    const init = script.indexOf("run_outfitting_manager init || exit 1");
     const setup = script.indexOf("run_outfitting_manager setup || exit 1");
-    const brewUpdate = script.indexOf("run_outfitting_manager update brew --no-sync || exit 1");
-    const nixUpdate = script.indexOf("run_outfitting_manager update nix || exit 1");
 
     expect(manager).toBeGreaterThanOrEqual(0);
     expect(brew).toBeGreaterThan(manager);
     expect(nix).toBeGreaterThan(brew);
-    expect(setup).toBeGreaterThan(nix);
-    expect(brewUpdate).toBeGreaterThan(setup);
-    expect(nixUpdate).toBeGreaterThan(brewUpdate);
+    expect(init).toBeGreaterThan(nix);
+    expect(setup).toBeGreaterThan(init);
   });
 });

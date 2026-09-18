@@ -6,6 +6,7 @@ import { lockfilesCommand } from "@/commands/lockfiles";
 import { provisionCommand } from "@/commands/provision";
 import { recoverCommand } from "@/commands/recover";
 import { setupCommand } from "@/commands/setup";
+import { macosInitCommand } from "@/commands/setup/macos";
 import { snapshotCommand } from "@/commands/snapshot";
 import { syncCommand } from "@/commands/sync";
 import { makeMacosUpdateCommand } from "@/commands/update";
@@ -19,6 +20,7 @@ export const makeMacosRootCommand = (currentVersion: string) =>
   Command.make("outfitting-manager").pipe(
     Command.withDescription("Portable maintenance tools for Outfitting-managed machines."),
     Command.withSubcommands([
+      macosInitCommand,
       setupCommand,
       makeMacosUpdateCommand(),
       makeMacosDiffCommand(),

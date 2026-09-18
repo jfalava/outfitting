@@ -37,6 +37,7 @@ test.each([false, true])(
       const checkout = join(root, "checkout");
       await mkdir(join(checkout, "system", "macos"), { recursive: true });
       await writeFile(join(checkout, "system", "macos", "flake.nix"), "local checkout");
+      await writeFile(join(checkout, "system", "macos", "darwin.nix"), "local darwin");
       await Effect.runPromise(
         runSetup({
           stateRoot,
