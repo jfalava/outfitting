@@ -27,9 +27,11 @@ in
 
   # Amp and OpenCode each have their own global instruction path. Keep their
   # content identical so the three harnesses receive the same host policy.
+  # T3 reads AGENTS.md from the working tree; point its global path here too.
   home.file = {
     ".config/amp/AGENTS.md".text = machineGuidance;
     ".config/opencode/AGENTS.md".text = machineGuidance;
+    ".config/t3/AGENTS.md".text = machineGuidance;
   };
 
   xdg.configFile."amp/settings.json".text = builtins.toJSON {

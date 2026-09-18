@@ -8,6 +8,9 @@ with pkgs;
   _7zz
   tmux
   openssl
+  openssh
   gnome-keyring
   libsecret
+  # Headless libsecret consumers need a session bus; dbus is the transport.
+  dbus
 ]

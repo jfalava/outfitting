@@ -62,6 +62,13 @@
     };
   };
 
+  # git filter.lfs.required needs the binary on PATH; install global LFS hooks once.
+  home.activation.installGitLfs = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    if [ -x "${pkgs.git-lfs}/bin/git-lfs" ]; then
+      "${pkgs.git-lfs}/bin/git-lfs" install --skip-repo >/dev/null 2>&1 || true
+    fi
+  '';
+
   programs.gh = {
     enable = true;
 

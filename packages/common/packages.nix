@@ -7,6 +7,7 @@ with pkgs;
   python3
   zig
   nodejs_24
+  git-lfs
   lazygit
   neovim
   p7zip

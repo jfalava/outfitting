@@ -5,14 +5,16 @@ sidebar:
   order: 2
 ---
 
-The Nix-backed `oci-agents` and `ubuntu-wsl` profiles apply Home Manager during `init`, `setup`, and `update`. The WSL Zsh plugin also provides:
+The Nix-backed `oci-agents` and `ubuntu-wsl` profiles apply Home Manager during `init`, `setup`, and `update`. Both profiles' Zsh plugins provide:
 
 ```bash
-hm-sync      # Relink the WSL flake and apply Home Manager
+hm-sync      # Relink the profile flake and apply Home Manager
 hm-switch    # Alias for hm-sync
 hm-update    # Update flake inputs, then apply Home Manager
 hm-rollback  # List generations and show activation instructions
 hm-clean     # Remove old Nix generations and store paths
 ```
 
-`hm-update` runs `nix flake update` against `$HOME/.config/outfitting/repo/system/ubuntu-wsl` before switching when a full checkout is configured. The hosted installer uses the sparse source at `$HOME/.config/outfitting/source`; `hm-sync` and `hm-switch` apply whichever local source is linked by the profile without updating inputs.
+`hm-update` runs `nix flake update` against the selected profile under the local source (`system/ubuntu-wsl` or `system/oci-agents`) before switching when a full checkout is configured. The hosted installer uses the sparse source at `$HOME/.config/outfitting/source`; `hm-sync` and `hm-switch` apply whichever local source is linked by the profile without updating inputs.
+
+The OCI bootstrap also sets the login shell to zsh, enables user lingering, starts `user@uid` when the session bus is missing, and starts Amp/T3/OpenCode units. The OCI Zsh plugin starts a local `ssh-agent` when `SSH_AUTH_SOCK` is missing (forwarded agents are left alone), auto-loads `~/.ssh/jfalava-gitAuth-elliptic` when the agent is empty, and exports `DBUS_SESSION_BUS_ADDRESS` for libsecret. Open a new SSH session after the first activation so the profile takes effect. Shared SSH config prefers that elliptic auth key for `github.com`.

@@ -42,6 +42,7 @@ export const LINUX_SOURCE_PATHS = [
   "system/oci-agents/flake.lock",
   "system/oci-agents/flake.nix",
   "system/oci-agents/home.nix",
+  "system/oci-agents/zsh/oci-agents.plugin.zsh",
   "system/ubuntu-wsl/base.nix",
   "system/ubuntu-wsl/bootstrap.sh",
   "system/ubuntu-wsl/flake.lock",
