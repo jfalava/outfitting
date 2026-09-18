@@ -11,6 +11,7 @@ let
   servicePath = lib.concatStringsSep ":" [
     "${home}/.local/bin"
     "${home}/.amp/bin"
+    "${home}/.bun/bin"
     "${home}/.opencode/bin"
     "${home}/.nix-profile/bin"
     "/usr/local/bin"

@@ -89,11 +89,6 @@
 
   programs.cargo.enable = true;
 
-  programs.bun = {
-    enable = true;
-    settings.install.minimumReleaseAge = 86400;
-  };
-
   programs.eza = {
     enable = true;
     # Custom aliases are declared in the shared Zsh module.
@@ -238,7 +233,6 @@
   programs.opencode = {
     enable = true;
     package = pkgs.opencode;
-    extraPackages = with pkgs; [ bun ];
     settings = {
       lsp = true;
       small_model = "opencode/nemotron-3.5-lightning-free";
