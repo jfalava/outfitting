@@ -14,6 +14,7 @@
     "/docs/cli/fonts",
     "/docs/cli/init",
     "/docs/cli/linux",
+    "/docs/cli/linux/init",
     "/docs/cli/linux/home-manager",
     "/docs/cli/linux/install",
     "/docs/cli/linux/maintenance",

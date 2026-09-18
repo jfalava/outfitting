@@ -5,14 +5,15 @@ sidebar:
   order: 1
 ---
 
-`setup` prepares and applies the platform configuration. Its work is platform-specific: macOS applies the repository's Nix and Homebrew declarations, Windows initializes state and applies selected package profiles, and Linux caches the selected package profile.
+`setup` prepares and applies the platform configuration. Its work is platform-specific: macOS applies the repository's Nix and Homebrew declarations, Windows initializes state and applies selected package profiles, and Linux applies the selected apt or pacman package profile.
 
 ## Platform commands
 
 - [macOS init](/docs/cli/macos/init/) — validate the sparse source without machine changes.
 - [macOS setup](/docs/cli/macos/setup/) — apply the repository's Nix and Homebrew declarations.
 - [Windows setup](/docs/cli/windows/setup/) — initialize state, apply WinGet and Scoop profiles, and cache the PowerShell profile.
-- [Linux setup](/docs/cli/linux/) — cache the `generic-linux` profile, or opt in to `oci-agents`.
+- [Linux init](/docs/cli/linux/init/) — cache the `generic-linux` profile, or opt in to `oci-agents` without changing installed packages.
+- [Linux setup](/docs/cli/linux/) — apply the selected apt or pacman package profile.
 - [WSL installation](/docs/cli/linux/install/) — run the hosted installer modes.
 
 Use the platform page for flags, source overrides, profile selection, and collision behavior.

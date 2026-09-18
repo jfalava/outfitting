@@ -1,0 +1,27 @@
+---
+title: Init
+description: Prepare Linux package state without changing installed packages.
+sidebar:
+  order: 0
+---
+
+`init` creates the local state root and fetches the selected Linux package profile. It does not run `apt`, `pacman`, or the OCI bootstrap.
+
+```bash
+outfitting-manager init
+outfitting-manager init --profile oci-agents --repo ~/code/outfitting
+outfitting-manager init --no-fetch
+```
+
+Use [setup](/docs/cli/linux/) after initialization to apply the cached profile.
+
+## Options
+
+```text
+--profile <generic-linux|oci-agents>  Package profile to cache.
+--machine-id <id>                     Override the automatic machine id.
+--manifest-base-url <url>             Raw-compatible source URL without the ref.
+--manifest-ref <ref>                  Git branch, tag, or SHA for the source.
+--repo <path>                         Existing checkout for the oci-agents profile.
+--no-fetch                            Use the existing cached profile.
+```

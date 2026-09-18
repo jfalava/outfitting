@@ -64,10 +64,7 @@ function linuxInventoryArgs(manager: LinuxPackageManager): string[] {
   return manager === "apt" ? ["-W", "-f=${binary:Package}\\t${Status}\\n"] : ["-Qq"];
 }
 
-function parseInstalledLinuxPackages(
-  manager: LinuxPackageManager,
-  output: string,
-): Set<string> {
+function parseInstalledLinuxPackages(manager: LinuxPackageManager, output: string): Set<string> {
   const installed = new Set<string>();
   for (const line of output.split(/\r?\n/)) {
     const [packageName, status] = line.split("\t");
@@ -226,7 +223,10 @@ function resolveProfile(value: string | undefined): LinuxProfile {
   return profile;
 }
 
-async function runOciBootstrap(config: ManagerConfig, run: typeof runCommand): Promise<void> {
+export async function runLinuxOciBootstrap(
+  config: ManagerConfig,
+  run: typeof runCommand,
+): Promise<void> {
   const repo = await resolveOutfittingRepo({ config });
   const script = join(repo.root, "system", "oci-agents", "bootstrap.sh");
   const result = await run("bash", [script], { cwd: repo.root, inherit: true });
@@ -294,7 +294,7 @@ export const updateLinux = (options: LinuxUpdateOptions = {}) =>
 
     if (profile === "oci-agents" && options.bootstrapOci !== false) {
       yield* Console.log(ui.heading("Applying oci-agents Nix/Home Manager services…"));
-      yield* tryPromise(() => runOciBootstrap(config, run));
+      yield* tryPromise(() => runLinuxOciBootstrap(config, run));
     }
 
     yield* Console.log(ui.success(`Linux ${manager} update complete.`));

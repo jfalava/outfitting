@@ -50,5 +50,5 @@ mkdir -p "$INSTALL_DIR"
 install -m 755 "$TEMP_DIR/outfitting-manager" "$INSTALL_DIR/outfitting-manager"
 export PATH="$INSTALL_DIR:$PATH"
 
-outfitting-manager setup --profile "$PROFILE"
-outfitting-manager update all --profile "$PROFILE"
+outfitting-manager init --profile "$PROFILE"
+outfitting-manager setup --profile "$PROFILE" --no-fetch

@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, realpath, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -13,6 +13,7 @@ import {
   linuxDistributionFamily,
   parseOsRelease,
 } from "@/platform/linux";
+import { runLinuxSetup } from "@/setup/linux";
 import {
   linuxPackageIdentity,
   linuxPackageManagerArgs,
@@ -27,6 +28,16 @@ const execFileAsync = promisify(execFile);
 const linuxEntry = fileURLToPath(new URL("../index.ts", import.meta.url));
 
 test("Linux entrypoint registers the distro-agnostic update commands", async () => {
+  const init = await execFileAsync("bun", [linuxEntry, "init", "--help"], {
+    encoding: "utf8",
+  });
+  expect(`${init.stdout}\n${init.stderr}`).toContain("without changing installed packages");
+
+  const setup = await execFileAsync("bun", [linuxEntry, "setup", "--help"], {
+    encoding: "utf8",
+  });
+  expect(`${setup.stdout}\n${setup.stderr}`).toContain("apply the selected Linux package profile");
+
   const result = await execFileAsync("bun", [linuxEntry, "update", "--help"], {
     encoding: "utf8",
   });
@@ -45,6 +56,20 @@ test("Linux entrypoint registers the distro-agnostic update commands", async () 
     encoding: "utf8",
   });
   expect(`${sync.stdout}\n${sync.stderr}`).toMatch(/apt|pacman/);
+});
+
+test("Linux init materializes state without invoking a package manager", async () => {
+  const stateRoot = await mkdtemp(join(tmpdir(), "outfitting-linux-init-"));
+  try {
+    const result = await execFileAsync("bun", [linuxEntry, "init", "--no-fetch"], {
+      encoding: "utf8",
+      env: { ...process.env, OUTFITTING_STATE_ROOT: stateRoot },
+    });
+    expect(`${result.stdout}\n${result.stderr}`).toContain(`State root ready: ${stateRoot}`);
+    expect(`${result.stdout}\n${result.stderr}`).toContain("Next: outfitting-manager setup");
+  } finally {
+    await rm(stateRoot, { force: true, recursive: true });
+  }
 });
 
 describe("Linux host detection", () => {
@@ -119,9 +144,7 @@ describe("Linux package adapter", () => {
 
   test("checks declared package presence without treating unrelated installs as extras", async () => {
     expect(linuxPackageIdentity("curl:amd64=8.5.0")).toBe("curl");
-    expect(missingLinuxPackages(["curl", "git", "git"], new Set(["curl", "vim"]))).toEqual([
-      "git",
-    ]);
+    expect(missingLinuxPackages(["curl", "git", "git"], new Set(["curl", "vim"]))).toEqual(["git"]);
 
     const installed = await listInstalledLinuxPackages("apt", {
       which: async (command) => (command === "dpkg-query" ? "/usr/bin/dpkg-query" : undefined),
@@ -214,4 +237,92 @@ describe("Linux package adapter", () => {
       { command: "/usr/bin/sudo", args: ["/usr/bin/apt", "install", "-y", "git"] },
     ]);
   });
+});
+
+test("Linux setup applies the cached selected profile", async () => {
+  const stateRoot = await mkdtemp(join(tmpdir(), "outfitting-linux-setup-"));
+  const calls: Array<{ command: string; args: ReadonlyArray<string> }> = [];
+  let fetchCount = 0;
+  try {
+    await Effect.runPromise(
+      runLinuxSetup({
+        stateRoot,
+        profile: "generic-linux",
+        packageManager: "apt",
+        readOsRelease: async () => "ID=ubuntu\n",
+        which: async (command) =>
+          ({
+            apt: "/usr/bin/apt",
+            "dpkg-query": "/usr/bin/dpkg-query",
+            sudo: "/usr/bin/sudo",
+          })[command],
+        fetcher: async () => {
+          fetchCount += 1;
+          return new Response("curl\ngit\n");
+        },
+        run: async (command, args) => {
+          calls.push({ command, args });
+          if (command === "/usr/bin/dpkg-query") {
+            return { code: 0, stdout: "", stderr: "" };
+          }
+          return { code: 0, stdout: "", stderr: "" };
+        },
+      }),
+    );
+  } finally {
+    await rm(stateRoot, { force: true, recursive: true });
+  }
+
+  expect(fetchCount).toBe(1);
+  expect(calls).toEqual([
+    { command: "/usr/bin/dpkg-query", args: ["-W", "-f=${binary:Package}\\t${Status}\\n"] },
+    { command: "/usr/bin/sudo", args: ["/usr/bin/apt", "update"] },
+    { command: "/usr/bin/sudo", args: ["/usr/bin/apt", "install", "-y", "curl", "git"] },
+  ]);
+});
+
+test("Linux OCI setup preserves the baseline flow and runs the OCI bootstrap", async () => {
+  const stateRoot = await mkdtemp(join(tmpdir(), "outfitting-linux-oci-state-"));
+  const repo = await mkdtemp(join(tmpdir(), "outfitting-linux-oci-repo-"));
+  const calls: Array<{ command: string; args: ReadonlyArray<string> }> = [];
+  const repoRoot = await realpath(repo);
+  try {
+    await mkdir(join(repo, "system", "macos"), { recursive: true });
+    await mkdir(join(repo, "system", "oci-agents"), { recursive: true });
+    await writeFile(join(repo, "system", "macos", "flake.nix"), "{}\n");
+    await writeFile(join(repo, "system", "oci-agents", "bootstrap.sh"), "#!/bin/sh\n");
+    await Effect.runPromise(
+      runLinuxSetup({
+        stateRoot,
+        repo,
+        profile: "oci-agents",
+        packageManager: "apt",
+        readOsRelease: async () => "ID=ubuntu\n",
+        which: async (command) =>
+          ({
+            apt: "/usr/bin/apt",
+            "dpkg-query": "/usr/bin/dpkg-query",
+            sudo: "/usr/bin/sudo",
+          })[command],
+        fetcher: async () => new Response("curl\ngit\n"),
+        run: async (command, args) => {
+          calls.push({ command, args });
+          return { code: 0, stdout: "", stderr: "" };
+        },
+      }),
+    );
+  } finally {
+    await rm(stateRoot, { force: true, recursive: true });
+    await rm(repo, { force: true, recursive: true });
+  }
+
+  expect(calls).toEqual([
+    { command: "/usr/bin/dpkg-query", args: ["-W", "-f=${binary:Package}\\t${Status}\\n"] },
+    { command: "/usr/bin/sudo", args: ["/usr/bin/apt", "update"] },
+    { command: "/usr/bin/sudo", args: ["/usr/bin/apt", "install", "-y", "curl", "git"] },
+    {
+      command: "bash",
+      args: [join(repoRoot, "system", "oci-agents", "bootstrap.sh")],
+    },
+  ]);
 });

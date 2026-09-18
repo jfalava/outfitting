@@ -13,20 +13,31 @@ Install the generic Linux binary bootstrap with:
 curl -L linux.jfa.dev | bash
 ```
 
-The bootstrap selects the Linux x64 or arm64 release, verifies its checksum, and runs the manager. The manager stores state under `~/.config/outfitting` and fetches the `generic-linux` package profile.
+The bootstrap selects the Linux x64 or arm64 release, verifies its checksum, and runs the manager. The manager stores state under `~/.config/outfitting`.
+
+Initialize and apply the default profile separately:
+
+```bash
+outfitting-manager init
+outfitting-manager setup --no-fetch
+```
+
+`init` fetches and caches the selected profile without changing installed packages. `setup` consumes that cached profile, installs missing declared packages, and preserves unrelated packages. It does not upgrade the whole system; use `update` for that. Pass `--no-fetch` to `init` only when a cached profile already exists.
 
 To override detection or select the opt-in OCI profile:
 
 ```bash
 outfitting-manager update all --package-manager apt
-outfitting-manager setup --profile oci-agents --repo ~/code/outfitting
-outfitting-manager update all --profile oci-agents
+outfitting-manager init --profile oci-agents --repo ~/code/outfitting
+outfitting-manager setup --profile oci-agents --repo ~/code/outfitting --no-fetch
 ```
 
 The `oci-agents` profile runs the repository's Nix/Home Manager service bootstrap after the native package update. It requires an existing full repository checkout.
 
 ## Commands
 
+- [Init](/docs/cli/linux/init/) - cache a package profile without changing installed packages.
+- [Setup](/docs/cli/linux/) - apply the selected apt or pacman package profile.
 - [Install](/docs/cli/linux/install/) - run the generic Linux or WSL hosted installer.
 - [Home Manager](/docs/cli/linux/home-manager/) - apply, update, roll back, or clean Nix state.
 - [Maintenance](/docs/cli/linux/maintenance/) - run native Linux updates or the combined WSL helpers.
