@@ -1,14 +1,33 @@
 ---
 title: Config
-description: Configure the repository source and platform routes used by Outfitting.
+description: Configure the Windows repository source, routes, and default profiles.
 sidebar:
-  order: 6
+  order: 7
 ---
 
-`config` is the interactive Windows command for selecting a compatible repository, its artifact routes, and the default package profiles. Other platforms configure their source through their setup workflow or environment variables.
+`config` is an interactive Windows wizard. It saves the repository source, artifact routes, machine id, and default WinGet profiles to `%USERPROFILE%\.config\outfitting\config.json`.
 
-## Platform command
+## `config`
 
-- [Windows config](/docs/cli/windows/config/) — run `outfit config` to write `%USERPROFILE%\.config\outfitting\config.json`.
-- [macOS setup](/docs/cli/macos/setup/) — use `setup --repo`, `--manifest-base-url`, and `--manifest-ref` for macOS source settings.
-- [Linux install](/docs/cli/linux/install/) — hosted bootstrap; use `init`/`setup` flags for source overrides.
+```powershell
+outfitting-manager config
+```
+
+The wizard asks for the raw repository URL and ref, then these repository-relative routes:
+
+- WinGet profile template containing `{profile}`.
+- Scoop manifest.
+- PowerShell profile.
+- FontGet list.
+- Registry tweaks directory.
+- Default comma-separated profiles such as `base,dev`.
+
+Routes cannot escape the repository, and profile names may contain only letters, numbers, `.`, `_`, and `-`.
+
+## Platform differences
+
+| Platform | Configuration command | Difference |
+| --- | --- | --- |
+| macOS | None | Configure source overrides with `init` or `setup` flags such as `--repo` and `--manifest-ref`. |
+| Windows | `config` | The interactive wizard owns the Windows route map and default profiles. |
+| Linux | None | Configure the Linux profile with `init`/`setup --profile` or use `--repo` for a full checkout. |

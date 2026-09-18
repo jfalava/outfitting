@@ -1,6 +1,7 @@
 ---
 title: Setup
 description: Apply a repository's declared macOS Nix and Homebrew configuration.
+audience: macos
 sidebar:
   order: 1
 ---
@@ -8,7 +9,7 @@ sidebar:
 `setup` prepares the state root, validates the macOS repository contract, activates the declared Nix configuration, and installs the declared Homebrew items.
 
 ```bash
-outfit setup
+outfitting-manager setup
 ```
 
 The sparse source is stored at `$HOME/.config/outfitting/source`. Setup does not clone the monorepo and does not fetch `system/macos/flake.lock`; Nix uses the canonical lockfile service. Homebrew setup installs missing declarations but does not upgrade or remove unrelated packages.

@@ -21,7 +21,8 @@ import {
   getVersionAlternates,
 } from "@cloudflare/nimbus-docs";
 
-type Props = DocsPageProps & { audience?: "human" };
+type Audience = "human" | "windows" | "macos" | "linux" | "nix";
+type Props = DocsPageProps & { audience?: Audience };
 
 const {
   title,
@@ -50,6 +51,14 @@ const {
 // overrides for the edge case of "no search engines, yes internal search."
 const effectiveSearchable = searchable ?? !noindex;
 const isCustom = mode === "custom";
+const audienceBadge = {
+  human: { text: "For humans", variant: "success" },
+  windows: { text: "For Windows", variant: "info" },
+  macos: { text: "For macOS", variant: "info" },
+  linux: { text: "For Linux", variant: "info" },
+  nix: { text: "For Nix-managed machines", variant: "info" },
+} as const satisfies Record<Audience, { text: string; variant: "success" | "info" }>;
+const badge = audience === undefined ? undefined : audienceBadge[audience];
 
 // `sidebar: false` / `tableOfContents: false` in frontmatter come through
 // from the route as literal `false` (not coerced to `[]`). They drive
@@ -270,18 +279,18 @@ const hasPagination = Astro.slots.has("pagination");
                         <MobileTOC headings={headings} />
                       </div>
                     )}
-                    {(markdownUrl || audience === "human") &&
-                      (audience === "human" ? (
+                    {(markdownUrl || badge) &&
+                      (badge ? (
                         <div
                           class="mt-3 mb-6 flex items-center gap-3"
                           role="none"
                         >
                           <div class="h-px flex-1 bg-border"></div>
                           <Badge
-                            text="For humans"
-                            variant="success"
+                            text={badge.text}
+                            variant={badge.variant}
                             size="small"
-                            class="font-mono uppercase border border-success/15"
+                            class="font-mono uppercase border border-current/15"
                           />
                           <div class="h-px flex-1 bg-border"></div>
                         </div>
@@ -291,7 +300,7 @@ const hasPagination = Astro.slots.has("pagination");
                           role="none"
                         />
                       ))}
-                    {!description && !markdownUrl && audience !== "human" && (
+                    {!description && !markdownUrl && !badge && (
                       <div class="mb-4" />
                     )}
                   </Fragment>

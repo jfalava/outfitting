@@ -9,7 +9,7 @@ Desired state lives in the repo; machine-local operations and locks are pushed t
 
 ## Dotfiles
 
-- `dotfiles/Microsoft.PowerShell_profile.ps1` — Windows shell: `PATH` and the `outfit` alias for `outfitting-manager`.
+- `dotfiles/Microsoft.PowerShell_profile.ps1` — Windows shell: `PATH` and the `outfitting-manager` command.
 - `dotfiles/.gitconfig` — Windows Git identity and SSH commit/tag signing.
 - `dotfiles/ssh.config` — shared GitHub SSH defaults (`jfalava-gitAuth-elliptic`, legacy `id-ed25519` fallback, `AddKeysToAgent`), included by the common Home Manager module on macOS, Linux, and NixOS. The user-owned `~/.ssh/config` remains editable.
 
@@ -17,7 +17,7 @@ Installers symlink the profile entry points (Windows backs up existing profiles 
 
 ## System definitions
 
-- `system/macos/` (`darwin.nix`, `home.nix`, `flake.nix`, `zsh/macos.plugin.zsh`) — canonical `outfit update nix|brew|all` and `outfit snapshot brew`/`outfit recover nix` commands, `hm-build|switch|test|dry` compatibility helpers, Nix actions, Homebrew reconcile, remote Nix lock pull/push, and recovery checkpoints under XDG state. Global Bun updates use `bun update -g`.
+- `system/macos/` (`darwin.nix`, `home.nix`, `flake.nix`, `zsh/macos.plugin.zsh`) — canonical `outfitting-manager update nix|brew|all` and `outfitting-manager snapshot brew`/`outfitting-manager recover nix` commands, `hm-build|switch|test|dry` compatibility helpers, Nix actions, Homebrew reconcile, remote Nix lock pull/push, and recovery checkpoints under XDG state. Global Bun updates use `bun update -g`.
 - `system/ubuntu-wsl/` (`base.nix`, `flake.nix`, `zsh/wsl.plugin.zsh`) — Linux Home Manager profile; `hm-*` via shared `hm-profile.inc.zsh`.
 - `system/oci-agents/` (`home.nix`, `flake.nix`, `bootstrap.sh`, `zsh/oci-agents.plugin.zsh`) — headless Linux Home Manager profile and services.
 - `system/nixos/` (`configuration.nix`, `desktop.nix`, `server.nix`, `home.nix`, `flake.nix`) — host roles.
@@ -36,4 +36,4 @@ Committed desired state: `packages/macos/` (Brewfile, nix), `packages/windows/` 
 
 Root `*-install-script.{sh,ps1}` files are served live from the installer hosts. Windows bootstraps the checksum-verified `outfitting-manager` release, fetches the selected manifests and PowerShell profile sparsely from GitHub, and symlinks profile entry points to the cached profile. Registry/OpenSSH setup remains PowerShell; post-install adds Scoop and fonts (with package installs delegated to the CLI).
 
-Day-to-day Windows reconciliation uses `outfit sync` and uploads `windows.lock.json` (`<username>:x86_64-windows`). Direct remote transport is available under `outfit lockfiles`. macOS continues to use `nix` plus `homebrew-inventory` (`jfalava:aarch64-darwin`).
+Day-to-day Windows reconciliation uses `outfitting-manager sync` and uploads `windows.lock.json` (`<username>:x86_64-windows`). Direct remote transport is available under `outfitting-manager lockfiles`. macOS continues to use `nix` plus `homebrew-inventory` (`jfalava:aarch64-darwin`).

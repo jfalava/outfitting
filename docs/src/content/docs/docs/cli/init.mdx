@@ -1,15 +1,25 @@
 ---
 title: Init
-description: Initialize platform state without applying package changes.
+description: Prepare local platform state without applying the package baseline.
 sidebar:
-  order: 7
+  order: 8
 ---
 
-`init` creates and validates the local state needed for later commands but does not apply the package baseline. Its exact source contract is platform-specific.
+`init` creates the state root, fetches or selects the configured source, and validates or caches the inputs needed by later commands. It does not apply the normal package baseline.
 
-## Platform command
+## `init`
 
-- [Windows init](/docs/cli/windows/init/) — cache the configured Scoop manifest; pass `--no-fetch` to skip prefetching.
-- [macOS init](/docs/cli/macos/init/) — validate the sparse source or a local repository checkout.
-- [Linux init](/docs/cli/linux/init/) — materialize the Linux source bundle and bootstrap Nix-backed profiles without changing native packages.
-- [Linux install](/docs/cli/linux/install/) — hosted bootstrap that runs init and setup.
+```bash
+outfitting-manager init
+outfitting-manager init --no-fetch
+```
+
+Common source options are `--machine-id`, `--manifest-base-url`, `--manifest-ref`, and `--no-fetch`. The platform build may add `--profile` or `--repo`.
+
+## Platform differences
+
+| Platform | What `init` prepares | Platform-specific invocation |
+| --- | --- | --- |
+| macOS | The sparse macOS source or a local repository checkout, then validates the nix-darwin contract. | `outfitting-manager init --repo ~/src/my-machine-config`; it does not activate Nix or change Homebrew. |
+| Windows | The Windows state root and cached repository manifests. | `outfitting-manager init --no-fetch`; it does not apply package state. |
+| Linux | The selected profile-scoped source and persisted `linux.profile`. Nix-backed profiles also bootstrap Home Manager. | `outfitting-manager init --profile ubuntu-wsl --repo ~/code/outfitting`; it does not change native packages. |

@@ -1,92 +1,73 @@
 ---
 title: Fonts
-description: Publish and remove licensed private fonts, then install them from platform post-install scripts.
+description: Manage the private font archive.
 sidebar:
   order: 11
 ---
 
-Public fonts come from the FontGet list in the repository. Private fonts are published with `outfitting-manager fonts` and installed later by the platform post-install scripts.
+`fonts` lists, publishes, and removes licensed fonts stored in the private R2 archive. Incoming files must be OpenType (`.otf`, `.ttf`, or `.ttc`).
 
-## What this achieves
+## `fonts configure-endpoint`
 
-You keep one private font set that machines can install. `list` shows what is published. `publish` and `remove` change that set. After a successful publish, identities covered by the font license can install from [macOS post-install](/docs/macos/post-install/) or extract from [Windows post-install](/docs/windows/post-install/).
-
-## Prerequisites
-
-`outfitting-manager` must already be on `PATH`. If this machine has not been configured yet:
-
-```bash
-outfitting-manager lockfiles configure-worker
-outfitting-manager lockfiles configure-token
-```
-
-`lockfiles` is the command for the lockfiles Worker. On Windows, `sync` is reserved for desired-state package profiles.
-
-`publish` and `remove` also need storage credentials. The commands below save them on this machine; the first publish or remove prompts if they are missing.
-
-Incoming files must be OpenType (`.otf`, `.ttf`, or `.ttc`). Reserved system families such as Helvetica and Arial are refused unless you pass `--allow-system-names`. You cannot remove the last remaining font.
-
-## fonts configure-endpoint
-
-Saves the storage endpoint, or a Cloudflare account ID, on this machine.
+Store an R2 S3 HTTPS endpoint or Cloudflare account id:
 
 ```bash
 outfitting-manager fonts configure-endpoint
-outfitting-manager fonts configure-endpoint "<accountid-or-https-endpoint>"
+outfitting-manager fonts configure-endpoint <account-id-or-endpoint>
 ```
 
-Run this again when the endpoint changes.
+## `fonts configure-credentials`
 
-## fonts configure-credentials
-
-Asks for the access key ID and secret. The secret is hidden as you type and is never printed.
+Prompt for and store the R2 access key and secret:
 
 ```bash
 outfitting-manager fonts configure-credentials
 ```
 
-## fonts list
+## `fonts list`
 
-Shows the private fonts that are currently published.
+List published font faces. Use `--repopulate` to rebuild the inventory from the live archive first:
 
 ```bash
 outfitting-manager fonts list
+outfitting-manager fonts list --repopulate
 ```
 
-Output is a checksum and size, then a table of family, style, PostScript name, and path. If nothing has been published yet, it says so and exits.
+## `fonts repopulate`
 
-## fonts repopulate
-
-Rebuilds the lockfiles inventory from the live archive. Use this when `list` is stale after a publish that did not rewrite inventory.
+Rebuild the lockfiles inventory from the live R2 archive. Use `--dry-run` to compare without writing:
 
 ```bash
 outfitting-manager fonts repopulate --dry-run
 outfitting-manager fonts repopulate
-outfitting-manager fonts list --repopulate
 ```
 
-`--dry-run` compares archive to inventory without writing. `list`, `publish`, and `remove` also accept `--repopulate`.
+## `fonts publish`
 
-## fonts publish
-
-Adds OpenType files from a local directory. Hidden files, license/readme-style names, and unknown extensions are skipped. Paths come from each font's family and style unless you pass `--keep-names`.
+Merge fonts from a directory into the archive:
 
 ```bash
 outfitting-manager fonts publish ~/Downloads/ibm-plex-sans --dry-run
 outfitting-manager fonts publish ~/Downloads/ibm-plex-sans --yes
 ```
 
-`--dry-run` prints the planned table (`added`, `replaced`, `unchanged`) without changing anything. Without `--yes`, you must confirm before upload.
+Use `--replace` to overwrite an existing archive path, `--keep-names` to keep sanitized filenames, `--allow-system-names` for reserved families, and `--repopulate` to refresh inventory first.
 
-`--replace` overwrites an existing path. `--keep-names` keeps sanitized source filenames instead of family/style paths. `--allow-system-names` allows reserved system families. Duplicate paths, PostScript names, or family/style pairs fail unless `--replace` covers the path.
+## `fonts remove`
 
-## fonts remove
-
-Removes matching fonts. Arguments are family names, paths, or PostScript names. `--family` treats each argument as a whole family.
+Remove faces by family, archive path, or PostScript name:
 
 ```bash
 outfitting-manager fonts remove ibm-plex-sans --family --dry-run
 outfitting-manager fonts remove ibm-plex-sans --family --yes
 ```
 
-Unknown names fail. Removing the last remaining font is refused. `--dry-run` and `--yes` behave as they do for publish.
+Use `--family` to remove whole families. `--dry-run`, `--yes`, and `--repopulate` have the same meaning as for `publish`.
+
+## Platform differences
+
+| Platform | Availability | Difference |
+| --- | --- | --- |
+| macOS | Available | Fonts can be installed by the macOS post-install workflow after publishing. |
+| Windows | Available | Fonts can be extracted by the Windows post-install workflow after publishing. |
+| Linux | Available | The archive operations are the same; installation is outside this command's scope. |

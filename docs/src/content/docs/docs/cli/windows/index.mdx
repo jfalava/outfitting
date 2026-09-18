@@ -1,11 +1,12 @@
 ---
 title: Windows
 description: Use outfitting-manager to configure and maintain a Windows machine.
+audience: windows
 sidebar:
   order: 22
 ---
 
-The Windows installer provides the compiled `outfitting-manager.exe`; the PowerShell profile exposes it as `outfit`.
+The Windows installer provides the compiled `outfitting-manager.exe`; the PowerShell profile puts it on `PATH`.
 
 ## Commands
 
@@ -21,4 +22,4 @@ The Windows installer provides the compiled `outfitting-manager.exe`; the PowerS
 - [Provision](/docs/cli/provision/) — deploy Outfitting infrastructure.
 - [Upgrade](/docs/cli/upgrade/) — update the installed manager.
 
-Use `outfit` or `outfitting-manager` in the examples. On Windows, `sync` is the desired-state package command; use `lockfiles` for direct remote lock transport.
+These pages use `outfitting-manager` in every command example. On Windows, `sync` is the desired-state package command; use `lockfiles` for direct remote lock transport.

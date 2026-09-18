@@ -1,14 +1,24 @@
 ---
 title: Snapshot
-description: Capture observed package state without changing desired configuration.
+description: Capture observed package state.
 sidebar:
-  order: 4
+  order: 5
 ---
 
-`snapshot` records observed state so it can be inspected or used by the remote inventory workflow. The manager currently exposes this command on macOS for Homebrew.
+`snapshot` records what is installed so it can be inspected or used by the remote inventory workflow. It does not change the repository's desired configuration.
 
-## Platform command
+## `snapshot brew`
 
-- [macOS snapshot](/docs/cli/macos/snapshot/) — run `outfit snapshot brew` to capture and push installed taps, formulae, and casks.
+On macOS, capture and push installed Homebrew taps, formulae, and casks:
 
-Windows `sync` writes its desired package baseline instead of providing a separate snapshot command. Linux has no manager snapshot command.
+```bash
+outfitting-manager snapshot brew
+```
+
+## Platform differences
+
+| Platform | Available subcommands | Difference |
+| --- | --- | --- |
+| macOS | `snapshot brew` | Stores the observed Homebrew inventory. |
+| Windows | None | `sync` writes the desired package baseline to `windows.lock.json` instead. |
+| Linux | None | Use `diff` or `sync` for package presence; there is no separate snapshot command. |

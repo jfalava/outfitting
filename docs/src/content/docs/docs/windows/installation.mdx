@@ -1,6 +1,7 @@
 ---
 title: Installation
 description: Install Outfitting profiles and bootstrap the Windows development environment.
+audience: windows
 sidebar:
   order: 1
 ---
@@ -24,7 +25,7 @@ irm win.jfa.dev/base+dev | iex
 
 Regular profiles are canonical and include both WinGet and Microsoft Store packages. Store entries remain tagged as `msstore:<id>` in those manifests, and the CLI installs them from the Microsoft Store source. The retired `/msstore/*` and `/packages/*` installer routes no longer install anything. The installer downloads the verified Windows manager, applies the selected regular profile, fetches the configured profile and manifests without a repository clone, and performs the Windows host setup. Run the [post-install script](/docs/windows/post-install/) afterward to install Scoop and fonts.
 
-For saved CLI selections, a mixed legacy selection such as `base,msstore-base` migrates to `base`. A standalone `msstore-base` selection errors because selecting `base` would also install non-Store packages; rerun with an explicit regular selection such as `outfit sync --profile base`.
+For saved CLI selections, a mixed legacy selection such as `base,msstore-base` migrates to `base`. A standalone `msstore-base` selection errors because selecting `base` would also install non-Store packages; rerun with an explicit regular selection such as `outfitting-manager sync --profile base`.
 
 For a compatible repository, set `OUTFITTING_MANIFEST_BASE_URL` and `OUTFITTING_MANIFEST_REF` before running the installer. Configure all repository routes later with [CLI config](/docs/cli/windows/config/).
 

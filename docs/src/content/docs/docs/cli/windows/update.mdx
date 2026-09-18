@@ -1,6 +1,7 @@
 ---
 title: Update
 description: Upgrade installed Windows packages with outfitting-manager.
+audience: windows
 sidebar:
   order: 6
 ---
@@ -8,9 +9,9 @@ sidebar:
 Upgrade packages already installed on the machine:
 
 ```powershell
-outfit update winget
-outfit update scoop
-outfit update all
+outfitting-manager update winget
+outfitting-manager update scoop
+outfitting-manager update all
 ```
 
 `update winget` upgrades WinGet packages. `update scoop` installs missing packages from its configured manifest, updates installed packages, and cleans old versions. It preserves extra packages; use [sync](/docs/cli/windows/sync/) for confirmed removal of tracked packages outside the baseline.
@@ -25,4 +26,4 @@ Global Bun packages are updated directly by Bun:
 bun update -g
 ```
 
-`outfit update bun` is deprecated and prints this replacement. Homebrew and Nix commands are unavailable in the Windows build.
+`outfitting-manager update bun` is deprecated and prints this replacement. Homebrew and Nix commands are unavailable in the Windows build.

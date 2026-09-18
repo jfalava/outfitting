@@ -1,34 +1,36 @@
 ---
 title: Diff
-description: Compare live platform state with the configured repository state.
+description: Compare live platform state with the configured repository.
 sidebar:
-  order: 23
+  order: 4
 ---
 
-`diff` is read-only. It compares the live machine with the repository manifests configured for the current platform. It does not install, remove, activate, write lockfiles, or push remote state.
+`diff` is read-only. It compares the live machine with the configured repository and does not install, remove, activate, write lockfiles, or push remote state.
 
-```sh
-outfit diff
+## `diff`
+
+```bash
+outfitting-manager diff
+outfitting-manager diff --manager brew
+outfitting-manager diff --profile base,dev
+outfitting-manager diff --offline --json
 ```
 
-Use `--manager` to inspect one source, `--profile` to select a profile, `--offline` to use cached manifests, or `--json` for automation:
+## Options
 
-```sh
-outfit diff --manager brew
-outfit diff --profile base,dev
-outfit diff --offline --json
-```
-
-## Compared state
-
-- macOS compares Homebrew taps, formulae, casks, and the active Nix system.
-- Windows compares selected WinGet profiles and Scoop buckets/packages. WinGet manifests may mark Microsoft Store entries as `msstore:<id>`; diff compares the package ID against the unified WinGet export regardless of source.
-- Linux checks whether declared apt or pacman packages are present. Unrelated installed packages are ignored and never reported as extras.
-
-Repository package manifests do not generally pin versions, so the command reports missing, extra, and changed entries rather than version drift. Homebrew checks required formulae against all installed formulae. Only explicitly installed formulae count as extras; dependencies do not.
-
-Nix evaluates the configured local repository with the canonical remote lock and compares its system output path with `/run/current-system`. A system that has been built but not activated still reports a difference. The comparison does not build or activate the system.
-
-Online comparisons require fresh or server-validated manifests. If a fetch fails and only cached data is available, that comparison is unavailable. Use `--offline` to compare cached manifests explicitly; cache warnings appear in text output and each JSON section's `warnings` array. Nix comparison is unavailable offline.
+| Option | Purpose |
+| --- | --- |
+| `--manager <name>` | Compare one manager instead of the complete platform set. |
+| `--profile <name>` | Select a profile. Windows accepts comma-separated profiles; Linux accepts one. |
+| `--offline` | Use cached manifests and skip the remote Nix comparison. |
+| `--json` | Print the result as JSON. |
 
 The command exits successfully when the compared state matches. It exits nonzero when differences are found or a required comparison is unavailable.
+
+## Platform differences
+
+| Platform | Compared state | Notes |
+| --- | --- | --- |
+| macOS | Homebrew taps, formulae, casks, and the active Nix system. | A built but not activated Nix system still differs from `/run/current-system`. |
+| Windows | Selected WinGet profiles and Scoop buckets/packages. | Store entries use the `msstore:<id>` manifest form. |
+| Linux | Declared apt or pacman packages. | Only missing declared packages matter; unrelated installed packages are ignored. |

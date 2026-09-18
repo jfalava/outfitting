@@ -1,19 +1,35 @@
 ---
 title: Setup
-description: Initialize Outfitting state and apply the first platform configuration.
+description: Apply the configured Outfitting platform baseline.
 sidebar:
   order: 1
 ---
 
-`setup` prepares and applies the platform configuration. Its work is platform-specific: macOS applies the repository's Nix and Homebrew declarations, Windows initializes state and applies selected package profiles, and Linux applies the selected apt or pacman package profile.
+`setup` prepares the local state, fetches the configured source when needed, and applies the platform baseline. Use [`init`](/docs/cli/init/) when you want to prepare or validate state without applying packages.
 
-## Platform commands
+## `setup`
 
-- [macOS init](/docs/cli/macos/init/) — validate the sparse source without machine changes.
-- [macOS setup](/docs/cli/macos/setup/) — apply the repository's Nix and Homebrew declarations.
-- [Windows setup](/docs/cli/windows/setup/) — initialize state, apply WinGet and Scoop profiles, and cache the PowerShell profile.
-- [Linux init](/docs/cli/linux/init/) — materialize the Linux source bundle and bootstrap Nix-backed profiles without changing native packages.
-- [Linux setup](/docs/cli/linux/) — apply the selected apt or pacman package profile.
-- [Linux install](/docs/cli/linux/install/) — hosted `linux.jfa.dev` bootstrap.
+```bash
+outfitting-manager setup
+```
 
-Use the platform page for flags, source overrides, profile selection, and collision behavior.
+The command installs or activates declared state. It does not update package-manager versions; use [`update`](/docs/cli/update/) for that.
+
+## Common options
+
+The exact flags depend on the compiled platform binary:
+
+| Option | Purpose |
+| --- | --- |
+| `--machine-id <id>` | Override the machine id used for remote state. |
+| `--manifest-base-url <url>` | Use a raw-compatible repository base URL. |
+| `--manifest-ref <ref>` | Use a branch, tag, or commit instead of `main`. |
+| `--no-fetch` | Use the source or manifest already cached locally. |
+
+## Platform differences
+
+| Platform | What `setup` applies | Platform-specific invocation |
+| --- | --- | --- |
+| macOS | The declared nix-darwin configuration and Homebrew items. Unrelated Homebrew packages are preserved. | `outfitting-manager setup`; add `--repo <path>` to use a local checkout. |
+| Windows | Selected WinGet and Scoop profiles, `windows.lock.json`, and the cached PowerShell profile. | `outfitting-manager setup --profile base,dev`; add `--winget-only` while bootstrapping WinGet or `--no-push` to keep the lock local. |
+| Linux | The selected apt or pacman package profile. Nix-backed profiles also bootstrap Home Manager. | `outfitting-manager setup --profile generic-linux`; add `--package-manager apt|pacman` to override detection. |

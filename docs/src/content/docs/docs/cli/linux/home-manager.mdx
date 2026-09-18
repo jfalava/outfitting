@@ -1,6 +1,7 @@
 ---
 title: Home Manager
 description: Apply Linux Home Manager configurations with the manager and shell helpers.
+audience: nix
 sidebar:
   order: 2
 ---
@@ -10,7 +11,7 @@ Nix-backed profiles (`ubuntu-wsl`, `oci-agents`) apply Home Manager during `init
 ## Manager
 
 ```bash
-outfitting-manager update nix         # lists build | switch | test | dry
+outfitting-manager update nix         # lists actions
 outfitting-manager update nix build
 outfitting-manager update nix test
 outfitting-manager update nix dry

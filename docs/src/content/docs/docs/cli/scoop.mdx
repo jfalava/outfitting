@@ -1,10 +1,35 @@
 ---
 title: Scoop
 description: Track manual Scoop package operations in the Windows machine lock.
+audience: windows
 sidebar:
   order: 9
 ---
 
-`scoop` installs or removes one or more packages and records each operation in `windows.lock.json`. It is available in the Windows manager build only.
+`scoop` installs or removes packages and records each operation in `windows.lock.json`. It is available only in the Windows manager build.
 
-See [Windows package commands](/docs/cli/windows/packages/) for `install`, `uninstall`, `--no-sync`, and the lock-recording behavior.
+## `scoop install`
+
+Install one or more Scoop package names:
+
+```powershell
+outfitting-manager scoop install extras/fzf
+```
+
+## `scoop uninstall`
+
+Remove one or more Scoop package names:
+
+```powershell
+outfitting-manager scoop uninstall fzf
+```
+
+Both subcommands accept `--no-sync` to update the local lock without uploading it. Native Scoop operations remain unmanaged unless they are included in a selected profile or run through this command.
+
+## Platform differences
+
+| Platform | Availability | Difference |
+| --- | --- | --- |
+| macOS | Not available | Use `update brew` or `update nix`. |
+| Windows | Available | Operations are recorded in `windows.lock.json` and normally pushed to the Worker. |
+| Linux | Not available | Use `update apt` or `update pacman`. |

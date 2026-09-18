@@ -1,6 +1,7 @@
 ---
 title: Init
 description: Prepare and validate the macOS repository source without applying machine state.
+audience: macos
 sidebar:
   order: 0
 ---
@@ -8,9 +9,9 @@ sidebar:
 `init` creates the local state root, fetches or selects the macOS source, and validates the repository contract. It does not activate Nix, change Homebrew, repair links, or publish inventory.
 
 ```bash
-outfit init
-outfit init --no-fetch
-outfit init --repo ~/src/my-machine-config
+outfitting-manager init
+outfitting-manager init --no-fetch
+outfitting-manager init --repo ~/src/my-machine-config
 ```
 
 The default sparse source must contain the paths used by the macOS adapter, including:

@@ -1,6 +1,7 @@
 ---
 title: Setup
 description: Initialize and apply the Windows Outfitting baseline.
+audience: windows
 sidebar:
   order: 3
 ---
@@ -8,9 +9,9 @@ sidebar:
 `setup` initializes state, fetches the configured routes, applies the selected WinGet and Scoop profiles, and refreshes the cached PowerShell profile.
 
 ```powershell
-outfit setup
-outfit setup --profile base,dev
-outfit setup --profile work --winget-only --no-push
+outfitting-manager setup
+outfitting-manager setup --profile base,dev
+outfitting-manager setup --profile work --winget-only --no-push
 ```
 
 Options are `--machine-id`, `--manifest-base-url`, `--manifest-ref`, `--profile`, `--winget-only`, and `--no-push`.

@@ -1,6 +1,7 @@
 ---
 title: Config
 description: Configure the Windows repository source and artifact routes.
+audience: windows
 sidebar:
   order: 1
 ---
@@ -8,7 +9,7 @@ sidebar:
 Run the interactive wizard to configure a compatible repository, its Windows artifact routes, and the profiles used on a new machine:
 
 ```powershell
-outfit config
+outfitting-manager config
 ```
 
 The wizard saves `%USERPROFILE%\.config\outfitting\config.json`. It configures the raw source URL and ref plus these repository-relative routes:

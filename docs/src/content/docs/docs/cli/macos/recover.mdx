@@ -1,6 +1,7 @@
 ---
 title: Recover
 description: Resume an interrupted macOS Nix update.
+audience: macos
 sidebar:
   order: 4
 ---
@@ -10,7 +11,7 @@ If Nix activation or lock publication is interrupted, the manager keeps a checkp
 Resume the pending operation with:
 
 ```bash
-outfit recover nix
+outfitting-manager recover nix
 ```
 
 `hm-recover` is the equivalent shell helper. Recovery requires the compiled manager; native Nix fallback cannot read or publish the manager checkpoint.

@@ -1,6 +1,7 @@
 ---
 title: Update
 description: Apply macOS Nix-darwin and Homebrew updates with outfitting-manager.
+audience: macos
 sidebar:
   order: 2
 ---
@@ -8,9 +9,9 @@ sidebar:
 `update` owns the macOS package and system update paths. Run one manager or the aggregate workflow:
 
 ```bash
-outfit update nix
-outfit update brew
-outfit update all
+outfitting-manager update nix
+outfitting-manager update brew
+outfitting-manager update all
 ```
 
 ## Nix-darwin
@@ -18,11 +19,11 @@ outfit update all
 Bare `update nix` only lists subcommands. The actions are:
 
 ```bash
-outfit update nix         # lists build | switch | test | dry
-outfit update nix build   # Build without activating
-outfit update nix test    # Test-build without activating
-outfit update nix dry     # Dry-run without activating
-outfit update nix switch  # Build and activate
+outfitting-manager update nix         # lists build | switch | test | dry
+outfitting-manager update nix build   # Build without activating
+outfitting-manager update nix test    # Test-build without activating
+outfitting-manager update nix dry     # Dry-run without activating
+outfitting-manager update nix switch  # Build and activate
 ```
 
 Nix uses the configured machine's canonical remote `nix` lock and does not create a repository `flake.lock`. If the lock cannot be downloaded, the command stops before building or activating. Check the lockfile service configuration, credentials, and connectivity before retrying; there is no local-lock fallback.
@@ -36,8 +37,8 @@ The source comes from `OUTFITTING_REPO` first, then a checkout saved by `setup -
 Pass `--no-sync` to `brew` or `all` to keep inventory and lock changes local:
 
 ```bash
-outfit update brew --no-sync
-outfit update all --no-sync
+outfitting-manager update brew --no-sync
+outfitting-manager update all --no-sync
 ```
 
 Global Bun packages are updated by Bun itself:
@@ -46,4 +47,4 @@ Global Bun packages are updated by Bun itself:
 bun update -g
 ```
 
-`outfit update bun` is deprecated and prints this replacement. Windows package-manager commands are unavailable in the macOS build.
+`outfitting-manager update bun` is deprecated and prints this replacement. Windows package-manager commands are unavailable in the macOS build.

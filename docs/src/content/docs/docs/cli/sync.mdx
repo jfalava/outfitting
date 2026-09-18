@@ -1,16 +1,105 @@
 ---
 title: Sync
-description: Reconcile platform state or transport remote lockfiles.
+description: Reconcile platform packages or transport remote lockfiles.
 sidebar:
   order: 3
 ---
 
-`sync` has platform-specific meaning. On macOS it is the primary name for the remote lockfile transport. On Windows it reconciles selected package profiles and writes the unified machine lock. On Linux it installs missing packages from the selected apt or pacman profile without removing unrelated packages; shared remote lockfile operations remain available as subcommands.
+`sync` is deliberately platform-specific. It reconciles package presence on Windows and Linux; on macOS it is the primary command for remote lockfile transport.
 
-## Platform commands
+## Invoke `sync`
 
-- [macOS sync](/docs/cli/macos/sync/) — use the remote lockfile transport; `lockfiles` remains an alias.
-- [Windows sync](/docs/cli/windows/sync/) — fetch profiles, reconcile WinGet and Scoop, materialize the PowerShell profile, and update `windows.lock.json`.
-- [Linux sync](/docs/cli/linux/maintenance/) — install missing declared apt or pacman packages; use `lockfiles` for shared remote lockfile transport.
+```bash
+outfitting-manager sync [subcommand] [flags]
+```
 
-For the shared `configure-worker`, `configure-token`, `push`, `pull`, `list`, and `history` operations, see [lockfiles](/docs/cli/lockfiles/).
+The machine id is inferred from `OUTFITTING_MACHINE_ID`, `config.json`, or the automatic `user:arch-os` value. It is not a positional argument.
+
+## Shared lockfile subcommands
+
+These subcommands are available below `sync` on every platform. [`lockfiles`](/docs/cli/lockfiles/) is an alias for the same remote operations.
+
+### `sync configure-worker`
+
+Store the lockfiles Worker URL.
+
+```bash
+outfitting-manager sync configure-worker https://example.com/api
+```
+
+### `sync configure-token`
+
+Prompt for and store the Worker API token.
+
+### `sync push`
+
+Upload a local lockfile. Omit the kind, or pass `all`, to push every known local lock path.
+
+```bash
+outfitting-manager sync push nix updated-flake.lock
+outfitting-manager sync push
+```
+
+Use `--if-match <sha256>` for an optimistic-concurrency check.
+
+### `sync pull`
+
+Download one lockfile or all tracked kinds. Known kinds get a default output path; pass an explicit path when needed.
+
+```bash
+outfitting-manager sync pull nix
+outfitting-manager sync pull windows restored-windows.lock.json
+outfitting-manager sync pull
+```
+
+### `sync list`
+
+List lockfile kinds tracked for the inferred machine.
+
+### `sync history`
+
+Show version history for one kind or, when omitted, every tracked kind.
+
+```bash
+outfitting-manager sync history nix
+outfitting-manager sync history
+```
+
+## Linux package subcommands
+
+### `sync all`
+
+Install missing declared packages using detected apt or pacman. Unrelated installed packages are preserved.
+
+### `sync apt`
+
+Install missing declared apt packages without removing unrelated packages.
+
+### `sync pacman`
+
+Install missing declared pacman packages without removing unrelated packages.
+
+The Linux package forms accept `--profile` and `--offline`.
+
+## Windows package synchronization
+
+### Bare `sync`
+
+On Windows, bare `sync` fetches the selected WinGet and Scoop manifests, installs the desired packages, removes tracked packages outside the selected baseline after confirmation, refreshes the PowerShell profile, and writes `windows.lock.json`.
+
+```powershell
+outfitting-manager sync
+outfitting-manager sync --profile base,dev
+outfitting-manager sync --profile base --winget-only
+outfitting-manager sync --no-push
+```
+
+`--winget-only` skips Scoop while bootstrapping. `--no-push` writes the local lock without uploading it. Regular profiles include Microsoft Store entries marked `msstore:<id>`.
+
+## Platform differences
+
+| Platform | Meaning of `sync` | Invocation |
+| --- | --- | --- |
+| macOS | Remote inventory and lockfile transport. There is no package-reconciliation action named bare `sync`. | `outfitting-manager sync push nix updated-flake.lock`; use `sync configure-worker|configure-token|pull|list|history` for the other operations. |
+| Windows | Desired-state package reconciliation for WinGet and Scoop, including the unified `windows.lock.json`. | `outfitting-manager sync [--profile base,dev]`; use `outfitting-manager lockfiles <subcommand>` for direct remote lockfile transport. |
+| Linux | Presence-based package reconciliation for apt or pacman. Missing declared packages are installed; unrelated packages are not removed. | `outfitting-manager sync all|apt|pacman`; use `outfitting-manager sync [lockfile-subcommand]` for remote transport. |

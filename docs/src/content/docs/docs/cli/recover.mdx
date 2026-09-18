@@ -2,13 +2,25 @@
 title: Recover
 description: Resume an interrupted Outfitting-managed operation.
 sidebar:
-  order: 5
+  order: 6
 ---
 
-`recover` resumes work from a manager-owned checkpoint instead of starting an update over. The manager currently exposes recovery for interrupted macOS Nix operations.
+`recover` resumes a manager-owned checkpoint instead of starting an update over.
 
-## Platform command
+## `recover nix`
 
-- [macOS recover](/docs/cli/macos/recover/) — run `outfit recover nix` to resume and publish a pending Nix operation.
+On macOS, resume an interrupted nix-darwin activation or lock publication:
 
-Windows and Linux do not expose a manager `recover` command. Their platform pages describe package retry and generation rollback workflows separately.
+```bash
+outfitting-manager recover nix
+```
+
+The checkpoint is stored under `$XDG_STATE_HOME/outfitting/nix-lock-recovery`, or `$HOME/.local/state/outfitting/nix-lock-recovery` by default. The `hm-recover` shell helper invokes the same recovery path.
+
+## Platform differences
+
+| Platform | Available subcommands | Difference |
+| --- | --- | --- |
+| macOS | `recover nix` | Resumes and publishes a pending nix-darwin operation. |
+| Windows | None | Retry `sync`, `setup`, or the relevant package-manager command. |
+| Linux | None | Retry the package or Home Manager command; rollback is handled by the platform's Nix tools. |
