@@ -98,6 +98,7 @@ in
   programs.zsh = {
     sessionVariables.EDITOR = lib.mkForce "vim";
     shellAliases.editor = lib.mkForce "vim";
+    shellAliases.outfit = "outfitting-manager";
 
     plugins = lib.mkAfter [
       {
