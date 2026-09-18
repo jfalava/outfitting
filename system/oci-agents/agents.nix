@@ -43,10 +43,16 @@ in
     "amp.terminal.detailsExpandedByDefault" = false;
   };
 
-  # OpenCode's real binary lives at ~/.opencode/bin (official installer). The
-  # shared programs.opencode module still owns config + the web unit (wrapper
-  # package → that binary) and binds 0.0.0.0:4096. Keep the password in the
-  # user-owned file rather than putting it in the Nix store.
+  # Keep OpenCode's configuration in Home Manager, but do not put even a
+  # wrapper for its upstream-installed binary in the Nix profile. The web
+  # service below launches ~/.opencode/bin/opencode directly. The pinned Home
+  # Manager module requires a non-null package, so use an empty placeholder
+  # that contributes no executable to the profile.
+  programs.opencode.package = lib.mkForce (
+    pkgs.runCommand "opencode-external" { } "mkdir -p $out"
+  );
+  programs.opencode.web.enable = lib.mkForce false;
+
   home.activation.ensureOpenCodeServiceEnv = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
     env_file="${config.xdg.configHome}/opencode/service.env"
     if [ -L "$env_file" ]; then
@@ -60,6 +66,20 @@ in
       chmod 600 "$env_file"
     fi
   '';
+
+  systemd.user.services.opencode-web = {
+    Unit = {
+      Description = "OpenCode Web Service";
+      After = [ "network.target" ];
+    };
+    Service = {
+      ExecStart = "${home}/.opencode/bin/opencode serve --hostname 0.0.0.0 --port 4096";
+      EnvironmentFile = "${config.xdg.configHome}/opencode/service.env";
+      Restart = "always";
+      RestartSec = 5;
+    };
+    Install.WantedBy = [ "default.target" ];
+  };
 
   systemd.user.services.amp-runner = {
     Unit = {

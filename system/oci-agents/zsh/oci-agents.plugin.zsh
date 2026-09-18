@@ -1,18 +1,28 @@
-# shellcheck shell=zsh
+# shellcheck shell=bash
 # oci-agents interactive helpers without a native Home Manager option.
 
 OUTFITTING_HM_DIR="system/oci-agents"
 OUTFITTING_HM_ATTR="oci-agents"
 
+# Load shared hm-* (manager first, native fallback). Prefer the always-installed
+# outfitting plugin dir, then monorepo/sparse/checkout paths.
 _oci_source_hm_profile() {
-    local candidates=(
+    local plugin_path plugin_dir candidates path
+    # funcfiletrace[1] is this file when sourced; strip its line suffix.
+    # zsh provides funcfiletrace as a special array.
+    # shellcheck disable=SC2154
+    plugin_path="${funcfiletrace[1]%:*}"
+    plugin_dir="${plugin_path:A:h}"
+    candidates=(
+        "$HOME/.zsh/plugins/outfitting/hm-profile.inc.zsh"
+        "$plugin_dir/../../common/zsh/hm-profile.inc.zsh"
         "${OUTFITTING_REPO:+$OUTFITTING_REPO/system/common/zsh/hm-profile.inc.zsh}"
         "$HOME/.config/outfitting/source/system/common/zsh/hm-profile.inc.zsh"
+        "$HOME/code/outfitting/system/common/zsh/hm-profile.inc.zsh"
     )
     if [ -L "$HOME/.config/home-manager" ]; then
-        candidates+=("$(readlink -f "$HOME/.config/home-manager")/../common/zsh/hm-profile.inc.zsh")
+        candidates+=("$(/bin/readlink -f "$HOME/.config/home-manager")/../common/zsh/hm-profile.inc.zsh")
     fi
-    local path
     for path in "${candidates[@]}"; do
         [ -n "$path" ] || continue
         if [ -r "$path" ]; then
