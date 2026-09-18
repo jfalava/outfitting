@@ -3,17 +3,29 @@ import { Console, Effect } from "effect";
 
 import { CliFailure } from "@/errors";
 import { tryPromise, toError } from "@/lockfiles/effect";
-import { isGitTrackedFile, normalizeSha256 } from "@/lockfiles/files";
+import {
+  inferOutputPath,
+  isGitTrackedFile,
+  KNOWN_LOCKFILE_KINDS,
+  normalizeSha256,
+  resolveKindSelection,
+} from "@/lockfiles/files";
+import { resolveLockfileMachine } from "@/lockfiles/machine";
 import { request } from "@/lockfiles/request";
 import type { PushLockfileOptions } from "@/lockfiles/types";
 import { ui } from "@/ui";
 
-export const pushLockfile = ({
+const pushOne = ({
   machine,
   kind,
   path,
   ifMatch: requestedIfMatch,
-}: PushLockfileOptions) =>
+}: {
+  machine: string;
+  kind: string;
+  path: string;
+  ifMatch?: string;
+}) =>
   Effect.gen(function* () {
     const ifMatch = requestedIfMatch
       ? yield* Effect.try({
@@ -66,5 +78,69 @@ export const pushLockfile = ({
         `${ui.key(`${machine}/${kind}`)} ${ui.hash(result.hash)} ${ui.muted(`(${result.size} bytes)`)}`,
       ),
     );
+    return undefined;
+  });
+
+export const pushLockfile = ({
+  machine: requestedMachine,
+  kind,
+  path,
+  ifMatch: requestedIfMatch,
+}: PushLockfileOptions) =>
+  Effect.gen(function* () {
+    const machine = yield* resolveLockfileMachine(requestedMachine);
+
+    const selection = resolveKindSelection(kind);
+    if (selection.mode === "one") {
+      if (path === undefined) {
+        return yield* new CliFailure({
+          message: `path is required when pushing kind "${selection.kind}".`,
+        });
+      }
+      yield* pushOne({
+        machine,
+        kind: selection.kind,
+        path,
+        ifMatch: requestedIfMatch,
+      });
+      return undefined;
+    }
+
+    if (path !== undefined) {
+      return yield* new CliFailure({
+        message: "path cannot be combined with kind all; each kind uses its default local path.",
+      });
+    }
+    if (requestedIfMatch !== undefined) {
+      return yield* new CliFailure({
+        message: "--if-match cannot be combined with kind all.",
+      });
+    }
+
+    let pushed = 0;
+    for (const selectedKind of KNOWN_LOCKFILE_KINDS) {
+      const localPath = inferOutputPath(selectedKind);
+      if (localPath === undefined) {
+        continue;
+      }
+      const file = Bun.file(localPath);
+      if (!(yield* tryPromise(() => file.exists()))) {
+        continue;
+      }
+      if (yield* tryPromise(() => isGitTrackedFile(localPath))) {
+        yield* Console.log(ui.muted(`Skipped Git-tracked ${selectedKind} at ${localPath}.`));
+        continue;
+      }
+      yield* pushOne({ machine, kind: selectedKind, path: localPath });
+      pushed += 1;
+    }
+
+    if (pushed === 0) {
+      yield* Console.log(
+        ui.muted(
+          `No local lockfiles found to push for ${machine}. Expected default paths for: ${KNOWN_LOCKFILE_KINDS.join(", ")}.`,
+        ),
+      );
+    }
     return undefined;
   });

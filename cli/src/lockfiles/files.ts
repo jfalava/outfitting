@@ -55,6 +55,36 @@ export function inferOutputPath(kind: string): string | undefined {
   return isOutputPathKind(normalizedKind) ? OUTPUT_PATHS[normalizedKind] : undefined;
 }
 
+/** Canonical kind names that map to a default local filename. */
+export const KNOWN_LOCKFILE_KINDS = [
+  "bun",
+  "bun-global-inventory",
+  "homebrew-inventory",
+  "nix",
+  "npm",
+  "powershell-inventory",
+  "private-fonts",
+  "scoop-inventory",
+  "windows",
+  "winget",
+] as const satisfies ReadonlyArray<OutputPathKind>;
+
+export type KindSelection =
+  | { readonly mode: "all" }
+  | { readonly mode: "one"; readonly kind: string };
+
+/**
+ * Resolve whether the kind selects every tracked/known lockfile (`all`)
+ * or a single concrete kind name.
+ */
+export function resolveKindSelection(kind: string | undefined): KindSelection {
+  const trimmed = kind?.trim();
+  if (trimmed === undefined || trimmed.toLowerCase() === "all") {
+    return { mode: "all" };
+  }
+  return { mode: "one", kind: trimmed };
+}
+
 export async function isGitTrackedFile(path: string): Promise<boolean> {
   const requestedPath = resolvePath(path);
   const absolutePath = await realpath(requestedPath).catch((cause: unknown) => {

@@ -13,6 +13,7 @@ import {
   normalizeSha256,
   normalizeWorkerUrl,
   pullLockfile,
+  resolveKindSelection,
 } from "@/lockfiles";
 
 const execFileAsync = promisify(execFile);
@@ -70,5 +71,16 @@ describe("lockfiles command helpers", () => {
   test("validates and normalizes SHA-256 preconditions", () => {
     expect(normalizeSha256("A".repeat(64))).toBe("a".repeat(64));
     expect(() => normalizeSha256("abc")).toThrow("64-character SHA-256");
+  });
+
+  test("treats omitted and all kinds as the all selection", () => {
+    expect(resolveKindSelection(undefined)).toEqual({ mode: "all" });
+    expect(resolveKindSelection("all")).toEqual({ mode: "all" });
+    expect(resolveKindSelection(" ALL ")).toEqual({ mode: "all" });
+    expect(resolveKindSelection("nix")).toEqual({ mode: "one", kind: "nix" });
+    expect(resolveKindSelection(" homebrew-inventory ")).toEqual({
+      mode: "one",
+      kind: "homebrew-inventory",
+    });
   });
 });

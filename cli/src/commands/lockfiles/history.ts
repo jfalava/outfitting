@@ -1,10 +1,13 @@
+import { Option } from "effect";
 import { Command } from "effect/unstable/cli";
 
-import { kindArgument, machineArgument } from "@/commands/lockfiles/arguments";
+import { kindArgument } from "@/commands/lockfiles/arguments";
 import { historyLockfiles } from "@/lockfiles";
 
-export const historyCommand = Command.make(
-  "history",
-  { machine: machineArgument, kind: kindArgument },
-  ({ machine, kind }) => historyLockfiles(machine, kind),
-).pipe(Command.withDescription("Show version history for a machine and kind."));
+export const historyCommand = Command.make("history", { kind: kindArgument }, ({ kind }) =>
+  historyLockfiles({ kind: Option.getOrUndefined(kind) }),
+).pipe(
+  Command.withDescription(
+    "Show version history for this machine. Omit kind (or pass all) for every tracked kind.",
+  ),
+);

@@ -1,9 +1,13 @@
 import { Argument } from "effect/unstable/cli";
 
-export const machineArgument = Argument.String("machine").pipe(
-  Argument.withDescription("Machine identifier, conventionally username:platform."),
-);
-
+/**
+ * Optional lockfile kind. When omitted (or `all`), list/history/pull/push
+ * operate on every tracked or known kind for the resolved machine.
+ * Machine id is never a CLI argument: OUTFITTING_MACHINE_ID → config.json → auto.
+ */
 export const kindArgument = Argument.String("kind").pipe(
-  Argument.withDescription("Free-form lockfile kind, such as nix, bun, winget, or windows."),
+  Argument.optional,
+  Argument.withDescription(
+    "Lockfile kind such as nix, windows, or homebrew-inventory; omit or pass all for every kind.",
+  ),
 );
