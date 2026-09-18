@@ -6,8 +6,10 @@ export const COMMON_SOURCE_PATHS = [
   "system/common/dotfiles.nix",
   "system/common/zsh.nix",
   "system/common/zsh/outfitting.plugin.zsh",
+  "system/common/zsh/hm-profile.inc.zsh",
   "packages/common/programs.nix",
   "packages/common/packages.nix",
+  "packages/common/opencode-mcp.nix",
   "dotfiles/ssh.config",
 ] as const;
 

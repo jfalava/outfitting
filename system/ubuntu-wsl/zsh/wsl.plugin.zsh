@@ -1,6 +1,30 @@
 # shellcheck shell=zsh
-
 # WSL-specific interactive behavior without a native Home Manager option.
+
+OUTFITTING_HM_DIR="system/ubuntu-wsl"
+OUTFITTING_HM_ATTR="jfalava"
+
+_wsl_source_hm_profile() {
+    local candidates=(
+        "${OUTFITTING_REPO:+$OUTFITTING_REPO/system/common/zsh/hm-profile.inc.zsh}"
+        "$HOME/.config/outfitting/source/system/common/zsh/hm-profile.inc.zsh"
+    )
+    if [ -L "$HOME/.config/home-manager" ]; then
+        candidates+=("$(readlink -f "$HOME/.config/home-manager")/../common/zsh/hm-profile.inc.zsh")
+    fi
+    local path
+    for path in "${candidates[@]}"; do
+        [ -n "$path" ] || continue
+        if [ -r "$path" ]; then
+            # shellcheck source=/dev/null
+            . "$path"
+            return 0
+        fi
+    done
+    return 1
+}
+_wsl_source_hm_profile
+unset -f _wsl_source_hm_profile
 
 port() {
     if [ -z "$1" ]; then
@@ -8,50 +32,6 @@ port() {
         return 1
     fi
     sudo lsof -i ":$1" || sudo ss -tulpn | command grep ":$1"
-}
-
-_outfitting_repo() {
-    echo "${OUTFITTING_REPO:-$HOME/.config/outfitting/source}"
-}
-
-_ensure_home_manager_link() {
-    local repo_path target
-    repo_path=$(_outfitting_repo)
-    target="$repo_path/system/ubuntu-wsl"
-    mkdir -p "$HOME/.config"
-
-    if [ ! -L "$HOME/.config/home-manager" ] ||
-       [ "$(readlink -f "$HOME/.config/home-manager")" != "$(readlink -f "$target")" ]; then
-        ln -sfn "$target" "$HOME/.config/home-manager"
-    fi
-}
-
-hm-sync() {
-    local repo_path
-    repo_path=$(_outfitting_repo)
-    _ensure_home_manager_link || return 1
-    home-manager switch --flake "path:$repo_path/system/ubuntu-wsl#jfalava" --impure
-}
-
-hm-switch() {
-    hm-sync
-}
-
-hm-update() {
-    local repo_path
-    repo_path=$(_outfitting_repo)
-    _ensure_home_manager_link || return 1
-    nix flake update --flake "$repo_path/system/ubuntu-wsl" &&
-        home-manager switch --flake "path:$repo_path/system/ubuntu-wsl#jfalava" --impure
-}
-
-hm-rollback() {
-    home-manager generations
-    echo "Run the activation script of the generation you want to restore."
-}
-
-hm-clean() {
-    nix-collect-garbage -d
 }
 
 update-all() {
@@ -67,36 +47,3 @@ update-all() {
 remote-update() {
     curl -L https://wsl.jfa.dev | bash -s -- --update-only
 }
-
-# Keep one agent available across WSL shell sessions.
-mkdir -p "$HOME/.ssh"
-chmod 700 "$HOME/.ssh" 2>/dev/null || true
-SSH_AGENT_FILE="$HOME/.ssh/agent-env"
-if [ -f "$SSH_AGENT_FILE" ]; then
-    # shellcheck disable=SC1090
-    eval "$(cat "$SSH_AGENT_FILE")" >/dev/null 2>&1
-fi
-if [ -z "${SSH_AUTH_SOCK:-}" ] || [ ! -S "$SSH_AUTH_SOCK" ]; then
-    if command -v ssh-agent >/dev/null 2>&1; then
-        ssh_agent_output="$(ssh-agent -s)"
-        printf '%s\n' "$ssh_agent_output" > "$SSH_AGENT_FILE"
-        eval "$ssh_agent_output" >/dev/null 2>&1
-        chmod 600 "$SSH_AGENT_FILE"
-    fi
-fi
-unset SSH_AGENT_FILE
-
-# Load the preferred GitHub auth key once when the agent has no identities.
-if [ -n "${SSH_AUTH_SOCK:-}" ] && [ -S "$SSH_AUTH_SOCK" ] && command -v ssh-add >/dev/null 2>&1; then
-    if ! ssh-add -l >/dev/null 2>&1; then
-        for _wsl_key in \
-            "$HOME/.ssh/jfalava-gitAuth-elliptic" \
-            "$HOME/.ssh/id-ed25519"; do
-            if [ -f "$_wsl_key" ]; then
-                ssh-add -q "$_wsl_key" </dev/null >/dev/null 2>&1 || true
-                break
-            fi
-        done
-        unset _wsl_key
-    fi
-fi

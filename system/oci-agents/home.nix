@@ -115,36 +115,9 @@ in
   };
 
   # Headless host: drop the Chrome DevTools MCP that needs a local browser.
-  programs.opencode.settings.mcp = lib.mkForce {
-    "Cloudflare" = {
-      type = "remote";
-      url = "https://mcp.cloudflare.com/mcp";
-      oauth = { };
-    };
-    "Cloudflare Bindings" = {
-      type = "remote";
-      url = "https://bindings.mcp.cloudflare.com/mcp";
-      oauth = { };
-    };
-    "Cloudflare Builds" = {
-      type = "remote";
-      url = "https://builds.mcp.cloudflare.com/mcp";
-      oauth = { };
-    };
-    "Cloudflare Docs" = {
-      type = "remote";
-      url = "https://docs.mcp.cloudflare.com/mcp";
-      oauth = { };
-    };
-    "Cloudflare Observability" = {
-      type = "remote";
-      url = "https://observability.mcp.cloudflare.com/mcp";
-      oauth = { };
-    };
-    "Machine Memory" = {
-      type = "remote";
-      url = "https://machine-memory.jfa.dev/mcp";
-      oauth = { };
-    };
-  };
+  programs.opencode.settings.mcp = lib.mkForce (
+    builtins.removeAttrs (import "${outfittingRepo}/packages/common/opencode-mcp.nix") [
+      "Chrome DevTools"
+    ]
+  );
 }

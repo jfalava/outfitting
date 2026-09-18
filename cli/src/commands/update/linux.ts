@@ -1,49 +1,30 @@
 import { Option } from "effect";
-import { Command, Flag } from "effect/unstable/cli";
+import { Command } from "effect/unstable/cli";
 
+import {
+  linuxOfflineFlag,
+  linuxOptionalProfileFlag,
+  linuxPackageManagerFlag,
+  optionalString,
+  requestedLinuxPackageManager,
+} from "@/commands/linux-flags";
 import { foreignPackageManagerStub } from "@/commands/update/stubs";
 import { foreignPackageManagers, type HostPlatform, type PackageManager } from "@/platform";
 import { type LinuxPackageManager } from "@/platform/linux";
 import { updateBun } from "@/update/bun";
-import { LINUX_PROFILES, updateLinux } from "@/update/linux";
+import { updateLinux } from "@/update/linux";
 
-const profileFlag = Flag.String("profile").pipe(
-  Flag.optional,
-  Flag.withDescription(`Linux profile (default: ${LINUX_PROFILES[0]}).`),
-);
-
-const packageManagerFlag = Flag.String("package-manager").pipe(
-  Flag.optional,
-  Flag.withDescription("Override distro detection with apt or pacman."),
-);
-
-const offlineFlag = Flag.Boolean("offline").pipe(
-  Flag.withDefault(false),
-  Flag.withDescription("Use the cached Linux package manifest without a network request."),
-);
-
-function optional(value: Option.Option<string>): string | undefined {
-  return Option.getOrUndefined(value);
-}
-
-function requestedPackageManager(value: string | undefined): LinuxPackageManager | undefined {
-  if (value === undefined) {
-    return undefined;
-  }
-  if (value !== "apt" && value !== "pacman") {
-    throw new Error(`Unknown Linux package manager \`${value}\`. Choose: apt or pacman.`);
-  }
-  return value;
-}
-
-function runLinuxUpdate(flags: {
-  profile: Option.Option<string>;
-  packageManager: Option.Option<string>;
-  offline: boolean;
-}, manager?: LinuxPackageManager) {
+function runLinuxUpdate(
+  flags: {
+    profile: Option.Option<string>;
+    packageManager: Option.Option<string>;
+    offline: boolean;
+  },
+  manager?: LinuxPackageManager,
+) {
   return updateLinux({
-    profile: optional(flags.profile),
-    packageManager: requestedPackageManager(optional(flags.packageManager)) ?? manager,
+    profile: optionalString(flags.profile),
+    packageManager: requestedLinuxPackageManager(flags.packageManager) ?? manager,
     offline: flags.offline,
   });
 }
@@ -57,9 +38,9 @@ function makeLinuxManagerCommand(manager?: LinuxPackageManager) {
   return Command.make(
     manager ?? "all",
     {
-      profile: profileFlag,
-      packageManager: packageManagerFlag,
-      offline: offlineFlag,
+      profile: linuxOptionalProfileFlag,
+      packageManager: linuxPackageManagerFlag,
+      offline: linuxOfflineFlag,
     },
     (flags) => runLinuxUpdate(flags, manager),
   ).pipe(
@@ -82,9 +63,9 @@ export const makeLinuxUpdateCommand = () => {
   return Command.make(
     "update",
     {
-      profile: profileFlag,
-      packageManager: packageManagerFlag,
-      offline: offlineFlag,
+      profile: linuxOptionalProfileFlag,
+      packageManager: linuxPackageManagerFlag,
+      offline: linuxOfflineFlag,
     },
     (flags) => runLinuxUpdate(flags),
   ).pipe(

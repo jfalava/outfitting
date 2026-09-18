@@ -32,5 +32,5 @@ fi
 ln -sfn "$home_manager_target" "$home_manager_link"
 
 export OUTFITTING_REPO="$repo_root"
-nix run home-manager/master -- \
+nix run github:nix-community/home-manager/release-26.05 -- \
   switch --impure --flake "path:$repo_root/system/ubuntu-wsl#jfalava"

@@ -1,31 +1,21 @@
-import { Option } from "effect";
-import { Command, Flag } from "effect/unstable/cli";
+import { Command } from "effect/unstable/cli";
 
+import {
+  linuxOfflineFlag,
+  linuxOptionalProfileFlag,
+  optionalString,
+} from "@/commands/linux-flags";
 import { syncSubcommands } from "@/commands/sync";
 import { type LinuxPackageManager } from "@/platform/linux";
-import { LINUX_PROFILES, syncLinux } from "@/update/linux";
-
-const profileFlag = Flag.String("profile").pipe(
-  Flag.optional,
-  Flag.withDescription(`Linux profile (default: ${LINUX_PROFILES[0]}).`),
-);
-
-const offlineFlag = Flag.Boolean("offline").pipe(
-  Flag.withDefault(false),
-  Flag.withDescription("Use the cached Linux package manifest without a network request."),
-);
-
-function optional(value: Option.Option<string>): string | undefined {
-  return Option.getOrUndefined(value);
-}
+import { syncLinux } from "@/update/linux";
 
 function makeLinuxSyncSubcommand(manager?: LinuxPackageManager) {
   return Command.make(
     manager ?? "all",
-    { profile: profileFlag, offline: offlineFlag },
+    { profile: linuxOptionalProfileFlag, offline: linuxOfflineFlag },
     (flags) =>
       syncLinux({
-        profile: optional(flags.profile),
+        profile: optionalString(flags.profile),
         packageManager: manager,
         offline: flags.offline,
       }),
