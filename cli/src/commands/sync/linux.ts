@@ -1,10 +1,6 @@
 import { Command } from "effect/unstable/cli";
 
-import {
-  linuxOfflineFlag,
-  linuxOptionalProfileFlag,
-  optionalString,
-} from "@/commands/linux-flags";
+import { linuxOfflineFlag, linuxOptionalProfileFlag, optionalString } from "@/commands/linux-flags";
 import { syncSubcommands } from "@/commands/sync";
 import { type LinuxPackageManager } from "@/platform/linux";
 import { syncLinux } from "@/update/linux";

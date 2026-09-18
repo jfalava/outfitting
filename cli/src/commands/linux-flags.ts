@@ -11,7 +11,9 @@ export const linuxProfileFlag = Flag.String("profile").pipe(
 
 export const linuxOptionalProfileFlag = Flag.String("profile").pipe(
   Flag.optional,
-  Flag.withDescription(`Linux profile (default: ${LINUX_PROFILES[0]} or config.json linux.profile).`),
+  Flag.withDescription(
+    `Linux profile (default: ${LINUX_PROFILES[0]} or config.json linux.profile).`,
+  ),
 );
 
 export const linuxPackageManagerFlag = Flag.String("package-manager").pipe(
@@ -29,14 +31,9 @@ export function optionalString(value: Option.Option<string>): string | undefined
 }
 
 export function requestedLinuxPackageManager(
-  value: string | Option.Option<string> | undefined,
+  value: Option.Option<string>,
 ): LinuxPackageManager | undefined {
-  const manager =
-    value === undefined
-      ? undefined
-      : typeof value === "string"
-        ? value
-        : optionalString(value);
+  const manager = optionalString(value);
   if (manager === undefined) {
     return undefined;
   }
@@ -46,11 +43,9 @@ export function requestedLinuxPackageManager(
   return manager;
 }
 
-export function requireLinuxProfile(profile: string): typeof LINUX_PROFILES[number] {
+export function requireLinuxProfile(profile: string): (typeof LINUX_PROFILES)[number] {
   if (!isLinuxProfile(profile)) {
-    throw new Error(
-      `Unknown Linux profile \`${profile}\`. Choose: ${LINUX_PROFILES.join(", ")}.`,
-    );
+    throw new Error(`Unknown Linux profile \`${profile}\`. Choose: ${LINUX_PROFILES.join(", ")}.`);
   }
   return profile;
 }
