@@ -34,3 +34,13 @@ ln -sfn "$home_manager_target" "$home_manager_link"
 export OUTFITTING_REPO="$repo_root"
 nix run github:nix-community/home-manager/release-26.05 -- \
   switch --impure --flake "path:$repo_root/system/ubuntu-wsl#jfalava"
+
+# Ubuntu ships GSSAPIAuthentication yes; Nix OpenSSH has no GSSAPI and warns on
+# every ssh/git call. Comment it out when sudo is available.
+if [[ -r /etc/ssh/ssh_config ]] &&
+  grep -Eq '^[[:space:]]*GSSAPIAuthentication[[:space:]]+yes[[:space:]]*$' /etc/ssh/ssh_config &&
+  command -v sudo >/dev/null 2>&1; then
+  sudo sed -i \
+    's/^[[:space:]]*GSSAPIAuthentication[[:space:]]\+yes[[:space:]]*$/    # GSSAPIAuthentication yes  # disabled: Nix OpenSSH has no GSSAPI/' \
+    /etc/ssh/ssh_config || true
+fi

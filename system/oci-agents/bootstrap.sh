@@ -72,6 +72,30 @@ export OUTFITTING_REPO="$repo_root"
 nix run github:nix-community/home-manager/release-26.05 -- \
   switch --impure --flake "$repo_root/system/oci-agents#oci-agents"
 
+# Ubuntu ships GSSAPIAuthentication yes in /etc/ssh/ssh_config. Nix OpenSSH is
+# built without GSSAPI, so every ssh/git call prints:
+#   /etc/ssh/ssh_config line N: Unsupported option "gssapiauthentication"
+# Comment the option out; package upgrades may restore it and need a re-run.
+ensure_system_ssh_no_gssapi() {
+  local ssh_config="/etc/ssh/ssh_config"
+  if [[ ! -r "$ssh_config" ]]; then
+    return 0
+  fi
+  if ! grep -Eq '^[[:space:]]*GSSAPIAuthentication[[:space:]]+yes[[:space:]]*$' "$ssh_config"; then
+    return 0
+  fi
+  if ! command -v sudo >/dev/null 2>&1; then
+    log "cannot silence GSSAPIAuthentication in $ssh_config without sudo"
+    return 0
+  fi
+  log "disabling GSSAPIAuthentication in $ssh_config (Nix OpenSSH has no GSSAPI)"
+  sudo sed -i \
+    's/^[[:space:]]*GSSAPIAuthentication[[:space:]]\+yes[[:space:]]*$/    # GSSAPIAuthentication yes  # disabled: Nix OpenSSH has no GSSAPI/' \
+    "$ssh_config" || log "could not edit $ssh_config"
+}
+
+ensure_system_ssh_no_gssapi
+
 # Home Manager installs zsh but does not change the login shell on Ubuntu.
 # Without this, SSH sessions stay on bash and never load programs.zsh.
 ensure_login_shell_zsh() {
