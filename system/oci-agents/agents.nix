@@ -26,6 +26,14 @@ let
     "SHELL=${config.home.profileDirectory}/bin/zsh"
   ];
   machineGuidance = builtins.readFile ./agent-guidance.md;
+  # Bind only the Tailscale IPv4 address. 0.0.0.0 would also listen on the
+  # public OCI IPv6/IPv4 path; 127.0.0.1 would drop direct tailnet access.
+  # tailscale ip -4 is resolved at start so the unit survives CGNAT renumbering.
+  opencodeWebScript = pkgs.writeShellScript "opencode-web" ''
+    set -euo pipefail
+    host="$(${pkgs.tailscale}/bin/tailscale ip -4)"
+    exec ${home}/.opencode/bin/opencode serve --hostname "$host" --port 4096
+  '';
 in
 {
   home.sessionPath = [
@@ -77,11 +85,15 @@ in
   systemd.user.services.opencode-web = {
     Unit = {
       Description = "OpenCode Web Service";
-      After = [ "network.target" ];
+      After = [
+        "network-online.target"
+        "tailscaled.service"
+      ];
+      Wants = [ "network-online.target" ];
     };
     Service = {
       WorkingDirectory = codeRoot;
-      ExecStart = "${home}/.opencode/bin/opencode serve --hostname 0.0.0.0 --port 4096";
+      ExecStart = "${opencodeWebScript}";
       EnvironmentFile = "${config.xdg.configHome}/opencode/service.env";
       Environment = serviceEnvironment;
       Restart = "always";

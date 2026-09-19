@@ -254,9 +254,12 @@
     };
     web = {
       enable = true;
+      # Localhost only. Do not use 0.0.0.0 — that exposes the password-gated UI on
+      # every interface (LAN, public IPv4/IPv6). Reach from another machine via
+      # Tailscale serve, SSH tunnel, or a host-specific bind override.
       extraArgs = [
         "--hostname"
-        "0.0.0.0"
+        "127.0.0.1"
         "--port"
         "4096"
       ];
