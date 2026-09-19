@@ -28,9 +28,10 @@ let
   machineGuidance = builtins.readFile ./agent-guidance.md;
   # Both UIs bind loopback only. Ingress is Tailscale Serve (HM-owned), not
   # 0.0.0.0 and not the raw Tailscale IP. Hostname-per-app via HTTPS ports:
-  #   :443  → T3      (https://oci-agents.<tailnet>.ts.net/)
+  #   :3773 → T3      (https://oci-agents.<tailnet>.ts.net:3773/)
   #   :8443 → OpenCode (https://oci-agents.<tailnet>.ts.net:8443/)
-  # Path mounts are avoided: neither SPA has a reliable base-path mode.
+  # Nothing is mounted on default :443. Path mounts are avoided: neither SPA
+  # has a reliable base-path mode.
   tailscaleBin = "${pkgs.tailscale}/bin/tailscale";
   tailscaleServeScript = pkgs.writeShellScript "oci-agents-tailscale-serve" ''
     set -euo pipefail
@@ -43,7 +44,7 @@ let
       sleep 1
     done
     ${tailscaleBin} serve reset || true
-    ${tailscaleBin} serve --bg --yes --https=443 http://127.0.0.1:3773
+    ${tailscaleBin} serve --bg --yes --https=3773 http://127.0.0.1:3773
     ${tailscaleBin} serve --bg --yes --https=8443 http://127.0.0.1:4096
   '';
 in
@@ -155,7 +156,7 @@ in
   # so a cold boot does not publish empty handlers first.
   systemd.user.services.tailscale-serve = {
     Unit = {
-      Description = "Tailscale Serve map for oci-agents (T3 :443, OpenCode :8443)";
+      Description = "Tailscale Serve map for oci-agents (T3 :3773, OpenCode :8443)";
       After = [
         "network-online.target"
         "tailscaled.service"
