@@ -26,13 +26,25 @@ let
     "SHELL=${config.home.profileDirectory}/bin/zsh"
   ];
   machineGuidance = builtins.readFile ./agent-guidance.md;
-  # Bind only the Tailscale IPv4 address. 0.0.0.0 would also listen on the
-  # public OCI IPv6/IPv4 path; 127.0.0.1 would drop direct tailnet access.
-  # tailscale ip -4 is resolved at start so the unit survives CGNAT renumbering.
-  opencodeWebScript = pkgs.writeShellScript "opencode-web" ''
+  # Both UIs bind loopback only. Ingress is Tailscale Serve (HM-owned), not
+  # 0.0.0.0 and not the raw Tailscale IP. Hostname-per-app via HTTPS ports:
+  #   :443  → T3      (https://oci-agents.<tailnet>.ts.net/)
+  #   :8443 → OpenCode (https://oci-agents.<tailnet>.ts.net:8443/)
+  # Path mounts are avoided: neither SPA has a reliable base-path mode.
+  tailscaleBin = "${pkgs.tailscale}/bin/tailscale";
+  tailscaleServeScript = pkgs.writeShellScript "oci-agents-tailscale-serve" ''
     set -euo pipefail
-    host="$(${pkgs.tailscale}/bin/tailscale ip -4)"
-    exec ${home}/.opencode/bin/opencode serve --hostname "$host" --port 4096
+    # Wait until tailscaled can answer; boot order alone is not enough after
+    # a restart of the daemon.
+    for _ in $(seq 1 30); do
+      if ${tailscaleBin} status --self >/dev/null 2>&1; then
+        break
+      fi
+      sleep 1
+    done
+    ${tailscaleBin} serve reset || true
+    ${tailscaleBin} serve --bg --yes --https=443 http://127.0.0.1:3773
+    ${tailscaleBin} serve --bg --yes --https=8443 http://127.0.0.1:4096
   '';
 in
 {
@@ -82,18 +94,17 @@ in
     fi
   '';
 
+  # OpenCode on loopback. Do not use 0.0.0.0 or the Tailscale IP — Serve is
+  # the only ingress (see tailscale-serve below).
   systemd.user.services.opencode-web = {
     Unit = {
       Description = "OpenCode Web Service";
-      After = [
-        "network-online.target"
-        "tailscaled.service"
-      ];
+      After = [ "network-online.target" ];
       Wants = [ "network-online.target" ];
     };
     Service = {
       WorkingDirectory = codeRoot;
-      ExecStart = "${opencodeWebScript}";
+      ExecStart = "${home}/.opencode/bin/opencode serve --hostname 127.0.0.1 --port 4096";
       EnvironmentFile = "${config.xdg.configHome}/opencode/service.env";
       Environment = serviceEnvironment;
       Restart = "always";
@@ -120,9 +131,8 @@ in
     Install.WantedBy = [ "default.target" ];
   };
 
-  # T3's own service installer would create a second, unmanaged unit. Keep
-  # this service in Home Manager so the Tailscale-only endpoint and PATH are
-  # explicit and reproducible.
+  # T3 on loopback only. Do not pass --tailscale-serve: that would fight the
+  # HM-owned serve map (and reclaim / on every T3 restart).
   systemd.user.services.t3code = {
     Unit = {
       Description = "T3 Code headless server for oci-agents";
@@ -133,10 +143,38 @@ in
     Service = {
       Type = "simple";
       WorkingDirectory = codeRoot;
-      ExecStart = "${home}/.local/bin/t3 serve --tailscale-serve";
+      ExecStart = "${home}/.local/bin/t3 serve --host 127.0.0.1 --port 3773";
       Environment = serviceEnvironment;
       Restart = "on-failure";
       RestartSec = "15s";
+    };
+    Install.WantedBy = [ "default.target" ];
+  };
+
+  # Single owner of `tailscale serve` for this host. Runs after both backends
+  # so a cold boot does not publish empty handlers first.
+  systemd.user.services.tailscale-serve = {
+    Unit = {
+      Description = "Tailscale Serve map for oci-agents (T3 :443, OpenCode :8443)";
+      After = [
+        "network-online.target"
+        "tailscaled.service"
+        "t3code.service"
+        "opencode-web.service"
+      ];
+      Wants = [
+        "network-online.target"
+        "t3code.service"
+        "opencode-web.service"
+      ];
+    };
+    Service = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+      ExecStart = "${tailscaleServeScript}";
+      # Clear handlers on stop so a disabled host does not keep advertising.
+      ExecStop = "${tailscaleBin} serve reset";
+      Environment = serviceEnvironment;
     };
     Install.WantedBy = [ "default.target" ];
   };

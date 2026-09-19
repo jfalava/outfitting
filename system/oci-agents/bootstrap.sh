@@ -201,7 +201,7 @@ else
   if ! systemctl --user daemon-reload 2>/dev/null; then
     log "systemctl --user unavailable in this session; services start on next login"
   else
-    for service in gnome-keyring-secrets.service amp-runner.service t3code.service opencode-web.service; do
+    for service in gnome-keyring-secrets.service amp-runner.service t3code.service opencode-web.service tailscale-serve.service; do
       if systemctl --user cat "$service" >/dev/null 2>&1; then
         if systemctl --user enable --now "$service" 2>/dev/null; then
           log "started $service"
@@ -217,3 +217,4 @@ log "installed harnesses: $(amp version 2>/dev/null || true), $(t3 --version 2>/
 log "next: open a new SSH session (or exec zsh) so the Home Manager zsh profile loads"
 log "then: ssh-add ~/.ssh/jfalava-gitAuth-elliptic  # once per machine"
 log "then: authenticate with 'amp login' and 'opencode auth login'; pair T3 with 't3 pair --tailscale'"
+log "UIs (tailnet only): T3 on MagicDNS :443, OpenCode on MagicDNS :8443 (tailscale serve)"
