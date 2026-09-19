@@ -18,6 +18,13 @@ let
     "/usr/bin"
     "/bin"
   ];
+  # systemd --user does not import a login environment. Harnesses read $SHELL
+  # for summoned PTYs and inherit PATH for tool spawns.
+  serviceEnvironment = [
+    "HOME=${home}"
+    "PATH=${servicePath}"
+    "SHELL=${config.home.profileDirectory}/bin/zsh"
+  ];
   machineGuidance = builtins.readFile ./agent-guidance.md;
 in
 {
@@ -67,9 +74,6 @@ in
     fi
   '';
 
-  # systemd --user does not import a login environment. OpenCode reads $SHELL
-  # for summoned PTYs (`$SHELL -l`) and inherits PATH for `/bin/bash -c` tools.
-  # Without these, the web UI gets /bin/bash and a distro PATH.
   systemd.user.services.opencode-web = {
     Unit = {
       Description = "OpenCode Web Service";
@@ -79,11 +83,7 @@ in
       WorkingDirectory = codeRoot;
       ExecStart = "${home}/.opencode/bin/opencode serve --hostname 0.0.0.0 --port 4096";
       EnvironmentFile = "${config.xdg.configHome}/opencode/service.env";
-      Environment = [
-        "HOME=${home}"
-        "PATH=${servicePath}"
-        "SHELL=${config.home.profileDirectory}/bin/zsh"
-      ];
+      Environment = serviceEnvironment;
       Restart = "always";
       RestartSec = 5;
     };
@@ -101,10 +101,7 @@ in
       Type = "simple";
       WorkingDirectory = codeRoot;
       ExecStart = "${home}/.amp/bin/amp --no-tui --runner-id oci-agents --discover-dirs --remote-control-terminal";
-      Environment = [
-        "HOME=${home}"
-        "PATH=${servicePath}"
-      ];
+      Environment = serviceEnvironment;
       Restart = "on-failure";
       RestartSec = "15s";
     };
@@ -125,10 +122,7 @@ in
       Type = "simple";
       WorkingDirectory = codeRoot;
       ExecStart = "${home}/.local/bin/t3 serve --tailscale-serve";
-      Environment = [
-        "HOME=${home}"
-        "PATH=${servicePath}"
-      ];
+      Environment = serviceEnvironment;
       Restart = "on-failure";
       RestartSec = "15s";
     };
