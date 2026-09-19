@@ -11,7 +11,10 @@ let
     if repoFromEnvironment != "" then repoFromEnvironment else "/home/jfalava/.config/outfitting/source";
 in
 {
-  imports = [ (builtins.toPath "${outfittingRepo}/packages/common/programs.nix") ];
+  imports = [
+    (builtins.toPath "${outfittingRepo}/packages/common/programs.nix")
+    (builtins.toPath "${outfittingRepo}/system/common/dotfiles.nix")
+  ];
 
   # Basic home manager settings
   home.username = "jfalava";

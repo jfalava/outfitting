@@ -3,14 +3,12 @@ import { fetchManifest, type ManifestFetcher } from "@/fetch";
 
 /** Shared Nix modules, packages, and Unix dotfiles used by every profile. */
 export const COMMON_SOURCE_PATHS = [
-  "system/common/dotfiles.nix",
   "system/common/zsh.nix",
   "system/common/zsh/outfitting.plugin.zsh",
   "system/common/zsh/hm-profile.inc.zsh",
   "packages/common/programs.nix",
   "packages/common/packages.nix",
   "packages/common/opencode-mcp.nix",
-  "dotfiles/ssh.config",
 ] as const;
 
 /**
@@ -31,7 +29,11 @@ export const MACOS_SOURCE_PATHS = [
 ] as const;
 
 /** Shared Unix/Nix modules required by every Linux Home Manager profile. */
-export const LINUX_COMMON_SOURCE_PATHS = [...COMMON_SOURCE_PATHS] as const;
+export const LINUX_COMMON_SOURCE_PATHS = [
+  ...COMMON_SOURCE_PATHS,
+  "system/common/dotfiles.nix",
+  "dotfiles/ssh.config",
+] as const;
 
 /** Native package list for the portable generic-linux profile. */
 export const GENERIC_LINUX_SOURCE_PATHS = ["packages/linux/generic-linux.txt"] as const;

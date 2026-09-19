@@ -11,7 +11,7 @@ Desired state lives in the repo; machine-local operations and locks are pushed t
 
 - `dotfiles/Microsoft.PowerShell_profile.ps1` — Windows shell: `PATH` and the `outfitting-manager` command.
 - `dotfiles/.gitconfig` — Windows Git identity and SSH commit/tag signing.
-- `dotfiles/ssh.config` — shared GitHub SSH defaults (`jfalava-gitAuth-elliptic`, legacy `id-ed25519` fallback, `AddKeysToAgent`), included by the common Home Manager module on macOS, Linux, and NixOS. The user-owned `~/.ssh/config` remains editable.
+- `dotfiles/ssh.config` — GitHub SSH defaults (`jfalava-gitAuth-elliptic`, legacy `id-ed25519` fallback, `AddKeysToAgent`). Home Manager includes this fragment on Linux and NixOS only. The user-owned `~/.ssh/config` remains editable. macOS does not import this module.
 
 Installers symlink the profile entry points (Windows backs up existing profiles with a timestamp); Apple Silicon, Linux, and NixOS machines link the nix-darwin / Home Manager sources instead.
 
@@ -22,7 +22,7 @@ Installers symlink the profile entry points (Windows backs up existing profiles 
 - `system/oci-agents/` (`home.nix`, `flake.nix`, `bootstrap.sh`, `zsh/oci-agents.plugin.zsh`) — headless Linux Home Manager profile and services.
 - `system/nixos/` (`configuration.nix`, `desktop.nix`, `server.nix`, `home.nix`, `flake.nix`) — host roles.
 - `system/windows/registry/*.reg` — machine tweaks (Recall, Copilot, Ink, developer mode, menu delay).
-- `system/common/` (`dotfiles.nix`, `zsh.nix`, `zsh/outfitting.plugin.zsh`, `zsh/hm-profile.inc.zsh`) — shared additive SSH, shell setup, and Linux `hm-*` helpers. Unix Git identity and signing are rendered by `packages/common/programs.nix`.
+- `system/common/` (`dotfiles.nix`, `zsh.nix`, `zsh/outfitting.plugin.zsh`, `zsh/hm-profile.inc.zsh`) — shared zsh setup and Linux `hm-*` helpers. `dotfiles.nix` is the Linux/NixOS SSH include. Unix Git identity and signing are rendered by `packages/common/programs.nix`.
 
 ## Package manifests
 

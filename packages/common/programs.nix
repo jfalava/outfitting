@@ -8,7 +8,6 @@
 
 {
   imports = [
-    ../../system/common/dotfiles.nix
     ../../system/common/zsh.nix
   ];
 

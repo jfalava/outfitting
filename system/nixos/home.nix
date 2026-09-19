@@ -14,7 +14,10 @@ let
       "${config.home.homeDirectory}/.config/outfitting/repo";
 in
 {
-  imports = [ (builtins.toPath "${outfittingRepo}/packages/common/programs.nix") ];
+  imports = [
+    (builtins.toPath "${outfittingRepo}/packages/common/programs.nix")
+    (builtins.toPath "${outfittingRepo}/system/common/dotfiles.nix")
+  ];
 
   home.username = "jfalava";
   home.homeDirectory = "/home/jfalava";

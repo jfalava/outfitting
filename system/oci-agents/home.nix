@@ -33,6 +33,7 @@ in
 {
   imports = [
     (builtins.toPath "${outfittingRepo}/packages/common/programs.nix")
+    (builtins.toPath "${outfittingRepo}/system/common/dotfiles.nix")
     ./agents.nix
   ];
 
