@@ -6,6 +6,6 @@
 - Nix/Home Manager owns packages and declarative configuration. Do not overwrite `~/.t3/userdata`, provider login state, or the OpenCode service password file.
 - Bun.secrets needs the unlocked `gnome-keyring-secrets` user service. Do not spawn extra `gnome-keyring-daemon` processes from login scripts.
 - Network services are Tailscale-only. Do not add public listeners or firewall exposure.
-- Manifold AniList drain (`manifold-anilist-drain.service`) is outbound-only: polls the personal API and calls AniList GraphQL from this host (prefer permanent IPv6). Do not add a public drain webhook.
+- Manifold AniList drain (`manifold-anilist-drain.service`) is outbound-only: runs `~/.local/bin/manifold ops drain-anilist`, polls the personal API and calls AniList GraphQL from this host (prefer permanent IPv6). Do not add a public drain webhook.
 - GitHub SSH uses `~/.ssh/jfalava-gitAuth-elliptic` (see shared `ssh.config`). The login shell starts a local ssh-agent when forwarding is absent; passphrase-protected keys still need one interactive `ssh-add`.
 - Use the repository's `AGENTS.md` and project-specific verification commands for code changes.

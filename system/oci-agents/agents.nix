@@ -153,9 +153,9 @@ in
   };
 
   # Always-on AniList outbox drain. Outbound-only (no listen / no serve map).
-  # Uses CLI keychain anilist-session + MANIFOLD_TOKEN from cli/.env. Prefer
-  # this host's permanent IPv6 egress; do not inject Nix libsecret into
-  # LD_LIBRARY_PATH (breaks Bun.secrets on Ubuntu).
+  # Uses the compiled manifold binary (~/.local/bin) + keychain sessions
+  # (manifold-session, anilist-session). Prefer permanent IPv6 egress. Do not
+  # inject Nix libsecret into LD_LIBRARY_PATH (breaks Bun.secrets on Ubuntu).
   systemd.user.services.manifold-anilist-drain = {
     Unit = {
       Description = "Manifold AniList outbox drain (oci-agents)";
@@ -167,11 +167,11 @@ in
         "network-online.target"
         "gnome-keyring-secrets.service"
       ];
-      ConditionPathExists = "${codeRoot}/manifold/cli/index.ts";
+      ConditionPathExists = "${home}/.local/bin/manifold";
     };
     Service = {
       Type = "simple";
-      WorkingDirectory = "${codeRoot}/manifold/cli";
+      WorkingDirectory = home;
       # Explicit empty LD_LIBRARY_PATH: HM session vars must not force Nix
       # libsecret into Bun (glibc mismatch → "libsecret not available").
       Environment = serviceEnvironment ++ [
@@ -179,7 +179,7 @@ in
         "DBUS_SESSION_BUS_ADDRESS=unix:path=%t/bus"
         "XDG_RUNTIME_DIR=%t"
       ];
-      ExecStart = "${home}/.bun/bin/bun ${codeRoot}/manifold/cli/index.ts ops drain-anilist --interval 30";
+      ExecStart = "${home}/.local/bin/manifold ops drain-anilist --interval 30";
       Restart = "on-failure";
       RestartSec = "30s";
     };
