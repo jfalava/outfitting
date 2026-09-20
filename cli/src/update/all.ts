@@ -46,7 +46,10 @@ export const updateAll = (options: UpdateAllOptions = {}) =>
 
     yield* Console.log(ui.heading("update all: nix switch → brew"));
 
-    yield* runStep("nix switch", updateNix({ action: "switch", config }));
+    yield* runStep(
+      "nix switch",
+      updateNix({ action: "switch", config, noPush: options.noPush === true }),
+    );
     yield* runStep("brew", updateBrew({ config, noPush: options.noPush === true }));
 
     const failed = results.filter((step) => !step.ok);

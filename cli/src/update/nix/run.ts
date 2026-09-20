@@ -1,4 +1,5 @@
-import { access } from "node:fs/promises";
+import { access, copyFile, mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { Console, Effect } from "effect";
@@ -13,7 +14,9 @@ import {
 } from "@/config/repo";
 import { CliFailure } from "@/errors";
 import type { ManifestFetcher } from "@/fetch";
+import { pullLockfile, pushLockfile } from "@/lockfiles";
 import { tryPromise } from "@/lockfiles/effect";
+import { isGitTrackedFile } from "@/lockfiles/files";
 import { which } from "@/process";
 import { envValue } from "@/secrets";
 import { syncMacosSource } from "@/setup/source";
@@ -24,7 +27,7 @@ import { buildNixSystem } from "@/update/nix/build";
 import { closeNixLock, openNixLock } from "@/update/nix/lock";
 import { readNixRecovery } from "@/update/nix/recovery";
 import { ensureNixSymlinks } from "@/update/nix/symlinks";
-import type { NixAction } from "@/update/nix/types";
+import { NIX_LOCK_KIND, type NixAction } from "@/update/nix/types";
 
 export interface UpdateNixOptions {
   action: NixAction;
@@ -36,6 +39,8 @@ export interface UpdateNixOptions {
   profile?: string;
   /** Refresh the selected Linux source before resolving the flake. */
   refresh?: boolean;
+  /** Skip publishing the related Nix lock after a successful action. */
+  noPush?: boolean;
 }
 
 function resolveMacosRepo(options: UpdateNixOptions, config: ManagerConfig) {
@@ -145,15 +150,44 @@ async function localFlakeLockPath(repo: OutfittingRepo): Promise<string | undefi
   }
 }
 
+async function stageNixLockForPush(lockPath: string): Promise<{
+  path: string;
+  directory?: string;
+}> {
+  if (!(await isGitTrackedFile(lockPath))) {
+    return { path: lockPath };
+  }
+
+  const directory = await mkdtemp(join(tmpdir(), "outfitting-nix-push-"));
+  const path = join(directory, "flake.lock");
+  try {
+    await copyFile(lockPath, path);
+    return { path, directory };
+  } catch (cause) {
+    await rm(directory, { force: true, recursive: true });
+    throw cause;
+  }
+}
+
 function openActionLock(repo: OutfittingRepo, config: ManagerConfig) {
   return Effect.gen(function* () {
     if (repo.flakeKind === "macos") {
-      const lock = yield* tryPromise(() => openNixLock(config));
-      return { lockPath: lock.lockPath, lockDir: lock.lockDir };
+      const fallbackPath = yield* tryPromise(() => localFlakeLockPath(repo));
+      const lock = yield* tryPromise(() =>
+        openNixLock(config, pullLockfile, {
+          fallbackPath,
+          allowMissing: true,
+        }),
+      );
+      return {
+        lockPath: lock.lockPath.length > 0 ? lock.lockPath : undefined,
+        lockDir: lock.lockDir.length > 0 ? lock.lockDir : undefined,
+        warning: lock.warning,
+      };
     }
     // Home Manager: prefer the flake's checked-in lock (matches bootstrap).
     const lockPath = yield* tryPromise(() => localFlakeLockPath(repo));
-    return { lockPath, lockDir: undefined as string | undefined };
+    return { lockPath, lockDir: undefined as string | undefined, warning: undefined };
   });
 }
 
@@ -214,7 +248,8 @@ function runNixAction(
 /**
  * `update nix build|switch|test|dry` — no flake-input upgrade in v1.
  * switch builds then activates in-process.
- * macOS uses the remote canonical lock; Home Manager uses the flake's local lock.
+ * macOS prefers the remote canonical lock and bootstraps from the local/generated lock when needed;
+ * Home Manager uses the flake's local lock.
  */
 export const updateNix = (options: UpdateNixOptions) =>
   Effect.gen(function* () {
@@ -242,10 +277,36 @@ export const updateNix = (options: UpdateNixOptions) =>
 
     yield* tryPromise(() => ensureNixSymlinks(repo));
 
-    const { lockPath, lockDir } = yield* openActionLock(repo, config);
+    const { lockPath, lockDir, warning } = yield* openActionLock(repo, config);
+    let stagedLockDir: string | undefined;
     try {
+      if (warning !== undefined) {
+        yield* Console.log(ui.muted(warning));
+      }
       yield* runNixAction(options.action, repo, lockPath, nixTargetLabel(repo));
+
+      if (options.noPush === true) {
+        yield* Console.log(ui.muted("Skipped Nix lock upload (--no-push)."));
+      } else {
+        const publishPath = lockPath ?? (yield* tryPromise(() => localFlakeLockPath(repo)));
+        if (publishPath === undefined) {
+          return yield* new CliFailure({
+            message: "Nix action succeeded but no flake.lock was available to publish.",
+          });
+        }
+        const stagedLock = yield* tryPromise(() => stageNixLockForPush(publishPath));
+        stagedLockDir = stagedLock.directory;
+        yield* Console.log(ui.heading(`Publishing ${config.machineId}/${NIX_LOCK_KIND}…`));
+        yield* pushLockfile({
+          machine: config.machineId,
+          kind: NIX_LOCK_KIND,
+          path: stagedLock.path,
+        });
+      }
     } finally {
+      if (stagedLockDir !== undefined) {
+        yield* tryPromise(() => rm(stagedLockDir!, { force: true, recursive: true }));
+      }
       if (lockDir !== undefined) {
         yield* tryPromise(() => closeNixLock(lockDir));
       }

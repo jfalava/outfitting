@@ -17,6 +17,11 @@ import { type LinuxPackageManager } from "@/platform/linux";
 import { updateLinux } from "@/update/linux";
 import { updateNix } from "@/update/nix";
 
+const noPushFlag = Flag.Boolean("no-push").pipe(
+  Flag.withDefault(false),
+  Flag.withDescription("Skip publishing the Nix lock after a successful action."),
+);
+
 function runLinuxUpdate(
   flags: {
     packageManager: import("effect").Option.Option<string>;
@@ -62,8 +67,8 @@ const refreshFlag = Flag.Boolean("refresh").pipe(
 
 const makeNixCommand = () => {
   const actions = NIX_ACTIONS.map((action) =>
-    Command.make(action, { refresh: refreshFlag }, ({ refresh }) =>
-      updateNix({ action, refresh }),
+    Command.make(action, { noPush: noPushFlag, refresh: refreshFlag }, ({ noPush, refresh }) =>
+      updateNix({ action, noPush, refresh }),
     ).pipe(Command.withDescription(nixActionDescription[action])),
   );
 

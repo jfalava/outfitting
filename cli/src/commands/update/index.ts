@@ -31,9 +31,9 @@ const makeForeignStub = (pm: PackageManager, host: HostPlatform) =>
 
 const makeNixCommand = () => {
   const actions = NIX_ACTIONS.map((action) =>
-    Command.make(action, {}, () => updateNix({ action })).pipe(
-      Command.withDescription(nixActionDescription[action]),
-    ),
+    Command.make(action, { noPush: noPushFlag }, ({ noPush }) =>
+      updateNix({ action, noPush }),
+    ).pipe(Command.withDescription(nixActionDescription[action])),
   );
 
   // No default action: bare `update nix` only lists subcommands.

@@ -13,4 +13,5 @@ with pkgs;
   # Bun.secrets uses Ubuntu's system libsecret; do not override LD_LIBRARY_PATH
   # with Nix GLib/libsecret libraries.
   libsecret
+  ffmpeg
 ]

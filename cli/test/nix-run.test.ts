@@ -7,6 +7,7 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import { loadConfig, sparseSourceRoot } from "@/config";
 import { CliFailure } from "@/errors";
+import { pushLockfile } from "@/lockfiles";
 import { runSetup } from "@/setup/run";
 import { activateNixSystem } from "@/update/nix/activate";
 import { buildNixSystem } from "@/update/nix/build";
@@ -16,14 +17,19 @@ import { ensureNixSymlinks } from "@/update/nix/symlinks";
 vi.mock("@/process", () => ({ which: async () => "/bin/nix" }));
 vi.mock("@/update/nix/recovery", () => ({ readNixRecovery: async () => undefined }));
 vi.mock("@/update/nix/symlinks", () => ({ ensureNixSymlinks: vi.fn(async () => undefined) }));
-vi.mock("@/update/nix/build", () => ({ buildNixSystem: vi.fn() }));
-vi.mock("@/update/nix/activate", () => ({ activateNixSystem: vi.fn() }));
+vi.mock("@/update/nix/build", () => ({
+  buildNixSystem: vi.fn(async () => "/nix/store/test-system"),
+}));
+vi.mock("@/update/nix/activate", () => ({ activateNixSystem: vi.fn(async () => undefined) }));
 vi.mock("@/lockfiles", () => ({
   pullLockfile: () => Effect.fail(new CliFailure({ message: "service unavailable" })),
+  pushLockfile: vi.fn(() => Effect.void),
 }));
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.mocked(buildNixSystem).mockImplementation(async () => "/nix/store/test-system");
+  vi.mocked(activateNixSystem).mockImplementation(async () => undefined);
   vi.stubEnv("OUTFITTING_REPO", "");
 });
 afterEach(() => vi.unstubAllEnvs());
@@ -62,19 +68,14 @@ test.each([false, true])(
         flakeKind: "macos" as const,
         systemAttr: "darwinConfigurations.macos.system",
       };
-      await expect(
-        Effect.runPromise(
-          updateNix({
-            action: "build",
-            config,
-            repo: managed ? undefined : macosRepo,
-            sourceFetcher: fetcher,
-          }),
-        ),
-      ).rejects.toThrow(
-        process.platform === "darwin" || managed
-          ? "required remote Nix lock"
-          : /required remote Nix lock|No Nix flake|Home Manager|oci-agents/,
+      await Effect.runPromise(
+        updateNix({
+          action: "build",
+          config,
+          noPush: true,
+          repo: managed ? undefined : macosRepo,
+          sourceFetcher: fetcher,
+        }),
       );
       if (managed) {
         const expectedRoot = await realpath(sparseSourceRoot(stateRoot));
@@ -98,27 +99,108 @@ test.each([false, true])(
   },
 );
 
-test("switch never builds or activates when the canonical lock cannot be pulled", async () => {
-  await expect(
-    Effect.runPromise(
+test("switch bootstraps without a canonical lock when upload is disabled", async () => {
+  await Effect.runPromise(
+    updateNix({
+      action: "switch",
+      config: {
+        stateRoot: "/unused",
+        machineId: "test:aarch64-darwin",
+        machineIdOverridden: true,
+        manifest: { baseUrl: "https://example.test/outfitting", ref: "main" },
+      },
+      noPush: true,
+      repo: {
+        root: "/repo",
+        flakePath: "/repo/system/macos",
+        darwinNixPath: "/repo/system/macos/darwin.nix",
+        flakeKind: "macos",
+        systemAttr: "darwinConfigurations.macos.system",
+      },
+    }),
+  );
+  expect(buildNixSystem).toHaveBeenCalled();
+  expect(activateNixSystem).toHaveBeenCalled();
+  expect(pushLockfile).not.toHaveBeenCalled();
+});
+
+test("publishes a lock generated during a macOS bootstrap", async () => {
+  const root = await mkdtemp(join(tmpdir(), "outfitting-nix-push-"));
+  try {
+    const flakePath = join(root, "system", "macos");
+    await mkdir(flakePath, { recursive: true });
+    const lockPath = join(flakePath, "flake.lock");
+    await writeFile(join(flakePath, "flake.nix"), "flake");
+    vi.mocked(buildNixSystem).mockImplementation(async ({ repo }) => {
+      await writeFile(join(repo.flakePath, "flake.lock"), '{ "version": 7 }\n');
+      return "/nix/store/system";
+    });
+
+    const config = {
+      stateRoot: join(root, "state"),
+      machineId: "test:aarch64-darwin",
+      machineIdOverridden: true,
+      manifest: { baseUrl: "https://example.test/outfitting", ref: "main" },
+    };
+    await Effect.runPromise(
       updateNix({
-        action: "switch",
-        config: {
-          stateRoot: "/unused",
-          machineId: "test:aarch64-darwin",
-          machineIdOverridden: true,
-          manifest: { baseUrl: "https://example.test/outfitting", ref: "main" },
-        },
+        action: "build",
+        config,
         repo: {
-          root: "/repo",
-          flakePath: "/repo/system/macos",
-          darwinNixPath: "/repo/system/macos/darwin.nix",
+          root,
+          flakePath,
+          darwinNixPath: join(flakePath, "darwin.nix"),
           flakeKind: "macos",
           systemAttr: "darwinConfigurations.macos.system",
         },
       }),
-    ),
-  ).rejects.toThrow("required remote Nix lock");
-  expect(buildNixSystem).not.toHaveBeenCalled();
-  expect(activateNixSystem).not.toHaveBeenCalled();
+    );
+
+    expect(pushLockfile).toHaveBeenCalledWith({
+      machine: config.machineId,
+      kind: "nix",
+      path: lockPath,
+    });
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("publishes the local Home Manager lock after a Linux action", async () => {
+  const root = await mkdtemp(join(tmpdir(), "outfitting-hm-push-"));
+  try {
+    const flakePath = join(root, "system", "oci-agents");
+    await mkdir(flakePath, { recursive: true });
+    const lockPath = join(flakePath, "flake.lock");
+    await writeFile(lockPath, '{ "version": 7 }\n');
+
+    const config = {
+      stateRoot: join(root, "state"),
+      machineId: "test:aarch64-linux",
+      machineIdOverridden: true,
+      manifest: { baseUrl: "https://example.test/outfitting", ref: "main" },
+    };
+    await Effect.runPromise(
+      updateNix({
+        action: "build",
+        config,
+        repo: {
+          root,
+          flakePath,
+          darwinNixPath: "",
+          flakeKind: "home-manager",
+          systemAttr: "homeConfigurations.oci-agents.activationPackage",
+          homeManagerName: "oci-agents",
+        },
+      }),
+    );
+
+    expect(pushLockfile).toHaveBeenCalledWith({
+      machine: config.machineId,
+      kind: "nix",
+      path: lockPath,
+    });
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
 });

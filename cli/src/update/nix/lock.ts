@@ -1,4 +1,4 @@
-import { mkdtemp, rm } from "node:fs/promises";
+import { copyFile, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -12,8 +12,17 @@ import { NIX_LOCK_KIND } from "@/update/nix/types";
 export interface OpenNixLockResult {
   /** Physical temp directory holding flake.lock. */
   lockDir: string;
-  /** Path to the pulled flake.lock. */
+  /** Path to the pulled or fallback flake.lock; empty when no lock exists yet. */
   lockPath: string;
+  /** Warning emitted when the remote lock was unavailable. */
+  warning?: string;
+}
+
+export interface OpenNixLockOptions {
+  /** Local lock to stage when the remote head does not exist. */
+  fallbackPath?: string;
+  /** Continue without a lock when neither remote nor local state exists. */
+  allowMissing?: boolean;
 }
 
 /**
@@ -23,6 +32,7 @@ export interface OpenNixLockResult {
 export async function openNixLock(
   config: ManagerConfig,
   pull: typeof pullLockfile = pullLockfile,
+  options: OpenNixLockOptions = {},
 ): Promise<OpenNixLockResult> {
   const displayDir = await mkdtemp(join(tmpdir(), "outfitting-nix-lock-"));
   let lockDir: string;
@@ -46,6 +56,29 @@ export async function openNixLock(
     return { lockDir, lockPath };
   } catch (cause) {
     const message = cause instanceof Error ? cause.message : String(cause);
+
+    if (options.fallbackPath !== undefined) {
+      try {
+        await copyFile(options.fallbackPath, lockPath);
+        return {
+          lockDir,
+          lockPath,
+          warning: `Remote Nix lock unavailable (${message}); using the local flake.lock and will publish it after success.`,
+        };
+      } catch {
+        // Keep the original remote error below when the local fallback is also unavailable.
+      }
+    }
+
+    if (options.allowMissing) {
+      await closeNixLock(lockDir);
+      return {
+        lockDir: "",
+        lockPath: "",
+        warning: `Remote Nix lock unavailable (${message}); continuing with the local flake and will publish its lock after success.`,
+      };
+    }
+
     await closeNixLock(lockDir);
     throw new Error(
       `Could not pull the required remote Nix lock for ${config.machineId}: ${message}. Check the lockfile service configuration and connectivity, then retry.`,

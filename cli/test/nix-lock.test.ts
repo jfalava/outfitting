@@ -1,5 +1,7 @@
-import { access, readFile, writeFile } from "node:fs/promises";
+import { access, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { dirname } from "node:path";
+import { join } from "node:path";
 
 import { Effect } from "effect";
 import { describe, expect, test } from "vitest";
@@ -48,5 +50,33 @@ describe("openNixLock", () => {
     await expect(access(dirname(attemptedPath!))).rejects.toMatchObject({
       code: "ENOENT",
     });
+  });
+
+  test("uses a local fallback when the remote lock is unavailable", async () => {
+    const root = await mkdtemp(join(tmpdir(), "outfitting-nix-lock-fallback-"));
+    const fallbackPath = join(root, "flake.lock");
+    await writeFile(fallbackPath, '{ "version": 7, "inputs": {} }\n');
+    const pull = () => Effect.fail(new CliFailure({ message: "Lockfile not found" }));
+
+    try {
+      const lock = await openNixLock(config, pull, { fallbackPath });
+      try {
+        expect(await readFile(lock.lockPath, "utf8")).toContain('"inputs"');
+        expect(lock.warning).toContain("using the local flake.lock");
+      } finally {
+        await closeNixLock(lock.lockDir);
+      }
+    } finally {
+      await rm(root, { force: true, recursive: true });
+    }
+  });
+
+  test("can continue without either remote or local lock", async () => {
+    const pull = () => Effect.fail(new CliFailure({ message: "Lockfile not found" }));
+    const lock = await openNixLock(config, pull, { allowMissing: true });
+
+    expect(lock.lockDir).toBe("");
+    expect(lock.lockPath).toBe("");
+    expect(lock.warning).toContain("continuing with the local flake");
   });
 });
