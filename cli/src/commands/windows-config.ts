@@ -1,5 +1,5 @@
-import { Console, Effect } from "effect";
-import { Command, Prompt } from "effect/unstable/cli";
+import { Console, Effect, Option } from "effect";
+import { Command, Flag, Prompt } from "effect/unstable/cli";
 
 import {
   DEFAULT_WINDOWS_ROUTES,
@@ -7,6 +7,7 @@ import {
   saveConfigFile,
   type ManagerConfigFile,
 } from "@/config";
+import { CliFailure } from "@/errors";
 import { tryPromise } from "@/lockfiles/effect";
 import { ui } from "@/ui";
 
@@ -20,6 +21,17 @@ interface ConfigAnswers {
   readonly fontListPath: string;
   readonly registryPath: string;
   readonly defaultProfiles: string;
+}
+
+export interface WindowsConfigFlags {
+  readonly repo?: string;
+  readonly ref?: string;
+  readonly wingetProfilePath?: string;
+  readonly scoopPath?: string;
+  readonly powershellProfilePath?: string;
+  readonly fontListPath?: string;
+  readonly registryPath?: string;
+  readonly defaultProfiles?: string;
 }
 
 function requiredText(value: string, label: string): Effect.Effect<string, string> {
@@ -55,6 +67,22 @@ function profilesText(value: string): Effect.Effect<string, string> {
   return Effect.succeed(profiles.join(","));
 }
 
+function asConfigError<A>(validation: Effect.Effect<A, string>): Effect.Effect<A, CliFailure> {
+  return validation.pipe(Effect.mapError((message) => new CliFailure({ message })));
+}
+
+function defaultProfilesText(value: string): Effect.Effect<string, string> {
+  return profilesText(value).pipe(Effect.mapError((message) => `Default profiles: ${message}`));
+}
+
+function normalizeRepositoryUrl(value: string): string {
+  const normalized = value.replace(/\/+$/g, "");
+  const github = normalized.match(/^https?:\/\/github\.com\/([^/]+)\/([^/]+?)(?:\.git)?$/i);
+  return github === null
+    ? normalized
+    : `https://raw.githubusercontent.com/${github[1]}/${github[2]}`;
+}
+
 function answersToPatch(answers: ConfigAnswers): ManagerConfigFile {
   return {
     machineId: answers.machineId,
@@ -77,6 +105,70 @@ function answersToPatch(answers: ConfigAnswers): ManagerConfigFile {
 export function windowsConfigPatch(answers: ConfigAnswers): ManagerConfigFile {
   return answersToPatch(answers);
 }
+
+function flagsToPatch(options: WindowsConfigFlags): Effect.Effect<ManagerConfigFile, CliFailure> {
+  return Effect.gen(function* () {
+    const patch: ManagerConfigFile = {};
+    const manifest: NonNullable<ManagerConfigFile["manifest"]> = {};
+    const windows: NonNullable<ManagerConfigFile["windows"]> = {};
+
+    if (options.repo !== undefined) {
+      manifest.baseUrl = normalizeRepositoryUrl(
+        yield* asConfigError(requiredText(options.repo, "Repository URL")),
+      );
+    }
+    if (options.ref !== undefined) {
+      manifest.ref = yield* asConfigError(requiredText(options.ref, "Repository ref"));
+    }
+    if (Object.keys(manifest).length > 0) {
+      patch.manifest = manifest;
+    }
+
+    if (options.wingetProfilePath !== undefined) {
+      windows.wingetProfilePath = yield* asConfigError(
+        routeText(options.wingetProfilePath, "WinGet profile route"),
+      );
+    }
+    if (options.scoopPath !== undefined) {
+      windows.scoopPath = yield* asConfigError(
+        routeText(options.scoopPath, "Scoop manifest route"),
+      );
+    }
+    if (options.powershellProfilePath !== undefined) {
+      windows.powershellProfilePath = yield* asConfigError(
+        routeText(options.powershellProfilePath, "PowerShell profile route"),
+      );
+    }
+    if (options.fontListPath !== undefined) {
+      windows.fontListPath = yield* asConfigError(
+        routeText(options.fontListPath, "FontGet list route"),
+      );
+    }
+    if (options.registryPath !== undefined) {
+      windows.registryPath = yield* asConfigError(
+        routeText(options.registryPath, "Registry route"),
+      );
+    }
+    if (options.defaultProfiles !== undefined) {
+      const profiles = yield* asConfigError(defaultProfilesText(options.defaultProfiles));
+      windows.defaultProfiles = profiles.split(",");
+    }
+    if (Object.keys(windows).length > 0) {
+      patch.windows = windows;
+    }
+
+    return patch;
+  });
+}
+
+/** Write only the Windows configuration fields supplied as command-line flags. */
+export const runWindowsConfigFlags = (options: WindowsConfigFlags) =>
+  Effect.gen(function* () {
+    const patch = yield* flagsToPatch(options);
+    const path = yield* tryPromise(() => saveConfigFile(patch, {}));
+    yield* Console.log(ui.success(`Windows configuration saved: ${path}`));
+    return path;
+  });
 
 /** Run the interactive Windows repository configuration wizard. */
 export const runWindowsConfigWizard = Effect.fn("runWindowsConfigWizard")(function* () {
@@ -136,10 +228,65 @@ export const runWindowsConfigWizard = Effect.fn("runWindowsConfigWizard")(functi
   return path;
 });
 
-export const windowsConfigCommand = Command.make("config", {}, () =>
-  runWindowsConfigWizard().pipe(Effect.asVoid),
+export const windowsConfigCommand = Command.make(
+  "config",
+  {
+    repo: Flag.String("repo").pipe(
+      Flag.optional,
+      Flag.withDescription("Repository URL; GitHub URLs use the raw-content source."),
+    ),
+    ref: Flag.String("ref").pipe(Flag.optional, Flag.withDescription("Repository ref.")),
+    wingetProfilePath: Flag.String("winget-profile-path").pipe(
+      Flag.optional,
+      Flag.withDescription("Repository-relative WinGet profile route."),
+    ),
+    scoopPath: Flag.String("scoop-path").pipe(
+      Flag.optional,
+      Flag.withDescription("Repository-relative Scoop manifest route."),
+    ),
+    powershellProfilePath: Flag.String("powershell-profile-path").pipe(
+      Flag.optional,
+      Flag.withDescription("Repository-relative PowerShell profile route."),
+    ),
+    fontListPath: Flag.String("font-list-path").pipe(
+      Flag.optional,
+      Flag.withDescription("Repository-relative FontGet list route."),
+    ),
+    registryPath: Flag.String("registry-path").pipe(
+      Flag.optional,
+      Flag.withDescription("Repository-relative registry tweaks directory route."),
+    ),
+    defaultProfiles: Flag.String("default-profiles").pipe(
+      Flag.optional,
+      Flag.withDescription("Comma-separated default WinGet profiles."),
+    ),
+  },
+  ({
+    repo,
+    ref,
+    wingetProfilePath,
+    scoopPath,
+    powershellProfilePath,
+    fontListPath,
+    registryPath,
+    defaultProfiles,
+  }) => {
+    const flags = {
+      repo: Option.getOrUndefined(repo),
+      ref: Option.getOrUndefined(ref),
+      wingetProfilePath: Option.getOrUndefined(wingetProfilePath),
+      scoopPath: Option.getOrUndefined(scoopPath),
+      powershellProfilePath: Option.getOrUndefined(powershellProfilePath),
+      fontListPath: Option.getOrUndefined(fontListPath),
+      registryPath: Option.getOrUndefined(registryPath),
+      defaultProfiles: Option.getOrUndefined(defaultProfiles),
+    } satisfies WindowsConfigFlags;
+    return Object.values(flags).some((value) => value !== undefined)
+      ? runWindowsConfigFlags(flags).pipe(Effect.asVoid)
+      : runWindowsConfigWizard().pipe(Effect.asVoid);
+  },
 ).pipe(
   Command.withDescription(
-    "Interactively configure the compatible repository source, Windows routes, and default profiles.",
+    "Configure the compatible repository source, Windows routes, and default profiles.",
   ),
 );

@@ -34,10 +34,14 @@ const ok = (stdout = ""): RunCommandResult => ({ code: 0, stdout, stderr: "" });
 const execFileAsync = promisify(execFile);
 const windowsEntry = fileURLToPath(new URL("../index.windows.ts", import.meta.url));
 
-async function runWindowsCli(args: string[]): Promise<{ code: number; text: string }> {
+async function runWindowsCli(
+  args: string[],
+  environment: Record<string, string> = {},
+): Promise<{ code: number; text: string }> {
   try {
     const result = await execFileAsync("bun", [windowsEntry, ...args], {
       encoding: "utf8",
+      env: { ...process.env, ...environment },
     });
     return { code: 0, text: `${result.stdout}\n${result.stderr}` };
   } catch (error) {
@@ -104,6 +108,8 @@ describe("Windows CLI entrypoint", () => {
     expect(update.text).not.toMatch(/^\s+bun\s/m);
     expect(update.text).toMatch(/\ball\b/);
     expect(config.text).toMatch(/repository|route/i);
+    expect(config.text).toMatch(/--repo/);
+    expect(config.text).toMatch(/--default-profiles/);
     expect(init.text).toMatch(/initialize/i);
     expect(setup.text).toMatch(/apply|profiles/i);
     expect(diff.text).toMatch(/compare|repository/i);
@@ -118,6 +124,124 @@ describe("Windows CLI entrypoint", () => {
     expect(foreign.code).not.toBe(0);
     expect(foreign.text).toMatch(/macOS/);
   }, 15_000);
+
+  test("writes a partial flagged config without invoking the wizard", async () => {
+    const root = await mkdtemp(join(tmpdir(), "outfitting-windows-config-cli-"));
+    try {
+      const result = await runWindowsCli(
+        [
+          "config",
+          "--repo",
+          "https://github.com/me/my-fork",
+          "--ref",
+          "main",
+          "--winget-profile-path",
+          "packages/windows/{profile}.json",
+        ],
+        { OUTFITTING_STATE_ROOT: root },
+      );
+
+      expect(result.code).toBe(0);
+      expect(JSON.parse(await readFile(join(root, "config.json"), "utf8"))).toEqual({
+        manifest: {
+          baseUrl: "https://raw.githubusercontent.com/me/my-fork",
+          ref: "main",
+        },
+        windows: {
+          wingetProfilePath: "packages/windows/{profile}.json",
+        },
+      });
+    } finally {
+      await rm(root, { force: true, recursive: true });
+    }
+  });
+
+  test("rejects invalid flagged values before changing the existing config", async () => {
+    const root = await mkdtemp(join(tmpdir(), "outfitting-windows-config-invalid-"));
+    try {
+      await saveConfigFile(
+        {
+          manifest: { baseUrl: "https://raw.githubusercontent.com/acme/config", ref: "old" },
+          windows: { scoopPath: "packages/windows/scoop.txt" },
+        },
+        { stateRoot: root },
+      );
+      const before = await readFile(join(root, "config.json"), "utf8");
+
+      const result = await runWindowsCli(["config", "--scoop-path", "../escape.txt"], {
+        OUTFITTING_STATE_ROOT: root,
+      });
+
+      expect(result.code).not.toBe(0);
+      expect(result.text).toMatch(/Scoop manifest route/);
+      expect(await readFile(join(root, "config.json"), "utf8")).toBe(before);
+    } finally {
+      await rm(root, { force: true, recursive: true });
+    }
+  });
+
+  test("updates every flagged field while preserving omitted saved fields", async () => {
+    const root = await mkdtemp(join(tmpdir(), "outfitting-windows-config-fields-"));
+    try {
+      await saveConfigFile(
+        {
+          machineId: "kept:x86_64-windows",
+          manifest: { baseUrl: "https://raw.githubusercontent.com/acme/old", ref: "old" },
+          windows: {
+            wingetProfilePath: "old/{profile}.txt",
+            scoopPath: "old/scoop.txt",
+            powershellProfilePath: "old/profile.ps1",
+            fontListPath: "old/fonts.txt",
+            registryPath: "old/registry",
+            defaultProfiles: ["old"],
+          },
+        },
+        { stateRoot: root },
+      );
+
+      const result = await runWindowsCli(
+        [
+          "config",
+          "--repo",
+          "https://github.com/me/my-fork",
+          "--ref",
+          "next",
+          "--winget-profile-path",
+          "packages/windows/{profile}.json",
+          "--scoop-path",
+          "packages/windows/scoop.txt",
+          "--powershell-profile-path",
+          "dotfiles/profile.ps1",
+          "--font-list-path",
+          "fonts/list.txt",
+          "--registry-path",
+          "system/windows/registry",
+          "--default-profiles",
+          "base,work",
+        ],
+        { OUTFITTING_STATE_ROOT: root },
+      );
+
+      expect(result.code).toBe(0);
+      expect(JSON.parse(await readFile(join(root, "config.json"), "utf8"))).toEqual({
+        machineId: "kept:x86_64-windows",
+        manifest: {
+          baseUrl: "https://raw.githubusercontent.com/me/my-fork",
+          ref: "next",
+        },
+        windows: {
+          wingetProfilePath: "packages/windows/{profile}.json",
+          scoopPath: "packages/windows/scoop.txt",
+          powershellProfilePath: "dotfiles/profile.ps1",
+          fontListPath: "fonts/list.txt",
+          registryPath: "system/windows/registry",
+          defaultProfiles: ["base", "work"],
+        },
+      });
+    } finally {
+      await rm(root, { force: true, recursive: true });
+    }
+  });
 });
 
 describe("Windows desired state and lock", () => {
