@@ -104,11 +104,7 @@ async function gitResult(
   });
 }
 
-async function refreshCheckout(
-  root: string,
-  config: ManagerConfig,
-  run: typeof runCommand,
-): Promise<void> {
+async function assertCleanCheckout(root: string, run: typeof runCommand): Promise<void> {
   const status = await gitResult(
     run,
     root,
@@ -121,7 +117,13 @@ async function refreshCheckout(
   if (status.stdout.trim().length > 0) {
     throw new Error(`Outfitting repository at ${root} has local changes; refusing to refresh it.`);
   }
+}
 
+async function fetchCheckoutRevision(
+  root: string,
+  config: ManagerConfig,
+  run: typeof runCommand,
+): Promise<{ head: string; target: string }> {
   const fetched = await gitResult(
     run,
     root,
@@ -140,10 +142,14 @@ async function refreshCheckout(
   if (head.code !== 0 || target.code !== 0) {
     throw new Error(`Unable to resolve the fetched Git revision for ${root}.`);
   }
-  if (head.stdout.trim() === target.stdout.trim()) {
-    return;
-  }
+  return { head: head.stdout.trim(), target: target.stdout.trim() };
+}
 
+async function advanceCheckout(
+  root: string,
+  config: ManagerConfig,
+  run: typeof runCommand,
+): Promise<void> {
   const ancestor = await gitResult(
     run,
     root,
@@ -165,6 +171,19 @@ async function refreshCheckout(
     const detail = (update.stderr || update.stdout).trim();
     throw new Error(`Unable to update Git checkout ${root}${detail ? `: ${detail}` : "."}`);
   }
+}
+
+async function refreshCheckout(
+  root: string,
+  config: ManagerConfig,
+  run: typeof runCommand,
+): Promise<void> {
+  await assertCleanCheckout(root, run);
+  const revision = await fetchCheckoutRevision(root, config, run);
+  if (revision.head === revision.target) {
+    return;
+  }
+  await advanceCheckout(root, config, run);
 }
 
 async function refreshSparseSource(root: string, options: LinuxSourceOptions): Promise<void> {

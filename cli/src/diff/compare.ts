@@ -552,20 +552,26 @@ async function compareSection(
   return compareLinuxSection({ manager, profiles }, context);
 }
 
+async function resolveLinuxDiffSource(
+  options: CollectDiffOptions,
+  config: ManagerConfig,
+): Promise<LinuxSource | undefined> {
+  if (options.platform !== "linux" || options.refresh !== true) {
+    return undefined;
+  }
+  const profile = resolveLinuxDiffProfile(options.profiles, config);
+  return prepareLinuxSource({
+    config,
+    profile,
+    refresh: true,
+    offline: options.offline,
+    fetcher: options.fetcher,
+  });
+}
+
 export async function collectDiff(options: CollectDiffOptions): Promise<PlatformDiff> {
   const config = options.config ?? (await loadConfig());
-  const linuxProfile =
-    options.platform === "linux" ? resolveLinuxDiffProfile(options.profiles, config) : undefined;
-  const linuxSource =
-    linuxProfile === undefined || options.refresh !== true
-      ? undefined
-      : await prepareLinuxSource({
-          config,
-          profile: linuxProfile,
-          refresh: options.refresh,
-          offline: options.offline,
-          fetcher: options.fetcher,
-        });
+  const linuxSource = await resolveLinuxDiffSource(options, config);
   const context: DiffContext = {
     config,
     run: options.run ?? runCommand,

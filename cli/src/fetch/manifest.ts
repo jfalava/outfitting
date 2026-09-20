@@ -211,6 +211,83 @@ async function handleHttpResponse(params: HttpResponseParams): Promise<FetchedMa
   });
 }
 
+interface OfflineManifestParams {
+  relativePath: string;
+  url: string;
+  cached: CachedManifest | undefined;
+  stateRoot: string;
+  materialize: boolean | undefined;
+}
+
+async function readOfflineManifest(params: OfflineManifestParams): Promise<FetchedManifest> {
+  if (params.cached === undefined) {
+    throw new Error(`No cached manifest for ${params.relativePath} (offline mode).`);
+  }
+  return fromCache({
+    relativePath: params.relativePath,
+    url: params.url,
+    cached: params.cached,
+    source: "cache",
+    stateRoot: params.stateRoot,
+    materialize: params.materialize,
+    warning: `Using cached manifest for ${params.relativePath} (offline mode).`,
+  });
+}
+
+interface NetworkManifestParams {
+  fetcher: ManifestFetcher;
+  url: string;
+  cached: CachedManifest | undefined;
+  relativePath: string;
+  cacheRoot: string;
+  stateRoot: string;
+  materialize: boolean | undefined;
+  strict: boolean | undefined;
+  useTimeout: boolean;
+}
+
+async function fetchNetworkManifest(params: NetworkManifestParams): Promise<FetchedManifest> {
+  let response: Response;
+  try {
+    response = await fetchWithOptionalTimeout(
+      params.fetcher,
+      params.url,
+      requestHeaders(params.cached?.meta.etag),
+      params.useTimeout,
+    );
+  } catch (cause) {
+    if (params.strict) {
+      const message = cause instanceof Error ? cause.message : String(cause);
+      throw new Error(`Failed to fetch manifest ${params.relativePath}: ${message}`, { cause });
+    }
+    if (params.cached) {
+      const reason = cause instanceof Error ? cause.message : String(cause);
+      return fromCache({
+        relativePath: params.relativePath,
+        url: params.url,
+        cached: params.cached,
+        source: "cache",
+        stateRoot: params.stateRoot,
+        materialize: params.materialize,
+        warning: `Network failed (${reason}); using cached manifest for ${params.relativePath}.`,
+      });
+    }
+    const message = cause instanceof Error ? cause.message : String(cause);
+    throw new Error(`Failed to fetch manifest ${params.relativePath}: ${message}`, { cause });
+  }
+
+  return handleHttpResponse({
+    response,
+    cached: params.cached,
+    relativePath: params.relativePath,
+    url: params.url,
+    cacheRoot: params.cacheRoot,
+    stateRoot: params.stateRoot,
+    materialize: params.materialize,
+    strict: params.strict,
+  });
+}
+
 /**
  * Fetch a named monorepo artifact via GitHub raw (configurable base+ref).
  * Uses disk cache + ETag; offline / network failure → last cache + warning.
@@ -225,57 +302,24 @@ export async function fetchManifest(options: FetchManifestOptions): Promise<Fetc
   const cached = await readCachedManifest(cacheRoot, url);
 
   if (options.offline) {
-    if (!cached) {
-      throw new Error(`No cached manifest for ${relativePath} (offline mode).`);
-    }
-    return fromCache({
+    return readOfflineManifest({
       relativePath,
       url,
       cached,
-      source: "cache",
       stateRoot: config.stateRoot,
       materialize: options.materialize,
-      warning: `Using cached manifest for ${relativePath} (offline mode).`,
     });
   }
 
-  let response: Response;
-  try {
-    response = await fetchWithOptionalTimeout(
-      fetcher,
-      url,
-      requestHeaders(cached?.meta.etag),
-      useDefaultFetcher,
-    );
-  } catch (cause) {
-    if (options.strict) {
-      const message = cause instanceof Error ? cause.message : String(cause);
-      throw new Error(`Failed to fetch manifest ${relativePath}: ${message}`, { cause });
-    }
-    if (cached) {
-      const reason = cause instanceof Error ? cause.message : String(cause);
-      return fromCache({
-        relativePath,
-        url,
-        cached,
-        source: "cache",
-        stateRoot: config.stateRoot,
-        materialize: options.materialize,
-        warning: `Network failed (${reason}); using cached manifest for ${relativePath}.`,
-      });
-    }
-    const message = cause instanceof Error ? cause.message : String(cause);
-    throw new Error(`Failed to fetch manifest ${relativePath}: ${message}`, { cause });
-  }
-
-  return handleHttpResponse({
-    response,
+  return fetchNetworkManifest({
+    fetcher,
+    url,
     cached,
     relativePath,
-    url,
     cacheRoot,
     stateRoot: config.stateRoot,
     materialize: options.materialize,
     strict: options.strict,
+    useTimeout: useDefaultFetcher,
   });
 }

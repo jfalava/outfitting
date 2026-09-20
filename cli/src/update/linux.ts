@@ -26,6 +26,7 @@ import {
   prepareLinuxSource,
   readLinuxManifest,
   type LinuxProfile,
+  type LinuxSource,
 } from "@/update/linux-source";
 
 export {
@@ -251,6 +252,34 @@ function resolveProfile(value: string | undefined, config?: ManagerConfig): Linu
     throw new Error(`Unknown Linux profile \`${profile}\`. Choose: ${LINUX_PROFILES.join(", ")}.`);
   }
   return profile;
+}
+
+async function resolveLinuxApplySource<ConfirmR>(
+  options: LinuxApplyOptions<ConfirmR>,
+  config: ManagerConfig,
+  profile: LinuxProfile,
+): Promise<LinuxSource | undefined> {
+  if (
+    options.refresh &&
+    options.profile !== undefined &&
+    profile !== (config.linux?.profile ?? DEFAULT_LINUX_PROFILE)
+  ) {
+    throw new CliFailure({
+      message:
+        "--refresh requires the configured Linux profile; run init or setup first when switching profiles.",
+    });
+  }
+  if (!options.refresh) {
+    return undefined;
+  }
+  return prepareLinuxSource({
+    config,
+    profile,
+    refresh: true,
+    offline: options.offline,
+    fetcher: options.sourceFetcher,
+    run: options.run,
+  });
 }
 
 export async function runLinuxOciBootstrap(
@@ -574,28 +603,7 @@ export const applyLinux = <ConfirmR = never>(options: LinuxApplyOptions<ConfirmR
       try: () => resolveProfile(options.profile, config),
       catch: toCliFailure,
     });
-    if (
-      options.refresh &&
-      options.profile !== undefined &&
-      profile !== (config.linux?.profile ?? DEFAULT_LINUX_PROFILE)
-    ) {
-      return yield* new CliFailure({
-        message:
-          "--refresh requires the configured Linux profile; run init or setup first when switching profiles.",
-      });
-    }
-    const source = options.refresh
-      ? yield* tryPromise(() =>
-          prepareLinuxSource({
-            config,
-            profile,
-            refresh: true,
-            offline: options.offline,
-            fetcher: options.sourceFetcher,
-            run: options.run,
-          }),
-        )
-      : undefined;
+    const source = yield* tryPromise(() => resolveLinuxApplySource(options, config, profile));
     const command = yield* tryPromise(() => detectManager(options, config));
     const declared = yield* Effect.tryPromise({
       try: async () =>

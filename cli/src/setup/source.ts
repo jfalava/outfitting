@@ -62,11 +62,7 @@ async function replaceSourceTree(staged: string, target: string): Promise<void> 
   }
 }
 
-/**
- * Fetch a fixed source closure and atomically publish a clean sparse tree.
- * Existing files are never used as a partially refreshed source.
- */
-export async function syncSparseSource(options: {
+export interface SparseSourceOptions {
   config: ManagerConfig;
   sourceRoot?: string;
   fetcher?: ManifestFetcher;
@@ -74,7 +70,59 @@ export async function syncSparseSource(options: {
   paths?: ReadonlyArray<string>;
   /** Reject stale-cache fallback and stage the refresh cache with the source. */
   strict?: boolean;
-}): Promise<SparseSourceResult> {
+}
+
+async function stageCacheTree(cacheTarget: string, stagedCache: string | undefined): Promise<void> {
+  if (stagedCache === undefined) {
+    return;
+  }
+  await rm(stagedCache, { recursive: true, force: true });
+  try {
+    await cp(cacheTarget, stagedCache, { recursive: true });
+  } catch (cause) {
+    if (!isNotFound(cause)) {
+      throw cause;
+    }
+    await mkdir(stagedCache, { recursive: true });
+  }
+}
+
+async function fetchSparseFiles(
+  options: SparseSourceOptions,
+  staged: string,
+  stagedCache: string | undefined,
+): Promise<SparseSourceFile[]> {
+  const files: SparseSourceFile[] = [];
+  for (const path of options.paths ?? MACOS_SOURCE_PATHS) {
+    if (!ALLOWED_SOURCE_PATHS.has(path)) {
+      throw new Error(`Refusing to fetch non-allowlisted source path: ${path}`);
+    }
+    const fetched = await fetchManifest({
+      path,
+      config: options.config,
+      materialize: options.strict !== true,
+      fetcher: options.fetcher,
+      offline: options.offline,
+      strict: options.strict,
+      cacheRoot: stagedCache,
+    });
+    const destination = join(staged, path);
+    await mkdir(dirname(destination), { recursive: true });
+    await writeFile(destination, fetched.body);
+    const file: SparseSourceFile = { path: fetched.path, source: fetched.source };
+    if (fetched.warning !== undefined) {
+      file.warning = fetched.warning;
+    }
+    files.push(file);
+  }
+  return files;
+}
+
+/**
+ * Fetch a fixed source closure and atomically publish a clean sparse tree.
+ * Existing files are never used as a partially refreshed source.
+ */
+export async function syncSparseSource(options: SparseSourceOptions): Promise<SparseSourceResult> {
   const target = options.sourceRoot ?? sparseSourceRoot(options.config.stateRoot);
   const cacheTarget = manifestCacheDir(options.config.stateRoot);
   await mkdir(dirname(target), { recursive: true });
@@ -85,42 +133,10 @@ export async function syncSparseSource(options: {
   const stagedCache = options.strict
     ? await mkdtemp(join(dirname(cacheTarget), ".outfitting-cache-"))
     : undefined;
-  const files: SparseSourceFile[] = [];
 
   try {
-    if (stagedCache !== undefined) {
-      await rm(stagedCache, { recursive: true, force: true });
-      try {
-        await cp(cacheTarget, stagedCache, { recursive: true });
-      } catch (cause) {
-        if (!isNotFound(cause)) {
-          throw cause;
-        }
-        await mkdir(stagedCache, { recursive: true });
-      }
-    }
-    for (const path of options.paths ?? MACOS_SOURCE_PATHS) {
-      if (!ALLOWED_SOURCE_PATHS.has(path)) {
-        throw new Error(`Refusing to fetch non-allowlisted source path: ${path}`);
-      }
-      const fetched = await fetchManifest({
-        path,
-        config: options.config,
-        materialize: options.strict !== true,
-        fetcher: options.fetcher,
-        offline: options.offline,
-        strict: options.strict,
-        cacheRoot: stagedCache,
-      });
-      const destination = join(staged, path);
-      await mkdir(dirname(destination), { recursive: true });
-      await writeFile(destination, fetched.body);
-      const file: SparseSourceFile = { path: fetched.path, source: fetched.source };
-      if (fetched.warning !== undefined) {
-        file.warning = fetched.warning;
-      }
-      files.push(file);
-    }
+    await stageCacheTree(cacheTarget, stagedCache);
+    const files = await fetchSparseFiles(options, staged, stagedCache);
 
     await replaceSourceTree(staged, target);
     if (stagedCache !== undefined) {

@@ -40,7 +40,7 @@
     "@tailwindcss/vite": "4.3.3",
     "@typescript-eslint/parser": "8.70.0",
     "cross-spawn": "7.0.6",
-    "eslint": "10.10.0",
+    "eslint": "10.11.0",
     "eslint-plugin-astro": "3.2.1",
     "oxlint": "catalog:build",
     "oxlint-tsgolint": "catalog:build",
@@ -52,9 +52,9 @@
     "typescript": "6.0.3"
   },
   "optionalDependencies": {
-    "@bruits/satteri-darwin-arm64": "0.9.5",
-    "@bruits/satteri-linux-arm64-gnu": "0.9.5",
-    "@bruits/satteri-linux-x64-gnu": "0.9.5",
-    "@bruits/satteri-win32-x64-msvc": "0.9.5"
+    "@bruits/satteri-darwin-arm64": "0.10.5",
+    "@bruits/satteri-linux-arm64-gnu": "0.10.5",
+    "@bruits/satteri-linux-x64-gnu": "0.10.5",
+    "@bruits/satteri-win32-x64-msvc": "0.10.5"
   }
 }

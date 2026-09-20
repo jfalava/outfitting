@@ -52,6 +52,15 @@ interface DiffProgressRenderer {
   finish: () => void;
 }
 
+interface RunDiffOptions {
+  platform: DiffPlatform;
+  manager: Option.Option<string>;
+  profile: Option.Option<string>;
+  offline: boolean;
+  json: boolean;
+  refresh: boolean;
+}
+
 function makeProgressRenderer(platform: DiffPlatform): DiffProgressRenderer {
   const bar = new cliProgress.SingleBar({
     format: `${platformLabel(platform)} [{bar}] {percentage}% | {managerProgress} | {status} {manager}{item}`,
@@ -147,28 +156,21 @@ function printText(result: Awaited<ReturnType<typeof collectDiff>>): Effect.Effe
   });
 }
 
-function runDiff(
-  platform: DiffPlatform,
-  manager: Option.Option<string>,
-  profile: Option.Option<string>,
-  offline: boolean,
-  json: boolean,
-  refresh: boolean,
-) {
+function runDiff(options: RunDiffOptions) {
   return Effect.gen(function* () {
-    const progress = makeProgressRenderer(platform);
+    const progress = makeProgressRenderer(options.platform);
     const result = yield* tryPromise(() =>
       collectDiff({
-        platform,
-        manager: Option.getOrUndefined(manager),
-        profiles: Option.isSome(profile) ? profile.value.split(",") : undefined,
-        offline,
-        refresh,
+        platform: options.platform,
+        manager: Option.getOrUndefined(options.manager),
+        profiles: Option.isSome(options.profile) ? options.profile.value.split(",") : undefined,
+        offline: options.offline,
+        refresh: options.refresh,
         onProgress: progress.update,
       }),
     ).pipe(Effect.ensuring(Effect.sync(progress.finish)));
 
-    if (json) {
+    if (options.json) {
       yield* Console.log(JSON.stringify(result, null, 2));
     } else {
       yield* printText(result);
@@ -202,7 +204,7 @@ function makeDiffCommand(platform: DiffPlatform) {
         json: jsonFlag,
       },
       ({ manager, profile, offline, refresh, json }) =>
-        runDiff(platform, manager, profile, offline, json, refresh),
+        runDiff({ platform, manager, profile, offline, json, refresh }),
     ).pipe(Command.withDescription(diffDescription(platform)));
   }
   return Command.make(
@@ -214,7 +216,7 @@ function makeDiffCommand(platform: DiffPlatform) {
       json: jsonFlag,
     },
     ({ manager, profile, offline, json }) =>
-      runDiff(platform, manager, profile, offline, json, false),
+      runDiff({ platform, manager, profile, offline, json, refresh: false }),
   ).pipe(Command.withDescription(diffDescription(platform)));
 }
 
