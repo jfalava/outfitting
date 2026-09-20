@@ -9,7 +9,8 @@ with pkgs;
   tmux
   openssl
   openssh
-  # secret-tool plus the store path Bun.secrets dlopens via LD_LIBRARY_PATH.
-  # The daemon itself is Ubuntu gnome-keyring from oci-agents.txt.
+  # Keep secret-tool available for validating the Ubuntu Secret Service.
+  # Bun.secrets uses Ubuntu's system libsecret; do not override LD_LIBRARY_PATH
+  # with Nix GLib/libsecret libraries.
   libsecret
 ]

@@ -12,13 +12,6 @@ let
       repoFromEnvironment
     else
       "${config.home.homeDirectory}/.config/outfitting/source";
-  # Compiled outfitting-manager uses the Nix glibc interpreter, so it cannot
-  # see Ubuntu libsecret in ldconfig. Official Bun binaries (machine-memory)
-  # dlopen /usr/lib instead; both need to work on this host.
-  libsecretLibraries = lib.makeLibraryPath [
-    pkgs.glib
-    pkgs.libsecret
-  ];
   # Headless Ubuntu has no graphical session to unlock GNOME Keyring. The
   # secrets daemon is started unlocked with an empty password. Do not request
   # the SSH component: it would replace SSH_AUTH_SOCK and break forwarded
@@ -49,11 +42,7 @@ in
     EDITOR = "vim";
     VISUAL = "vim";
     PAGER = "less";
-    LD_LIBRARY_PATH = libsecretLibraries;
   };
-
-  # OpenCode/Amp/T3 run as user systemd services and never source .zshenv.
-  systemd.user.sessionVariables.LD_LIBRARY_PATH = libsecretLibraries;
 
   # Ubuntu gnome-keyring enables a graphical-session daemon plus gcr-ssh-agent.
   # The vendor socket steals %t/keyring/control so --unlock cannot talk to the
