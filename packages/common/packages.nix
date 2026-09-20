@@ -15,3 +15,7 @@ with pkgs;
   shellcheck
   tree
 ]
+++ lib.optionals stdenv.hostPlatform.isLinux [
+  # Provides wl-copy for clipboard-aware commands in Linux SSH sessions.
+  wl-clipboard
+]
