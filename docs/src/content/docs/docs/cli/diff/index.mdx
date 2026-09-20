@@ -23,6 +23,7 @@ outfitting-manager diff --offline --json
 | `--manager <name>` | Compare one manager instead of the complete platform set.                 |
 | `--profile <name>` | Select a profile using the [platform profile rules](/docs/cli/profiles/). |
 | `--offline`        | Use cached manifests and skip the remote Nix comparison.                  |
+| `--refresh`        | Linux only: refresh the active source before comparing declarations.      |
 | `--json`           | Print the result as JSON.                                                 |
 
 The command exits successfully when the compared state matches. It exits nonzero when differences are found or a required comparison is unavailable.

@@ -58,6 +58,13 @@ test("Linux entrypoint registers update nix alongside apt/pacman", async () => {
   });
   expect(`${nixHelp.stdout}\n${nixHelp.stderr}`).toMatch(/build|switch|test|dry/);
 
+  const nixSwitchHelp = await execFileAsync(
+    "bun",
+    [linuxEntry, "update", "nix", "switch", "--help"],
+    { encoding: "utf8" },
+  );
+  expect(`${nixSwitchHelp.stdout}\n${nixSwitchHelp.stderr}`).toContain("--refresh");
+
   // Bare `update nix` must list actions, not activate Home Manager.
   let bareText = "";
   try {
@@ -74,11 +81,18 @@ test("Linux entrypoint registers update nix alongside apt/pacman", async () => {
     encoding: "utf8",
   });
   expect(`${diff.stdout}\n${diff.stderr}`).toMatch(/apt|pacman/);
+  expect(`${diff.stdout}\n${diff.stderr}`).toContain("--refresh");
 
-  const apply = await execFileAsync("bun", [linuxEntry, "apply", "--help"], {
+  const apply = await execFileAsync("bun", [linuxEntry, "apply", "all", "--help"], {
     encoding: "utf8",
   });
-  expect(`${apply.stdout}\n${apply.stderr}`).toMatch(/apt|pacman/);
+  expect(`${apply.stdout}\n${apply.stderr}`).toContain("Apply the local Linux profile");
+  expect(`${apply.stdout}\n${apply.stderr}`).toContain("--refresh");
+
+  const packageUpdateHelp = await execFileAsync("bun", [linuxEntry, "update", "apt", "--help"], {
+    encoding: "utf8",
+  });
+  expect(`${packageUpdateHelp.stdout}\n${packageUpdateHelp.stderr}`).not.toContain("--refresh");
 });
 
 test("Linux init materializes state without invoking a package manager", async () => {
@@ -529,6 +543,47 @@ test("Linux offline apply uses apt cache only and never updates indexes", async 
   } finally {
     await rm(stateRoot, { force: true, recursive: true });
   }
+});
+
+test("Linux apply refreshes the active sparse profile before planning packages", async () => {
+  const stateRoot = await mkdtemp(join(tmpdir(), "outfitting-linux-refresh-"));
+  const fetched: string[] = [];
+  const calls: ReadonlyArray<string>[] = [];
+  try {
+    await Effect.runPromise(
+      applyLinux({
+        config: {
+          stateRoot,
+          machineId: "test:x86_64-linux",
+          machineIdOverridden: true,
+          manifest: { baseUrl: "https://example.test/outfitting", ref: "main" },
+        },
+        packageManager: "apt",
+        refresh: true,
+        yes: true,
+        sourceFetcher: async (url) => {
+          fetched.push(url);
+          return new Response("curl\n");
+        },
+        which: async (command) =>
+          ({ apt: "/usr/bin/apt", "dpkg-query": "/usr/bin/dpkg-query", sudo: "/usr/bin/sudo" })[
+            command
+          ],
+        run: async (command, args) => {
+          calls.push(args);
+          if (command === "/usr/bin/dpkg-query") return { code: 0, stdout: "", stderr: "" };
+          return { code: 0, stdout: "", stderr: "" };
+        },
+      }),
+    );
+  } finally {
+    await rm(stateRoot, { force: true, recursive: true });
+  }
+
+  expect(fetched).toEqual([
+    "https://example.test/outfitting/main/packages/linux/generic-linux.txt",
+  ]);
+  expect(calls).toContainEqual(["/usr/bin/apt", "install", "-y", "curl"]);
 });
 
 test("Linux setup applies the cached selected profile", async () => {

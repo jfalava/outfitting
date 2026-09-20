@@ -21,12 +21,12 @@ import { runCommand, which } from "@/process";
 import { parseBrewfileManifest, BREWFILE_MANIFEST_PATH } from "@/update/brew";
 import {
   isLinuxProfile,
-  linuxManifestPath,
   listInstalledLinuxPackages,
   missingLinuxPackages,
   parseLinuxPackageManifest,
   type LinuxProfile,
 } from "@/update/linux";
+import { prepareLinuxSource, readLinuxManifest, type LinuxSource } from "@/update/linux-source";
 import { closeNixLock, openNixLock } from "@/update/nix/lock";
 import { NIX_SYSTEM_ATTR } from "@/update/nix/types";
 import { parseScoopManifest, type ScoopManifest } from "@/update/scoop";
@@ -43,6 +43,7 @@ export interface CollectDiffOptions {
   manager?: string;
   profiles?: ReadonlyArray<string>;
   offline?: boolean;
+  refresh?: boolean;
   config?: ManagerConfig;
   fetcher?: ManifestFetcher;
   run?: typeof runCommand;
@@ -73,6 +74,7 @@ interface DiffContext {
   offline: boolean;
   warnings: string[];
   reportItem: (item: string, itemIndex: number, itemTotal: number) => void;
+  linuxSource?: LinuxSource;
 }
 
 interface WindowsDiffOptions {
@@ -427,7 +429,7 @@ async function compareLinuxSection(
   }
 
   const desired = parseLinuxPackageManifest(
-    await fetchDiffManifest(linuxManifestPath(profile), context),
+    await readLinuxManifest(context.config, profile, context.linuxSource?.root),
   );
   const installed = await listInstalledLinuxPackages(manager, {
     run: context.run,
@@ -552,6 +554,18 @@ async function compareSection(
 
 export async function collectDiff(options: CollectDiffOptions): Promise<PlatformDiff> {
   const config = options.config ?? (await loadConfig());
+  const linuxProfile =
+    options.platform === "linux" ? resolveLinuxDiffProfile(options.profiles, config) : undefined;
+  const linuxSource =
+    linuxProfile === undefined || options.refresh !== true
+      ? undefined
+      : await prepareLinuxSource({
+          config,
+          profile: linuxProfile,
+          refresh: options.refresh,
+          offline: options.offline,
+          fetcher: options.fetcher,
+        });
   const context: DiffContext = {
     config,
     run: options.run ?? runCommand,
@@ -560,6 +574,7 @@ export async function collectDiff(options: CollectDiffOptions): Promise<Platform
     offline: options.offline === true,
     warnings: [],
     reportItem: () => undefined,
+    linuxSource,
   };
   const sections: DiffSection[] = [];
   const managers = selectedManagers(options.platform, options.manager);
@@ -602,7 +617,7 @@ export async function collectDiff(options: CollectDiffOptions): Promise<Platform
 
   return {
     platform: options.platform,
-    source: `${config.manifest.baseUrl}/${config.manifest.ref}`,
+    source: linuxSource?.root ?? `${config.manifest.baseUrl}/${config.manifest.ref}`,
     sections,
     differences: sections.some((section) => section.status === "different"),
     unavailable: sections.some((section) => section.status === "unavailable"),

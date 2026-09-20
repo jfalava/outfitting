@@ -30,7 +30,7 @@ outfitting-manager update brew
 outfitting-manager update brew --no-push
 ```
 
-### `update nix`
+### `update nix` (macOS)
 
 Choose `build`, `test`, `dry`, or `switch`. Bare `update nix` lists these actions without running one.
 
@@ -69,6 +69,7 @@ outfitting-manager update pacman
 ```
 
 Nix-backed profiles also support `update nix build|test|dry|switch`, using the saved Linux profile.
+Add `--refresh` to a Linux Nix action to fetch the active profile's complete local source closure before evaluating the flake. It never runs `nix flake update`; checked-in `flake.lock` changes must come from the configured source.
 
 ## Platform differences
 

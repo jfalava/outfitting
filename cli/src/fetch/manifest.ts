@@ -17,6 +17,8 @@ export interface FetchManifestOptions {
   fetcher?: ManifestFetcher;
   /** When true, never hit the network — cache only. */
   offline?: boolean;
+  /** When true, fail instead of silently falling back to a stale cache entry. */
+  strict?: boolean;
 }
 
 export interface FetchedManifest {
@@ -158,6 +160,7 @@ interface HttpResponseParams {
   cacheRoot: string;
   stateRoot: string;
   materialize: boolean | undefined;
+  strict: boolean | undefined;
 }
 
 async function handleHttpResponse(params: HttpResponseParams): Promise<FetchedManifest> {
@@ -178,6 +181,9 @@ async function handleHttpResponse(params: HttpResponseParams): Promise<FetchedMa
   }
 
   if (!response.ok) {
+    if (params.strict) {
+      throw new Error(`Failed to fetch manifest ${relativePath}: HTTP ${response.status}.`);
+    }
     if (cached) {
       return fromCache({
         relativePath,
@@ -242,6 +248,10 @@ export async function fetchManifest(options: FetchManifestOptions): Promise<Fetc
       useDefaultFetcher,
     );
   } catch (cause) {
+    if (options.strict) {
+      const message = cause instanceof Error ? cause.message : String(cause);
+      throw new Error(`Failed to fetch manifest ${relativePath}: ${message}`, { cause });
+    }
     if (cached) {
       const reason = cause instanceof Error ? cause.message : String(cause);
       return fromCache({
@@ -266,5 +276,6 @@ export async function fetchManifest(options: FetchManifestOptions): Promise<Fetc
     cacheRoot,
     stateRoot: config.stateRoot,
     materialize: options.materialize,
+    strict: options.strict,
   });
 }

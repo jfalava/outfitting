@@ -9,7 +9,7 @@ sidebar:
 Use [apply](/docs/cli/apply/) to install missing packages from the active local profile. It preserves manually installed packages unless `--prune` can prove that Outfitting installed them for the active profile and they are no longer declared.
 
 ```bash
-outfitting-manager apply all
+outfitting-manager apply all --refresh
 outfitting-manager apply apt --profile ubuntu-wsl
 outfitting-manager apply all --prune
 ```
@@ -26,7 +26,7 @@ For Nix-backed profiles, rebuild Home Manager separately:
 
 ```bash
 outfitting-manager update nix build
-outfitting-manager update nix switch
+outfitting-manager update nix switch --refresh
 ```
 
 See [Home Manager](/docs/cli/linux/home-manager/) for the `hm-*` shell helpers. Update global Bun packages with `bun update -g`, and update the manager binary with `outfitting-manager upgrade`.

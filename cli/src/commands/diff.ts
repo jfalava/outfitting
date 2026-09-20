@@ -30,6 +30,11 @@ const offlineFlag = Flag.Boolean("offline").pipe(
   Flag.withDescription("Use cached repository manifests and skip the remote Nix comparison."),
 );
 
+const refreshFlag = Flag.Boolean("refresh").pipe(
+  Flag.withDefault(false),
+  Flag.withDescription("Refresh the Linux source before comparing it."),
+);
+
 const jsonFlag = Flag.Boolean("json").pipe(
   Flag.withDefault(false),
   Flag.withDescription("Print the comparison as JSON."),
@@ -142,7 +147,64 @@ function printText(result: Awaited<ReturnType<typeof collectDiff>>): Effect.Effe
   });
 }
 
+function runDiff(
+  platform: DiffPlatform,
+  manager: Option.Option<string>,
+  profile: Option.Option<string>,
+  offline: boolean,
+  json: boolean,
+  refresh: boolean,
+) {
+  return Effect.gen(function* () {
+    const progress = makeProgressRenderer(platform);
+    const result = yield* tryPromise(() =>
+      collectDiff({
+        platform,
+        manager: Option.getOrUndefined(manager),
+        profiles: Option.isSome(profile) ? profile.value.split(",") : undefined,
+        offline,
+        refresh,
+        onProgress: progress.update,
+      }),
+    ).pipe(Effect.ensuring(Effect.sync(progress.finish)));
+
+    if (json) {
+      yield* Console.log(JSON.stringify(result, null, 2));
+    } else {
+      yield* printText(result);
+    }
+
+    if (hasDifferences(result)) {
+      return yield* new CliFailure({
+        message: result.unavailable ? "Comparison incomplete." : "Differences found.",
+      });
+    }
+  });
+}
+
+function diffDescription(platform: DiffPlatform): string {
+  return platform === "macos"
+    ? "Compare live Homebrew and Nix state with the configured repository."
+    : platform === "windows"
+      ? "Compare live WinGet and Scoop state with the configured repository."
+      : "Check declared Linux apt or pacman packages without reporting unrelated installed packages.";
+}
+
 function makeDiffCommand(platform: DiffPlatform) {
+  if (platform === "linux") {
+    return Command.make(
+      "diff",
+      {
+        manager: managerFlag,
+        profile: profileFlag,
+        offline: offlineFlag,
+        refresh: refreshFlag,
+        json: jsonFlag,
+      },
+      ({ manager, profile, offline, refresh, json }) =>
+        runDiff(platform, manager, profile, offline, json, refresh),
+    ).pipe(Command.withDescription(diffDescription(platform)));
+  }
   return Command.make(
     "diff",
     {
@@ -152,39 +214,8 @@ function makeDiffCommand(platform: DiffPlatform) {
       json: jsonFlag,
     },
     ({ manager, profile, offline, json }) =>
-      Effect.gen(function* () {
-        const progress = makeProgressRenderer(platform);
-        const result = yield* tryPromise(() =>
-          collectDiff({
-            platform,
-            manager: Option.getOrUndefined(manager),
-            profiles: Option.isSome(profile) ? profile.value.split(",") : undefined,
-            offline,
-            onProgress: progress.update,
-          }),
-        ).pipe(Effect.ensuring(Effect.sync(progress.finish)));
-
-        if (json) {
-          yield* Console.log(JSON.stringify(result, null, 2));
-        } else {
-          yield* printText(result);
-        }
-
-        if (hasDifferences(result)) {
-          return yield* new CliFailure({
-            message: result.unavailable ? "Comparison incomplete." : "Differences found.",
-          });
-        }
-      }),
-  ).pipe(
-    Command.withDescription(
-      platform === "macos"
-        ? "Compare live Homebrew and Nix state with the configured repository."
-        : platform === "windows"
-          ? "Compare live WinGet and Scoop state with the configured repository."
-          : "Check declared Linux apt or pacman packages without reporting unrelated installed packages.",
-    ),
-  );
+      runDiff(platform, manager, profile, offline, json, false),
+  ).pipe(Command.withDescription(diffDescription(platform)));
 }
 
 export const makeMacosDiffCommand = () => makeDiffCommand("macos");

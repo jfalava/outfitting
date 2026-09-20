@@ -3,7 +3,7 @@ import { join } from "node:path";
 
 import { Console, Effect } from "effect";
 
-import { loadConfig, sparseSourceRoot, type ManagerConfig } from "@/config";
+import { DEFAULT_LINUX_PROFILE, loadConfig, sparseSourceRoot, type ManagerConfig } from "@/config";
 import {
   physicalPath,
   readRepoPathFile,
@@ -18,6 +18,7 @@ import { which } from "@/process";
 import { envValue } from "@/secrets";
 import { syncMacosSource } from "@/setup/source";
 import { ui } from "@/ui";
+import { isLinuxProfile, prepareLinuxSource, type LinuxProfile } from "@/update/linux-source";
 import { activateHomeManager, activateNixSystem } from "@/update/nix/activate";
 import { buildNixSystem } from "@/update/nix/build";
 import { closeNixLock, openNixLock } from "@/update/nix/lock";
@@ -33,6 +34,8 @@ export interface UpdateNixOptions {
   offline?: boolean;
   /** Override Linux profile used to pick the Home Manager flake. */
   profile?: string;
+  /** Refresh the selected Linux source before resolving the flake. */
+  refresh?: boolean;
 }
 
 function resolveMacosRepo(options: UpdateNixOptions, config: ManagerConfig) {
@@ -69,19 +72,46 @@ function resolveMacosRepo(options: UpdateNixOptions, config: ManagerConfig) {
 
 function resolveLinuxNixRepo(options: UpdateNixOptions, config: ManagerConfig) {
   return Effect.gen(function* () {
+    const profile = options.profile ?? config.linux?.profile;
+    if (options.refresh) {
+      const selected = profile ?? DEFAULT_LINUX_PROFILE;
+      if (!isLinuxProfile(selected)) {
+        return yield* new CliFailure({
+          message: `Unknown Linux profile \`${selected}\`.`,
+        });
+      }
+      const source = yield* tryPromise(() =>
+        prepareLinuxSource({
+          config,
+          profile: selected as LinuxProfile,
+          sourceRoot: options.repo?.root,
+          refresh: true,
+          offline: options.offline,
+          fetcher: options.sourceFetcher,
+        }),
+      );
+      if (source.repo !== undefined) {
+        return source.repo;
+      }
+      if (options.repo !== undefined) {
+        return options.repo;
+      }
+      return yield* new CliFailure({
+        message: "No Nix flake for the selected Linux profile.",
+      });
+    }
     if (options.repo !== undefined) {
       return options.repo;
     }
-    const profile = options.profile ?? config.linux?.profile;
     return yield* tryPromise(() => resolveOutfittingRepo({ config, profile }));
   });
 }
 
 function resolveActiveRepo(options: UpdateNixOptions, config: ManagerConfig) {
-  if (options.repo !== undefined) {
-    return Effect.succeed(options.repo);
-  }
   if (process.platform === "darwin") {
+    if (options.repo !== undefined) {
+      return Effect.succeed(options.repo);
+    }
     return resolveMacosRepo(options, config);
   }
   return resolveLinuxNixRepo(options, config);
@@ -137,9 +167,7 @@ function runNixAction(
     switch (action) {
       case "build": {
         yield* Console.log(ui.heading(`Building ${label}…`));
-        const path = yield* tryPromise(() =>
-          buildNixSystem({ repo, lockPath, mode: "build" }),
-        );
+        const path = yield* tryPromise(() => buildNixSystem({ repo, lockPath, mode: "build" }));
         yield* Console.log(ui.success(`Built ${path}`));
         return;
       }

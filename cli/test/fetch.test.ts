@@ -128,6 +128,28 @@ describe("fetchManifest", () => {
     expect(fallback.text).toBe("cached-body\n");
   });
 
+  test("strict refresh refuses stale cache fallback", async () => {
+    const root = await tempRoot();
+    const config = await testConfig(root);
+
+    await fetchManifest({
+      path: "packages/linux/generic-linux.txt",
+      config,
+      fetcher: async () => mockResponse(200, "old-body\n"),
+    });
+
+    await expect(
+      fetchManifest({
+        path: "packages/linux/generic-linux.txt",
+        config,
+        strict: true,
+        fetcher: async () => {
+          throw new Error("network down");
+        },
+      }),
+    ).rejects.toThrow(/network down/);
+  });
+
   test("offline mode requires cache", async () => {
     const root = await tempRoot();
     const config = await testConfig(root);

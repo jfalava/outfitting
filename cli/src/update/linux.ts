@@ -6,15 +6,12 @@ import { Console, Effect, Schema } from "effect";
 import {
   DEFAULT_LINUX_PROFILE,
   loadConfig,
-  manifestsDir,
-  readRepoPathFile,
   resolveOutfittingRepo,
   saveConfigFile,
-  sparseSourceRoot,
   type ManagerConfig,
 } from "@/config";
 import { CliFailure, toCliFailure } from "@/errors";
-import { fetchManifest } from "@/fetch";
+import type { ManifestFetcher } from "@/fetch";
 import { tryPromise } from "@/lockfiles/effect";
 import {
   detectLinuxPackageManager,
@@ -22,17 +19,21 @@ import {
   type LinuxPackageManager,
 } from "@/platform/linux";
 import { runCommand, which } from "@/process";
-import { envValue } from "@/secrets";
 import { ui } from "@/ui";
+import {
+  isLinuxProfile,
+  LINUX_PROFILES,
+  prepareLinuxSource,
+  readLinuxManifest,
+  type LinuxProfile,
+} from "@/update/linux-source";
 
-export const LINUX_PROFILES = ["generic-linux", "oci-agents", "ubuntu-wsl"] as const;
-export type LinuxProfile = (typeof LINUX_PROFILES)[number];
-
-const LINUX_PROFILE_MANIFEST_PATHS = {
-  "generic-linux": "packages/linux/generic-linux.txt",
-  "oci-agents": "packages/linux/oci-agents.txt",
-  "ubuntu-wsl": "packages/ubuntu-wsl/apt.txt",
-} satisfies Record<LinuxProfile, string>;
+export {
+  isLinuxProfile,
+  LINUX_PROFILES,
+  linuxManifestPath,
+  type LinuxProfile,
+} from "@/update/linux-source";
 
 const LINUX_OWNERSHIP_FILE = "linux-package-ownership.json";
 
@@ -56,14 +57,6 @@ const LinuxOwnershipSchema = Schema.Struct({
 });
 
 const decodeLinuxOwnership = Schema.decodeUnknownPromise(LinuxOwnershipSchema);
-
-export function isLinuxProfile(value: string): value is LinuxProfile {
-  return (LINUX_PROFILES as ReadonlyArray<string>).includes(value);
-}
-
-export function linuxManifestPath(profile: LinuxProfile): string {
-  return LINUX_PROFILE_MANIFEST_PATHS[profile];
-}
 
 /** Parse a Linux package manifest as one package name per line. */
 export function parseLinuxPackageManifest(content: string): string[] {
@@ -247,6 +240,8 @@ export interface LinuxApplyOptions<ConfirmR = never> extends LinuxUpdateOptions 
   profile?: string;
   prune?: boolean;
   yes?: boolean;
+  refresh?: boolean;
+  sourceFetcher?: ManifestFetcher;
   confirm?: Effect.Effect<boolean, never, ConfirmR>;
 }
 
@@ -312,39 +307,6 @@ async function detectManager(options: LinuxUpdateOptions, config: ManagerConfig)
     throw new Error(`Linux package manager \`${manager}\` is not installed or not in PATH.`);
   }
   return { manager, executable, run: options.run ?? runCommand, which: whichFn, config };
-}
-
-async function readLocalManifest(config: ManagerConfig, profile: LinuxProfile): Promise<string> {
-  const relative = linuxManifestPath(profile);
-  const repo = envValue("OUTFITTING_REPO") ?? (await readRepoPathFile(config));
-  if (repo !== undefined) {
-    return readFile(join(repo, relative), "utf8");
-  }
-  const candidates = [
-    join(manifestsDir(config.stateRoot), relative),
-    join(sparseSourceRoot(config.stateRoot), relative),
-  ];
-  for (const path of candidates) {
-    try {
-      return await readFile(path, "utf8");
-    } catch (cause) {
-      if (
-        !(
-          cause instanceof Error &&
-          "code" in cause &&
-          (cause as NodeJS.ErrnoException).code === "ENOENT"
-        )
-      ) {
-        throw cause;
-      }
-    }
-  }
-  // fetchManifest's offline branch only reads its on-disk cache and never invokes HTTP.
-  try {
-    return (await fetchManifest({ path: relative, config, offline: true })).text;
-  } catch {
-    throw new Error(`No local manifest or cache for ${relative}. Run setup to initialize it.`);
-  }
 }
 
 function emptyOwnership(): LinuxOwnershipState {
@@ -612,9 +574,32 @@ export const applyLinux = <ConfirmR = never>(options: LinuxApplyOptions<ConfirmR
       try: () => resolveProfile(options.profile, config),
       catch: toCliFailure,
     });
+    if (
+      options.refresh &&
+      options.profile !== undefined &&
+      profile !== (config.linux?.profile ?? DEFAULT_LINUX_PROFILE)
+    ) {
+      return yield* new CliFailure({
+        message:
+          "--refresh requires the configured Linux profile; run init or setup first when switching profiles.",
+      });
+    }
+    const source = options.refresh
+      ? yield* tryPromise(() =>
+          prepareLinuxSource({
+            config,
+            profile,
+            refresh: true,
+            offline: options.offline,
+            fetcher: options.sourceFetcher,
+            run: options.run,
+          }),
+        )
+      : undefined;
     const command = yield* tryPromise(() => detectManager(options, config));
     const declared = yield* Effect.tryPromise({
-      try: async () => parseLinuxPackageManifest(await readLocalManifest(config, profile)),
+      try: async () =>
+        parseLinuxPackageManifest(await readLinuxManifest(config, profile, source?.root)),
       catch: toCliFailure,
     });
     const installed = yield* tryPromise(() => listInstalledLinuxPackages(command.manager, command));

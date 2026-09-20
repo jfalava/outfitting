@@ -1,4 +1,4 @@
-import { Command } from "effect/unstable/cli";
+import { Command, Flag } from "effect/unstable/cli";
 
 import {
   linuxOfflineFlag,
@@ -55,11 +55,16 @@ const nixActionDescription = {
   dry: "Dry-run the Home Manager build without activating.",
 } as const satisfies Record<NixAction, string>;
 
+const refreshFlag = Flag.Boolean("refresh").pipe(
+  Flag.withDefault(false),
+  Flag.withDescription("Refresh the active Linux source before the Nix action."),
+);
+
 const makeNixCommand = () => {
   const actions = NIX_ACTIONS.map((action) =>
-    Command.make(action, {}, () => updateNix({ action })).pipe(
-      Command.withDescription(nixActionDescription[action]),
-    ),
+    Command.make(action, { refresh: refreshFlag }, ({ refresh }) =>
+      updateNix({ action, refresh }),
+    ).pipe(Command.withDescription(nixActionDescription[action])),
   );
 
   // No default action: bare `update nix` only lists subcommands.

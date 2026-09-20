@@ -15,7 +15,7 @@ outfitting-manager update nix         # lists actions
 outfitting-manager update nix build
 outfitting-manager update nix test
 outfitting-manager update nix dry
-outfitting-manager update nix switch  # build and activate
+outfitting-manager update nix switch --refresh  # refresh source, build and activate
 ```
 
 Bare `update nix` only lists subcommands. Actions resolve the flake from `linux.profile`:
@@ -25,7 +25,7 @@ Bare `update nix` only lists subcommands. Actions resolve the flake from `linux.
 | `ubuntu-wsl` | `system/ubuntu-wsl#jfalava`    |
 | `oci-agents` | `system/oci-agents#oci-agents` |
 
-Linux uses the flake’s checked-in `flake.lock` (no remote lock pull). Pass `--profile` on the action subcommands when you need to override the persisted profile.
+Linux uses the flake’s checked-in `flake.lock` (no remote lock pull). Add `--refresh` when the configured repository has changed. Refresh fetches the checked-in flake and lock; it does not run `nix flake update`.
 
 ## Shell helpers
 

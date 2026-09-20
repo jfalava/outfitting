@@ -1,7 +1,7 @@
-import { mkdtemp, mkdir, rename, rm, writeFile } from "node:fs/promises";
+import { cp, mkdtemp, mkdir, rename, rm, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 
-import { sparseSourceRoot } from "@/config/paths";
+import { manifestCacheDir, sparseSourceRoot } from "@/config/paths";
 import type { ManagerConfig } from "@/config/types";
 import { fetchManifest, type ManifestFetcher } from "@/fetch";
 import { LINUX_SOURCE_PATHS, MACOS_SOURCE_PATHS } from "@/setup/manifests";
@@ -72,13 +72,33 @@ export async function syncSparseSource(options: {
   fetcher?: ManifestFetcher;
   offline?: boolean;
   paths?: ReadonlyArray<string>;
+  /** Reject stale-cache fallback and stage the refresh cache with the source. */
+  strict?: boolean;
 }): Promise<SparseSourceResult> {
   const target = options.sourceRoot ?? sparseSourceRoot(options.config.stateRoot);
+  const cacheTarget = manifestCacheDir(options.config.stateRoot);
   await mkdir(dirname(target), { recursive: true });
+  if (options.strict) {
+    await mkdir(dirname(cacheTarget), { recursive: true });
+  }
   const staged = await mkdtemp(join(dirname(target), ".outfitting-source-"));
+  const stagedCache = options.strict
+    ? await mkdtemp(join(dirname(cacheTarget), ".outfitting-cache-"))
+    : undefined;
   const files: SparseSourceFile[] = [];
 
   try {
+    if (stagedCache !== undefined) {
+      await rm(stagedCache, { recursive: true, force: true });
+      try {
+        await cp(cacheTarget, stagedCache, { recursive: true });
+      } catch (cause) {
+        if (!isNotFound(cause)) {
+          throw cause;
+        }
+        await mkdir(stagedCache, { recursive: true });
+      }
+    }
     for (const path of options.paths ?? MACOS_SOURCE_PATHS) {
       if (!ALLOWED_SOURCE_PATHS.has(path)) {
         throw new Error(`Refusing to fetch non-allowlisted source path: ${path}`);
@@ -86,9 +106,11 @@ export async function syncSparseSource(options: {
       const fetched = await fetchManifest({
         path,
         config: options.config,
-        materialize: true,
+        materialize: options.strict !== true,
         fetcher: options.fetcher,
         offline: options.offline,
+        strict: options.strict,
+        cacheRoot: stagedCache,
       });
       const destination = join(staged, path);
       await mkdir(dirname(destination), { recursive: true });
@@ -101,9 +123,15 @@ export async function syncSparseSource(options: {
     }
 
     await replaceSourceTree(staged, target);
+    if (stagedCache !== undefined) {
+      await replaceSourceTree(stagedCache, cacheTarget);
+    }
     return { root: target, files };
   } catch (cause) {
     await rm(staged, { recursive: true, force: true });
+    if (stagedCache !== undefined) {
+      await rm(stagedCache, { recursive: true, force: true });
+    }
     throw cause;
   }
 }

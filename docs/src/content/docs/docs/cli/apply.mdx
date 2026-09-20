@@ -5,11 +5,11 @@ sidebar:
   order: 2
 ---
 
-`apply` reconciles package presence from declarations already stored locally. It is available on Windows and Linux; macOS uses `setup` for declarative activation.
+`apply` reconciles package presence from declarations already stored locally. It is available on Windows and Linux; macOS uses `setup` for declarative activation. Pass `--refresh` on Linux to fetch the active profile source before planning changes.
 
-Apply never fetches manifests over HTTP. Package managers may still download package payloads. Pass `--offline` on Linux to prohibit network-backed package-manager work.
+Without `--refresh`, apply never fetches manifests over HTTP. Package managers may still download package payloads. Pass `--offline` on Linux to prohibit network-backed package-manager work.
 
-Declarations come from `OUTFITTING_REPO` or the saved checkout first, then materialized manifests, then the HTTP cache without making a request. Run [`init`](/docs/cli/init/) to refresh cached declarations before applying them.
+Without `--refresh`, declarations come from `OUTFITTING_REPO` or the saved checkout first, then materialized manifests, then the HTTP cache without making a request. Run [`init`](/docs/cli/init/) to refresh cached declarations before applying them, or use `--refresh` to update the active Linux source as part of apply.
 
 Without `--prune`, apply only installs missing declared packages. With `--prune`, it may remove only packages that Outfitting installed for the active profile and that profile no longer declares. Manually installed packages and packages owned by inactive profiles are protected.
 
@@ -29,12 +29,13 @@ Windows options are `--profile <profiles>`, `--winget-only`, `--prune`, and `--y
 
 ```bash
 outfitting-manager apply all
+outfitting-manager apply all --refresh
 outfitting-manager apply apt --profile ubuntu-wsl
 outfitting-manager apply pacman --prune --yes
 outfitting-manager apply all --offline
 ```
 
-Choose `all`, `apt`, or `pacman`. Linux options are `--profile <profile>`, `--prune`, `--offline`, and `--yes`.
+Choose `all`, `apt`, or `pacman`. Linux options are `--profile <profile>`, `--prune`, `--offline`, `--yes`, and `--refresh`. `--refresh` cannot be combined with `--offline` and requires the configured active profile; use `init` or `setup` when switching profiles.
 
 Offline apt installs require cached package payloads. Offline pacman refuses missing-package installs; it can inspect already-satisfied declarations and perform a safe prune without downloads.
 

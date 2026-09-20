@@ -14,6 +14,7 @@ import { hasDifferences } from "@/diff/types";
 import { fetchManifest, type ManifestFetcher } from "@/fetch";
 import { type runCommand, type RunCommandResult } from "@/process";
 import { parseBrewfileManifest } from "@/update/brew";
+import { linuxManifestPath } from "@/update/linux";
 
 const roots: string[] = [];
 
@@ -213,15 +214,19 @@ describe("collectDiff", () => {
   test("checks only declared apt packages and ignores unrelated installed packages", async () => {
     const root = await mkdtemp(join(tmpdir(), "outfitting-diff-apt-"));
     roots.push(root);
+    const managerConfig = config(root);
+    await fetchManifest({
+      path: linuxManifestPath("generic-linux"),
+      config: managerConfig,
+      fetcher: async () => new Response("curl\ngit\n"),
+    });
     const result = await collectDiff({
       platform: "linux",
       manager: "apt",
-      config: config(root),
+      config: managerConfig,
       which: async (command) =>
         ({ apt: "/usr/bin/apt", "dpkg-query": "/usr/bin/dpkg-query" })[command],
-      fetcher: async () => new Response("curl\ngit\n"),
-      run: async () =>
-        ok("curl:amd64\tinstall ok installed\nvim\tinstall ok installed\n"),
+      run: async () => ok("curl:amd64\tinstall ok installed\nvim\tinstall ok installed\n"),
     });
 
     expect(result.sections[0]).toMatchObject({
@@ -249,6 +254,7 @@ describe("collectDiff", () => {
         fetched.push(url);
         return new Response("curl\nwget\n");
       },
+      refresh: true,
       run: async () => ok("curl:amd64\tinstall ok installed\n"),
     });
 

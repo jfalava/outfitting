@@ -4,7 +4,8 @@ import { join } from "node:path";
 
 import { afterEach, describe, expect, test } from "vitest";
 
-import { loadConfig, type ManagerConfig, sparseSourceRoot } from "@/config";
+import { loadConfig, manifestCacheDir, type ManagerConfig, sparseSourceRoot } from "@/config";
+import { manifestUrl, readCachedManifest } from "@/fetch";
 import { syncMacosSource } from "@/setup/source";
 
 const temps: string[] = [];
@@ -83,6 +84,37 @@ describe("syncMacosSource", () => {
 
     expect(await readFile(join(first.root, "system", "macos", "flake.nix"), "utf8")).toMatch(
       /^old:/,
+    );
+  });
+
+  test("strict refresh keeps both source and cache unchanged after a partial failure", async () => {
+    const root = await tempRoot();
+    const config = await testConfig(root);
+    const first = await syncMacosSource({
+      config,
+      strict: true,
+      fetcher: async (url) => response(`old:${url}\n`),
+    });
+    const flakeUrl = manifestUrl(config, "system/macos/flake.nix");
+
+    await expect(
+      syncMacosSource({
+        config,
+        strict: true,
+        fetcher: async (url) => {
+          if (url.endsWith("darwin.nix")) {
+            throw new Error("network down");
+          }
+          return response(`new:${url}\n`);
+        },
+      }),
+    ).rejects.toThrow(/network down/);
+
+    expect(await readFile(join(first.root, "system", "macos", "flake.nix"), "utf8")).toMatch(
+      /^old:/,
+    );
+    expect((await readCachedManifest(manifestCacheDir(root), flakeUrl))?.body).toEqual(
+      new TextEncoder().encode(`old:${flakeUrl}\n`),
     );
   });
 
