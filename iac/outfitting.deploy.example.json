@@ -5,7 +5,13 @@
   "kv": "outfitting-lockfiles",
   "database": "outfitting-lockfiles",
   "privateFonts": "outfitting-private-fonts",
-  "installerHosts": ["win.example.com", "wsl.example.com", "mac.example.com", "nixos.example.com", "linux.example.com"],
+  "installerHosts": [
+    "win.example.com",
+    "wsl.example.com",
+    "mac.example.com",
+    "nixos.example.com",
+    "linux.example.com"
+  ],
   "workers": {
     "router": "outfitting-router",
     "api": "outfitting-api",

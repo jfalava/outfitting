@@ -21,8 +21,8 @@ outfitting-manager --version
 
 ## Platform differences
 
-| Platform | Replacement behavior | Notes |
-| --- | --- | --- |
-| macOS | Replaces the current executable and restores its executable bit. | If macOS reports a quarantine warning, remove the browser quarantine attribute from the downloaded binary. |
-| Windows | Writes a temporary `.exe` and uses a hidden PowerShell process to replace the running executable after exit. | Run a new PowerShell session before checking `outfitting-manager --version`. |
-| Linux | Replaces the current executable and restores its executable bit. | The release archive is selected for Linux x64 or arm64. |
+| Platform | Replacement behavior                                                                                         | Notes                                                                                                      |
+| -------- | ------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------- |
+| macOS    | Replaces the current executable and restores its executable bit.                                             | If macOS reports a quarantine warning, remove the browser quarantine attribute from the downloaded binary. |
+| Windows  | Writes a temporary `.exe` and uses a hidden PowerShell process to replace the running executable after exit. | Run a new PowerShell session before checking `outfitting-manager --version`.                               |
+| Linux    | Replaces the current executable and restores its executable bit.                                             | The release archive is selected for Linux x64 or arm64.                                                    |

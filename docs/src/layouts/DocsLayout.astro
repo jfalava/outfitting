@@ -57,7 +57,10 @@ const audienceBadge = {
   macos: { text: "For macOS", variant: "info" },
   linux: { text: "For Linux", variant: "info" },
   nix: { text: "For Nix-managed machines", variant: "info" },
-} as const satisfies Record<Audience, { text: string; variant: "success" | "info" }>;
+} as const satisfies Record<
+  Audience,
+  { text: string; variant: "success" | "info" }
+>;
 const badge = audience === undefined ? undefined : audienceBadge[audience];
 
 // `sidebar: false` / `tableOfContents: false` in frontmatter come through

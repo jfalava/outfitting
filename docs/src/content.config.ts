@@ -10,9 +10,7 @@ export const collections = {
       schemaFields: {
         // Nimbus docs are agent-friendly by default. Set `audience` to flag
         // pages written for a particular reader or platform.
-        audience: z
-          .enum(["human", "windows", "macos", "linux", "nix"])
-          .optional(),
+        audience: z.enum(["human", "windows", "macos", "linux", "nix"]).optional(),
       },
     }),
   ),
