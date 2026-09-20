@@ -17,6 +17,11 @@ const noPushFlag = Flag.Boolean("no-push").pipe(
   Flag.withDescription("Skip pushing inventory/lock blobs after a successful update."),
 );
 
+const noRefreshFlag = Flag.Boolean("no-refresh").pipe(
+  Flag.withDefault(false),
+  Flag.withDescription("Use the local source without fetching remote changes."),
+);
+
 const nixActionDescription = {
   build: "Build the nix-darwin system without activating.",
   switch: "Build and activate the nix-darwin system (activate runs in-process).",
@@ -31,8 +36,10 @@ const makeForeignStub = (pm: PackageManager, host: HostPlatform) =>
 
 const makeNixCommand = () => {
   const actions = NIX_ACTIONS.map((action) =>
-    Command.make(action, { noPush: noPushFlag }, ({ noPush }) =>
-      updateNix({ action, noPush }),
+    Command.make(
+      action,
+      { noPush: noPushFlag, noRefresh: noRefreshFlag },
+      ({ noPush, noRefresh }) => updateNix({ action, noPush, noRefresh }),
     ).pipe(Command.withDescription(nixActionDescription[action])),
   );
 
@@ -49,8 +56,10 @@ const brewCommand = Command.make("brew", { noPush: noPushFlag }, ({ noPush }) =>
   updateBrew({ noPush }),
 ).pipe(Command.withDescription("Upgrade installed Homebrew packages."));
 
-const allCommand = Command.make("all", { noPush: noPushFlag }, ({ noPush }) =>
-  updateAll({ noPush }),
+const allCommand = Command.make(
+  "all",
+  { noPush: noPushFlag, noRefresh: noRefreshFlag },
+  ({ noPush, noRefresh }) => updateAll({ noPush, noRefresh }),
 ).pipe(
   Command.withDescription(
     "Run nix switch → brew (inventory upload unless --no-push); continue on failure; exit ≠0 if any step failed.",

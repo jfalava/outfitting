@@ -63,8 +63,14 @@ test("Linux entrypoint registers update nix alongside apt/pacman", async () => {
     [linuxEntry, "update", "nix", "switch", "--help"],
     { encoding: "utf8" },
   );
-  expect(`${nixSwitchHelp.stdout}\n${nixSwitchHelp.stderr}`).toContain("--refresh");
+  expect(`${nixSwitchHelp.stdout}\n${nixSwitchHelp.stderr}`).toContain("--no-refresh");
   expect(`${nixSwitchHelp.stdout}\n${nixSwitchHelp.stderr}`).toContain("--no-push");
+
+  const allHelp = await execFileAsync("bun", [linuxEntry, "update", "all", "--help"], {
+    encoding: "utf8",
+  });
+  expect(`${allHelp.stdout}\n${allHelp.stderr}`).toContain("--no-refresh");
+  expect(`${allHelp.stdout}\n${allHelp.stderr}`).toContain("--package-manager");
 
   // Bare `update nix` must list actions, not activate Home Manager.
   let bareText = "";

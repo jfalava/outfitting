@@ -1,4 +1,5 @@
 export { updateAll, type UpdateAllOptions, type UpdateStepResult } from "@/update/all";
+export { updateLinuxAll, type LinuxUpdateAllOptions } from "@/update/linux-all";
 export { parseBunGlobalList } from "@/update/bun";
 export { updateBrew, parseBrewfileTaps, BREWFILE_MANIFEST_PATH } from "@/update/brew";
 export {

@@ -15,6 +15,7 @@ import {
 } from "@/platform";
 import { type LinuxPackageManager } from "@/platform/linux";
 import { updateLinux } from "@/update/linux";
+import { updateLinuxAll } from "@/update/linux-all";
 import { updateNix } from "@/update/nix";
 
 const noPushFlag = Flag.Boolean("no-push").pipe(
@@ -22,32 +23,17 @@ const noPushFlag = Flag.Boolean("no-push").pipe(
   Flag.withDescription("Skip publishing the Nix lock after a successful action."),
 );
 
-function runLinuxUpdate(
-  flags: {
-    packageManager: import("effect").Option.Option<string>;
-    offline: boolean;
-  },
-  manager?: LinuxPackageManager,
-) {
-  return updateLinux({
-    packageManager: requestedLinuxPackageManager(flags.packageManager) ?? manager,
-    offline: flags.offline,
-  });
-}
+const noRefreshFlag = Flag.Boolean("no-refresh").pipe(
+  Flag.withDefault(false),
+  Flag.withDescription("Use the local source without fetching remote changes."),
+);
 
 const makeForeignStub = (pm: PackageManager, host: HostPlatform) =>
   Command.make(pm, {}, () => foreignPackageManagerStub(pm, host)).pipe(
     Command.withDescription(`Not available on ${host} (hint stub).`),
   );
 
-function makeLinuxManagerCommand(manager?: LinuxPackageManager) {
-  if (manager === undefined) {
-    return Command.make(
-      "all",
-      { packageManager: linuxPackageManagerFlag, offline: linuxOfflineFlag },
-      (flags) => runLinuxUpdate(flags),
-    ).pipe(Command.withDescription("Upgrade installed packages with detected apt or pacman."));
-  }
+function makeLinuxManagerCommand(manager: LinuxPackageManager) {
   return Command.make(manager, { offline: linuxOfflineFlag }, (commandFlags) =>
     updateLinux({ packageManager: manager, offline: commandFlags.offline }),
   ).pipe(Command.withDescription(`Update Linux packages with ${manager}.`));
@@ -60,15 +46,12 @@ const nixActionDescription = {
   dry: "Dry-run the Home Manager build without activating.",
 } as const satisfies Record<NixAction, string>;
 
-const refreshFlag = Flag.Boolean("refresh").pipe(
-  Flag.withDefault(false),
-  Flag.withDescription("Refresh the active Linux source before the Nix action."),
-);
-
 const makeNixCommand = () => {
   const actions = NIX_ACTIONS.map((action) =>
-    Command.make(action, { noPush: noPushFlag, refresh: refreshFlag }, ({ noPush, refresh }) =>
-      updateNix({ action, noPush, refresh }),
+    Command.make(
+      action,
+      { noPush: noPushFlag, noRefresh: noRefreshFlag },
+      ({ noPush, noRefresh }) => updateNix({ action, noPush, noRefresh }),
     ).pipe(Command.withDescription(nixActionDescription[action])),
   );
 
@@ -81,16 +64,37 @@ const makeNixCommand = () => {
   );
 };
 
-/** Distro-agnostic Linux update tree; WSL remains owned by its shell workflow. */
+const allCommand = Command.make(
+  "all",
+  {
+    packageManager: linuxPackageManagerFlag,
+    offline: linuxOfflineFlag,
+    noPush: noPushFlag,
+    noRefresh: noRefreshFlag,
+  },
+  ({ packageManager, offline, noPush, noRefresh }) =>
+    updateLinuxAll({
+      packageManager: requestedLinuxPackageManager(packageManager),
+      offline,
+      noPush,
+      noRefresh,
+    }),
+).pipe(
+  Command.withDescription(
+    "Update Home Manager when configured, then native packages; continue on failure.",
+  ),
+);
+
+/** Distro-agnostic Linux update tree. */
 export const makeLinuxUpdateCommand = () => {
   const host = "linux" as const satisfies HostPlatform;
   const foreign = foreignPackageManagers(host).map((pm) => makeForeignStub(pm, host));
   return Command.make("update").pipe(
     Command.withDescription(
-      "Update Linux packages with detected apt or pacman; use update nix for Home Manager.",
+      "Update Home Manager when configured, then native apt or pacman packages.",
     ),
     Command.withSubcommands([
-      makeLinuxManagerCommand(),
+      allCommand,
       makeLinuxManagerCommand("apt"),
       makeLinuxManagerCommand("pacman"),
       makeNixCommand(),

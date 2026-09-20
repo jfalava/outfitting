@@ -124,6 +124,52 @@ test("switch bootstraps without a canonical lock when upload is disabled", async
   expect(pushLockfile).not.toHaveBeenCalled();
 });
 
+test("Linux Nix actions refresh the selected source by default", async () => {
+  const root = await mkdtemp(join(tmpdir(), "outfitting-linux-nix-refresh-"));
+  const fetched: string[] = [];
+  try {
+    const config = {
+      stateRoot: root,
+      machineId: "test:aarch64-linux",
+      machineIdOverridden: true,
+      linux: { profile: "oci-agents" },
+      manifest: { baseUrl: "https://example.test/outfitting", ref: "main" },
+    };
+    await Effect.runPromise(
+      updateNix({
+        action: "build",
+        config,
+        noPush: true,
+        sourceFetcher: async (url) => {
+          fetched.push(url);
+          return new Response(url);
+        },
+      }),
+    );
+
+    expect(fetched.some((url) => url.includes("system/oci-agents/flake.nix"))).toBe(true);
+    expect(fetched.some((url) => url.includes("system/oci-agents/flake.lock"))).toBe(true);
+    await writeFile(join(root, "repo-path"), `${join(root, "source")}\n`);
+    fetched.length = 0;
+    await Effect.runPromise(
+      updateNix({
+        action: "build",
+        config,
+        noPush: true,
+        noRefresh: true,
+        sourceFetcher: async (url) => {
+          fetched.push(url);
+          return new Response(url);
+        },
+      }),
+    );
+  } finally {
+    await rm(root, { force: true, recursive: true });
+  }
+
+  expect(fetched).toHaveLength(0);
+});
+
 test("publishes a lock generated during a macOS bootstrap", async () => {
   const root = await mkdtemp(join(tmpdir(), "outfitting-nix-push-"));
   try {

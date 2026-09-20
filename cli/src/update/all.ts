@@ -9,6 +9,7 @@ import { updateNix } from "@/update/nix";
 
 export interface UpdateAllOptions {
   noPush?: boolean;
+  noRefresh?: boolean;
   config?: ManagerConfig;
 }
 
@@ -46,10 +47,13 @@ export const updateAll = (options: UpdateAllOptions = {}) =>
 
     yield* Console.log(ui.heading("update all: nix switch → brew"));
 
-    yield* runStep(
-      "nix switch",
-      updateNix({ action: "switch", config, noPush: options.noPush === true }),
-    );
+    const nixOptions = {
+      action: "switch" as const,
+      config,
+      noPush: options.noPush === true,
+      noRefresh: options.noRefresh === true,
+    };
+    yield* runStep("nix switch", updateNix(nixOptions));
     yield* runStep("brew", updateBrew({ config, noPush: options.noPush === true }));
 
     const failed = results.filter((step) => !step.ok);

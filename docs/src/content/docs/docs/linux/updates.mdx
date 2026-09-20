@@ -22,11 +22,13 @@ outfitting-manager update apt
 outfitting-manager update pacman --offline
 ```
 
-For Nix-backed profiles, rebuild Home Manager separately:
+For Nix-backed profiles, `update all` refreshes and switches Home Manager before upgrading native packages. `generic-linux` remains native-only. Use `update nix` for a targeted Home Manager action:
 
 ```bash
+outfitting-manager update all
+outfitting-manager update all --no-refresh
 outfitting-manager update nix build
-outfitting-manager update nix switch --refresh
+outfitting-manager update nix switch --no-refresh
 ```
 
 See [Home Manager](/docs/cli/linux/home-manager/) for the `hm-*` shell helpers. Update global Bun packages with `bun update -g`, and update the manager binary with `outfitting-manager upgrade`.

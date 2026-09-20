@@ -75,7 +75,12 @@ async function configuredSource(
     return { root: sparseSourceRoot(config.stateRoot), mode: "sparse" };
   }
 
-  const root = await canonical(configured);
+  const root = await canonical(configured).catch((cause) => {
+    if (isNotFound(cause)) {
+      throw new Error(`Configured Outfitting source does not exist: ${configured}.`);
+    }
+    throw cause;
+  });
   const managedRoot = await canonical(sparseSourceRoot(config.stateRoot)).catch((cause) => {
     if (isNotFound(cause)) {
       return undefined;

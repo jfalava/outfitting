@@ -37,8 +37,8 @@ export interface UpdateNixOptions {
   offline?: boolean;
   /** Override Linux profile used to pick the Home Manager flake. */
   profile?: string;
-  /** Refresh the selected Linux source before resolving the flake. */
-  refresh?: boolean;
+  /** Use the selected local source without fetching remote changes. */
+  noRefresh?: boolean;
   /** Skip publishing the related Nix lock after a successful action. */
   noPush?: boolean;
 }
@@ -47,6 +47,9 @@ function resolveMacosRepo(options: UpdateNixOptions, config: ManagerConfig) {
   return Effect.gen(function* () {
     if (options.repo !== undefined) {
       return options.repo;
+    }
+    if (options.noRefresh === true) {
+      return yield* tryPromise(() => resolveOutfittingRepo({ config }));
     }
     if (envValue("OUTFITTING_REPO") !== undefined) {
       return yield* tryPromise(() => resolveOutfittingRepo({ config }));
@@ -78,7 +81,7 @@ function resolveMacosRepo(options: UpdateNixOptions, config: ManagerConfig) {
 function resolveLinuxNixRepo(options: UpdateNixOptions, config: ManagerConfig) {
   return Effect.gen(function* () {
     const profile = options.profile ?? config.linux?.profile;
-    if (options.refresh) {
+    if (options.noRefresh !== true && options.repo === undefined) {
       const selected = profile ?? DEFAULT_LINUX_PROFILE;
       if (!isLinuxProfile(selected)) {
         return yield* new CliFailure({
@@ -89,7 +92,6 @@ function resolveLinuxNixRepo(options: UpdateNixOptions, config: ManagerConfig) {
         prepareLinuxSource({
           config,
           profile: selected as LinuxProfile,
-          sourceRoot: options.repo?.root,
           refresh: true,
           offline: options.offline,
           fetcher: options.sourceFetcher,
@@ -97,9 +99,6 @@ function resolveLinuxNixRepo(options: UpdateNixOptions, config: ManagerConfig) {
       );
       if (source.repo !== undefined) {
         return source.repo;
-      }
-      if (options.repo !== undefined) {
-        return options.repo;
       }
       return yield* new CliFailure({
         message: "No Nix flake for the selected Linux profile.",
@@ -245,6 +244,34 @@ function runNixAction(
   });
 }
 
+function validateLinuxNixProfile(
+  options: UpdateNixOptions,
+  config: ManagerConfig,
+): Effect.Effect<void, CliFailure> {
+  // The macOS entrypoint is also exercised on non-Darwin hosts in tests and
+  // during cross-platform builds. A persisted Linux profile is the reliable
+  // signal that this is the Linux Home Manager path.
+  if (
+    process.platform === "darwin" ||
+    options.repo !== undefined ||
+    (config.linux === undefined && options.profile === undefined)
+  ) {
+    return Effect.void;
+  }
+  const profile = options.profile ?? config.linux?.profile ?? DEFAULT_LINUX_PROFILE;
+  if (!isLinuxProfile(profile)) {
+    return Effect.fail(new CliFailure({ message: `Unknown Linux profile \`${profile}\`.` }));
+  }
+  return profile === "generic-linux"
+    ? Effect.fail(
+        new CliFailure({
+          message:
+            "No Nix flake for this machine. Set linux.profile to oci-agents or ubuntu-wsl, or use a macOS source.",
+        }),
+      )
+    : Effect.void;
+}
+
 /**
  * `update nix build|switch|test|dry` — no flake-input upgrade in v1.
  * switch builds then activates in-process.
@@ -253,12 +280,16 @@ function runNixAction(
  */
 export const updateNix = (options: UpdateNixOptions) =>
   Effect.gen(function* () {
+    const config = options.config ?? (yield* tryPromise(() => loadConfig()));
+
+    // Validate the configured Linux profile before probing Nix so generic Linux
+    // gets the actionable profile error instead of a missing-binary error.
+    yield* validateLinuxNixProfile(options, config);
+
     const nixPath = yield* tryPromise(() => which("nix"));
     if (nixPath === undefined) {
       return yield* new CliFailure({ message: "nix is not installed or not in PATH." });
     }
-
-    const config = options.config ?? (yield* tryPromise(() => loadConfig()));
 
     const recovery = yield* tryPromise(() => readNixRecovery());
     if (recovery !== undefined) {
