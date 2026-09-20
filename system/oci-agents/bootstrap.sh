@@ -214,7 +214,3 @@ else
 fi
 
 log "installed harnesses: $(amp version 2>/dev/null || true), $(t3 --version 2>/dev/null || true), $(opencode --version 2>/dev/null || true)"
-log "next: open a new SSH session (or exec zsh) so the Home Manager zsh profile loads"
-log "then: ssh-add ~/.ssh/jfalava-gitAuth-elliptic  # once per machine"
-log "then: authenticate with 'amp login' and 'opencode auth login'; pair T3 with 't3 pair --tailscale'"
-log "UIs (tailnet only): T3 on MagicDNS :3773, OpenCode on MagicDNS :8443 (tailscale serve; nothing on :443)"
