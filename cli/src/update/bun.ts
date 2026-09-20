@@ -1,7 +1,3 @@
-import { Effect } from "effect";
-
-import { CliFailure } from "@/errors";
-
 export interface BunPackageEntry {
   name: string;
   installedVersion: string;
@@ -32,14 +28,3 @@ export function parseBunGlobalList(output: string): BunPackageEntry[] {
   }
   return entries;
 }
-
-/**
- * Bun global updates belong to Bun's own CLI rather than outfitting-manager.
- * Keep the command as a migration guard so old invocations fail with the
- * replacement instead of silently doing nothing.
- */
-export const updateBun = Effect.fail(
-  new CliFailure({
-    message: "`update bun` is deprecated; run `bun update -g` instead.",
-  }),
-);

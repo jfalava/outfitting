@@ -1,11 +1,8 @@
-import { Option } from "effect";
 import { Command } from "effect/unstable/cli";
 
 import {
   linuxOfflineFlag,
-  linuxOptionalProfileFlag,
   linuxPackageManagerFlag,
-  optionalString,
   requestedLinuxPackageManager,
 } from "@/commands/linux-flags";
 import { foreignPackageManagerStub } from "@/commands/update/stubs";
@@ -17,20 +14,17 @@ import {
   type PackageManager,
 } from "@/platform";
 import { type LinuxPackageManager } from "@/platform/linux";
-import { updateBun } from "@/update/bun";
 import { updateLinux } from "@/update/linux";
 import { updateNix } from "@/update/nix";
 
 function runLinuxUpdate(
   flags: {
-    profile: Option.Option<string>;
-    packageManager: Option.Option<string>;
+    packageManager: import("effect").Option.Option<string>;
     offline: boolean;
   },
   manager?: LinuxPackageManager,
 ) {
   return updateLinux({
-    profile: optionalString(flags.profile),
     packageManager: requestedLinuxPackageManager(flags.packageManager) ?? manager,
     offline: flags.offline,
   });
@@ -42,26 +36,17 @@ const makeForeignStub = (pm: PackageManager, host: HostPlatform) =>
   );
 
 function makeLinuxManagerCommand(manager?: LinuxPackageManager) {
-  return Command.make(
-    manager ?? "all",
-    {
-      profile: linuxOptionalProfileFlag,
-      packageManager: linuxPackageManagerFlag,
-      offline: linuxOfflineFlag,
-    },
-    (flags) => runLinuxUpdate(flags, manager),
-  ).pipe(
-    Command.withDescription(
-      manager === undefined
-        ? "Detect apt or pacman from /etc/os-release and installed executables."
-        : `Update Linux packages with ${manager}; use --package-manager to override the detected manager.`,
-    ),
-  );
+  if (manager === undefined) {
+    return Command.make(
+      "all",
+      { packageManager: linuxPackageManagerFlag, offline: linuxOfflineFlag },
+      (flags) => runLinuxUpdate(flags),
+    ).pipe(Command.withDescription("Upgrade installed packages with detected apt or pacman."));
+  }
+  return Command.make(manager, { offline: linuxOfflineFlag }, (commandFlags) =>
+    updateLinux({ packageManager: manager, offline: commandFlags.offline }),
+  ).pipe(Command.withDescription(`Update Linux packages with ${manager}.`));
 }
-
-const bunCommand = Command.make("bun", {}, () => updateBun).pipe(
-  Command.withDescription("Deprecated; run `bun update -g` directly."),
-);
 
 const nixActionDescription = {
   build: "Build the Home Manager activation package without activating.",
@@ -72,9 +57,9 @@ const nixActionDescription = {
 
 const makeNixCommand = () => {
   const actions = NIX_ACTIONS.map((action) =>
-    Command.make(action, { profile: linuxOptionalProfileFlag }, ({ profile }) =>
-      updateNix({ action, profile: optionalString(profile) }),
-    ).pipe(Command.withDescription(nixActionDescription[action])),
+    Command.make(action, {}, () => updateNix({ action })).pipe(
+      Command.withDescription(nixActionDescription[action]),
+    ),
   );
 
   // No default action: bare `update nix` only lists subcommands.
@@ -90,15 +75,7 @@ const makeNixCommand = () => {
 export const makeLinuxUpdateCommand = () => {
   const host = "linux" as const satisfies HostPlatform;
   const foreign = foreignPackageManagers(host).map((pm) => makeForeignStub(pm, host));
-  return Command.make(
-    "update",
-    {
-      profile: linuxOptionalProfileFlag,
-      packageManager: linuxPackageManagerFlag,
-      offline: linuxOfflineFlag,
-    },
-    (flags) => runLinuxUpdate(flags),
-  ).pipe(
+  return Command.make("update").pipe(
     Command.withDescription(
       "Update Linux packages with detected apt or pacman; use update nix for Home Manager.",
     ),
@@ -107,7 +84,6 @@ export const makeLinuxUpdateCommand = () => {
       makeLinuxManagerCommand("apt"),
       makeLinuxManagerCommand("pacman"),
       makeNixCommand(),
-      bunCommand,
       ...foreign,
     ]),
   );

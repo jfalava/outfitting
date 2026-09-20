@@ -1,0 +1,47 @@
+---
+title: Apply
+description: Reconcile local package declarations on Windows and Linux.
+sidebar:
+  order: 2
+---
+
+`apply` reconciles package presence from declarations already stored locally. It is available on Windows and Linux; macOS uses `setup` for declarative activation.
+
+Apply never fetches manifests over HTTP. Package managers may still download package payloads. Pass `--offline` on Linux to prohibit network-backed package-manager work.
+
+Declarations come from `OUTFITTING_REPO` or the saved checkout first, then materialized manifests, then the HTTP cache without making a request. Run [`init`](/docs/cli/init/) to refresh cached declarations before applying them.
+
+Without `--prune`, apply only installs missing declared packages. With `--prune`, it may remove only packages that Outfitting installed for the active profile and that profile no longer declares. Manually installed packages and packages owned by inactive profiles are protected.
+
+Legacy inventory without installation ownership is never enough evidence to prune. Linux previews the package manager's removal plan and refuses unexpected removals; it uses plain `apt remove` or `pacman -R`, never dependency autoremove.
+
+## Windows
+
+```powershell
+outfitting-manager apply
+outfitting-manager apply --profile base,dev --winget-only
+outfitting-manager apply --prune --yes
+```
+
+Windows options are `--profile <profiles>`, `--winget-only`, `--prune`, and `--yes`. `--yes` accepts the displayed installation and removal plan without prompting. See [Profiles](/docs/cli/profiles/) for bundle composition. Apply changes local machine state only; it does not upload state. Run [`sync push`](/docs/cli/sync/#sync-push) explicitly when you want to publish it.
+
+## Linux
+
+```bash
+outfitting-manager apply all
+outfitting-manager apply apt --profile ubuntu-wsl
+outfitting-manager apply pacman --prune --yes
+outfitting-manager apply all --offline
+```
+
+Choose `all`, `apt`, or `pacman`. Linux options are `--profile <profile>`, `--prune`, `--offline`, and `--yes`.
+
+Offline apt installs require cached package payloads. Offline pacman refuses missing-package installs; it can inspect already-satisfied declarations and perform a safe prune without downloads.
+
+## Platform differences
+
+| Platform | Forms                                                            | Difference                                                               |
+| -------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| macOS    | Not available                                                    | Use `setup` to activate local Nix and Homebrew declarations.             |
+| Windows  | `apply [--profile <profiles>] [--winget-only] [--prune] [--yes]` | Profiles are comma-composable; apply never uploads state.                |
+| Linux    | `apply` with `all`, `apt`, or `pacman`, plus the listed options  | One profile is active at a time; `--offline` prevents package downloads. |

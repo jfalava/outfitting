@@ -23,28 +23,34 @@ outfitting-manager init
 outfitting-manager setup --no-fetch
 ```
 
-`init` materializes the sparse source and records `linux.profile` in `config.json` without changing native packages (Nix-backed profiles also apply Home Manager). `setup` installs missing declared packages and re-runs the profile bootstrap. Use `update` for full upgrades.
+`init` materializes the sparse source and records `linux.profile` without changing the machine. `setup` installs missing declared packages and applies Home Manager for Nix-backed profiles. Use `update` for upgrades.
 
 ## Profiles
 
-| Profile | Packages | Home Manager |
-| --- | --- | --- |
-| `generic-linux` (default) | `packages/linux/generic-linux.txt` | No |
-| `ubuntu-wsl` | `packages/ubuntu-wsl/apt.txt` | `system/ubuntu-wsl` |
-| `oci-agents` | `packages/linux/oci-agents.txt` | `system/oci-agents` |
+Linux activates one profile at a time. See [Profiles and machine identity](/docs/cli/profiles/) for selection rules.
+
+| Profile                   | Packages                           | Home Manager        |
+| ------------------------- | ---------------------------------- | ------------------- |
+| `generic-linux` (default) | `packages/linux/generic-linux.txt` | No                  |
+| `ubuntu-wsl`              | `packages/ubuntu-wsl/apt.txt`      | `system/ubuntu-wsl` |
+| `oci-agents`              | `packages/linux/oci-agents.txt`    | `system/oci-agents` |
 
 ```bash
 outfitting-manager init --profile generic-linux
 outfitting-manager init --profile ubuntu-wsl
 outfitting-manager init --profile oci-agents --repo ~/code/outfitting
-outfitting-manager update all --package-manager apt
+outfitting-manager apply apt
 ```
 
 Without `--repo`, the sparse source is `$HOME/.config/outfitting/source`. Set `OUTFITTING_REPO` or pass `--repo` for a full checkout.
 
 ## Commands
 
-- [Init](/docs/cli/linux/init/) — materialize source and record the profile.
+- [Init](/docs/cli/init/) — materialize source and record the profile.
+- [Setup](/docs/cli/setup/) — initialize and install missing declarations.
+- [Apply](/docs/cli/apply/) — reconcile cached apt or pacman declarations.
+- [Update](/docs/cli/update/) — upgrade installed packages.
+- [Sync](/docs/cli/sync/) — transport remote state.
+- [Status](/docs/cli/status/) — inspect effective local configuration.
 - [Install](/docs/cli/linux/install/) — hosted bootstrap.
 - [Home Manager](/docs/cli/linux/home-manager/) — `update nix` and `hm-*` helpers.
-- [Maintenance](/docs/cli/linux/maintenance/) — `update`, `diff`, `sync`.

@@ -18,7 +18,7 @@ The docs site itself is an optional static asset behind the router (`docs/src/wo
 
 ## Request flows
 
-- Lockfile push: CLI → `https://<router>/api/lockfiles/:machine/:kind` → router strips `/api` → API worker verifies Bearer token, writes KV blob + D1 metadata. See [API worker](/docs/architecture/api) and [CLI lockfiles](/docs/cli/lockfiles).
+- State push: `outfitting-manager sync push` → `https://<router>/api/lockfiles/:machine/:kind` → router strips `/api` → API worker verifies the Bearer token, then writes the KV blob and D1 metadata. See [API worker](/docs/architecture/api) and [CLI sync](/docs/cli/sync/).
 
 - Fresh machine: `irm win.jfa.dev/base | iex` (or `curl mac.jfa.dev/post-install | bash`) → installer worker fetches the script live from GitHub `main` (or serves `releases/fonts.tar.gz` from R2 after Cloudflare Access) → the Windows bootstrap delegates manifests and the cached PowerShell profile to `outfitting-manager`, while registry/system work stays in PowerShell. See [Dotfiles](/docs/architecture/dotfiles).
 

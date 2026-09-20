@@ -114,7 +114,7 @@ async function runAlchemyDeploy(options: {
 
   if (!url) {
     throw new Error(
-      "Alchemy deploy completed but did not report the Worker URL. Configure it with outfitting-manager lockfiles configure-worker.",
+      "Alchemy deploy completed but did not report the Worker URL. Configure it with outfitting-manager sync configure-worker.",
     );
   }
   return { url };
@@ -278,13 +278,13 @@ export const provisionCommand = Command.make(
               cause,
               `Stack deployed, but credentials could not be stored in the OS keychain: ${
                 cause instanceof Error ? cause.message : String(cause)
-              }. Set them with lockfiles configure-worker / configure-token.`,
+              }. Set them with sync configure-worker / configure-token.`,
             ),
         });
       }
 
       yield* Effect.sync(() => printProvisioned(apiBaseUrl, resolved));
-      yield* Console.log(ui.muted("Next: outfitting-manager lockfiles list <machine>"));
+      yield* Console.log(ui.muted("Next: outfitting-manager sync list"));
     }),
 ).pipe(
   Command.withDescription(

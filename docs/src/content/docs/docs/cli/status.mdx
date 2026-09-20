@@ -1,0 +1,24 @@
+---
+title: Status
+description: Show effective Outfitting configuration without changing anything.
+sidebar:
+  order: 4
+---
+
+`status` is read-only. It reports the platform, active [profile selection](/docs/cli/profiles/), config path, [machine ID](/docs/cli/profiles/#machine-id), and source checkout state. It does not fetch declarations, inspect for package upgrades, write configuration, or contact the lockfile Worker.
+
+```bash
+outfitting-manager status
+```
+
+Use status before `apply` to confirm which local declarations and profile will be used.
+
+The source is `OUTFITTING_REPO` or the saved checkout path. Status reports whether that directory exists and, when Git metadata exists, its branch and clean/dirty state. It reports "not configured" if neither source is set; it does not infer a checkout from an HTTP cache or read stored credentials.
+
+## Platform differences
+
+| Platform | Profile field                  | Source checkout state                                                                      |
+| -------- | ------------------------------ | ------------------------------------------------------------------------------------------ |
+| macOS    | macOS configuration            | Saved checkout or managed sparse source, including whether it is available locally.        |
+| Windows  | Comma-composed profile bundles | Configured local checkout, or "not configured" when using cached manifests.                |
+| Linux    | One active Linux profile       | Saved checkout or profile-scoped sparse source, including whether it is available locally. |

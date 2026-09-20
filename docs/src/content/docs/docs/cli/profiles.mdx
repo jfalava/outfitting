@@ -1,0 +1,30 @@
+---
+title: Profiles and machine identity
+description: Understand profile selection, local paths, and machine IDs.
+sidebar:
+  order: 5
+---
+
+## Profiles
+
+Windows profiles are comma-composable bundles. For example, `--profile base,dev` combines both manifests and records both bundles as active. Linux profiles are exclusive: `--profile ubuntu-wsl` replaces the active Linux profile rather than composing with it. macOS has one platform configuration and does not expose profile selection.
+
+Windows commands and Linux `apply` reuse the saved active selection when `--profile` is omitted. New Windows state uses configured default profiles; new Linux state defaults to `generic-linux`. Linux `init` and `setup` default explicitly to `generic-linux`, so pass `--profile` when preparing a different Linux profile. Package upgrades do not select a profile; Linux Nix actions use the saved profile.
+
+## Machine ID
+
+The machine ID resolves from `OUTFITTING_MACHINE_ID`, then `config.json` `machineId`, then the automatic `<username>:<architecture>-<platform>` value (for example, `jfalava:aarch64-darwin`); the username resolves from `USER`, then `USERNAME`, then the operating-system account, and supported CPU names normalize to `aarch64`, `x86_64`, or `i686`.
+
+The ID scopes remote state. Set it deliberately when multiple installations should share an identity; otherwise let Outfitting derive it.
+
+## Local paths
+
+The default state root is `~/.config/outfitting` on every platform, including Windows. Set `OUTFITTING_STATE_ROOT` to override it. `config.json`, cached manifests, and the managed sparse source live below that root.
+
+## Platform differences
+
+| Platform | Profile model                     | Typical selection                                   |
+| -------- | --------------------------------- | --------------------------------------------------- |
+| macOS    | One platform configuration        | No `--profile` option.                              |
+| Windows  | Multiple comma-composable bundles | `--profile base,dev`                                |
+| Linux    | One exclusive profile             | `--profile generic-linux` or `--profile ubuntu-wsl` |

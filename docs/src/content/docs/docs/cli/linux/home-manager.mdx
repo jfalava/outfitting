@@ -6,7 +6,7 @@ sidebar:
   order: 2
 ---
 
-Nix-backed profiles (`ubuntu-wsl`, `oci-agents`) apply Home Manager during `init`, `setup`, and `update nix`. Pins match macOS: **Home Manager release-26.05** and **nixos-26.05**.
+Nix-backed profiles (`ubuntu-wsl`, `oci-agents`) apply Home Manager during `setup` and `update nix`. `init` only prepares the local source. Pins match macOS: **Home Manager release-26.05** and **nixos-26.05**.
 
 ## Manager
 
@@ -20,9 +20,9 @@ outfitting-manager update nix switch  # build and activate
 
 Bare `update nix` only lists subcommands. Actions resolve the flake from `linux.profile`:
 
-| Profile | Flake |
-| --- | --- |
-| `ubuntu-wsl` | `system/ubuntu-wsl#jfalava` |
+| Profile      | Flake                          |
+| ------------ | ------------------------------ |
+| `ubuntu-wsl` | `system/ubuntu-wsl#jfalava`    |
 | `oci-agents` | `system/oci-agents#oci-agents` |
 
 Linux uses the flake’s checked-in `flake.lock` (no remote lock pull). Pass `--profile` on the action subcommands when you need to override the persisted profile.
@@ -36,7 +36,6 @@ hm-build     # build without activating
 hm-test      # test-build without activating
 hm-dry       # dry-run without activating
 hm-switch    # build and activate
-hm-sync      # alias for hm-switch
 hm-update    # manager: switch only; native fallback may run nix flake update first
 hm-rollback  # list generations
 hm-clean     # remove old store paths

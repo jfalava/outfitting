@@ -18,19 +18,19 @@ outfitting-manager diff --offline --json
 
 ## Options
 
-| Option | Purpose |
-| --- | --- |
-| `--manager <name>` | Compare one manager instead of the complete platform set. |
-| `--profile <name>` | Select a profile. Windows accepts comma-separated profiles; Linux accepts one. |
-| `--offline` | Use cached manifests and skip the remote Nix comparison. |
-| `--json` | Print the result as JSON. |
+| Option             | Purpose                                                                   |
+| ------------------ | ------------------------------------------------------------------------- |
+| `--manager <name>` | Compare one manager instead of the complete platform set.                 |
+| `--profile <name>` | Select a profile using the [platform profile rules](/docs/cli/profiles/). |
+| `--offline`        | Use cached manifests and skip the remote Nix comparison.                  |
+| `--json`           | Print the result as JSON.                                                 |
 
 The command exits successfully when the compared state matches. It exits nonzero when differences are found or a required comparison is unavailable.
 
 ## Platform differences
 
-| Platform | Compared state | Notes |
-| --- | --- | --- |
-| macOS | Homebrew taps, formulae, casks, and the active Nix system. | A built but not activated Nix system still differs from `/run/current-system`. |
-| Windows | Selected WinGet profiles and Scoop buckets/packages. | Store entries use the `msstore:<id>` manifest form. |
-| Linux | Declared apt or pacman packages. | Only missing declared packages matter; unrelated installed packages are ignored. |
+| Platform | Compared state                                             | Notes                                                                            |
+| -------- | ---------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| macOS    | Homebrew taps, formulae, casks, and the active Nix system. | A built but not activated Nix system still differs from `/run/current-system`.   |
+| Windows  | Selected WinGet profiles and Scoop buckets/packages.       | Store entries use the `msstore:<id>` manifest form.                              |
+| Linux    | Declared apt or pacman packages.                           | Only missing declared packages matter; unrelated installed packages are ignored. |

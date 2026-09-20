@@ -5,7 +5,7 @@ import { Console, Effect } from "effect";
 
 import { loadConfig, type ManagerConfig } from "@/config";
 import { CliFailure } from "@/errors";
-import { fetchManifest } from "@/fetch";
+import { fetchManifest, type ManifestFetcher } from "@/fetch";
 import { tryPromise } from "@/lockfiles/effect";
 import { runCommand, which } from "@/process";
 import { ui } from "@/ui";
@@ -103,46 +103,22 @@ async function resolveBrewfile(
   return result;
 }
 
-function runBrewMaintenance(
-  options: Pick<UpdateBrewOptions, "upgrade" | "cleanup">,
-  run: typeof runCommand,
-  brewfilePath: string,
-) {
-  return Effect.gen(function* () {
-    if (options.upgrade !== false) {
-      yield* requireBrewOk(run, ["upgrade"], "brew upgrade");
-      yield* requireBrewOk(run, ["upgrade", "--cask"], "brew upgrade --cask");
-    }
-    if (options.cleanup !== false) {
-      yield* requireBrewOk(
-        run,
-        ["bundle", "cleanup", `--file=${brewfilePath}`, "--cask", "--force"],
-        "brew bundle cleanup",
-      );
-    }
-  });
-}
-
 export interface UpdateBrewOptions {
   config?: ManagerConfig;
   /** Skip inventory push after success. */
-  noSync?: boolean;
+  noPush?: boolean;
   /** Use a repository-local Brewfile instead of fetching the configured URL. */
   brewfilePath?: string;
-  /** Skip package upgrades; setup uses this to apply declarations only. */
-  upgrade?: boolean;
-  /** Skip bundle cleanup; setup must not remove undeclared packages. */
-  cleanup?: boolean;
   /** Injected for tests. */
   run?: typeof runCommand;
   which?: typeof which;
-  fetcher?: typeof fetch;
+  fetcher?: ManifestFetcher;
 }
 
 /**
- * Full Homebrew path: fetch Brewfile → trust taps → bundle → upgrade → cleanup.
+ * First-run Homebrew apply: install missing declarations without upgrading or removing.
  */
-export const updateBrew = (options: UpdateBrewOptions = {}) =>
+export const setupBrew = (options: UpdateBrewOptions = {}) =>
   Effect.gen(function* () {
     const whichFn = options.which ?? which;
     const run = options.run ?? runCommand;
@@ -172,21 +148,28 @@ export const updateBrew = (options: UpdateBrewOptions = {}) =>
 
     yield* Console.log(ui.heading("Syncing Homebrew manifest…"));
     const bundle = yield* tryPromise(() =>
-      run("brew", ["bundle", `--file=${brewfile.path}`], { inherit: true }),
+      run("brew", ["bundle", "--no-upgrade", `--file=${brewfile.path}`], { inherit: true }),
     );
     if (bundle.code !== 0) {
       return yield* new CliFailure({ message: `brew bundle failed (exit ${bundle.code}).` });
     }
 
-    yield* runBrewMaintenance(options, run, brewfile.path);
+    yield* Console.log(ui.success("Homebrew setup complete."));
+  });
 
-    yield* Console.log(ui.success("Homebrew update complete."));
-
-    if (!options.noSync) {
-      yield* pushHomebrewInventory({ config, run });
-    } else {
-      yield* Console.log(ui.muted("Skipped inventory sync (--no-sync)."));
+/** Upgrade installed Homebrew packages without applying or pruning declarations. */
+export const updateBrew = (options: UpdateBrewOptions = {}) =>
+  Effect.gen(function* () {
+    const run = options.run ?? runCommand;
+    if ((yield* tryPromise(() => (options.which ?? which)("brew"))) === undefined) {
+      return yield* new CliFailure({ message: "Homebrew is not installed or not in PATH." });
     }
+    const config = options.config ?? (yield* tryPromise(() => loadConfig()));
+    yield* requireBrewOk(run, ["update"], "brew update");
+    yield* requireBrewOk(run, ["upgrade"], "brew upgrade");
+    yield* requireBrewOk(run, ["upgrade", "--cask"], "brew upgrade --cask");
+    yield* pushHomebrewInventory({ config, run, noPush: options.noPush });
+    yield* Console.log(ui.success("Homebrew update complete."));
   });
 
 const requireBrewOk = (run: typeof runCommand, args: ReadonlyArray<string>, label: string) =>

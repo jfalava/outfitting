@@ -6,7 +6,11 @@ import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 
 import { Effect } from "effect";
-import { describe, expect, test } from "vitest";
+import { afterEach, describe, expect, test, vi } from "vitest";
+
+import * as processCommands from "@/process";
+
+afterEach(() => vi.restoreAllMocks());
 
 import {
   detectLinuxPackageManager,
@@ -21,7 +25,7 @@ import {
   listInstalledLinuxPackages,
   missingLinuxPackages,
   parseLinuxPackageManifest,
-  syncLinux,
+  applyLinux,
   updateLinux,
 } from "@/update/linux";
 
@@ -32,7 +36,7 @@ test("Linux entrypoint registers update nix alongside apt/pacman", async () => {
   const init = await execFileAsync("bun", [linuxEntry, "init", "--help"], {
     encoding: "utf8",
   });
-  expect(`${init.stdout}\n${init.stderr}`).toContain("without changing packages");
+  expect(`${init.stdout}\n${init.stderr}`).toContain("without changing the system");
 
   const setup = await execFileAsync("bun", [linuxEntry, "setup", "--help"], {
     encoding: "utf8",
@@ -47,7 +51,7 @@ test("Linux entrypoint registers update nix alongside apt/pacman", async () => {
   expect(text).toMatch(/\bapt\b/);
   expect(text).toMatch(/\bpacman\b/);
   expect(text).toMatch(/\bnix\b/);
-  expect(text).toContain("--package-manager");
+  expect(text).not.toContain("--profile");
 
   const nixHelp = await execFileAsync("bun", [linuxEntry, "update", "nix", "--help"], {
     encoding: "utf8",
@@ -71,10 +75,10 @@ test("Linux entrypoint registers update nix alongside apt/pacman", async () => {
   });
   expect(`${diff.stdout}\n${diff.stderr}`).toMatch(/apt|pacman/);
 
-  const sync = await execFileAsync("bun", [linuxEntry, "sync", "--help"], {
+  const apply = await execFileAsync("bun", [linuxEntry, "apply", "--help"], {
     encoding: "utf8",
   });
-  expect(`${sync.stdout}\n${sync.stderr}`).toMatch(/apt|pacman/);
+  expect(`${apply.stdout}\n${apply.stderr}`).toMatch(/apt|pacman/);
 });
 
 test("Linux init materializes state without invoking a package manager", async () => {
@@ -93,7 +97,9 @@ test("Linux init materializes state without invoking a package manager", async (
 
 test("Linux OCI init materializes the oci-agents sparse source", async () => {
   const stateRoot = await mkdtemp(join(tmpdir(), "outfitting-linux-oci-sparse-state-"));
-  const calls: Array<{ command: string; args: ReadonlyArray<string> }> = [];
+  const calls = vi
+    .spyOn(processCommands, "runCommand")
+    .mockRejectedValue(new Error("init must not run commands"));
   let sourceRoot: string | undefined;
   let persistedRepoPath: string | undefined;
   let flakeContents: string | undefined;
@@ -105,10 +111,6 @@ test("Linux OCI init materializes the oci-agents sparse source", async () => {
         stateRoot,
         profile: "oci-agents",
         fetcher: async () => new Response("curl\ngit\n"),
-        run: async (command, args) => {
-          calls.push({ command, args });
-          return { code: 0, stdout: "", stderr: "" };
-        },
       }),
     );
     persistedRepoPath = await readFile(join(stateRoot, "repo-path"), "utf8");
@@ -118,7 +120,9 @@ test("Linux OCI init materializes the oci-agents sparse source", async () => {
     persistedProfile = JSON.parse(await readFile(join(stateRoot, "config.json"), "utf8")).linux
       ?.profile;
     await expect(readFile(join(sourceRoot, "packages/macos/Brewfile"), "utf8")).rejects.toThrow();
-    await expect(readFile(join(sourceRoot, "packages/ubuntu-wsl/apt.txt"), "utf8")).rejects.toThrow();
+    await expect(
+      readFile(join(sourceRoot, "packages/ubuntu-wsl/apt.txt"), "utf8"),
+    ).rejects.toThrow();
   } finally {
     await rm(stateRoot, { force: true, recursive: true });
   }
@@ -128,19 +132,15 @@ test("Linux OCI init materializes the oci-agents sparse source", async () => {
   expect(flakeContents).toBe("curl\ngit\n");
   expect(aptManifestContents).toBe("curl\ngit\n");
   expect(persistedProfile).toBe("oci-agents");
-  expect(calls).toEqual([
-    {
-      command: "bash",
-      args: [join(sourceRoot!, "system", "oci-agents", "bootstrap.sh")],
-    },
-  ]);
+  expect(calls).not.toHaveBeenCalled();
 });
 
-test("Linux OCI init bootstraps Home Manager after persisting the repository", async () => {
+test("Linux OCI init persists the repository without bootstrapping Home Manager", async () => {
   const stateRoot = await mkdtemp(join(tmpdir(), "outfitting-linux-oci-init-state-"));
   const repo = await mkdtemp(join(tmpdir(), "outfitting-linux-oci-init-repo-"));
-  const calls: Array<{ command: string; args: ReadonlyArray<string> }> = [];
-  const repoRoot = await realpath(repo);
+  const calls = vi
+    .spyOn(processCommands, "runCommand")
+    .mockRejectedValue(new Error("init must not run commands"));
   let persistedProfile: string | undefined;
   try {
     await mkdir(join(repo, "system", "oci-agents"), { recursive: true });
@@ -153,10 +153,6 @@ test("Linux OCI init bootstraps Home Manager after persisting the repository", a
         repo,
         profile: "oci-agents",
         fetcher: async () => new Response("curl\ngit\n"),
-        run: async (command, args) => {
-          calls.push({ command, args });
-          return { code: 0, stdout: "", stderr: "" };
-        },
       }),
     );
     persistedProfile = JSON.parse(await readFile(join(stateRoot, "config.json"), "utf8")).linux
@@ -166,24 +162,7 @@ test("Linux OCI init bootstraps Home Manager after persisting the repository", a
     await rm(repo, { force: true, recursive: true });
   }
 
-  expect(calls).toEqual([
-    {
-      command: "git",
-      args: ["-C", repo, "status", "--porcelain"],
-    },
-    {
-      command: "git",
-      args: ["-C", repo, "fetch", "--prune", "origin", "main"],
-    },
-    {
-      command: "git",
-      args: ["-C", repo, "checkout", "--detach", "FETCH_HEAD"],
-    },
-    {
-      command: "bash",
-      args: [join(repoRoot, "system", "oci-agents", "bootstrap.sh")],
-    },
-  ]);
+  expect(calls).not.toHaveBeenCalled();
   expect(persistedProfile).toBe("oci-agents");
 });
 
@@ -191,11 +170,12 @@ test("Linux WSL profile uses its existing Ubuntu package manifest", () => {
   expect(linuxManifestPath("ubuntu-wsl")).toBe("packages/ubuntu-wsl/apt.txt");
 });
 
-test("Linux WSL init bootstraps the Ubuntu Home Manager configuration", async () => {
+test("Linux WSL init prepares source without activating Home Manager", async () => {
   const stateRoot = await mkdtemp(join(tmpdir(), "outfitting-linux-wsl-init-state-"));
   const repo = await mkdtemp(join(tmpdir(), "outfitting-linux-wsl-init-repo-"));
-  const calls: Array<{ command: string; args: ReadonlyArray<string> }> = [];
-  const repoRoot = await realpath(repo);
+  const calls = vi
+    .spyOn(processCommands, "runCommand")
+    .mockRejectedValue(new Error("init must not run commands"));
   let persistedProfile: string | undefined;
   try {
     await mkdir(join(repo, "system", "ubuntu-wsl"), { recursive: true });
@@ -208,10 +188,6 @@ test("Linux WSL init bootstraps the Ubuntu Home Manager configuration", async ()
         repo,
         profile: "ubuntu-wsl",
         fetcher: async () => new Response("curl\ngit\n"),
-        run: async (command, args) => {
-          calls.push({ command, args });
-          return { code: 0, stdout: "", stderr: "" };
-        },
       }),
     );
     persistedProfile = JSON.parse(await readFile(join(stateRoot, "config.json"), "utf8")).linux
@@ -221,24 +197,7 @@ test("Linux WSL init bootstraps the Ubuntu Home Manager configuration", async ()
     await rm(repo, { force: true, recursive: true });
   }
 
-  expect(calls).toEqual([
-    {
-      command: "git",
-      args: ["-C", repo, "status", "--porcelain"],
-    },
-    {
-      command: "git",
-      args: ["-C", repo, "fetch", "--prune", "origin", "main"],
-    },
-    {
-      command: "git",
-      args: ["-C", repo, "checkout", "--detach", "FETCH_HEAD"],
-    },
-    {
-      command: "bash",
-      args: [join(repoRoot, "system", "ubuntu-wsl", "bootstrap.sh")],
-    },
-  ]);
+  expect(calls).not.toHaveBeenCalled();
   expect(persistedProfile).toBe("ubuntu-wsl");
 });
 
@@ -326,7 +285,7 @@ describe("Linux package adapter", () => {
     expect(installed).toEqual(new Set(["curl"]));
   });
 
-  test("updates an apt host and installs only missing managed packages", async () => {
+  test("update upgrades installed apt packages without reading a manifest", async () => {
     const stateRoot = await mkdtemp(join(tmpdir(), "outfitting-linux-update-"));
     const calls: Array<{ command: string; args: ReadonlyArray<string> }> = [];
     try {
@@ -338,7 +297,6 @@ describe("Linux package adapter", () => {
             machineIdOverridden: true,
             manifest: { baseUrl: "https://example.test/outfitting", ref: "main" },
           },
-          profile: "generic-linux",
           readOsRelease: async () => "ID=ubuntu\n",
           which: async (command) =>
             ({
@@ -346,16 +304,8 @@ describe("Linux package adapter", () => {
               "dpkg-query": "/usr/bin/dpkg-query",
               sudo: "/usr/bin/sudo",
             })[command],
-          fetcher: async () => new Response("curl\ngit\n"),
           run: async (command, args) => {
             calls.push({ command, args });
-            if (command === "/usr/bin/dpkg-query") {
-              return {
-                code: 0,
-                stdout: "curl:amd64\tinstall ok installed\n",
-                stderr: "",
-              };
-            }
             return { code: 0, stdout: "", stderr: "" };
           },
         }),
@@ -365,22 +315,23 @@ describe("Linux package adapter", () => {
     }
 
     expect(calls).toEqual([
-      { command: "/usr/bin/dpkg-query", args: ["-W", "-f=${binary:Package}\\t${Status}\\n"] },
       { command: "/usr/bin/sudo", args: ["/usr/bin/apt", "update"] },
       { command: "/usr/bin/sudo", args: ["/usr/bin/apt", "upgrade", "-y"] },
-      {
-        command: "/usr/bin/sudo",
-        args: ["/usr/bin/apt", "install", "-y", "git"],
-      },
     ]);
   });
 
-  test("syncs only missing apt packages and never upgrades or removes extras", async () => {
+  test("apply installs missing packages individually and records only successful installs", async () => {
     const stateRoot = await mkdtemp(join(tmpdir(), "outfitting-linux-sync-"));
     const calls: Array<{ command: string; args: ReadonlyArray<string> }> = [];
     try {
+      await mkdir(join(stateRoot, "manifests", "packages", "linux"), { recursive: true });
+      await writeFile(
+        join(stateRoot, "manifests", "packages", "linux", "generic-linux.txt"),
+        "curl\ngit\njq\n",
+      );
       await Effect.runPromise(
-        syncLinux({
+        applyLinux({
+          yes: true,
           config: {
             stateRoot,
             machineId: "test:x86_64-linux",
@@ -395,7 +346,6 @@ describe("Linux package adapter", () => {
               "dpkg-query": "/usr/bin/dpkg-query",
               sudo: "/usr/bin/sudo",
             })[command],
-          fetcher: async () => new Response("curl\ngit\n"),
           run: async (command, args) => {
             calls.push({ command, args });
             if (command === "/usr/bin/dpkg-query") {
@@ -405,10 +355,15 @@ describe("Linux package adapter", () => {
                 stderr: "",
               };
             }
+            if (args.includes("jq")) return { code: 1, stdout: "", stderr: "failed" };
             return { code: 0, stdout: "", stderr: "" };
           },
         }),
+      ).catch(() => undefined);
+      const ownership = JSON.parse(
+        await readFile(join(stateRoot, "linux-package-ownership.json"), "utf8"),
       );
+      expect(ownership.profiles["generic-linux"].apt).toEqual(["git"]);
     } finally {
       await rm(stateRoot, { force: true, recursive: true });
     }
@@ -417,8 +372,163 @@ describe("Linux package adapter", () => {
       { command: "/usr/bin/dpkg-query", args: ["-W", "-f=${binary:Package}\\t${Status}\\n"] },
       { command: "/usr/bin/sudo", args: ["/usr/bin/apt", "update"] },
       { command: "/usr/bin/sudo", args: ["/usr/bin/apt", "install", "-y", "git"] },
+      { command: "/usr/bin/sudo", args: ["/usr/bin/apt", "install", "-y", "jq"] },
     ]);
   });
+});
+
+test("Linux prune respects asymmetric profile ownership and requires confirmation", async () => {
+  const stateRoot = await mkdtemp(join(tmpdir(), "outfitting-linux-prune-"));
+  const calls: Array<{ command: string; args: ReadonlyArray<string> }> = [];
+  const config = {
+    stateRoot,
+    machineId: "test:x86_64-linux",
+    machineIdOverridden: true,
+    manifest: { baseUrl: "https://unused.invalid", ref: "main" },
+  };
+  try {
+    await mkdir(join(stateRoot, "manifests", "packages", "linux"), { recursive: true });
+    await writeFile(
+      join(stateRoot, "manifests", "packages", "linux", "generic-linux.txt"),
+      "manual\n",
+    );
+    await writeFile(
+      join(stateRoot, "linux-package-ownership.json"),
+      `${JSON.stringify({
+        version: 1,
+        profiles: {
+          "generic-linux": { apt: ["shared", "stale-only"] },
+          "oci-agents": { apt: ["shared"] },
+        },
+      })}\n`,
+    );
+    const run = async (command: string, args: ReadonlyArray<string>) => {
+      calls.push({ command, args });
+      if (command === "/usr/bin/dpkg-query") {
+        return {
+          code: 0,
+          stdout:
+            "manual\tinstall ok installed\nshared\tinstall ok installed\nstale-only\tinstall ok installed\n",
+          stderr: "",
+        };
+      }
+      if (args[0] === "-s") return { code: 0, stdout: "Remv stale-only [1.0]\n", stderr: "" };
+      return { code: 0, stdout: "", stderr: "" };
+    };
+    const common = {
+      config,
+      profile: "generic-linux",
+      packageManager: "apt" as const,
+      prune: true,
+      which: async (command: string) =>
+        ({ apt: "/usr/bin/apt", "dpkg-query": "/usr/bin/dpkg-query", sudo: "/usr/bin/sudo" })[
+          command
+        ],
+      run,
+    };
+
+    await Effect.runPromise(applyLinux({ ...common, confirm: Effect.succeed(false) }));
+    expect(calls.some(({ args }) => args.includes("remove") && !args.includes("-s"))).toBe(false);
+    let ownership = JSON.parse(
+      await readFile(join(stateRoot, "linux-package-ownership.json"), "utf8"),
+    );
+    expect(ownership.profiles["generic-linux"].apt).toEqual(["shared", "stale-only"]);
+    expect(ownership.profiles["oci-agents"].apt).toEqual(["shared"]);
+
+    await Effect.runPromise(applyLinux({ ...common, yes: true }));
+    ownership = JSON.parse(await readFile(join(stateRoot, "linux-package-ownership.json"), "utf8"));
+    expect(ownership.profiles["generic-linux"].apt).toEqual([]);
+    expect(calls).toContainEqual({
+      command: "/usr/bin/sudo",
+      args: ["/usr/bin/apt", "remove", "-y", "stale-only"],
+    });
+    expect(calls.some(({ args }) => args.includes("manual") || args.includes("shared"))).toBe(
+      false,
+    );
+  } finally {
+    await rm(stateRoot, { force: true, recursive: true });
+  }
+});
+
+test("Linux prune refuses a simulated dependency cascade", async () => {
+  const stateRoot = await mkdtemp(join(tmpdir(), "outfitting-linux-prune-unsafe-"));
+  const calls: ReadonlyArray<string>[] = [];
+  try {
+    await mkdir(join(stateRoot, "manifests", "packages", "linux"), { recursive: true });
+    await writeFile(join(stateRoot, "manifests", "packages", "linux", "generic-linux.txt"), "");
+    await writeFile(
+      join(stateRoot, "linux-package-ownership.json"),
+      `${JSON.stringify({ version: 1, profiles: { "generic-linux": { apt: ["owned"] } } })}\n`,
+    );
+    await expect(
+      Effect.runPromise(
+        applyLinux({
+          config: {
+            stateRoot,
+            machineId: "test:x86_64-linux",
+            machineIdOverridden: true,
+            manifest: { baseUrl: "https://unused.invalid", ref: "main" },
+          },
+          packageManager: "apt",
+          prune: true,
+          yes: true,
+          which: async (command) =>
+            ({ apt: "/usr/bin/apt", "dpkg-query": "/usr/bin/dpkg-query" })[command],
+          run: async (command, args) => {
+            calls.push(args);
+            if (command === "/usr/bin/dpkg-query") {
+              return { code: 0, stdout: "owned\tinstall ok installed\n", stderr: "" };
+            }
+            return { code: 0, stdout: "Remv owned [1]\nRemv dependency [1]\n", stderr: "" };
+          },
+        }),
+      ),
+    ).rejects.toThrow("dependency");
+    expect(calls.some((args) => args[0] === "remove")).toBe(false);
+  } finally {
+    await rm(stateRoot, { force: true, recursive: true });
+  }
+});
+
+test("Linux offline apply uses apt cache only and never updates indexes", async () => {
+  const stateRoot = await mkdtemp(join(tmpdir(), "outfitting-linux-offline-"));
+  const calls: ReadonlyArray<string>[] = [];
+  try {
+    await mkdir(join(stateRoot, "manifests", "packages", "linux"), { recursive: true });
+    await writeFile(
+      join(stateRoot, "manifests", "packages", "linux", "generic-linux.txt"),
+      "curl\n",
+    );
+    await Effect.runPromise(
+      applyLinux({
+        config: {
+          stateRoot,
+          machineId: "test:x86_64-linux",
+          machineIdOverridden: true,
+          manifest: { baseUrl: "https://must-not-be-used.invalid", ref: "main" },
+        },
+        packageManager: "apt",
+        offline: true,
+        yes: true,
+        which: async (command) =>
+          ({ apt: "/usr/bin/apt", "dpkg-query": "/usr/bin/dpkg-query", sudo: "/usr/bin/sudo" })[
+            command
+          ],
+        run: async (command, args) => {
+          calls.push(args);
+          if (command === "/usr/bin/dpkg-query") return { code: 0, stdout: "", stderr: "" };
+          return { code: 0, stdout: "", stderr: "" };
+        },
+      }),
+    );
+    expect(calls).toContainEqual(["/usr/bin/apt", "install", "--no-download", "-y", "curl"]);
+    expect(calls.some((args) => args.includes("update"))).toBe(false);
+    expect(() => linuxPackageManagerArgs("pacman", "install", ["curl"], true)).toThrow(
+      "Offline pacman installs are refused",
+    );
+  } finally {
+    await rm(stateRoot, { force: true, recursive: true });
+  }
 });
 
 test("Linux setup applies the cached selected profile", async () => {
@@ -464,7 +574,8 @@ test("Linux setup applies the cached selected profile", async () => {
   expect(calls).toEqual([
     { command: "/usr/bin/dpkg-query", args: ["-W", "-f=${binary:Package}\\t${Status}\\n"] },
     { command: "/usr/bin/sudo", args: ["/usr/bin/apt", "update"] },
-    { command: "/usr/bin/sudo", args: ["/usr/bin/apt", "install", "-y", "curl", "git"] },
+    { command: "/usr/bin/sudo", args: ["/usr/bin/apt", "install", "-y", "curl"] },
+    { command: "/usr/bin/sudo", args: ["/usr/bin/apt", "install", "-y", "git"] },
   ]);
 });
 
@@ -477,6 +588,8 @@ test("Linux OCI setup preserves the baseline flow and runs the OCI bootstrap", a
     await mkdir(join(repo, "system", "oci-agents"), { recursive: true });
     await writeFile(join(repo, "system", "oci-agents", "flake.nix"), "{}\n");
     await writeFile(join(repo, "system", "oci-agents", "bootstrap.sh"), "#!/bin/sh\n");
+    await mkdir(join(repo, "packages", "linux"), { recursive: true });
+    await writeFile(join(repo, "packages", "linux", "oci-agents.txt"), "curl\ngit\n");
     await Effect.runPromise(
       runLinuxSetup({
         stateRoot,
@@ -508,10 +621,77 @@ test("Linux OCI setup preserves the baseline flow and runs the OCI bootstrap", a
   expect(calls).toEqual([
     { command: "/usr/bin/dpkg-query", args: ["-W", "-f=${binary:Package}\\t${Status}\\n"] },
     { command: "/usr/bin/sudo", args: ["/usr/bin/apt", "update"] },
-    { command: "/usr/bin/sudo", args: ["/usr/bin/apt", "install", "-y", "curl", "git"] },
+    { command: "/usr/bin/sudo", args: ["/usr/bin/apt", "install", "-y", "curl"] },
+    { command: "/usr/bin/sudo", args: ["/usr/bin/apt", "install", "-y", "git"] },
     {
       command: "bash",
       args: [join(repoRoot, "system", "oci-agents", "bootstrap.sh")],
     },
   ]);
 });
+
+test("Linux shares only proven ownership and bare apply retains stale packages", async () => {
+  const stateRoot = await mkdtemp(join(tmpdir(), "outfitting-linux-shared-"));
+  const config = {
+    stateRoot,
+    machineId: "test:linux",
+    machineIdOverridden: true,
+    manifest: { baseUrl: "https://unused.invalid", ref: "main" },
+  };
+  const installed = new Set(["manual"]);
+  const calls: string[][] = [];
+  const run = async (command: string, args: ReadonlyArray<string>) => {
+    calls.push([...args]);
+    if (command === "dpkg-query")
+      return {
+        code: 0,
+        stdout: [...installed].map((name) => `${name}\tinstall ok installed`).join("\n"),
+        stderr: "",
+      };
+    if (args[0] === "install") installed.add(args.at(-1)!);
+    if (args[0] === "-s")
+      return {
+        code: 0,
+        stdout: args
+          .slice(2)
+          .map((name) => `Remv ${name} [1]`)
+          .join("\n"),
+        stderr: "",
+      };
+    if (args[0] === "remove") args.slice(2).forEach((name) => installed.delete(name));
+    return { code: 0, stdout: "", stderr: "" };
+  };
+  const common = {
+    config,
+    packageManager: "apt" as const,
+    yes: true,
+    run,
+    which: async (name: string) => (name === "sudo" ? undefined : name),
+  };
+  try {
+    await mkdir(join(stateRoot, "manifests/packages/linux"), { recursive: true });
+    const base = join(stateRoot, "manifests/packages/linux/generic-linux.txt");
+    const oci = join(stateRoot, "manifests/packages/linux/oci-agents.txt");
+    await writeFile(base, "shared\nmanual\n");
+    await writeFile(oci, "shared\nmanual\n");
+    await Effect.runPromise(applyLinux({ ...common, profile: "generic-linux" }));
+    await Effect.runPromise(applyLinux({ ...common, profile: "oci-agents" }));
+    await writeFile(base, "");
+    await Effect.runPromise(applyLinux({ ...common, profile: "generic-linux", prune: true }));
+    expect(installed).toEqual(new Set(["manual", "shared"]));
+    await writeFile(oci, "");
+    await Effect.runPromise(applyLinux({ ...common, profile: "oci-agents" }));
+    expect(calls.some((args) => args[0] === "remove")).toBe(false);
+    await Effect.runPromise(applyLinux({ ...common, profile: "oci-agents", prune: true }));
+    expect(installed).toEqual(new Set(["manual"]));
+  } finally {
+    await rm(stateRoot, { recursive: true, force: true });
+  }
+});
+
+test.each(["-y", "--allow-remove-essential", "foo*", "../foo", "foo;bar"])(
+  "Linux rejects unsafe manifest entry %s",
+  (entry) => {
+    expect(() => parseLinuxPackageManifest(entry)).toThrow("Invalid Linux package entry");
+  },
+);

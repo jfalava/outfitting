@@ -1,12 +1,6 @@
 import { Console, Effect } from "effect";
 
-import {
-  loadConfig,
-  saveConfigFile,
-  syncOutfittingRepo,
-  tryResolveOutfittingRepo,
-  writeRepoPath,
-} from "@/config";
+import { loadConfig, saveConfigFile } from "@/config";
 import { tryPromise } from "@/lockfiles/effect";
 import { runCommand } from "@/process";
 import { envValue } from "@/secrets";
@@ -14,42 +8,37 @@ import { linuxSourcePaths } from "@/setup/manifests";
 import { runSetup, type SetupOptions } from "@/setup/run";
 import { ui } from "@/ui";
 import {
+  applyLinux,
   linuxManifestPath,
   runLinuxProfileBootstrap,
-  syncLinux,
   type LinuxProfile,
-  type LinuxUpdateOptions,
+  type LinuxApplyOptions,
 } from "@/update/linux";
 
 export interface LinuxSetupOptions extends SetupOptions {
   profile: LinuxProfile;
-  packageManager?: LinuxUpdateOptions["packageManager"];
-  run?: LinuxUpdateOptions["run"];
-  which?: LinuxUpdateOptions["which"];
-  osReleasePath?: LinuxUpdateOptions["osReleasePath"];
-  readOsRelease?: LinuxUpdateOptions["readOsRelease"];
-  bootstrapNix?: LinuxUpdateOptions["bootstrapNix"];
+  packageManager?: LinuxApplyOptions["packageManager"];
+  run?: LinuxApplyOptions["run"];
+  which?: LinuxApplyOptions["which"];
+  osReleasePath?: LinuxApplyOptions["osReleasePath"];
+  readOsRelease?: LinuxApplyOptions["readOsRelease"];
+  bootstrapNix?: boolean;
 }
 
 export interface LinuxInitOptions extends SetupOptions {
   profile: LinuxProfile;
-  run?: LinuxUpdateOptions["run"];
-  bootstrapNix?: LinuxUpdateOptions["bootstrapNix"];
 }
 
 function persistLinuxProfile(profile: LinuxProfile, stateRoot: string | undefined) {
   return tryPromise(() =>
-    saveConfigFile(
-      { linux: { profile } },
-      stateRoot === undefined ? undefined : { stateRoot },
-    ),
+    saveConfigFile({ linux: { profile } }, stateRoot === undefined ? undefined : { stateRoot }),
   );
 }
 
-/** Prepare Linux state and bootstrap the selected profile's Nix configuration. */
+/** Prepare Linux state and validate/persist its selected source without applying it. */
 export const runLinuxInit = (options: LinuxInitOptions) =>
   Effect.gen(function* () {
-    const { profile, repo, run, bootstrapNix, ...setupOptions } = options;
+    const { profile, repo, ...setupOptions } = options;
     const envRepo = envValue("OUTFITTING_REPO");
     const configuredRepo = repo ?? envRepo;
 
@@ -64,27 +53,6 @@ export const runLinuxInit = (options: LinuxInitOptions) =>
     }
     yield* runSetup(linuxSetupOptions);
     yield* persistLinuxProfile(profile, options.stateRoot);
-
-    if (profile !== "generic-linux" && bootstrapNix !== false) {
-      const config = yield* tryPromise(() =>
-        loadConfig(options.stateRoot === undefined ? undefined : { stateRoot: options.stateRoot }),
-      );
-      if (configuredRepo !== undefined) {
-        const syncedRepo = yield* tryPromise(() =>
-          syncOutfittingRepo(configuredRepo, { ref: config.manifest.ref, run: run ?? runCommand }),
-        );
-        yield* tryPromise(() => writeRepoPath(syncedRepo.root, { stateRoot: config.stateRoot }));
-      } else {
-        const sourceRepo = yield* tryPromise(() => tryResolveOutfittingRepo({ config }));
-        if (sourceRepo === undefined) {
-          throw new Error(
-            "Linux Nix source is not configured. Run init without --no-fetch or pass --repo.",
-          );
-        }
-      }
-      yield* Console.log(ui.heading(`Applying ${profile} Nix/Home Manager configuration…`));
-      yield* tryPromise(() => runLinuxProfileBootstrap(profile, config, run ?? runCommand));
-    }
   });
 
 /** Prepare and apply the selected Linux package profile. */
@@ -113,7 +81,7 @@ export const runLinuxSetup = (options: LinuxSetupOptions) =>
       loadConfig(options.stateRoot === undefined ? undefined : { stateRoot: options.stateRoot }),
     );
     const commandRunner = run ?? runCommand;
-    yield* syncLinux({
+    yield* applyLinux({
       config,
       profile,
       packageManager,
@@ -121,9 +89,9 @@ export const runLinuxSetup = (options: LinuxSetupOptions) =>
       which,
       osReleasePath,
       readOsRelease,
-      fetcher: setupOptions.fetcher,
-      // runSetup has already populated the cache; setup must apply that exact source.
-      offline: true,
+      // runSetup has already populated the local source; offline also constrains package downloads.
+      offline: setupOptions.offline,
+      yes: true,
     });
 
     if (profile !== "generic-linux" && bootstrapNix !== false) {

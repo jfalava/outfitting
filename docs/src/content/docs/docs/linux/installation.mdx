@@ -34,11 +34,11 @@ Open a new shell when the installer finishes.
 
 By default you get the portable package list. Other profiles select a different package manifest and, when present, a Home Manager flake:
 
-| Profile | Role |
-| --- | --- |
-| `generic-linux` | Default. Native packages only (apt or pacman). |
-| `ubuntu-wsl` | Ubuntu package set plus Home Manager under `system/ubuntu-wsl`. |
-| `oci-agents` | Headless host package set plus Home Manager under `system/oci-agents`. |
+| Profile         | Role                                                                   |
+| --------------- | ---------------------------------------------------------------------- |
+| `generic-linux` | Default. Native packages only (apt or pacman).                         |
+| `ubuntu-wsl`    | Ubuntu package set plus Home Manager under `system/ubuntu-wsl`.        |
+| `oci-agents`    | Headless host package set plus Home Manager under `system/oci-agents`. |
 
 ```bash
 curl -L linux.jfa.dev | bash -s -- --profile generic-linux
@@ -55,4 +55,4 @@ outfitting-manager setup --no-fetch
 
 Use a full checkout instead of the sparse source with `--repo /path/to/outfitting` on `init` / `setup`.
 
-For command-level workflows, see the [Linux CLI reference](/docs/cli/linux/), especially [Linux init](/docs/cli/linux/init/) and [Linux install](/docs/cli/linux/install/) for flags.
+For command-level workflows, see [init](/docs/cli/init/), [setup](/docs/cli/setup/), and the [Linux CLI reference](/docs/cli/linux/).

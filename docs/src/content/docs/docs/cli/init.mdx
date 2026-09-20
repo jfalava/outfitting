@@ -1,25 +1,27 @@
 ---
 title: Init
-description: Prepare local platform state without applying the package baseline.
+description: Initialize local Outfitting state without changing the machine.
 sidebar:
   order: 8
 ---
 
-`init` creates the state root, fetches or selects the configured source, and validates or caches the inputs needed by later commands. It does not apply the normal package baseline.
+`init` creates the local state root, saves configuration, and fetches the declarations needed by later commands. It does not install, upgrade, remove, or activate anything.
 
-## `init`
+## Usage
 
 ```bash
 outfitting-manager init
 outfitting-manager init --no-fetch
 ```
 
-Common source options are `--machine-id`, `--manifest-base-url`, `--manifest-ref`, and `--no-fetch`. The platform build may add `--profile` or `--repo`.
+Common source options are [`--machine-id`](/docs/cli/profiles/#machine-id), `--manifest-base-url`, `--manifest-ref`, and `--no-fetch`. macOS and Linux also accept `--repo`; Windows and Linux accept `--profile` as described in [Profiles](/docs/cli/profiles/).
+
+`--no-fetch` creates or refreshes configuration while using declarations already cached in the state root. Source overrides are saved for later commands.
 
 ## Platform differences
 
-| Platform | What `init` prepares | Platform-specific invocation |
-| --- | --- | --- |
-| macOS | The sparse macOS source or a local repository checkout, then validates the nix-darwin contract. | `outfitting-manager init --repo ~/src/my-machine-config`; it does not activate Nix or change Homebrew. |
-| Windows | The Windows state root and cached repository manifests. | `outfitting-manager init --no-fetch`; it does not apply package state. |
-| Linux | The selected profile-scoped source and persisted `linux.profile`. Nix-backed profiles also bootstrap Home Manager. | `outfitting-manager init --profile ubuntu-wsl --repo ~/code/outfitting`; it does not change native packages. |
+| Platform | What `init` prepares                                                                                 | Platform-specific invocation                                            |
+| -------- | ---------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| macOS    | A sparse macOS source or a saved local checkout, validated for the nix-darwin and Brewfile contract. | `outfitting-manager init --repo ~/src/my-machine-config`                |
+| Windows  | Configured manifests and the cached PowerShell profile.                                              | `outfitting-manager init --profile base,dev`                            |
+| Linux    | The selected profile-scoped source and persisted `linux.profile`.                                    | `outfitting-manager init --profile ubuntu-wsl --repo ~/code/outfitting` |

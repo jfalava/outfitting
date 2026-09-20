@@ -1,7 +1,6 @@
-import { Effect } from "effect";
 import { describe, expect, test } from "vitest";
 
-import { parseBunGlobalList, updateBun } from "@/update/bun";
+import { parseBunGlobalList } from "@/update/bun";
 
 describe("parseBunGlobalList", () => {
   test("parses bun pm ls -g style output", () => {
@@ -21,13 +20,5 @@ describe("parseBunGlobalList", () => {
 
   test("skips malformed lines", () => {
     expect(parseBunGlobalList("header\nnot-a-package\n")).toEqual([]);
-  });
-});
-
-describe("updateBun", () => {
-  test("is deprecated in favor of Bun's native global update", async () => {
-    await expect(Effect.runPromise(updateBun)).rejects.toThrow(
-      "`update bun` is deprecated; run `bun update -g` instead.",
-    );
   });
 });

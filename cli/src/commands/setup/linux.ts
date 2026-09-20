@@ -36,7 +36,7 @@ const noFetchFlag = Flag.Boolean("no-fetch").pipe(
   Flag.withDescription("Use the selected Linux package manifest already in the cache."),
 );
 
-/** Prepare Linux state and, for Nix-backed profiles, apply Home Manager. */
+/** Prepare Linux state and source without applying packages or Home Manager. */
 export const linuxInitCommand = Command.make(
   "init",
   {
@@ -58,7 +58,7 @@ export const linuxInitCommand = Command.make(
     }),
 ).pipe(
   Command.withDescription(
-    "Prepare Linux state and bootstrap the selected profile's Nix configuration without changing packages.",
+    "Prepare Linux state and validate the selected source without changing the system.",
   ),
 );
 

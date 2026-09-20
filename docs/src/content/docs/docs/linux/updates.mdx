@@ -1,78 +1,32 @@
 ---
 title: Updates
-description: Update Linux packages and configuration with outfitting-manager and shell helpers.
+description: Reconcile and update Linux packages and Home Manager state.
 audience: linux
 sidebar:
   order: 2
 ---
 
-For flag-level detail, see the [Linux CLI reference](/docs/cli/linux/), especially [maintenance](/docs/cli/linux/maintenance/) and [Home Manager](/docs/cli/linux/home-manager/).
+Use [apply](/docs/cli/apply/) to install missing packages from the active local profile. It preserves manually installed packages unless `--prune` can prove that Outfitting installed them for the active profile and they are no longer declared.
 
-## Package updates
+```bash
+outfitting-manager apply all
+outfitting-manager apply apt --profile ubuntu-wsl
+outfitting-manager apply all --prune
+```
 
-Upgrade the system package set, then install only **missing** managed packages for the active profile:
+Use [update](/docs/cli/update/) to upgrade packages that are already installed:
 
 ```bash
 outfitting-manager update all
-```
-
-Force a manager:
-
-```bash
 outfitting-manager update apt
-outfitting-manager update pacman
-outfitting-manager update all --package-manager apt
+outfitting-manager update pacman --offline
 ```
 
-Check or install missing declared packages without a full upgrade:
+For Nix-backed profiles, rebuild Home Manager separately:
 
 ```bash
-outfitting-manager diff
-outfitting-manager sync apt
-```
-
-Unrelated packages already on the machine are left alone.
-
-## Manager binary
-
-```bash
-outfitting-manager upgrade
-```
-
-## Home Manager (Nix-backed profiles)
-
-When the active profile uses Home Manager (`ubuntu-wsl`, `oci-agents`), rebuild with the same actions as macOS:
-
-```bash
-outfitting-manager update nix         # lists build | switch | test | dry
 outfitting-manager update nix build
-outfitting-manager update nix test
-outfitting-manager update nix dry
-outfitting-manager update nix switch  # build and activate
+outfitting-manager update nix switch
 ```
 
-Bare `update nix` only lists subcommands; it does not switch.
-
-## Shell helpers (`hm-*`)
-
-After a Nix-backed profile is active, Zsh loads shared helpers. They call `outfitting-manager` when it is on `PATH`, and fall back to native `nix` / `home-manager` otherwise.
-
-```bash
-hm-build     # build without activating
-hm-test      # test-build without activating
-hm-dry       # dry-run without activating
-hm-switch    # build and activate
-hm-sync      # alias for hm-switch
-hm-update    # with the manager: switch only (no flake-input bump)
-hm-rollback  # list generations
-hm-clean     # nix-collect-garbage -d
-```
-
-Implementation: `system/common/zsh/hm-profile.inc.zsh`, sourced from the profile plugin.
-
-## Typical sequence
-
-```bash
-outfitting-manager update all
-outfitting-manager update nix switch   # only on Nix-backed profiles
-```
+See [Home Manager](/docs/cli/linux/home-manager/) for the `hm-*` shell helpers. Update global Bun packages with `bun update -g`, and update the manager binary with `outfitting-manager upgrade`.

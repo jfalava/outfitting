@@ -1,145 +1,79 @@
 ---
 title: Update
-description: Update packages and platform configuration with Outfitting.
+description: Upgrade software that is already installed.
 sidebar:
-  order: 2
+  order: 6
 ---
 
-`update` upgrades software owned by the current platform. It can update one package manager or run the platform's combined workflow.
-
-## Invoke `update`
+Native package `update` upgrades software that is already installed. It does not install missing declared packages or prune anything; use [`apply`](/docs/cli/apply/) for package presence. Nix actions build or activate declarative configurations, so activation can add, replace, or remove managed packages.
 
 ```bash
 outfitting-manager update <subcommand> [flags]
 ```
 
-The bare command prints its available subcommands.
+The bare command prints the subcommands available on the current platform. When an update records local state, `--no-push` keeps that write local and skips its upload.
 
-## macOS subcommands
-
-### `update brew`
-
-Reconcile the managed Brewfile, upgrade Homebrew packages, and store the observed Homebrew inventory.
-
-```bash
-outfitting-manager update brew
-outfitting-manager update brew --no-sync
-```
-
-`--no-sync` keeps inventory and lock changes local.
-
-### `update nix`
-
-The bare command lists Nix actions. Choose one of the nested subcommands:
-
-#### `update nix build`
-
-Build nix-darwin without activating it.
-
-#### `update nix test`
-
-Test-build nix-darwin without activating it.
-
-#### `update nix dry`
-
-Show the Nix build plan without activating it.
-
-#### `update nix switch`
-
-Build and activate nix-darwin.
-
-```bash
-outfitting-manager update nix switch
-```
-
-### `update all`
-
-Run `nix switch` followed by Homebrew. The command continues after a failed step and exits nonzero if any step failed.
-
-```bash
-outfitting-manager update all
-outfitting-manager update all --no-sync
-```
-
-### `update bun`
-
-This compatibility subcommand is deprecated. Run the Bun command directly:
+Update global Bun packages directly:
 
 ```bash
 bun update -g
 ```
 
-## Windows subcommands
+## macOS
 
-### `update winget`
+### `update brew`
 
-Upgrade installed WinGet packages.
-
-```powershell
-outfitting-manager update winget
-outfitting-manager update winget --no-sync
-```
-
-### `update scoop`
-
-Install missing packages from the configured Scoop manifest, update installed packages, and clean old versions. Extra packages are preserved.
-
-```powershell
-outfitting-manager update scoop
-```
-
-### `update all`
-
-Run WinGet, Scoop, and Windows lock synchronization in order. The command continues after a failed step and exits nonzero if any step failed.
-
-```powershell
-outfitting-manager update all
-outfitting-manager update all --no-sync
-```
-
-`--no-sync` skips both the local lock update and its upload.
-
-### `update bun`
-
-This compatibility subcommand is deprecated. Run `bun update -g` directly.
-
-## Linux subcommands
-
-### `update all`
-
-Detect apt or pacman, upgrade the system, and install missing packages from the selected Linux profile.
+Upgrade installed Homebrew packages and record the observed inventory. It does not install missing Brewfile entries.
 
 ```bash
-outfitting-manager update all
-outfitting-manager update all --profile ubuntu-wsl --package-manager apt
+outfitting-manager update brew
+outfitting-manager update brew --no-push
 ```
-
-### `update apt`
-
-Update the selected profile through apt.
-
-### `update pacman`
-
-Update the selected profile through pacman.
-
-Both commands accept `--profile`, `--package-manager`, and `--offline`.
 
 ### `update nix`
 
-On Nix-backed profiles, choose one of the same actions as macOS: `build`, `test`, `dry`, or `switch`. Pass `--profile` to select `ubuntu-wsl` or `oci-agents`.
+Choose `build`, `test`, `dry`, or `switch`. Bare `update nix` lists these actions without running one.
 
 ```bash
-outfitting-manager update nix switch --profile ubuntu-wsl
+outfitting-manager update nix build
+outfitting-manager update nix switch
 ```
 
-### `update bun`
+### `update all`
 
-This compatibility subcommand is deprecated. Run `bun update -g` directly.
+Run `nix switch`, then update Homebrew. It continues after a failed step and exits nonzero if any step failed.
+
+```bash
+outfitting-manager update all
+outfitting-manager update all --no-push
+```
+
+## Windows
+
+Choose `winget`, `scoop`, or `all`. WinGet and Scoop upgrade installed packages only; missing declarations belong to `apply`. `all` runs both managers and records successful steps even if another step fails.
+
+```powershell
+outfitting-manager update winget
+outfitting-manager update scoop --no-push
+outfitting-manager update all
+```
+
+## Linux
+
+Choose `all`, `apt`, or `pacman` to upgrade installed native packages. These forms do not select a profile or install missing declarations. `all` detects the package manager, with an optional `--package-manager apt|pacman` override. Passing `--offline` refuses upgrades rather than silently using the network.
+
+```bash
+outfitting-manager update all
+outfitting-manager update apt
+outfitting-manager update pacman
+```
+
+Nix-backed profiles also support `update nix build|test|dry|switch`, using the saved Linux profile.
 
 ## Platform differences
 
-| Platform | `update` subcommands | Main difference |
-| --- | --- | --- |
-| macOS | `brew`, `nix`, `all`, `bun` | `nix` manages nix-darwin and `brew` manages the Brewfile. `all` runs Nix before Homebrew. |
-| Windows | `winget`, `scoop`, `all`, `bun` | `winget` upgrades installed packages; `scoop` also installs missing manifest packages. `all` updates the Windows lock. |
-| Linux | `all`, `apt`, `pacman`, `nix`, `bun` | `all`, `apt`, and `pacman` update native packages. `nix` is for Home Manager on Nix-backed profiles. |
+| Platform | `update` subcommands          | Main difference                                                                              |
+| -------- | ----------------------------- | -------------------------------------------------------------------------------------------- |
+| macOS    | `brew`, `nix`, `all`          | `nix` manages nix-darwin and `brew` upgrades installed Homebrew packages.                    |
+| Windows  | `winget`, `scoop`, `all`      | Upgrades installed packages only; state is uploaded unless `--no-push` is set.               |
+| Linux    | `all`, `apt`, `pacman`, `nix` | Native forms upgrade installed packages; `nix` operates Home Manager on Nix-backed profiles. |

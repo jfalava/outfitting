@@ -1,8 +1,9 @@
 export { updateAll, type UpdateAllOptions, type UpdateStepResult } from "@/update/all";
-export { updateBun, parseBunGlobalList } from "@/update/bun";
+export { parseBunGlobalList } from "@/update/bun";
 export { updateBrew, parseBrewfileTaps, BREWFILE_MANIFEST_PATH } from "@/update/brew";
 export {
   isLinuxProfile,
+  applyLinux,
   linuxManifestPath,
   linuxPackageManagerArgs,
   LINUX_PROFILES,
@@ -10,12 +11,11 @@ export {
   linuxPackageIdentity,
   missingLinuxPackages,
   parseLinuxPackageManifest,
-  syncLinux,
   updateLinux,
   type LinuxPackageAction,
   type LinuxPackageInventoryOptions,
   type LinuxProfile,
-  type LinuxSyncOptions,
+  type LinuxApplyOptions,
   type LinuxUpdateOptions,
 } from "@/update/linux";
 export {

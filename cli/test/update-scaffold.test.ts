@@ -32,7 +32,7 @@ const runCliWithEnv = async (args: string[], env: Record<string, string | undefi
 const runCli = async (args: string[]) => runCliWithEnv(args);
 
 describe("macos CLI scaffold (process)", () => {
-  test("root help lists setup, update, sync, lockfiles", async () => {
+  test("root help lists shared verbs without the removed lockfiles alias", async () => {
     const { code, stdout, stderr } = await runCli(["--help"]);
     const text = `${stdout}\n${stderr}`;
     expect(code).toBe(0);
@@ -40,7 +40,8 @@ describe("macos CLI scaffold (process)", () => {
     expect(text).toMatch(/\bupdate\b/);
     expect(text).toMatch(/\bdiff\b/);
     expect(text).toMatch(/\bsync\b/);
-    expect(text).toMatch(/\blockfiles\b/);
+    expect(text).not.toMatch(/^\s+lockfiles\s/m);
+    expect(text).toMatch(/^\s+status\s/m);
     expect(text).toMatch(/\bsnapshot\b/);
     expect(text).toMatch(/\brecover\b/);
   });
@@ -56,18 +57,18 @@ describe("macos CLI scaffold (process)", () => {
     const { code, stdout, stderr } = await runCli(["update", "--help"]);
     const text = `${stdout}\n${stderr}`;
     expect(code).toBe(0);
-    for (const manager of ["nix", "brew", "bun", "all"]) {
+    for (const manager of ["nix", "brew", "all"]) {
       expect(text).toMatch(new RegExp(`\\b${manager}\\b`));
     }
     expect(text).not.toMatch(/update[-_]all/i);
   });
 
-  test("update bun is deprecated and points to Bun's native command", async () => {
+  test("update bun is removed without a migration handler", async () => {
     const { code, stdout, stderr } = await runCli(["update", "bun"]);
     const text = `${stdout}\n${stderr}`;
     expect(code).not.toBe(0);
-    expect(text).toMatch(/deprecated/i);
-    expect(text).toContain("bun update -g");
+    expect(text).not.toMatch(/deprecated/i);
+    expect(text).not.toMatch(/^\s+bun\s/m);
   });
 
   test("update nix dry is registered (fails fast without repo rather than stub)", async () => {
@@ -122,12 +123,12 @@ describe("macos CLI scaffold (process)", () => {
     expect(text).toMatch(/Nix and Homebrew/i);
   });
 
-  test("sync and lockfiles both expose push subcommand help", async () => {
+  test("sync exposes remote transport and lockfiles is rejected", async () => {
     const sync = await runCli(["sync", "--help"]);
-    const lockfiles = await runCli(["lockfiles", "--help"]);
+    const lockfiles = await runCli(["lockfiles"]);
     expect(sync.code).toBe(0);
-    expect(lockfiles.code).toBe(0);
+    expect(lockfiles.code).not.toBe(0);
     expect(`${sync.stdout}\n${sync.stderr}`).toMatch(/\bpush\b/);
-    expect(`${lockfiles.stdout}\n${lockfiles.stderr}`).toMatch(/\bpush\b/);
+    expect(`${lockfiles.stdout}\n${lockfiles.stderr}`).not.toMatch(/^\s+lockfiles\s/m);
   });
 });

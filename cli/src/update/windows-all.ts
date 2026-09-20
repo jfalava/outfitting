@@ -7,11 +7,11 @@ import { tryPromise } from "@/lockfiles/effect";
 import { runCommand, which } from "@/process";
 import { ui } from "@/ui";
 import { updateScoop } from "@/update/scoop";
-import { recordWindowsOperation, WINDOWS_LOCK_KIND, windowsLockPath } from "@/update/windows-lock";
+import { WINDOWS_LOCK_KIND, windowsLockPath } from "@/update/windows-lock";
 import { updateWinget } from "@/update/winget";
 
 export interface WindowsUpdateAllOptions {
-  noSync?: boolean;
+  noPush?: boolean;
   config?: ManagerConfig;
   run?: typeof runCommand;
   which?: typeof which;
@@ -56,54 +56,26 @@ const printWindowsResults = Effect.fn("printWindowsResults")(function* (
   }
 });
 
-interface WindowsInventorySyncOptions {
+interface WindowsInventoryPushOptions {
   config: ManagerConfig;
   results: WindowsUpdateStepResult[];
   wingetUpdated: boolean;
   scoopUpdated: boolean;
 }
 
-const syncWindowsLock = Effect.fn("syncWindowsLock")(function* (
-  options: WindowsInventorySyncOptions,
+const pushWindowsLock = Effect.fn("pushWindowsLock")(function* (
+  options: WindowsInventoryPushOptions,
 ) {
   if (!options.wingetUpdated && !options.scoopUpdated) {
     return;
   }
   yield* runWindowsStep(
     options.results,
-    "windows lock",
-    Effect.gen(function* () {
-      if (options.wingetUpdated) {
-        yield* tryPromise(() =>
-          recordWindowsOperation({
-            config: options.config,
-            manager: "winget",
-            action: "upgrade",
-            name: "*",
-            args: ["upgrade", "--all"],
-            status: "success",
-            exitCode: 0,
-          }),
-        );
-      }
-      if (options.scoopUpdated) {
-        yield* tryPromise(() =>
-          recordWindowsOperation({
-            config: options.config,
-            manager: "scoop",
-            action: "upgrade",
-            name: "*",
-            args: ["update", "*"],
-            status: "success",
-            exitCode: 0,
-          }),
-        );
-      }
-      yield* pushLockfile({
-        machine: options.config.machineId,
-        kind: WINDOWS_LOCK_KIND,
-        path: windowsLockPath({ root: options.config.stateRoot }),
-      });
+    "windows lock upload",
+    pushLockfile({
+      machine: options.config.machineId,
+      kind: WINDOWS_LOCK_KIND,
+      path: windowsLockPath({ root: options.config.stateRoot }),
     }),
   );
 });
@@ -127,7 +99,7 @@ export const updateWindowsAll = (options: WindowsUpdateAllOptions = {}) =>
     yield* runWindowsStep(
       results,
       "winget",
-      updateWinget({ config, noSync: true, run, which: whichFn }),
+      updateWinget({ config, noPush: true, run, which: whichFn }),
       () => {
         wingetUpdated = true;
       },
@@ -135,15 +107,15 @@ export const updateWindowsAll = (options: WindowsUpdateAllOptions = {}) =>
     yield* runWindowsStep(
       results,
       "scoop",
-      updateScoop({ config, noSync: options.noSync, noPush: true, run, which: whichFn, scoopPath }),
+      updateScoop({ config, noPush: true, run, which: whichFn, scoopPath }),
       () => {
         scoopUpdated = true;
       },
     );
-    if (options.noSync) {
-      yield* Console.log(ui.muted("Skipped Windows lock sync (--no-sync)."));
+    if (options.noPush) {
+      yield* Console.log(ui.muted("Updated local Windows state; skipped upload (--no-push)."));
     } else {
-      yield* syncWindowsLock({
+      yield* pushWindowsLock({
         config,
         results,
         wingetUpdated,

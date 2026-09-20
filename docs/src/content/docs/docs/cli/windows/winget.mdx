@@ -1,0 +1,35 @@
+---
+title: WinGet
+description: Track manual WinGet package operations in the Windows machine lock.
+audience: windows
+sidebar:
+  order: 8
+---
+
+`winget` installs or removes packages and records each operation in `windows.lock.json`. It is available only in the Windows manager build.
+
+## `winget install`
+
+Install one or more WinGet package IDs:
+
+```powershell
+outfitting-manager winget install Git.Git
+```
+
+## `winget uninstall`
+
+Remove one or more tracked WinGet package IDs:
+
+```powershell
+outfitting-manager winget uninstall Git.Git
+```
+
+Both subcommands accept `--no-push` to update the local lock without uploading it. Native WinGet operations remain unmanaged unless they are included in a selected profile or run through this command.
+
+## Platform differences
+
+| Platform | Availability  | Difference                                                                        |
+| -------- | ------------- | --------------------------------------------------------------------------------- |
+| macOS    | Not available | Use `update brew` or `update nix`.                                                |
+| Windows  | Available     | Operations are recorded in `windows.lock.json` and normally pushed to the Worker. |
+| Linux    | Not available | Use `update apt` or `update pacman`.                                              |

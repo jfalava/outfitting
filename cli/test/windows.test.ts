@@ -8,13 +8,14 @@ import { promisify } from "node:util";
 import { Console, Effect } from "effect";
 import { describe, expect, test } from "vitest";
 
-import { windowsPackageCommandArgs } from "@/commands/windows-packages";
 import {
+  applyWindows,
   parseWindowsPackageList,
   resolveWindowsProfiles,
-  syncWindows,
-} from "@/commands/windows-sync";
+} from "@/commands/windows-apply";
+import { windowsPackageCommandArgs } from "@/commands/windows-packages";
 import { saveConfigFile } from "@/config";
+import { fetchManifest } from "@/fetch";
 import type { RunCommandResult } from "@/process";
 import { WINDOWS_SETUP_MANIFEST_PATHS } from "@/setup/manifests";
 import { runSetup } from "@/setup/run";
@@ -86,6 +87,7 @@ describe("Windows CLI entrypoint", () => {
     const setup = await runWindowsCli(["setup", "--help"]);
     const diff = await runWindowsCli(["diff", "--help"]);
     const sync = await runWindowsCli(["sync", "--help"]);
+    const apply = await runWindowsCli(["apply", "--help"]);
     const winget = await runWindowsCli(["winget", "--help"]);
     const scoop = await runWindowsCli(["scoop", "--help"]);
     const foreign = await runWindowsCli(["update", "brew"]);
@@ -99,14 +101,18 @@ describe("Windows CLI entrypoint", () => {
     expect(root.text).toMatch(/\bscoop\b/);
     expect(update.text).toMatch(/\bwinget\b/);
     expect(update.text).toMatch(/\bscoop\b/);
-    expect(update.text).toMatch(/\bbun\b/);
+    expect(update.text).not.toMatch(/^\s+bun\s/m);
     expect(update.text).toMatch(/\ball\b/);
     expect(config.text).toMatch(/repository|route/i);
     expect(init.text).toMatch(/initialize/i);
     expect(setup.text).toMatch(/apply|profiles/i);
     expect(diff.text).toMatch(/compare|repository/i);
     expect(sync.text).not.toMatch(/--clean/);
-    expect(sync.text).toMatch(/--winget-only/);
+    expect(sync.text).toMatch(/configure-worker/);
+    expect(sync.text).not.toMatch(/--winget-only/);
+    expect(apply.text).toMatch(/--winget-only/);
+    expect(apply.text).toMatch(/--prune/);
+    expect(apply.text).not.toMatch(/--no-push/);
     expect(winget.text).toMatch(/install/);
     expect(scoop.text).toMatch(/uninstall/);
     expect(foreign.code).not.toBe(0);
@@ -189,7 +195,7 @@ describe("Windows desired state and lock", () => {
     }
   });
 
-  test("sync lists and removes tracked extras after confirmation", async () => {
+  test("apply preserves manual and preinstalled packages", async () => {
     const root = await mkdtemp(join(tmpdir(), "outfitting-windows-sync-"));
     const config = {
       stateRoot: root,
@@ -246,28 +252,31 @@ describe("Windows desired state and lock", () => {
         { root },
       );
 
-      await Effect.runPromise(
-        syncWindows({
+      for (const path of ["packages/windows/base.txt", "packages/windows/scoop.txt"]) {
+        await fetchManifest({
+          path,
           config,
-          confirmClean: Effect.succeed(true),
-          noPush: true,
+          fetcher: async () =>
+            new Response(path.includes("scoop") ? 'package "fzf"\n' : "Git.Git\n"),
+        });
+      }
+      await Effect.runPromise(
+        applyWindows({
+          config,
+          confirm: Effect.succeed(true),
           which: async (manager) => `C:\\${manager}.exe`,
           run,
-          fetcher: async (url) =>
-            new Response(url.includes("scoop") ? 'package "fzf"\n' : "Git.Git\n"),
         }).pipe(Effect.provideService(Console.Console, testConsole)),
       );
 
       const lock = await readWindowsLock(config, { root });
-      expect(lock.packages.winget.map((entry) => entry.name)).toEqual(["Git.Git"]);
-      expect(lock.packages.scoop.map((entry) => entry.name)).toEqual(["fzf"]);
+      expect(lock.packages.winget.map((entry) => entry.name)).toEqual(["Manual.Package"]);
+      expect(lock.packages.scoop.map((entry) => entry.name)).toEqual(["extra-scoop", "fzf"]);
       await expect(
         readFile(join(root, "manifests/dotfiles/Microsoft.PowerShell_profile.ps1"), "utf8"),
-      ).resolves.toBe("Git.Git\n");
-      expect(output.join("\n")).toContain("WinGet: winget:Manual.Package");
-      expect(output.join("\n")).toContain("Scoop: extra-scoop");
-      expect(calls.some((call) => call.includes("Manual.Package"))).toBe(true);
-      expect(calls.some((call) => call.includes("extra-scoop"))).toBe(true);
+      ).rejects.toThrow();
+      expect(output.join("\n")).toContain("install Scoop: fzf");
+      expect(calls.some((call) => call.includes("uninstall"))).toBe(false);
     } finally {
       await rm(root, { force: true, recursive: true });
     }
@@ -285,15 +294,19 @@ describe("Windows desired state and lock", () => {
       },
     };
     try {
+      await fetchManifest({
+        path: "packages/windows/base.txt",
+        config,
+        fetcher: async () => new Response("Git.Git\n"),
+      });
       await Effect.runPromise(
-        syncWindows({
+        applyWindows({
           config,
           wingetOnly: true,
-          noPush: true,
+          yes: true,
           which: async (manager) => (manager === "winget" ? "C:\\Windows\\winget.exe" : undefined),
-          run: async () => ok(),
-          fetcher: async (url) =>
-            new Response(url.includes("dotfiles") ? "profile\n" : "Git.Git\n"),
+          run: async (_command, args) =>
+            args[0] === "list" ? { ...ok(), code: -1978335212 } : ok(),
         }),
       );
 
@@ -322,11 +335,11 @@ package "extras/rustic"
     });
   });
 
-  test("rejects duplicate packages by resolved name and empty desired state", () => {
+  test("rejects duplicate packages by resolved name and permits an empty declaration", () => {
     expect(() => parseScoopManifest('package "extras/fzf"\npackage "fzf"')).toThrow(
       /duplicate package/,
     );
-    expect(() => parseScoopManifest("# no packages\n")).toThrow(/contains no packages/);
+    expect(parseScoopManifest("# no packages\n")).toEqual({ buckets: [], packages: [] });
   });
 });
 
@@ -432,35 +445,47 @@ describe("Windows package update commands", () => {
         },
         which: async () => "C:\\scoop\\shims\\scoop.ps1",
         run,
-        fetcher: async () => new Response('package "new-package"\n'),
-        noSync: true,
+        noPush: true,
       }),
     );
 
     expect(calls).toEqual([
-      "powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File C:\\scoop\\shims\\scoop.ps1 export",
-      "powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File C:\\scoop\\shims\\scoop.ps1 install new-package",
       "powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File C:\\scoop\\shims\\scoop.ps1 update",
       "powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File C:\\scoop\\shims\\scoop.ps1 update *",
       "powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File C:\\scoop\\shims\\scoop.ps1 cleanup *",
     ]);
   });
 
-  test("WinGet uses upgrade-all and can skip inventory", async () => {
+  test("WinGet uses upgrade-all and writes local state when upload is skipped", async () => {
     const calls: string[][] = [];
-    await Effect.runPromise(
-      updateWinget({
-        which: async () => "C:\\Windows\\winget.exe",
-        run: async (command, args) => {
-          calls.push([command, ...args]);
-          return ok();
-        },
-        noSync: true,
-      }),
-    );
-    expect(calls).toEqual([
-      ["winget", "upgrade", "--all", "--accept-source-agreements", "--accept-package-agreements"],
-    ]);
+    const stateRoot = await mkdtemp(join(tmpdir(), "outfitting-winget-update-"));
+    try {
+      await Effect.runPromise(
+        updateWinget({
+          config: {
+            stateRoot,
+            machineId: "test:x86_64-windows",
+            machineIdOverridden: true,
+            manifest: { baseUrl: "https://unused.invalid", ref: "main" },
+          },
+          which: async () => "C:\\Windows\\winget.exe",
+          run: async (command, args) => {
+            calls.push([command, ...args]);
+            return ok();
+          },
+          noPush: true,
+        }),
+      );
+      expect(calls).toEqual([
+        ["winget", "upgrade", "--all", "--accept-source-agreements", "--accept-package-agreements"],
+      ]);
+      expect(
+        JSON.parse(await readFile(join(stateRoot, "windows.lock.json"), "utf8")).operations[0]
+          .action,
+      ).toBe("upgrade");
+    } finally {
+      await rm(stateRoot, { recursive: true, force: true });
+    }
   });
 
   test("update all continues after a failed step and returns a failure", async () => {
@@ -479,7 +504,7 @@ describe("Windows package update commands", () => {
       Effect.runPromise(
         updateWindowsAll({
           config,
-          noSync: true,
+          noPush: true,
           which: async (command) =>
             command === "winget" ? "C:\\Windows\\winget.exe" : "C:\\scoop\\shims\\scoop.cmd",
           run: async (command, args) => {
@@ -500,7 +525,7 @@ describe("Windows package update commands", () => {
         "Bypass",
         "-File",
         "C:\\scoop\\shims\\scoop.ps1",
-        "export",
+        "update",
       ],
     ]);
   });

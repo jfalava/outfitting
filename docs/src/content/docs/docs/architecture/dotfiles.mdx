@@ -1,6 +1,6 @@
 ---
 title: Dotfiles and machine state
-description: What lands on machines and how installers and sync commands reconcile it.
+description: What lands on machines and how installers and apply commands reconcile it.
 sidebar:
   order: 6
 ---
@@ -26,7 +26,7 @@ Installers symlink the profile entry points (Windows backs up existing profiles 
 
 ## Package manifests
 
-Committed desired state: `packages/macos/` (Brewfile, nix), `packages/windows/` (`base`, `dev`, `work`, `gaming`, `qol`, `network`, `scoop.txt`, `pwsh-modules.txt`), `packages/linux/` (`generic-linux.txt`, `oci-agents.txt`), `packages/ubuntu-wsl/` (`apt.txt`, `packages.nix`), and `packages/common/`. Regular Windows profiles are canonical. Their manifests use `msstore:<id>` for Microsoft Store entries, which the CLI installs from the Store source. Windows clients fetch selected files from GitHub and keep the unified `windows.lock.json` outside the checkout.
+Committed desired state: `packages/macos/` (Brewfile, nix), `packages/windows/` (`base`, `dev`, `work`, `gaming`, `qol`, `network`, `scoop.txt`, `pwsh-modules.txt`), `packages/linux/` (`generic-linux.txt`, `oci-agents.txt`), `packages/ubuntu-wsl/` (`apt.txt`, `packages.nix`), and `packages/common/`. Windows profile manifests use `msstore:<id>` for Microsoft Store entries, which the CLI installs from the Store source. Windows clients fetch selected files from GitHub and keep the unified `windows.lock.json` outside the checkout.
 
 ## Fonts
 
@@ -36,4 +36,4 @@ Committed desired state: `packages/macos/` (Brewfile, nix), `packages/windows/` 
 
 Root `*-install-script.{sh,ps1}` files are served live from the installer hosts. Windows bootstraps the checksum-verified `outfitting-manager` release, fetches the selected manifests and PowerShell profile sparsely from GitHub, and symlinks profile entry points to the cached profile. Registry/OpenSSH setup remains PowerShell; post-install adds Scoop and fonts (with package installs delegated to the CLI).
 
-Day-to-day Windows reconciliation uses `outfitting-manager sync` and uploads `windows.lock.json` (`<username>:x86_64-windows`). Direct remote transport is available under `outfitting-manager lockfiles`. macOS continues to use `nix` plus `homebrew-inventory` (`jfalava:aarch64-darwin`).
+Day-to-day Windows and Linux reconciliation uses `outfitting-manager apply`. Remote transport is explicit under `outfitting-manager sync`; see [Profiles and machine identity](/docs/cli/profiles/) for how remote state is scoped. macOS continues to use `nix` plus `homebrew-inventory`.

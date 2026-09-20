@@ -2,12 +2,12 @@ import { Command } from "effect/unstable/cli";
 
 import { makeMacosDiffCommand } from "@/commands/diff";
 import { fontsCommand } from "@/commands/fonts";
-import { lockfilesCommand } from "@/commands/lockfiles";
 import { provisionCommand } from "@/commands/provision";
 import { recoverCommand } from "@/commands/recover";
 import { setupCommand } from "@/commands/setup";
 import { macosInitCommand } from "@/commands/setup/macos";
 import { snapshotCommand } from "@/commands/snapshot";
+import { makeStatusCommand } from "@/commands/status";
 import { syncCommand } from "@/commands/sync";
 import { makeMacosUpdateCommand } from "@/commands/update";
 import { makeUpgradeCommand } from "@/commands/upgrade";
@@ -27,7 +27,7 @@ export const makeMacosRootCommand = (currentVersion: string) =>
       snapshotCommand,
       recoverCommand,
       syncCommand,
-      lockfilesCommand,
+      makeStatusCommand("macos"),
       fontsCommand,
       provisionCommand,
       makeUpgradeCommand(currentVersion),

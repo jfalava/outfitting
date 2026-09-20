@@ -14,13 +14,13 @@ vi.mock("@/lockfiles", () => ({ pushLockfile: vi.fn() }));
 afterEach(() => vi.restoreAllMocks());
 
 test.each([
-  { wingetCode: 0, scoopCode: 0, noSync: false },
-  { wingetCode: 1, scoopCode: 0, noSync: false },
-  { wingetCode: 0, scoopCode: 1, noSync: false },
-  { wingetCode: 0, scoopCode: 0, noSync: true },
+  { wingetCode: 0, scoopCode: 0, noPush: false },
+  { wingetCode: 1, scoopCode: 0, noPush: false },
+  { wingetCode: 0, scoopCode: 1, noPush: false },
+  { wingetCode: 0, scoopCode: 0, noPush: true },
 ])(
-  "update all persists successful Scoop state before publishing: %j",
-  async ({ wingetCode, scoopCode, noSync }) => {
+  "update all preserves package ownership while recording upgrades: %j",
+  async ({ wingetCode, scoopCode, noPush }) => {
     const root = await mkdtemp(join(tmpdir(), "outfitting-update-all-"));
     try {
       const config: ManagerConfig = {
@@ -34,7 +34,7 @@ test.each([
       before.packages.winget = [{ name: "Git.Git", args: [], origin: "manual" }];
       before.packages.scoop = [{ name: "old", args: [], origin: "baseline" }];
       await writeWindowsLock(before, { root });
-      vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response('package "extras/new"\n'));
+      const fetchSpy = vi.spyOn(globalThis, "fetch");
       const pushed: WindowsLock[] = [];
       vi.mocked(pushLockfile).mockImplementation(({ path }) =>
         Effect.promise(async () => {
@@ -46,12 +46,12 @@ test.each([
       const result = Effect.runPromise(
         updateWindowsAll({
           config,
-          noSync,
+          noPush,
           which: async (command) => (command === "winget" ? "winget" : "scoop.ps1"),
           run: async (command, args) => {
             calls.push([...args]);
             return {
-              code: command === "winget" ? wingetCode : args.at(-1) === "*" ? scoopCode : 0,
+              code: command === "winget" ? wingetCode : scoopCode,
               stderr: "simulated failure",
               stdout:
                 args.at(-1) === "export"
@@ -67,26 +67,21 @@ test.each([
       if (wingetCode || scoopCode) await expect(result).rejects.toThrow("failed step");
       else await result;
       const local = await readWindowsLock(config);
-      expect(local.packages.scoop).toEqual(
-        noSync || scoopCode
-          ? before.packages.scoop
-          : [{ name: "new", args: ["install", "extras/new"], origin: "baseline" }],
-      );
+      expect(local.packages.scoop).toEqual(before.packages.scoop);
       expect(local.profiles).toEqual(["dev"]);
       expect(local.packages.winget).toEqual(before.packages.winget);
       expect(calls.some((args) => args.includes("uninstall"))).toBe(false);
-      if (noSync) {
+      expect(calls.some((args) => args.includes("install"))).toBe(false);
+      expect(fetchSpy).not.toHaveBeenCalled();
+      if (noPush) {
         expect(pushed).toEqual([]);
       } else {
-        const expectedScoop = scoopCode
-          ? before.packages.scoop
-          : [{ name: "new", args: ["install", "extras/new"], origin: "baseline" }];
         expect(pushed).toEqual([
           expect.objectContaining({
             profiles: ["dev"],
             packages: expect.objectContaining({
               winget: before.packages.winget,
-              scoop: expectedScoop,
+              scoop: before.packages.scoop,
             }),
           }),
         ]);

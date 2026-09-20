@@ -1,15 +1,17 @@
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { Effect } from "effect";
-import { afterEach, describe, expect, test } from "vitest";
+import { afterEach, describe, expect, test, vi } from "vitest";
 
+import { pushLockfile } from "@/lockfiles";
 import type { RunCommandResult } from "@/process";
-import { parseBrewfileTaps, updateBrew } from "@/update/brew";
+import { parseBrewfileTaps, setupBrew, updateBrew } from "@/update/brew";
 import { captureHomebrewInventory } from "@/update/snapshot";
 
 const temps: string[] = [];
+vi.mock("@/lockfiles", () => ({ pushLockfile: vi.fn() }));
 
 afterEach(async () => {
   await Promise.all(temps.splice(0).map((path) => rm(path, { force: true, recursive: true })));
@@ -58,7 +60,7 @@ test("setup applies the local Brewfile without upgrading or cleaning extras", as
   await writeFile(brewfile, 'brew "jq"\n', "utf8");
   const recorded: Array<ReadonlyArray<string>> = [];
 
-  const setupEffect = updateBrew({
+  const setupEffect = setupBrew({
     config: {
       stateRoot: root,
       machineId: "test:aarch64-darwin",
@@ -66,9 +68,6 @@ test("setup applies the local Brewfile without upgrading or cleaning extras", as
       manifest: { baseUrl: "https://example.test/outfitting", ref: "main" },
     },
     brewfilePath: brewfile,
-    noSync: true,
-    upgrade: false,
-    cleanup: false,
     which: async () => "/opt/homebrew/bin/brew",
     run: async (command, args) => {
       recorded.push([command, ...args]);
@@ -77,5 +76,40 @@ test("setup applies the local Brewfile without upgrading or cleaning extras", as
   }) as unknown as Effect.Effect<void, unknown, never>;
   await Effect.runPromise(setupEffect);
 
-  expect(recorded).toEqual([["brew", "bundle", `--file=${brewfile}`]]);
+  expect(recorded).toEqual([["brew", "bundle", "--no-upgrade", `--file=${brewfile}`]]);
+});
+
+test("update --no-push upgrades installed packages and still writes observed inventory", async () => {
+  const root = await mkdtemp(join(tmpdir(), "outfitting-brew-update-"));
+  temps.push(root);
+  const calls: string[] = [];
+  await Effect.runPromise(
+    updateBrew({
+      config: {
+        stateRoot: root,
+        machineId: "test:aarch64-darwin",
+        machineIdOverridden: true,
+        manifest: { baseUrl: "https://unused.invalid", ref: "main" },
+      },
+      noPush: true,
+      which: async () => "brew",
+      fetcher: async () => {
+        throw new Error("update must not fetch a manifest");
+      },
+      run: async (_command, args) => {
+        calls.push(args.join(" "));
+        return { code: 0, stderr: "", stdout: args[0] === "list" ? "manual-tool 2.0\n" : "" };
+      },
+    }),
+  );
+  expect(calls).toEqual([
+    "update",
+    "upgrade",
+    "upgrade --cask",
+    "tap",
+    "list --formula --versions",
+    "list --cask --versions",
+  ]);
+  expect(await readFile(join(root, "homebrew-inventory.txt"), "utf8")).toContain("manual-tool 2.0");
+  expect(pushLockfile).not.toHaveBeenCalled();
 });

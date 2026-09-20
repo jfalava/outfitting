@@ -1,11 +1,12 @@
 import { Command } from "effect/unstable/cli";
 
+import { makeLinuxApplyCommand } from "@/commands/apply/linux";
 import { makeLinuxDiffCommand } from "@/commands/diff";
 import { fontsCommand } from "@/commands/fonts";
-import { lockfilesCommand } from "@/commands/lockfiles";
 import { provisionCommand } from "@/commands/provision";
 import { linuxInitCommand, linuxSetupCommand } from "@/commands/setup/linux";
-import { makeLinuxSyncCommand } from "@/commands/sync/linux";
+import { makeStatusCommand } from "@/commands/status";
+import { syncCommand } from "@/commands/sync";
 import { makeLinuxUpdateCommand } from "@/commands/update/linux";
 import { makeUpgradeCommand } from "@/commands/upgrade";
 
@@ -18,8 +19,9 @@ export const makeLinuxRootCommand = (currentVersion: string) =>
       linuxSetupCommand,
       makeLinuxUpdateCommand(),
       makeLinuxDiffCommand(),
-      makeLinuxSyncCommand(),
-      lockfilesCommand,
+      makeLinuxApplyCommand(),
+      syncCommand,
+      makeStatusCommand("linux"),
       fontsCommand,
       provisionCommand,
       makeUpgradeCommand(currentVersion),

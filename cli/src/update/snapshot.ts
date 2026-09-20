@@ -1,4 +1,7 @@
-import { Console, Data, Effect, FileSystem, Path } from "effect";
+import { mkdir, writeFile } from "node:fs/promises";
+import { join } from "node:path";
+
+import { Console, Data, Effect } from "effect";
 
 import { loadConfig, type ManagerConfig } from "@/config";
 import { pushLockfile } from "@/lockfiles";
@@ -60,30 +63,30 @@ export const captureHomebrewInventory = Effect.fn("captureHomebrewInventory")(fu
 export interface PushHomebrewInventoryOptions {
   config?: ManagerConfig;
   run?: typeof runCommand;
+  noPush?: boolean;
 }
 
-/** Gather versioned Homebrew inventory and push via lockfiles Worker. */
+/** Always persist observed inventory locally; optionally upload the same file. */
 export const pushHomebrewInventory = (options: PushHomebrewInventoryOptions = {}) =>
-  Effect.scoped(
-    Effect.gen(function* () {
-      const fs = yield* FileSystem.FileSystem;
-      const path = yield* Path.Path;
-      const run = options.run ?? runCommand;
-      const config = options.config ?? (yield* tryPromise(() => loadConfig()));
+  Effect.gen(function* () {
+    const run = options.run ?? runCommand;
+    const config = options.config ?? (yield* tryPromise(() => loadConfig()));
 
-      yield* Console.log(ui.heading("Capturing Homebrew inventory…"));
-      const body = yield* captureHomebrewInventory(run);
+    yield* Console.log(ui.heading("Capturing Homebrew inventory…"));
+    const body = yield* captureHomebrewInventory(run);
 
-      const snapshotDir = yield* fs.makeTempDirectoryScoped({ prefix: "outfitting-snapshot-" });
-      const inventoryPath = path.join(snapshotDir, "homebrew-inventory.txt");
-
-      yield* fs.writeFileString(inventoryPath, body);
+    const inventoryPath = join(config.stateRoot, "homebrew-inventory.txt");
+    yield* tryPromise(async () => {
+      await mkdir(config.stateRoot, { recursive: true });
+      await writeFile(inventoryPath, body, "utf8");
+    });
+    if (!options.noPush) {
       yield* Console.log(ui.muted(`Pushing ${config.machineId}/${HOMEBREW_INVENTORY_KIND}…`));
       yield* pushLockfile({
         machine: config.machineId,
         kind: HOMEBREW_INVENTORY_KIND,
         path: inventoryPath,
       });
-      yield* Console.log(ui.success("Homebrew inventory stored."));
-    }),
-  );
+    }
+    yield* Console.log(ui.success("Homebrew inventory stored."));
+  });

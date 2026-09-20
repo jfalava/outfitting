@@ -7,7 +7,7 @@ sidebar:
 
 Entry is `api/src/index.ts`: every request passes a Bearer gate before routing. The expected token comes from Secrets Store (`OUTFITTING_LOCKFILES_TOKEN.get()`), compared with `timingSafeEqual`. Failures return JSON `ErrorBody`: `401` unauthorized, `404` unknown route, `500` unhandled.
 
-Routes live in `api/src/routes.ts`. Operator usage is in [CLI lockfiles](/docs/cli/lockfiles).
+Routes live in `api/src/routes.ts`. Operator usage is in [CLI sync](/docs/cli/sync/).
 
 | Method   | Route                               | Result                                             |
 | -------- | ----------------------------------- | -------------------------------------------------- |

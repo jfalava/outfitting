@@ -1,18 +1,12 @@
 import { Console, Data, Effect } from "effect";
 
-import { loadConfig, resolveWindowsRoutes, type ManagerConfig } from "@/config";
-import { fetchManifest, type ManifestFetcher } from "@/fetch";
+import { loadConfig, type ManagerConfig } from "@/config";
 import { pushLockfile } from "@/lockfiles";
 import { tryPromise } from "@/lockfiles/effect";
 import { runCommand, which } from "@/process";
 import { ui } from "@/ui";
 import { runScoopCommand } from "@/update/scoop-command";
-import {
-  WINDOWS_LOCK_KIND,
-  updateWindowsBaseline,
-  type WindowsPackageRecord,
-} from "@/update/windows-lock";
-import { parseScoopExport, type ScoopExportState } from "@/update/windows-snapshot";
+import { recordWindowsOperation, WINDOWS_LOCK_KIND, windowsLockPath } from "@/update/windows-lock";
 
 export const SCOOP_MANIFEST_PATH = "packages/windows/scoop.txt";
 
@@ -91,50 +85,8 @@ export function parseScoopManifest(content: string): ScoopManifest {
   if (invalid.length > 0) {
     throw new Error(`Invalid Scoop manifest entries: ${invalid.join("; ")}`);
   }
-  if (packages.length === 0) {
-    throw new Error("The Scoop manifest contains no packages; refusing an empty desired state.");
-  }
-
   return { buckets, packages };
 }
-
-function packageName(value: string): string {
-  return value.split("/").at(-1) ?? value;
-}
-
-function isGlobalInstall(app: { Info: string }): boolean {
-  return /\bGlobal install\b/i.test(app.Info);
-}
-
-function installedBuckets(state: ScoopExportState): Set<string> {
-  return new Set(state.buckets.map((bucket) => bucket.Name.toLowerCase()));
-}
-
-function installedPackages(state: ScoopExportState): Set<string> {
-  return new Set(
-    state.apps.filter((app) => !isGlobalInstall(app)).map((app) => app.Name.toLowerCase()),
-  );
-}
-
-const scoopState = Effect.fn("scoopState")(function* (run: typeof runCommand, scoopPath: string) {
-  const result = yield* tryPromise(() =>
-    runScoopCommand(run, scoopPath, ["export"], { inherit: false }),
-  );
-  if (result.code !== 0) {
-    return yield* new ScoopUpdateError({
-      message:
-        `scoop export failed (exit ${result.code}): ${result.stderr || result.stdout}`.trim(),
-    });
-  }
-  return yield* Effect.try({
-    try: () => parseScoopExport(result.stdout),
-    catch: (cause) =>
-      new ScoopUpdateError({
-        message: cause instanceof Error ? cause.message : String(cause),
-        cause,
-      }),
-  });
-});
 
 const requireScoopCommand = Effect.fn("requireScoopCommand")(function* (
   run: typeof runCommand,
@@ -151,39 +103,6 @@ const requireScoopCommand = Effect.fn("requireScoopCommand")(function* (
   return result;
 });
 
-const addMissingBuckets = Effect.fn("addMissingBuckets")(function* (
-  desired: ScoopManifest,
-  installed: ReadonlySet<string>,
-  run: typeof runCommand,
-  scoopPath: string,
-) {
-  for (const bucket of desired.buckets) {
-    if (installed.has(bucket.name.toLowerCase())) {
-      continue;
-    }
-    yield* requireScoopCommand(
-      run,
-      scoopPath,
-      ["bucket", "add", bucket.name, bucket.url],
-      `scoop bucket add ${bucket.name}`,
-    );
-  }
-});
-
-const installMissingPackages = Effect.fn("installMissingPackages")(function* (
-  desired: ScoopManifest,
-  installed: ReadonlySet<string>,
-  run: typeof runCommand,
-  scoopPath: string,
-) {
-  for (const spec of desired.packages) {
-    if (installed.has(packageName(spec).toLowerCase())) {
-      continue;
-    }
-    yield* requireScoopCommand(run, scoopPath, ["install", spec], `scoop install ${spec}`);
-  }
-});
-
 const updateAndCleanScoop = Effect.fn("updateAndCleanScoop")(function* (
   run: typeof runCommand,
   scoopPath: string,
@@ -195,18 +114,13 @@ const updateAndCleanScoop = Effect.fn("updateAndCleanScoop")(function* (
 
 export interface UpdateScoopOptions {
   config?: ManagerConfig;
-  noSync?: boolean;
-  /** Record the local baseline but let the caller publish the combined lock. */
   noPush?: boolean;
-  /** Reuse an already parsed Scoop manifest instead of fetching it again. */
-  manifest?: ScoopManifest;
   scoopPath?: string;
   run?: typeof runCommand;
   which?: typeof which;
-  fetcher?: ManifestFetcher;
 }
 
-/** Install manifest packages and update Scoop without removing extra packages. */
+/** Upgrade only packages already installed through Scoop. */
 export const updateScoop = (options: UpdateScoopOptions = {}) =>
   Effect.gen(function* () {
     const run = options.run ?? runCommand;
@@ -217,58 +131,29 @@ export const updateScoop = (options: UpdateScoopOptions = {}) =>
     }
 
     const config = options.config ?? (yield* tryPromise(() => loadConfig()));
-    let desired: ScoopManifest;
-    if (options.manifest !== undefined) {
-      desired = options.manifest;
+    yield* Console.log(ui.heading("Updating installed Scoop packages…"));
+    yield* updateAndCleanScoop(run, scoopPath);
+    yield* tryPromise(() =>
+      recordWindowsOperation({
+        config,
+        manager: "scoop",
+        action: "upgrade",
+        name: "*",
+        args: ["update", "*"],
+        status: "success",
+        exitCode: 0,
+      }),
+    );
+    if (options.noPush) {
+      yield* Console.log(ui.muted("Updated local Windows state; skipped upload (--no-push)."));
     } else {
-      const manifest = yield* tryPromise(() =>
-        fetchManifest({
-          path: resolveWindowsRoutes(config.windows).scoopPath,
-          config,
-          materialize: true,
-          fetcher: options.fetcher,
-        }),
-      );
-      if (manifest.warning) {
-        yield* Console.log(ui.muted(manifest.warning));
-      }
-      desired = yield* Effect.try({
-        try: () => parseScoopManifest(manifest.text),
-        catch: (cause) =>
-          new ScoopUpdateError({
-            message: cause instanceof Error ? cause.message : String(cause),
-            cause,
-          }),
+      yield* pushLockfile({
+        machine: config.machineId,
+        kind: WINDOWS_LOCK_KIND,
+        path: windowsLockPath({ root: config.stateRoot }),
       });
     }
-    const state = yield* scoopState(run, scoopPath);
-    const buckets = installedBuckets(state);
-
-    yield* Console.log(ui.heading("Reconciling Scoop packages…"));
-    yield* addMissingBuckets(desired, buckets, run, scoopPath);
-
-    yield* installMissingPackages(desired, installedPackages(state), run, scoopPath);
-
-    yield* updateAndCleanScoop(run, scoopPath);
-    yield* Console.log(ui.success("Scoop packages updated; extra packages were preserved."));
-
-    if (options.noSync) {
-      yield* Console.log(ui.muted("Skipped lock sync (--no-sync)."));
-    } else {
-      const records: WindowsPackageRecord[] = desired.packages.map((name) => ({
-        name: packageName(name),
-        args: ["install", name],
-        origin: "baseline",
-      }));
-      const lock = yield* tryPromise(() => updateWindowsBaseline(config, { scoop: records }));
-      if (!options.noPush) {
-        yield* pushLockfile({
-          machine: config.machineId,
-          kind: WINDOWS_LOCK_KIND,
-          path: lock,
-        });
-      }
-    }
+    yield* Console.log(ui.success("Installed Scoop packages updated."));
   });
 
 export { captureScoopInventory, parseScoopExport } from "@/update/windows-snapshot";

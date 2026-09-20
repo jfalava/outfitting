@@ -31,7 +31,7 @@ export function wingetPackageArgs(
 
 export interface UpdateWingetOptions {
   config?: ManagerConfig;
-  noSync?: boolean;
+  noPush?: boolean;
   run?: typeof runCommand;
   which?: typeof which;
 }
@@ -70,20 +70,20 @@ export const updateWinget = (options: UpdateWingetOptions = {}) =>
       ]),
     );
 
-    if (options.noSync) {
-      yield* Console.log(ui.muted("Skipped Windows lock sync (--no-sync)."));
+    yield* tryPromise(() =>
+      recordWindowsOperation({
+        config,
+        manager: "winget",
+        action: "upgrade",
+        name: "*",
+        args: ["upgrade", "--all", "--accept-source-agreements", "--accept-package-agreements"],
+        status: "success",
+        exitCode: 0,
+      }),
+    );
+    if (options.noPush) {
+      yield* Console.log(ui.muted("Updated local Windows state; skipped upload (--no-push)."));
     } else {
-      yield* tryPromise(() =>
-        recordWindowsOperation({
-          config,
-          manager: "winget",
-          action: "upgrade",
-          name: "*",
-          args: ["upgrade", "--all", "--accept-source-agreements", "--accept-package-agreements"],
-          status: "success",
-          exitCode: 0,
-        }),
-      );
       yield* pushLockfile({
         machine: config.machineId,
         kind: WINDOWS_LOCK_KIND,

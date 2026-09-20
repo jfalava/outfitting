@@ -8,7 +8,7 @@ import { updateBrew } from "@/update/brew";
 import { updateNix } from "@/update/nix";
 
 export interface UpdateAllOptions {
-  noSync?: boolean;
+  noPush?: boolean;
   config?: ManagerConfig;
 }
 
@@ -21,7 +21,7 @@ export interface UpdateStepResult {
 /**
  * macOS `update all`: nix switch → brew.
  * Continues after step failures; exits nonzero if any step failed.
- * Brew owns default inventory push; `--no-sync` skips it.
+ * Brew owns default inventory push; `--no-push` skips only the upload.
  */
 export const updateAll = (options: UpdateAllOptions = {}) =>
   Effect.gen(function* () {
@@ -47,7 +47,7 @@ export const updateAll = (options: UpdateAllOptions = {}) =>
     yield* Console.log(ui.heading("update all: nix switch → brew"));
 
     yield* runStep("nix switch", updateNix({ action: "switch", config }));
-    yield* runStep("brew", updateBrew({ config, noSync: options.noSync === true }));
+    yield* runStep("brew", updateBrew({ config, noPush: options.noPush === true }));
 
     const failed = results.filter((step) => !step.ok);
     yield* Console.log("");

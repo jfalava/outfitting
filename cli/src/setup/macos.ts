@@ -6,7 +6,7 @@ import { loadConfig, resolveOutfittingRepo, type ManagerConfig } from "@/config"
 import { tryPromise } from "@/lockfiles/effect";
 import { runSetup, type SetupOptions } from "@/setup/run";
 import { ui } from "@/ui";
-import { updateBrew } from "@/update/brew";
+import { setupBrew } from "@/update/brew";
 import { updateNix } from "@/update/nix";
 import { ensureNixSymlinks } from "@/update/nix/symlinks";
 
@@ -34,12 +34,9 @@ export const runMacosSetup = (options: MacosSetupOptions = {}) =>
 
     yield* Console.log(ui.heading("Applying macOS repository configuration…"));
     yield* updateNix({ action: "switch", config, repo });
-    yield* updateBrew({
+    yield* setupBrew({
       config,
       brewfilePath: join(repo.root, "packages/macos/Brewfile"),
-      noSync: true,
-      upgrade: false,
-      cleanup: false,
     });
     yield* Console.log(ui.success("macOS repository setup complete."));
   });

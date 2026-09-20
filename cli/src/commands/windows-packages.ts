@@ -23,9 +23,9 @@ const packageArguments = Argument.String("package").pipe(
   Argument.withDescription("Package IDs or Scoop package names."),
 );
 
-const noSyncFlag = Flag.Boolean("no-sync").pipe(
+const noPushFlag = Flag.Boolean("no-push").pipe(
   Flag.withDefault(false),
-  Flag.withDescription("Only update the local windows.lock.json; do not push it to the Worker."),
+  Flag.withDescription("Update local tracking without uploading windows.lock.json."),
 );
 
 function commandArgs(
@@ -90,16 +90,16 @@ function runPackage(
 function makePackageCommand(manager: WindowsPackageManager, action: WindowsPackageAction) {
   return Command.make(
     action,
-    { packages: packageArguments, noSync: noSyncFlag },
-    ({ packages, noSync }) =>
+    { packages: packageArguments, noPush: noPushFlag },
+    ({ packages, noPush }) =>
       Effect.gen(function* () {
         const config = yield* tryPromise(() => loadConfig());
         for (const name of packages) {
           yield* runPackage(manager, action, name, config);
         }
 
-        if (noSync) {
-          yield* Console.log(ui.muted("Skipped Worker sync (--no-sync)."));
+        if (noPush) {
+          yield* Console.log(ui.muted("Updated local tracking; skipped upload (--no-push)."));
           return;
         }
 

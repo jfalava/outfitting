@@ -1,15 +1,20 @@
-import { join } from "node:path";
+import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
+import { dirname, join } from "node:path";
 
-import { Console, Effect } from "effect";
+import { Console, Effect, Schema } from "effect";
 
 import {
   DEFAULT_LINUX_PROFILE,
   loadConfig,
+  manifestsDir,
+  readRepoPathFile,
   resolveOutfittingRepo,
+  saveConfigFile,
+  sparseSourceRoot,
   type ManagerConfig,
 } from "@/config";
 import { CliFailure, toCliFailure } from "@/errors";
-import { fetchManifest, type ManifestFetcher } from "@/fetch";
+import { fetchManifest } from "@/fetch";
 import { tryPromise } from "@/lockfiles/effect";
 import {
   detectLinuxPackageManager,
@@ -17,6 +22,7 @@ import {
   type LinuxPackageManager,
 } from "@/platform/linux";
 import { runCommand, which } from "@/process";
+import { envValue } from "@/secrets";
 import { ui } from "@/ui";
 
 export const LINUX_PROFILES = ["generic-linux", "oci-agents", "ubuntu-wsl"] as const;
@@ -27,6 +33,29 @@ const LINUX_PROFILE_MANIFEST_PATHS = {
   "oci-agents": "packages/linux/oci-agents.txt",
   "ubuntu-wsl": "packages/ubuntu-wsl/apt.txt",
 } satisfies Record<LinuxProfile, string>;
+
+const LINUX_OWNERSHIP_FILE = "linux-package-ownership.json";
+
+interface LinuxOwnershipState {
+  version: 1;
+  profiles: Partial<Record<LinuxProfile, Partial<Record<LinuxPackageManager, string[]>>>>;
+}
+
+const ManagerOwnershipSchema = Schema.Struct({
+  apt: Schema.optionalKey(Schema.Array(Schema.String)),
+  pacman: Schema.optionalKey(Schema.Array(Schema.String)),
+});
+
+const LinuxOwnershipSchema = Schema.Struct({
+  version: Schema.Literal(1),
+  profiles: Schema.Struct({
+    "generic-linux": Schema.optionalKey(ManagerOwnershipSchema),
+    "oci-agents": Schema.optionalKey(ManagerOwnershipSchema),
+    "ubuntu-wsl": Schema.optionalKey(ManagerOwnershipSchema),
+  }),
+});
+
+const decodeLinuxOwnership = Schema.decodeUnknownPromise(LinuxOwnershipSchema);
 
 export function isLinuxProfile(value: string): value is LinuxProfile {
   return (LINUX_PROFILES as ReadonlyArray<string>).includes(value);
@@ -45,7 +74,11 @@ export function parseLinuxPackageManifest(content: string): string[] {
     if (packageName === undefined || packageName.length === 0 || seen.has(packageName)) {
       continue;
     }
-    if (/\s/.test(packageName)) {
+    if (
+      !/^[a-z0-9][a-z0-9+._-]*(?::[a-z0-9][a-z0-9_-]*)?(?:=[a-zA-Z0-9][a-zA-Z0-9.+:~_-]*)?$/.test(
+        packageName,
+      )
+    ) {
       throw new Error(`Invalid Linux package entry: ${raw.trim()}`);
     }
     seen.add(packageName);
@@ -54,7 +87,7 @@ export function parseLinuxPackageManifest(content: string): string[] {
   return packages;
 }
 
-export type LinuxPackageAction = "update" | "upgrade" | "install";
+export type LinuxPackageAction = "update" | "upgrade" | "install" | "remove";
 
 export interface LinuxPackageInventoryOptions {
   run?: typeof runCommand;
@@ -87,7 +120,6 @@ function parseInstalledLinuxPackages(manager: LinuxPackageManager, output: strin
   return installed;
 }
 
-/** Return installed package identities without exposing the host's full package inventory. */
 export async function listInstalledLinuxPackages(
   manager: LinuxPackageManager,
   options: LinuxPackageInventoryOptions = {},
@@ -99,38 +131,35 @@ export async function listInstalledLinuxPackages(
   if (executable === undefined) {
     throw new Error(`${executableName} is not installed or not in PATH.`);
   }
-
   const result = await run(executable, linuxInventoryArgs(manager), { inherit: false });
   if (result.code !== 0) {
     const detail = (result.stderr || result.stdout).trim();
     throw new Error(
-      `${executableName} package inventory failed (exit ${result.code})${detail.length > 0 ? `: ${detail}` : "."}`,
+      `${executableName} package inventory failed (exit ${result.code})${detail ? `: ${detail}` : "."}`,
     );
   }
-
   return parseInstalledLinuxPackages(manager, result.stdout);
 }
 
-/** Find declared packages that are absent; unrelated installed packages are intentionally ignored. */
 export function missingLinuxPackages(
   declared: ReadonlyArray<string>,
   installed: ReadonlySet<string>,
 ): string[] {
-  const missing: string[] = [];
   const seen = new Set<string>();
-  for (const packageSpec of declared) {
-    const identity = linuxPackageIdentity(packageSpec);
-    if (!seen.has(identity) && !installed.has(identity)) {
-      seen.add(identity);
-      missing.push(packageSpec);
+  return declared.filter((spec) => {
+    const identity = linuxPackageIdentity(spec);
+    if (seen.has(identity) || installed.has(identity)) {
+      return false;
     }
-  }
-  return missing;
+    seen.add(identity);
+    return true;
+  });
 }
 
 function aptPackageManagerArgs(
   action: LinuxPackageAction,
   packages: ReadonlyArray<string>,
+  offline = false,
 ): string[] {
   switch (action) {
     case "update":
@@ -138,11 +167,9 @@ function aptPackageManagerArgs(
     case "upgrade":
       return ["upgrade", "-y"];
     case "install":
-      return ["install", "-y", ...packages];
-    default: {
-      const exhaustive: never = action;
-      return exhaustive;
-    }
+      return ["install", ...(offline ? ["--no-download"] : []), "-y", ...packages];
+    case "remove":
+      return ["remove", "-y", ...packages];
   }
 }
 
@@ -156,25 +183,27 @@ function pacmanPackageManagerArgs(
       return ["-Syu", "--noconfirm"];
     case "install":
       return ["-S", "--needed", "--noconfirm", ...packages];
-    default: {
-      const exhaustive: never = action;
-      return exhaustive;
-    }
+    case "remove":
+      return ["-R", "--noconfirm", ...packages];
   }
 }
 
-/** Build safe native package-manager arguments without using apt-get. */
 export function linuxPackageManagerArgs(
   manager: LinuxPackageManager,
   action: LinuxPackageAction,
   packages: ReadonlyArray<string> = [],
+  offline = false,
 ): string[] {
-  if (action === "install" && packages.length === 0) {
+  if ((action === "install" || action === "remove") && packages.length === 0) {
     throw new Error(`${manager} ${action} requires at least one package.`);
   }
-
+  if (offline && manager === "pacman" && action === "install") {
+    throw new Error(
+      "Offline pacman installs are refused: no safe cache-only install is supported.",
+    );
+  }
   return manager === "apt"
-    ? aptPackageManagerArgs(action, packages)
+    ? aptPackageManagerArgs(action, packages, offline)
     : pacmanPackageManagerArgs(action, packages);
 }
 
@@ -189,36 +218,37 @@ async function runLinuxPackageCommand(
   options: LinuxCommandOptions,
   action: LinuxPackageAction,
   packages: ReadonlyArray<string> = [],
+  offline = false,
 ): Promise<void> {
-  const args = linuxPackageManagerArgs(options.manager, action, packages);
-  const shouldUseSudo = process.getuid?.() !== 0;
-  const sudo = shouldUseSudo ? await options.which("sudo") : undefined;
+  const args = linuxPackageManagerArgs(options.manager, action, packages, offline);
+  const sudo = process.getuid?.() !== 0 ? await options.which("sudo") : undefined;
   const command = sudo ?? options.executable;
   const commandArgs = sudo === undefined ? args : [options.executable, ...args];
   const result = await options.run(command, commandArgs, { inherit: true });
   if (result.code !== 0) {
     const detail = (result.stderr || result.stdout).trim();
     throw new Error(
-      `${options.manager} ${action} failed (exit ${result.code})${detail.length > 0 ? `: ${detail}` : "."}`,
+      `${options.manager} ${action} failed (exit ${result.code})${detail ? `: ${detail}` : "."}`,
     );
   }
 }
 
 export interface LinuxUpdateOptions {
   config?: ManagerConfig;
-  profile?: string;
   packageManager?: LinuxPackageManager;
   offline?: boolean;
   run?: typeof runCommand;
   which?: typeof which;
-  fetcher?: ManifestFetcher;
   osReleasePath?: string;
   readOsRelease?: DetectLinuxPackageManagerOptions["readOsRelease"];
-  /** Disable the profile's Nix/Home Manager bootstrap for tests or package-only callers. */
-  bootstrapNix?: boolean;
 }
 
-export type LinuxSyncOptions = Omit<LinuxUpdateOptions, "bootstrapNix">;
+export interface LinuxApplyOptions<ConfirmR = never> extends LinuxUpdateOptions {
+  profile?: string;
+  prune?: boolean;
+  yes?: boolean;
+  confirm?: Effect.Effect<boolean, never, ConfirmR>;
+}
 
 function resolveProfile(value: string | undefined, config?: ManagerConfig): LinuxProfile {
   const profile = value ?? config?.linux?.profile ?? DEFAULT_LINUX_PROFILE;
@@ -247,17 +277,11 @@ export async function runLinuxProfileBootstrap(
   config: ManagerConfig,
   run: typeof runCommand,
 ): Promise<void> {
-  switch (profile) {
-    case "generic-linux":
-      return;
-    case "oci-agents":
-      return runLinuxOciBootstrap(config, run);
-    case "ubuntu-wsl":
-      return runLinuxWslBootstrap(config, run);
-    default: {
-      const exhaustive: never = profile;
-      return exhaustive;
-    }
+  if (profile === "oci-agents") {
+    return runLinuxOciBootstrap(config, run);
+  }
+  if (profile === "ubuntu-wsl") {
+    return runLinuxWslBootstrap(config, run);
   }
 }
 
@@ -265,152 +289,355 @@ async function runLinuxBootstrapScript(
   config: ManagerConfig,
   run: typeof runCommand,
   relativeScript: string,
-  profileLabel: string,
+  label: string,
 ): Promise<void> {
   const repo = await resolveOutfittingRepo({ config });
   const script = join(repo.root, relativeScript);
   const result = await run("bash", [script], { cwd: repo.root, inherit: true });
   if (result.code !== 0) {
-    throw new Error(`${profileLabel} bootstrap failed (exit ${result.code}).`);
+    throw new Error(`${label} bootstrap failed (exit ${result.code}).`);
   }
 }
 
-/** Update native Linux packages, optionally followed by the profile bootstrap. */
+async function detectManager(options: LinuxUpdateOptions, config: ManagerConfig) {
+  const whichFn = options.which ?? which;
+  const manager = await detectLinuxPackageManager({
+    requested: options.packageManager,
+    osReleasePath: options.osReleasePath,
+    readOsRelease: options.readOsRelease,
+    which: whichFn,
+  });
+  const executable = await whichFn(manager);
+  if (executable === undefined) {
+    throw new Error(`Linux package manager \`${manager}\` is not installed or not in PATH.`);
+  }
+  return { manager, executable, run: options.run ?? runCommand, which: whichFn, config };
+}
+
+async function readLocalManifest(config: ManagerConfig, profile: LinuxProfile): Promise<string> {
+  const relative = linuxManifestPath(profile);
+  const repo = envValue("OUTFITTING_REPO") ?? (await readRepoPathFile(config));
+  if (repo !== undefined) {
+    return readFile(join(repo, relative), "utf8");
+  }
+  const candidates = [
+    join(manifestsDir(config.stateRoot), relative),
+    join(sparseSourceRoot(config.stateRoot), relative),
+  ];
+  for (const path of candidates) {
+    try {
+      return await readFile(path, "utf8");
+    } catch (cause) {
+      if (
+        !(
+          cause instanceof Error &&
+          "code" in cause &&
+          (cause as NodeJS.ErrnoException).code === "ENOENT"
+        )
+      ) {
+        throw cause;
+      }
+    }
+  }
+  // fetchManifest's offline branch only reads its on-disk cache and never invokes HTTP.
+  try {
+    return (await fetchManifest({ path: relative, config, offline: true })).text;
+  } catch {
+    throw new Error(`No local manifest or cache for ${relative}. Run setup to initialize it.`);
+  }
+}
+
+function emptyOwnership(): LinuxOwnershipState {
+  return { version: 1, profiles: {} };
+}
+
+async function readOwnership(config: ManagerConfig): Promise<LinuxOwnershipState> {
+  try {
+    const parsed: unknown = JSON.parse(
+      await readFile(join(config.stateRoot, LINUX_OWNERSHIP_FILE), "utf8"),
+    );
+    const decoded = await decodeLinuxOwnership(parsed);
+    const state = emptyOwnership();
+    for (const profile of LINUX_PROFILES) {
+      const decodedProfile = decoded.profiles[profile];
+      if (decodedProfile === undefined) {
+        continue;
+      }
+      const managers: Partial<Record<LinuxPackageManager, string[]>> = {};
+      if (decodedProfile.apt !== undefined) {
+        managers.apt = [...decodedProfile.apt];
+      }
+      if (decodedProfile.pacman !== undefined) {
+        managers.pacman = [...decodedProfile.pacman];
+      }
+      for (const names of Object.values(managers)) {
+        if (names.some((name) => !/^[a-z0-9][a-z0-9+._-]*$/.test(name))) {
+          throw new Error("Invalid owned package identity.");
+        }
+      }
+      state.profiles[profile] = managers;
+    }
+    return state;
+  } catch (cause) {
+    if (
+      cause instanceof Error &&
+      "code" in cause &&
+      (cause as NodeJS.ErrnoException).code === "ENOENT"
+    ) {
+      return emptyOwnership();
+    }
+    throw new Error(`Invalid ${LINUX_OWNERSHIP_FILE}; refusing to guess package ownership.`, {
+      cause,
+    });
+  }
+}
+
+async function writeOwnership(config: ManagerConfig, state: LinuxOwnershipState): Promise<void> {
+  const path = join(config.stateRoot, LINUX_OWNERSHIP_FILE);
+  const temporary = `${path}.tmp`;
+  await mkdir(dirname(path), { recursive: true });
+  await writeFile(temporary, `${JSON.stringify(state, null, 2)}\n`, {
+    encoding: "utf8",
+    mode: 0o600,
+  });
+  await rename(temporary, path);
+}
+
+function owned(
+  state: LinuxOwnershipState,
+  profile: LinuxProfile,
+  manager: LinuxPackageManager,
+): string[] {
+  return state.profiles[profile]?.[manager] ?? [];
+}
+
+function setOwned(
+  state: LinuxOwnershipState,
+  profile: LinuxProfile,
+  manager: LinuxPackageManager,
+  packages: ReadonlyArray<string>,
+): void {
+  const profileState = state.profiles[profile] ?? {};
+  profileState[manager] = [...new Set(packages)].toSorted();
+  state.profiles[profile] = profileState;
+}
+
+function otherOwners(
+  state: LinuxOwnershipState,
+  active: LinuxProfile,
+  manager: LinuxPackageManager,
+  name: string,
+): LinuxProfile[] {
+  return LINUX_PROFILES.filter(
+    (profile) => profile !== active && owned(state, profile, manager).includes(name),
+  );
+}
+
+async function simulateRemoval(
+  command: LinuxCommandOptions,
+  packages: ReadonlyArray<string>,
+): Promise<string[]> {
+  const args =
+    command.manager === "apt"
+      ? ["-s", "remove", ...packages]
+      : ["-Rp", "--print-format", "%n", ...packages];
+  const result = await command.run(command.executable, args, {
+    inherit: false,
+    env: { ...process.env, LC_ALL: "C" },
+  });
+  if (result.code !== 0) {
+    throw new Error(
+      `${command.manager} removal simulation failed: ${(result.stderr || result.stdout).trim()}`,
+    );
+  }
+  if (command.manager === "apt") {
+    return [...result.stdout.matchAll(/^Remv\s+(\S+)/gm)].map((match) =>
+      linuxPackageIdentity(match[1]!),
+    );
+  }
+  return result.stdout.split(/\s+/).filter(Boolean).map(linuxPackageIdentity);
+}
+
+interface LinuxApplyContext {
+  config: ManagerConfig;
+  profile: LinuxProfile;
+  command: LinuxCommandOptions;
+  ownership: LinuxOwnershipState;
+}
+
+function installMissingPackages(
+  context: LinuxApplyContext,
+  missing: ReadonlyArray<string>,
+  offline: boolean,
+) {
+  return Effect.gen(function* () {
+    const { command, config, ownership, profile } = context;
+    if (missing.length > 0 && command.manager === "apt" && !offline) {
+      yield* tryPromise(() => runLinuxPackageCommand(command, "update"));
+    }
+    for (const packageSpec of missing) {
+      yield* Console.log(ui.heading(`Installing ${packageSpec} (${profile})…`));
+      yield* tryPromise(() => runLinuxPackageCommand(command, "install", [packageSpec], offline));
+      setOwned(ownership, profile, command.manager, [
+        ...owned(ownership, profile, command.manager),
+        linuxPackageIdentity(packageSpec),
+      ]);
+      yield* tryPromise(() => writeOwnership(config, ownership));
+    }
+  });
+}
+
+function planLinuxPrune(
+  context: LinuxApplyContext,
+  declared: ReadonlyArray<string>,
+  installed: ReadonlySet<string>,
+) {
+  return Effect.gen(function* () {
+    const { command, ownership, profile } = context;
+    const desired = new Set(declared.map(linuxPackageIdentity));
+    const stale = owned(ownership, profile, command.manager).filter((name) => !desired.has(name));
+    const removable: string[] = [];
+    for (const name of stale) {
+      if (
+        !installed.has(name) ||
+        otherOwners(ownership, profile, command.manager, name).length > 0
+      ) {
+        setOwned(
+          ownership,
+          profile,
+          command.manager,
+          owned(ownership, profile, command.manager).filter((item) => item !== name),
+        );
+      } else {
+        removable.push(name);
+      }
+    }
+    if (removable.length === 0) {
+      return [];
+    }
+    const simulation = yield* tryPromise(() => simulateRemoval(command, removable));
+    yield* Console.log(ui.heading("Packages to be removed:"));
+    for (const name of simulation) {
+      yield* Console.log(`  ${command.manager}: ${name}`);
+    }
+    const unexpected = simulation.filter((name) => !removable.includes(name));
+    if (unexpected.length > 0 || removable.some((name) => !simulation.includes(name))) {
+      return yield* new CliFailure({
+        message: `Refusing unsafe ${command.manager} removal; simulation does not match owned candidates. Unexpected: ${unexpected.join(", ") || "none (incomplete simulation)"}.`,
+      });
+    }
+    return removable;
+  });
+}
+
+/** Upgrade currently installed packages only; manifests and profiles are intentionally ignored. */
 export const updateLinux = (options: LinuxUpdateOptions = {}) =>
   Effect.gen(function* () {
-    const run = options.run ?? runCommand;
-    const whichFn = options.which ?? which;
     const config = options.config ?? (yield* tryPromise(() => loadConfig()));
-    const profile = yield* Effect.try({
-      try: () => resolveProfile(options.profile, config),
-      catch: toCliFailure,
-    });
-    const manager = yield* tryPromise(() =>
-      detectLinuxPackageManager({
-        requested: options.packageManager,
-        osReleasePath: options.osReleasePath,
-        readOsRelease: options.readOsRelease,
-        which: whichFn,
-      }),
-    );
-    const executable = yield* tryPromise(() => whichFn(manager));
-    if (executable === undefined) {
+    const command = yield* tryPromise(() => detectManager(options, config));
+    if (options.offline) {
       return yield* new CliFailure({
-        message: `Linux package manager \`${manager}\` is not installed or not in PATH.`,
+        message: `Offline ${command.manager} upgrades are refused because network-free resolution cannot be guaranteed.`,
       });
     }
-
-    const manifest = yield* tryPromise(() =>
-      fetchManifest({
-        path: linuxManifestPath(profile),
-        config,
-        fetcher: options.fetcher,
-        offline: options.offline,
-      }),
-    );
-    if (manifest.warning) {
-      yield* Console.log(ui.muted(manifest.warning));
+    yield* Console.log(ui.heading(`Updating installed Linux packages with ${command.manager}…`));
+    if (command.manager === "apt") {
+      yield* tryPromise(() => runLinuxPackageCommand(command, "update"));
     }
-    const declared = yield* Effect.try({
-      try: () => parseLinuxPackageManifest(manifest.text),
-      catch: toCliFailure,
-    });
-    const installed = yield* tryPromise(() =>
-      listInstalledLinuxPackages(manager, { run, which: whichFn }),
-    );
-    const missing = missingLinuxPackages(declared, installed);
-    const commandOptions = {
-      manager,
-      executable,
-      run,
-      which: whichFn,
-    } satisfies LinuxCommandOptions;
-
-    yield* Console.log(ui.heading(`Updating Linux packages with ${manager} (${profile})…`));
-    if (manager === "apt") {
-      yield* tryPromise(() => runLinuxPackageCommand(commandOptions, "update"));
-    }
-    yield* tryPromise(() => runLinuxPackageCommand(commandOptions, "upgrade"));
-    if (missing.length > 0) {
-      yield* Console.log(
-        ui.heading(`Installing ${missing.length} missing managed package(s)…`),
-      );
-      yield* tryPromise(() => runLinuxPackageCommand(commandOptions, "install", missing));
-    } else {
-      yield* Console.log(ui.muted(`All ${declared.length} managed package(s) already present.`));
-    }
-
-    if (profile !== "generic-linux" && options.bootstrapNix !== false) {
-      yield* Console.log(ui.heading(`Applying ${profile} Nix/Home Manager configuration…`));
-      yield* tryPromise(() => runLinuxProfileBootstrap(profile, config, run));
-    }
-
-    yield* Console.log(ui.success(`Linux ${manager} update complete.`));
+    yield* tryPromise(() => runLinuxPackageCommand(command, "upgrade"));
+    yield* Console.log(ui.success(`Linux ${command.manager} update complete.`));
   });
 
-/** Install missing declared Linux packages without removing unrelated packages. */
-export const syncLinux = (options: LinuxSyncOptions = {}) =>
+function reconcileOwnership(
+  context: LinuxApplyContext,
+  declared: string[],
+  installed: ReadonlySet<string>,
+): void {
+  const { ownership, profile, command } = context;
+  // Forget absent installations before assigning shared ownership. Never claim manual installs.
+  for (const owner of LINUX_PROFILES) {
+    setOwned(
+      ownership,
+      owner,
+      command.manager,
+      owned(ownership, owner, command.manager).filter((name) => installed.has(name)),
+    );
+  }
+  const shared = declared
+    .map(linuxPackageIdentity)
+    .filter((name) => otherOwners(ownership, profile, command.manager, name).length > 0);
+  setOwned(ownership, profile, command.manager, [
+    ...owned(ownership, profile, command.manager),
+    ...shared,
+  ]);
+}
+
+function executeLinuxApply(
+  context: LinuxApplyContext,
+  missing: string[],
+  removals: string[],
+  offline: boolean,
+) {
+  return Effect.gen(function* () {
+    const { config, ownership, command, profile } = context;
+    yield* tryPromise(() => writeOwnership(config, ownership));
+    yield* installMissingPackages(context, missing, offline);
+    if (removals.length > 0) {
+      const currentPlan = yield* tryPromise(() => simulateRemoval(command, removals));
+      if (
+        currentPlan.length !== removals.length ||
+        currentPlan.some((name) => !removals.includes(name))
+      ) {
+        return yield* new CliFailure({
+          message: "Removal plan changed after installation; rerun apply --prune to review it.",
+        });
+      }
+      yield* tryPromise(() => runLinuxPackageCommand(command, "remove", removals));
+      setOwned(
+        ownership,
+        profile,
+        command.manager,
+        owned(ownership, profile, command.manager).filter((name) => !removals.includes(name)),
+      );
+      yield* tryPromise(() => writeOwnership(config, ownership));
+    }
+  });
+}
+
+/** Reconcile one local Linux profile and optionally prune only its proven ownership. */
+export const applyLinux = <ConfirmR = never>(options: LinuxApplyOptions<ConfirmR> = {}) =>
   Effect.gen(function* () {
-    const run = options.run ?? runCommand;
-    const whichFn = options.which ?? which;
     const config = options.config ?? (yield* tryPromise(() => loadConfig()));
     const profile = yield* Effect.try({
       try: () => resolveProfile(options.profile, config),
       catch: toCliFailure,
     });
-    const manager = yield* tryPromise(() =>
-      detectLinuxPackageManager({
-        requested: options.packageManager,
-        osReleasePath: options.osReleasePath,
-        readOsRelease: options.readOsRelease,
-        which: whichFn,
-      }),
-    );
-    const executable = yield* tryPromise(() => whichFn(manager));
-    if (executable === undefined) {
-      return yield* new CliFailure({
-        message: `Linux package manager \`${manager}\` is not installed or not in PATH.`,
-      });
-    }
-    const manifest = yield* tryPromise(() =>
-      fetchManifest({
-        path: linuxManifestPath(profile),
-        config,
-        fetcher: options.fetcher,
-        offline: options.offline,
-      }),
-    );
-    if (manifest.warning) {
-      yield* Console.log(ui.muted(manifest.warning));
-    }
-    const declared = yield* Effect.try({
-      try: () => parseLinuxPackageManifest(manifest.text),
+    const command = yield* tryPromise(() => detectManager(options, config));
+    const declared = yield* Effect.tryPromise({
+      try: async () => parseLinuxPackageManifest(await readLocalManifest(config, profile)),
       catch: toCliFailure,
     });
-    const installed = yield* tryPromise(() =>
-      listInstalledLinuxPackages(manager, { run, which: whichFn }),
-    );
+    const installed = yield* tryPromise(() => listInstalledLinuxPackages(command.manager, command));
     const missing = missingLinuxPackages(declared, installed);
-
-    if (missing.length === 0) {
-      yield* Console.log(ui.success(`Linux ${manager} packages are present (${profile}).`));
-      return;
+    const ownership = yield* tryPromise(() => readOwnership(config));
+    const context = { config, profile, command, ownership } satisfies LinuxApplyContext;
+    reconcileOwnership(context, declared, installed);
+    const removals = options.prune ? yield* planLinuxPrune(context, declared, installed) : [];
+    for (const spec of missing) {
+      yield* Console.log(`  install ${command.manager}: ${spec}`);
     }
-
-    yield* Console.log(
-      ui.heading(`Installing ${missing.length} missing ${manager} package(s) (${profile})…`),
-    );
-    const commandOptions = {
-      manager,
-      executable,
-      run,
-      which: whichFn,
-    } satisfies LinuxCommandOptions;
-    if (manager === "apt") {
-      yield* tryPromise(() => runLinuxPackageCommand(commandOptions, "update"));
+    if ((missing.length > 0 || removals.length > 0) && !options.yes) {
+      const confirmed = options.confirm === undefined ? false : yield* options.confirm;
+      if (!confirmed) {
+        yield* Console.log(ui.muted("Aborted. No package changes were made."));
+        return;
+      }
     }
-    yield* tryPromise(() => runLinuxPackageCommand(commandOptions, "install", missing));
-    yield* Console.log(
-      ui.success(`Linux ${manager} sync complete; unrelated installed packages were preserved.`),
-    );
+    if (options.profile !== undefined && config.linux?.profile !== profile) {
+      yield* tryPromise(() =>
+        saveConfigFile({ linux: { profile } }, { stateRoot: config.stateRoot }),
+      );
+    }
+    yield* executeLinuxApply(context, missing, removals, options.offline === true);
+    yield* Console.log(ui.success(`Linux ${command.manager} profile applied (${profile}).`));
   });

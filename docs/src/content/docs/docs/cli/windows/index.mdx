@@ -11,15 +11,17 @@ The Windows installer provides the compiled `outfitting-manager.exe`; the PowerS
 ## Commands
 
 - [Config](/docs/cli/windows/config/) - configure the compatible repository and Windows routes.
-- [Init](/docs/cli/windows/init/) - initialize state and cache manifests.
-- [Setup](/docs/cli/windows/setup/) - initialize and apply the configured baseline.
+- [Init](/docs/cli/init/) - initialize state and cache manifests.
+- [Setup](/docs/cli/setup/) - initialize state and install missing packages.
+- [Apply](/docs/cli/apply/) - reconcile selected local profiles, optionally pruning Outfitting-owned packages.
 - [Diff](/docs/cli/diff/) - compare live WinGet and Scoop state with the repository.
-- [Sync](/docs/cli/windows/sync/) - reconcile selected profiles and write `windows.lock.json`.
+- [Sync](/docs/cli/sync/) - push, pull, and inspect remote state.
+- [Status](/docs/cli/status/) - show effective configuration without changing it.
 - [Packages](/docs/cli/windows/packages/) - track manual WinGet and Scoop operations.
-- [Update](/docs/cli/windows/update/) - upgrade installed packages.
-- [Remote lockfiles](/docs/cli/lockfiles/) — push, pull, and inspect remote state.
+- [WinGet](/docs/cli/windows/winget/) and [Scoop](/docs/cli/windows/scoop/) - manager-specific package operations.
+- [Update](/docs/cli/update/) - upgrade installed packages.
 - [Fonts](/docs/cli/fonts/) — manage the shared private-font archive.
 - [Provision](/docs/cli/provision/) — deploy Outfitting infrastructure.
 - [Upgrade](/docs/cli/upgrade/) — update the installed manager.
 
-These pages use `outfitting-manager` in every command example. On Windows, `sync` is the desired-state package command; use `lockfiles` for direct remote lock transport.
+Windows combines comma-separated profile bundles. See [Profiles and machine identity](/docs/cli/profiles/) for selection and local-path rules.

@@ -1,35 +1,35 @@
 ---
 title: Setup
-description: Apply the configured Outfitting platform baseline.
+description: Initialize Outfitting and install missing declared state.
 sidebar:
   order: 1
 ---
 
-`setup` prepares the local state, fetches the configured source when needed, and applies the platform baseline. Use [`init`](/docs/cli/init/) when you want to prepare or validate state without applying packages.
+`setup` is the first-run workflow. It initializes local state, fetches declarations, and installs or activates what is missing. Native package steps never remove packages. Use [`init`](/docs/cli/init/) to prepare state without changing the machine, or [`apply`](/docs/cli/apply/) for repeatable reconciliation from the local cache.
 
-## `setup`
+## Usage
 
 ```bash
 outfitting-manager setup
 ```
 
-The command installs or activates declared state. It does not update package-manager versions; use [`update`](/docs/cli/update/) for that.
+Native package steps do not upgrade packages that are already installed. Use [`update`](/docs/cli/update/) for upgrades. Nix activation is declarative: macOS nix-darwin and Linux Home Manager may add, replace, or remove managed packages to match their configuration.
 
-## Common options
+## Source options
 
 The exact flags depend on the compiled platform binary:
 
-| Option | Purpose |
-| --- | --- |
-| `--machine-id <id>` | Override the machine id used for remote state. |
-| `--manifest-base-url <url>` | Use a raw-compatible repository base URL. |
-| `--manifest-ref <ref>` | Use a branch, tag, or commit instead of `main`. |
-| `--no-fetch` | Use the source or manifest already cached locally. |
+| Option                      | Purpose                                                    |
+| --------------------------- | ---------------------------------------------------------- |
+| `--machine-id <id>`         | Override the [machine ID](/docs/cli/profiles/#machine-id). |
+| `--manifest-base-url <url>` | Use a raw-compatible repository base URL.                  |
+| `--manifest-ref <ref>`      | Use a branch, tag, or commit instead of `main`.            |
+| `--no-fetch` (macOS/Linux)  | Use the source or manifest already cached locally.         |
 
 ## Platform differences
 
-| Platform | What `setup` applies | Platform-specific invocation |
-| --- | --- | --- |
-| macOS | The declared nix-darwin configuration and Homebrew items. Unrelated Homebrew packages are preserved. | `outfitting-manager setup`; add `--repo <path>` to use a local checkout. |
-| Windows | Selected WinGet and Scoop profiles, `windows.lock.json`, and the cached PowerShell profile. | `outfitting-manager setup --profile base,dev`; add `--winget-only` while bootstrapping WinGet or `--no-push` to keep the lock local. |
-| Linux | The selected apt or pacman package profile. Nix-backed profiles also bootstrap Home Manager. | `outfitting-manager setup --profile generic-linux`; add `--package-manager apt|pacman` to override detection. |
+| Platform | What `setup` applies                                                                                                              | Platform-specific invocation                                                                       |
+| -------- | --------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| macOS    | Activates the declared nix-darwin configuration and installs missing Brewfile items. Existing unrelated Homebrew packages remain. | `outfitting-manager setup`; add `--repo <path>` to use a local checkout.                           |
+| Windows  | Installs missing packages from the selected WinGet and Scoop profiles and refreshes the cached PowerShell profile.                | `outfitting-manager setup --profile base,dev`; add `--winget-only` while bootstrapping WinGet.     |
+| Linux    | Installs missing apt or pacman packages. Nix-backed profiles also apply Home Manager.                                             | `outfitting-manager setup --profile generic-linux`; use `--package-manager` to override detection. |

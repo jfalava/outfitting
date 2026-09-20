@@ -11,16 +11,18 @@ The Windows manager stores configuration, fetched manifests, and `windows.lock.j
 Use the [Windows CLI reference](/docs/cli/windows/) for the complete workflows:
 
 1. Run [config](/docs/cli/windows/config/) when the repository or route map changes.
-2. Run [setup](/docs/cli/windows/setup/) for initialization and first application.
-3. Run [sync](/docs/cli/windows/sync/) to reconcile selected profiles.
-4. Run [update](/docs/cli/windows/update/) to upgrade installed packages.
+2. Run [setup](/docs/cli/setup/) for initialization and missing packages.
+3. Run [apply](/docs/cli/apply/) to reconcile cached declarations.
+4. Run [update](/docs/cli/update/) to upgrade installed packages.
+5. Run [sync](/docs/cli/sync/) when local state should be uploaded.
 
 Typical maintenance:
 
 ```powershell
-outfitting-manager sync
+outfitting-manager apply
 outfitting-manager update all
+outfitting-manager sync push windows
 bun update -g
 ```
 
-Use [remote lockfiles](/docs/cli/lockfiles/) for direct Worker transport and [CLI upgrade](/docs/cli/upgrade/) for self-updating the compiled manager.
+Use [CLI upgrade](/docs/cli/upgrade/) to update the compiled manager itself.

@@ -1,8 +1,8 @@
 import { Effect, Option } from "effect";
-import { Command, Flag, Prompt } from "effect/unstable/cli";
+import { Command, Flag } from "effect/unstable/cli";
 
-import { syncWindows } from "@/commands/windows-sync";
-import { runSetup } from "@/setup/run";
+import { initializeWindows } from "@/commands/setup/windows";
+import { applyWindows } from "@/commands/windows-apply";
 
 /** Apply the configured Windows repository state after initializing its cache. */
 export const windowsSetupCommand = Command.make(
@@ -28,13 +28,10 @@ export const windowsSetupCommand = Command.make(
       Flag.withDefault(false),
       Flag.withDescription("Skip Scoop while bootstrapping WinGet."),
     ),
-    noPush: Flag.Boolean("no-push").pipe(
-      Flag.withDefault(false),
-      Flag.withDescription("Write the local lockfile without pushing it to the Worker."),
-    ),
   },
-  ({ machineId, manifestBaseUrl, manifestRef, profile, wingetOnly, noPush }) =>
-    runSetup({
+  ({ machineId, manifestBaseUrl, manifestRef, profile, wingetOnly }) =>
+    initializeWindows({
+      profiles: Option.isSome(profile) ? [profile.value] : undefined,
       machineId: Option.getOrUndefined(machineId),
       manifestBaseUrl: Option.getOrUndefined(manifestBaseUrl),
       manifestRef: Option.getOrUndefined(manifestRef),
@@ -42,14 +39,10 @@ export const windowsSetupCommand = Command.make(
       nextCommand: "Applying Windows desired state…",
     }).pipe(
       Effect.flatMap(() =>
-        syncWindows({
+        applyWindows({
           profiles: Option.isSome(profile) ? [profile.value] : undefined,
           wingetOnly,
-          noPush,
-          confirmClean: Prompt.Confirm({
-            message: "Remove the listed packages?",
-            initial: false,
-          }).pipe(Effect.orDie),
+          yes: true,
         }),
       ),
     ),

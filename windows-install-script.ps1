@@ -197,8 +197,7 @@ try {
         "setup",
         "--profile",
         ($outfittingInitialProfiles -join ","),
-        "--winget-only",
-        "--no-push"
+        "--winget-only"
     )
     if (-not [string]::IsNullOrWhiteSpace($OutfittingManifestBaseUrl)) {
         $setupArguments += @("--manifest-base-url", $OutfittingManifestBaseUrl)
@@ -461,7 +460,7 @@ try {
     $script:hasErrors = $true
     Write-Host "❖ Failed to link PowerShell profiles:" -ForegroundColor Red
     Write-Host "  - $_" -ForegroundColor Red
-    Write-Host "❖ Confirm the manager completed sync and Windows Developer Mode is enabled." -ForegroundColor Yellow
+    Write-Host "❖ Confirm the manager completed setup and Windows Developer Mode is enabled." -ForegroundColor Yellow
 }
 ############################################
 

@@ -19,9 +19,18 @@ export function wingetIdentity(name: string, source = "winget"): string {
   return `${source}:${name}`.toLowerCase();
 }
 
-/** WinGet uses either representation for update-not-applicable on Windows. */
+function isHresult(code: number, hresult: number): boolean {
+  return code === hresult || code >>> 0 === hresult >>> 0;
+}
+
+/** WinGet's documented result when an exact `list` query finds no package. */
+export function isWingetPackageAbsentExitCode(code: number): boolean {
+  return isHresult(code, 0x8a150014);
+}
+
+/** Documented WinGet no-op results that prove an install did not take ownership. */
 export function isWingetAlreadyInstalledExitCode(code: number): boolean {
-  return code === 43 || code === -1978335189;
+  return [0x8a15002b, 0x8a150061, 0x8a15010d].some((hresult) => isHresult(code, hresult));
 }
 
 export type WindowsPackageManager = "winget" | "scoop" | "bun";
@@ -32,6 +41,10 @@ export interface WindowsPackageRecord {
   name: string;
   args: string[];
   origin: "baseline" | "manual";
+  /** Present only when Outfitting observed its own successful installation. */
+  installedBy?: "outfitting";
+  /** Profiles that required an Outfitting-installed baseline package. */
+  owners?: ReadonlyArray<string>;
 }
 
 export interface WindowsOperationRecord {
@@ -64,6 +77,9 @@ export interface WindowsLockOperationInput {
   args: ReadonlyArray<string>;
   status: WindowsOperationStatus;
   exitCode?: number;
+  origin?: WindowsPackageRecord["origin"];
+  installedBy?: WindowsPackageRecord["installedBy"];
+  owners?: ReadonlyArray<string>;
 }
 
 export interface WindowsLockPathOptions {
@@ -89,6 +105,8 @@ const WindowsPackageRecordSchema = Schema.Struct({
   name: Schema.String,
   args: Schema.Array(Schema.String),
   origin: Schema.Literals(["baseline", "manual"] as const),
+  installedBy: Schema.optional(Schema.Literal("outfitting")),
+  owners: Schema.optional(Schema.Array(Schema.String)),
 });
 
 const WindowsOperationSchema = Schema.Struct({
@@ -119,6 +137,18 @@ const WindowsLockSchema = Schema.Struct({
 
 const decodeWindowsLock = Schema.decodeUnknownOption(WindowsLockSchema);
 
+function clonePackageRecord(
+  entry: Omit<WindowsPackageRecord, "args"> & { readonly args: ReadonlyArray<string> },
+): WindowsPackageRecord {
+  return {
+    name: entry.name,
+    args: [...entry.args],
+    origin: entry.origin,
+    installedBy: entry.installedBy,
+    owners: entry.owners === undefined ? undefined : [...entry.owners],
+  };
+}
+
 async function readWindowsLockFile(path: string): Promise<WindowsLock | undefined> {
   let content: string;
   try {
@@ -143,9 +173,9 @@ async function readWindowsLockFile(path: string): Promise<WindowsLock | undefine
     source: { ...decoded.value.source },
     profiles: [...decoded.value.profiles],
     packages: {
-      winget: decoded.value.packages.winget.map((entry) => ({ ...entry, args: [...entry.args] })),
-      scoop: decoded.value.packages.scoop.map((entry) => ({ ...entry, args: [...entry.args] })),
-      bun: decoded.value.packages.bun.map((entry) => ({ ...entry, args: [...entry.args] })),
+      winget: decoded.value.packages.winget.map(clonePackageRecord),
+      scoop: decoded.value.packages.scoop.map(clonePackageRecord),
+      bun: decoded.value.packages.bun.map(clonePackageRecord),
     },
     operations: decoded.value.operations.map((operation) => ({
       ...operation,
@@ -172,6 +202,42 @@ export async function writeWindowsLock(
   return path;
 }
 
+function updateTrackedPackage(
+  lock: WindowsLock,
+  input: WindowsLockOperationInput,
+  identity: string,
+): void {
+  if (input.status !== "success" || input.action === "upgrade") {
+    return;
+  }
+  const entries = lock.packages[input.manager];
+  const index = entries.findIndex((entry) =>
+    input.manager === "winget"
+      ? wingetIdentity(entry.name, wingetSource(entry.args)) ===
+        wingetIdentity(identity, wingetSource(input.args))
+      : entry.name.toLowerCase() === identity.toLowerCase(),
+  );
+  if (input.action === "install") {
+    const record: WindowsPackageRecord = {
+      name: identity,
+      args: [...input.args],
+      origin: input.origin ?? "manual",
+      installedBy: input.installedBy,
+      owners: input.owners === undefined ? undefined : [...new Set(input.owners)].toSorted(),
+    };
+    if (index === -1) {
+      entries.push(record);
+    } else {
+      entries[index] = record;
+    }
+  } else if (index !== -1) {
+    entries.splice(index, 1);
+  }
+  lock.packages[input.manager] = entries.toSorted((left, right) =>
+    left.name.localeCompare(right.name),
+  );
+}
+
 export async function recordWindowsOperation(
   input: WindowsLockOperationInput,
   options: WindowsLockPathOptions = {},
@@ -194,58 +260,6 @@ export async function recordWindowsOperation(
     operation.exitCode = input.exitCode;
   }
   lock.operations = [...lock.operations, operation].slice(-MAX_OPERATION_HISTORY);
-
-  if (input.status === "success" && (input.action === "install" || input.action === "uninstall")) {
-    const entries = lock.packages[input.manager];
-    const index = entries.findIndex((entry) =>
-      input.manager === "winget"
-        ? wingetIdentity(entry.name, wingetSource(entry.args)) ===
-          wingetIdentity(identity, wingetSource(input.args))
-        : entry.name.toLowerCase() === identity.toLowerCase(),
-    );
-    if (input.action === "install") {
-      const record: WindowsPackageRecord = {
-        name: identity,
-        args: [...input.args],
-        origin: "manual",
-      };
-      if (index === -1) {
-        entries.push(record);
-      } else {
-        entries[index] = record;
-      }
-    } else if (index !== -1) {
-      entries.splice(index, 1);
-    }
-    lock.packages[input.manager] = entries.toSorted((left, right) =>
-      left.name.localeCompare(right.name),
-    );
-  }
-
-  return writeWindowsLock(lock, { root });
-}
-
-export async function updateWindowsBaseline(
-  config: ManagerConfig,
-  updates: Partial<Record<WindowsPackageManager, ReadonlyArray<WindowsPackageRecord>>>,
-  profiles?: ReadonlyArray<string>,
-  options: WindowsLockPathOptions = {},
-): Promise<string> {
-  const root = options.root ?? config.stateRoot;
-  const lock = await readWindowsLock(config, { root });
-  lock.machine = config.machineId;
-  lock.source = { ...config.manifest };
-  if (profiles !== undefined) {
-    lock.profiles = [...new Set(profiles)].toSorted();
-  }
-  for (const manager of ["winget", "scoop", "bun"] as const) {
-    const records = updates[manager];
-    if (records === undefined) {
-      continue;
-    }
-    lock.packages[manager] = [...records]
-      .map((record) => ({ ...record, args: [...record.args] }))
-      .toSorted((left, right) => left.name.localeCompare(right.name));
-  }
+  updateTrackedPackage(lock, input, identity);
   return writeWindowsLock(lock, { root });
 }

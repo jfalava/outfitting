@@ -1,23 +1,21 @@
 ---
 title: Sync
-description: Reconcile platform packages or transport remote lockfiles.
+description: Push, pull, and inspect remote machine state.
 sidebar:
   order: 3
 ---
 
-`sync` is deliberately platform-specific. It reconciles package presence on Windows and Linux; on macOS it is the primary command for remote lockfile transport.
+`sync` is the same remote-state transport on macOS, Windows, and Linux. It never installs, upgrades, or removes packages. There is no top-level `lockfiles` alias.
 
 ## Invoke `sync`
 
 ```bash
-outfitting-manager sync [subcommand] [flags]
+outfitting-manager sync <subcommand> [flags]
 ```
 
-The machine id is inferred from `OUTFITTING_MACHINE_ID`, `config.json`, or the automatic `user:arch-os` value. It is not a positional argument.
+Sync uses the configured [machine ID](/docs/cli/profiles/#machine-id); it is not a positional argument.
 
-## Shared lockfile subcommands
-
-These subcommands are available below `sync` on every platform. [`lockfiles`](/docs/cli/lockfiles/) is an alias for the same remote operations.
+All subcommands below are available on every platform. Configure the Worker and token once before pushing or pulling.
 
 ### `sync configure-worker`
 
@@ -31,16 +29,29 @@ outfitting-manager sync configure-worker https://example.com/api
 
 Prompt for and store the Worker API token.
 
+```bash
+outfitting-manager sync configure-token
+```
+
+On headless Linux systems without `libsecret` and a running Secret Service, use environment variables instead:
+
+```bash
+export OUTFITTING_LOCKFILES_URL="https://outfitting.jfa.dev/api"
+export OUTFITTING_LOCKFILES_TOKEN="..."
+```
+
+Environment values take precedence over keychain values.
+
 ### `sync push`
 
-Upload a local lockfile. Omit the kind, or pass `all`, to push every known local lock path.
+Upload a local lockfile. An explicit kind requires a file path. Omit the kind, or pass `all`, to scan known lock paths relative to the current working directory, not the Outfitting state root.
 
 ```bash
 outfitting-manager sync push nix updated-flake.lock
-outfitting-manager sync push
+outfitting-manager sync push homebrew-inventory ~/.config/outfitting/homebrew-inventory.txt
 ```
 
-Use `--if-match <sha256>` for an optimistic-concurrency check.
+Use `--if-match <sha256>` for an optimistic-concurrency check. A stale expected hash is rejected without advancing the remote head.
 
 ### `sync pull`
 
@@ -65,41 +76,10 @@ outfitting-manager sync history nix
 outfitting-manager sync history
 ```
 
-## Linux package subcommands
-
-### `sync all`
-
-Install missing declared packages using detected apt or pacman. Unrelated installed packages are preserved.
-
-### `sync apt`
-
-Install missing declared apt packages without removing unrelated packages.
-
-### `sync pacman`
-
-Install missing declared pacman packages without removing unrelated packages.
-
-The Linux package forms accept `--profile` and `--offline`.
-
-## Windows package synchronization
-
-### Bare `sync`
-
-On Windows, bare `sync` fetches the selected WinGet and Scoop manifests, installs the desired packages, removes tracked packages outside the selected baseline after confirmation, refreshes the PowerShell profile, and writes `windows.lock.json`.
-
-```powershell
-outfitting-manager sync
-outfitting-manager sync --profile base,dev
-outfitting-manager sync --profile base --winget-only
-outfitting-manager sync --no-push
-```
-
-`--winget-only` skips Scoop while bootstrapping. `--no-push` writes the local lock without uploading it. Regular profiles include Microsoft Store entries marked `msstore:<id>`.
-
 ## Platform differences
 
-| Platform | Meaning of `sync` | Invocation |
-| --- | --- | --- |
-| macOS | Remote inventory and lockfile transport. There is no package-reconciliation action named bare `sync`. | `outfitting-manager sync push nix updated-flake.lock`; use `sync configure-worker|configure-token|pull|list|history` for the other operations. |
-| Windows | Desired-state package reconciliation for WinGet and Scoop, including the unified `windows.lock.json`. | `outfitting-manager sync [--profile base,dev]`; use `outfitting-manager lockfiles <subcommand>` for direct remote lockfile transport. |
-| Linux | Presence-based package reconciliation for apt or pacman. Missing declared packages are installed; unrelated packages are not removed. | `outfitting-manager sync all|apt|pacman`; use `outfitting-manager sync [lockfile-subcommand]` for remote transport. |
+| Platform | Meaning of `sync`                                                      | Invocation                                                                          |
+| -------- | ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| macOS    | Remote push, pull, list, history, and credential configuration.        | `outfitting-manager sync push nix updated-flake.lock`                               |
+| Windows  | Identical remote transport; package reconciliation belongs to `apply`. | `outfitting-manager sync push windows "$HOME/.config/outfitting/windows.lock.json"` |
+| Linux    | Identical remote transport; package reconciliation belongs to `apply`. | `outfitting-manager sync list`                                                      |

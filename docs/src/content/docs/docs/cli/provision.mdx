@@ -5,7 +5,7 @@ sidebar:
   order: 12
 ---
 
-`provision` runs the Alchemy deployment from the monorepo's `iac/` directory, then stores the lockfiles Worker URL and token in the OS keychain unless asked not to.
+`provision` runs the Alchemy deployment from the monorepo's `iac/` directory, then stores the sync Worker URL and token in the OS keychain unless asked not to.
 
 ## `provision`
 
@@ -26,8 +26,8 @@ CLI flags override environment variables, which override the config file, which 
 
 ## Platform differences
 
-| Platform | Invocation | Difference |
-| --- | --- | --- |
-| macOS | `outfitting-manager provision` | Uses the macOS keychain when storing credentials. |
-| Windows | `outfitting-manager provision` | Uses the Windows credential store through Bun secrets. |
-| Linux | `outfitting-manager provision` | Keychain storage may require `libsecret`; use `OUTFITTING_LOCKFILES_URL` and `OUTFITTING_LOCKFILES_TOKEN` when no Secret Service is available. |
+| Platform | Invocation                     | Difference                                                                                                                                     |
+| -------- | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| macOS    | `outfitting-manager provision` | Uses the macOS keychain when storing credentials.                                                                                              |
+| Windows  | `outfitting-manager provision` | Uses the Windows credential store through Bun secrets.                                                                                         |
+| Linux    | `outfitting-manager provision` | Keychain storage may require `libsecret`; use `OUTFITTING_LOCKFILES_URL` and `OUTFITTING_LOCKFILES_TOKEN` when no Secret Service is available. |

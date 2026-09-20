@@ -142,7 +142,7 @@ if (Test-Path -LiteralPath $wingetLinks -PathType Container) {
 }
 
 if (Test-Path -LiteralPath $outfittingManagerInstallPath -PathType Leaf) {
-    $setupArguments = @("setup", "--no-push")
+    $setupArguments = @("setup")
     if (-not [string]::IsNullOrWhiteSpace($OutfittingManifestBaseUrl)) {
         $setupArguments += @("--manifest-base-url", $OutfittingManifestBaseUrl)
     }
@@ -166,7 +166,7 @@ $installedFontGetFonts = 0
 if (-not (Get-Command fontget -ErrorAction SilentlyContinue)) {
     Write-Host "`n❖ Installing FontGet..." -ForegroundColor Cyan
     if (Test-Path -LiteralPath $outfittingManagerInstallPath -PathType Leaf) {
-        & $outfittingManagerInstallPath winget install Graphixa.FontGet --no-sync
+        & $outfittingManagerInstallPath winget install Graphixa.FontGet --no-push
         if ($LASTEXITCODE -ne 0) { $failedPackageCommands++ }
     } else {
         $failedPackageCommands++
@@ -289,7 +289,7 @@ $checksumUrl = "https://win.jfa.dev/fonts/checksum"
 try {
     if (-not (Get-Command cloudflared -ErrorAction SilentlyContinue)) {
         if (Test-Path -LiteralPath $outfittingManagerInstallPath -PathType Leaf) {
-            & $outfittingManagerInstallPath winget install Cloudflare.cloudflared --no-sync
+            & $outfittingManagerInstallPath winget install Cloudflare.cloudflared --no-push
             if ($LASTEXITCODE -ne 0) { $failedPackageCommands++ }
         }
     }

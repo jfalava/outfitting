@@ -2,14 +2,13 @@ import { Command, Flag } from "effect/unstable/cli";
 
 import { foreignPackageManagerStub } from "@/commands/update/stubs";
 import { foreignPackageManagers, type HostPlatform, type PackageManager } from "@/platform";
-import { updateBun } from "@/update/bun";
 import { updateScoop } from "@/update/scoop";
 import { updateWindowsAll } from "@/update/windows-all";
 import { updateWinget } from "@/update/winget";
 
-const noSyncFlag = Flag.Boolean("no-sync").pipe(
+const noPushFlag = Flag.Boolean("no-push").pipe(
   Flag.withDefault(false),
-  Flag.withDescription("Skip updating and pushing the Windows lock after a successful update."),
+  Flag.withDescription("Write local update state without uploading windows.lock.json."),
 );
 
 const makeForeignStub = (pm: PackageManager, host: HostPlatform) =>
@@ -17,22 +16,16 @@ const makeForeignStub = (pm: PackageManager, host: HostPlatform) =>
     Command.withDescription(`Not available on ${host} (hint stub).`),
   );
 
-const bunCommand = Command.make("bun", {}, () => updateBun).pipe(
-  Command.withDescription("Deprecated; run `bun update -g` directly."),
-);
+const scoopCommand = Command.make("scoop", { noPush: noPushFlag }, ({ noPush }) =>
+  updateScoop({ noPush }),
+).pipe(Command.withDescription("Upgrade packages already installed through Scoop."));
 
-const scoopCommand = Command.make("scoop", { noSync: noSyncFlag }, ({ noSync }) =>
-  updateScoop({ noSync }),
-).pipe(
-  Command.withDescription("Install manifest packages and update Scoop without removing extras."),
-);
-
-const wingetCommand = Command.make("winget", { noSync: noSyncFlag }, ({ noSync }) =>
-  updateWinget({ noSync }),
+const wingetCommand = Command.make("winget", { noPush: noPushFlag }, ({ noPush }) =>
+  updateWinget({ noPush }),
 ).pipe(Command.withDescription("Upgrade all installed WinGet packages."));
 
-const allCommand = Command.make("all", { noSync: noSyncFlag }, ({ noSync }) =>
-  updateWindowsAll({ noSync }),
+const allCommand = Command.make("all", { noPush: noPushFlag }, ({ noPush }) =>
+  updateWindowsAll({ noPush }),
 ).pipe(
   Command.withDescription(
     "Run winget → scoop → Windows lock sync; continue on failure; exit ≠0 if any step failed.",
@@ -48,6 +41,6 @@ export const makeWindowsUpdateCommand = () => {
     Command.withDescription(
       "Update machine packages (winget, scoop, or all); Bun updates use `bun update -g`.",
     ),
-    Command.withSubcommands([wingetCommand, scoopCommand, bunCommand, allCommand, ...foreign]),
+    Command.withSubcommands([wingetCommand, scoopCommand, allCommand, ...foreign]),
   );
 };

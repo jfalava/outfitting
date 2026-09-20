@@ -15,13 +15,10 @@ export const syncSubcommands = [
   historyCommand,
 ] as const;
 
-/**
- * Primary UX name for remote inventory/lock I/O.
- * Same subcommands and storage as `lockfiles` (alias kept during migration).
- */
+/** Remote inventory/lock transport, identical on every platform. */
 export const syncCommand = Command.make("sync").pipe(
   Command.withDescription(
-    "Push, pull, and inspect remote inventory/lock snapshots (lockfiles Worker). Primary name; `lockfiles` remains an alias.",
+    "Push, pull, and inspect remote lock snapshots without changing installed packages.",
   ),
   Command.withSubcommands([...syncSubcommands]),
 );

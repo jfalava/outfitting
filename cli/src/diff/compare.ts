@@ -4,7 +4,7 @@ import { join } from "node:path";
 
 import { Console, Effect, Option, Schema } from "effect";
 
-import { parseWindowsPackageList, resolveWindowsProfiles } from "@/commands/windows-sync";
+import { parseWindowsPackageList, resolveWindowsProfiles } from "@/commands/windows-apply";
 import {
   DEFAULT_LINUX_PROFILE,
   loadConfig,
