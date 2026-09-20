@@ -185,6 +185,12 @@ describe("upgrade command helpers", () => {
           {
             draft: false,
             prerelease: false,
+            tag_name: "cli-v0.4.0",
+            assets: [],
+          },
+          {
+            draft: false,
+            prerelease: false,
             tag_name: "cli-v0.3.0",
             assets: [
               {

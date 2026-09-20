@@ -23,6 +23,11 @@ interface SelectedReleaseAsset {
   checksum: GitHubAsset;
 }
 
+interface SelectedCliRelease {
+  release: GitHubRelease;
+  assets: SelectedReleaseAsset;
+}
+
 const ReleaseListSchema = Schema.Array(Schema.Unknown);
 const decodeReleaseList = Schema.decodeUnknownOption(ReleaseListSchema);
 const decodeGitHubRelease = Schema.decodeUnknownOption(GitHubReleaseSchema);
@@ -46,6 +51,34 @@ function selectReleaseAsset(
   }
   const checksum = release.assets.find((asset) => asset.name === `${archive.name}.sha256`);
   return checksum ? { asset: archive, checksum } : undefined;
+}
+
+function releaseVersion(tagName: string): string {
+  return tagName.replace(/^cli-/, "").replace(/^v/, "");
+}
+
+function isNewerRelease(candidate: GitHubRelease, current: GitHubRelease): boolean {
+  return isNewerVersion(releaseVersion(candidate.tag_name), releaseVersion(current.tag_name));
+}
+
+function newestRelease(releases: ReadonlyArray<GitHubRelease>): GitHubRelease | undefined {
+  return releases.reduce<GitHubRelease | undefined>(
+    (newest, candidate) => (!newest || isNewerRelease(candidate, newest) ? candidate : newest),
+    undefined,
+  );
+}
+
+function newestReleaseWithAsset(
+  releases: ReadonlyArray<GitHubRelease>,
+  assetName: string,
+): SelectedCliRelease | undefined {
+  return releases.reduce<SelectedCliRelease | undefined>((newest, candidate) => {
+    const assets = selectReleaseAsset(candidate, assetName);
+    if (!assets || (newest && !isNewerRelease(candidate, newest.release))) {
+      return newest;
+    }
+    return { release: candidate, assets };
+  }, undefined);
 }
 
 export async function latestCliRelease(
@@ -81,24 +114,20 @@ export async function latestCliRelease(
     (candidate) =>
       !candidate.draft && !candidate.prerelease && /^cli-v\d+\.\d+\.\d+$/.test(candidate.tag_name),
   );
-  const release = stableReleases.reduce<GitHubRelease | undefined>(
-    (newest, candidate) =>
-      !newest || isNewerVersion(candidate.tag_name, newest.tag_name) ? candidate : newest,
-    undefined,
-  );
+  const release = newestRelease(stableReleases);
   if (!release) {
     throw new Error("No stable outfitting-manager CLI release was found.");
   }
 
-  const selected = selectReleaseAsset(release, assetName);
+  const selected = newestReleaseWithAsset(stableReleases, assetName);
   if (!selected) {
     throw new Error(`Release ${release.tag_name} does not contain ${assetName} and its checksum.`);
   }
 
   return {
-    version: release.tag_name.slice("cli-v".length),
-    assetUrl: selected.asset.browser_download_url,
-    checksumUrl: selected.checksum.browser_download_url,
+    version: releaseVersion(selected.release.tag_name),
+    assetUrl: selected.assets.asset.browser_download_url,
+    checksumUrl: selected.assets.checksum.browser_download_url,
     executableName,
   };
 }
