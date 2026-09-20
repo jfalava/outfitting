@@ -44,12 +44,15 @@ jobs:
       - name: Install dependencies
         run: bun install
 
-      - name: Inject version from tag
+      - name: Validate version against tag
         shell: bash
         run: |
-          TAG="${GITHUB_REF_NAME#cli-v}"
-          sed -i.bak "s/\"version\": \".*\"/\"version\": \"${TAG}\"/" cli/package.json
-          rm -f cli/package.json.bak
+          TAG_VERSION="${GITHUB_REF_NAME#cli-v}"
+          PACKAGE_VERSION="$(node -p "require('./cli/package.json').version")"
+          if [[ "${TAG_VERSION}" != "${PACKAGE_VERSION}" ]]; then
+            echo "Tag version ${TAG_VERSION} does not match cli/package.json version ${PACKAGE_VERSION}."
+            exit 1
+          fi
 
       - name: Build target
         working-directory: cli
