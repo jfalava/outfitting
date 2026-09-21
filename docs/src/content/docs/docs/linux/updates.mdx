@@ -6,7 +6,20 @@ sidebar:
   order: 2
 ---
 
-Use [apply](/docs/cli/apply/) to install missing packages from the active local profile. It preserves manually installed packages unless `--prune` can prove that Outfitting installed them for the active profile and they are no longer declared.
+The Linux manager stores its configuration, cached manifests, and managed source under `~/.config/outfitting`. Linux uses one active profile at a time; see [Profiles and machine identity](/docs/cli/profiles/) for the selection rules.
+
+Use the [Linux CLI reference](/docs/cli/linux/) for the complete workflows:
+
+1. Run [setup](/docs/cli/setup/) to initialize the profile and install missing packages.
+2. Run [apply](/docs/cli/apply/) to reconcile declared packages.
+3. Run [update](/docs/cli/update/) to upgrade installed packages.
+4. Run [Home Manager](/docs/cli/linux/home-manager/) for Nix-backed profiles.
+
+## Reconcile declared packages
+
+Use [apply](/docs/cli/apply/) to install missing packages from the active profile. Without `--prune`, it does not remove packages.
+
+With `--prune`, Outfitting removes only packages it can prove it installed for the active profile and that the profile no longer declares. Manually installed, pre-existing, and shared packages stay installed.
 
 ```bash
 outfitting-manager apply all
@@ -15,17 +28,23 @@ outfitting-manager apply apt --profile ubuntu-wsl
 outfitting-manager apply all --prune
 ```
 
-Linux `apply` refreshes the active profile source before planning changes. Use `--no-refresh` to apply from the selected local source, or `--offline` to skip source refresh and package-manager downloads.
+Linux `apply` refreshes the active profile source before planning changes. Use `--no-refresh` to use the selected local source, or `--offline` to skip source refresh and package-manager downloads.
+
+## Upgrade installed packages
 
 Use [update](/docs/cli/update/) to upgrade packages that are already installed:
 
 ```bash
 outfitting-manager update all
 outfitting-manager update apt
-outfitting-manager update pacman --offline
+outfitting-manager update pacman
 ```
 
-For Nix-backed profiles, `update all` refreshes and switches Home Manager before upgrading native packages. `generic-linux` remains native-only. Use `update nix` for a targeted Home Manager action:
+## Nix-managed profiles
+
+`update all` refreshes and switches Home Manager before upgrading native packages for `oci-agents` and `ubuntu-wsl`. `generic-linux` remains native-only. The targeted `update apt` and `update pacman` forms upgrade native packages only.
+
+Use `update nix` for a targeted Home Manager action:
 
 ```bash
 outfitting-manager update all
@@ -33,5 +52,7 @@ outfitting-manager update all --no-refresh
 outfitting-manager update nix build
 outfitting-manager update nix switch --no-refresh
 ```
+
+Nix actions use the checked-in `flake.lock` from the active profile and refresh the managed source by default. Use `--no-refresh` to use the local source and `--no-push` to keep the successful Nix lock update local.
 
 See [Home Manager](/docs/cli/linux/home-manager/) for the `hm-*` shell helpers. Update global Bun packages with `bun update -g`, and update the manager binary with `outfitting-manager upgrade`.

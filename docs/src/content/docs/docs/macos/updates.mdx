@@ -6,14 +6,32 @@ sidebar:
   order: 3
 ---
 
-For command details, see [setup](/docs/cli/setup/), [update](/docs/cli/update/), [snapshot](/docs/cli/macos/snapshot/), [recover](/docs/cli/macos/recover/), and [shell helpers](/docs/cli/macos/shell/).
+The macOS manager stores its configuration, cached declarations, and managed source under `~/.config/outfitting`. Set `OUTFITTING_STATE_ROOT` to use another state directory.
 
-The usual maintenance sequence is:
+Use the [macOS CLI reference](/docs/cli/macos/) for the complete command list:
+
+1. Run [setup](/docs/cli/setup/) when initializing the machine or changing its source.
+2. Run [update](/docs/cli/update/) for routine Nix and Homebrew upgrades.
+3. Run [snapshot](/docs/cli/macos/snapshot/) to record observed Homebrew state without reconciling it.
+4. Run [recover](/docs/cli/macos/recover/) after an interrupted Nix operation.
+
+## Update Nix and Homebrew
+
+`update all` switches the nix-darwin system, then upgrades installed Homebrew packages. It continues after a failed step and exits nonzero if any step failed.
 
 ```bash
-outfitting-manager setup
 outfitting-manager update all
-bun update -g
+outfitting-manager update all --no-refresh
+outfitting-manager update all --no-push
 ```
 
-Use `outfitting-manager snapshot brew` to record observed Homebrew state without reconciling packages, and `outfitting-manager recover nix` after an interrupted Nix operation. Run the [post-install script](/docs/macos/post-install/) separately when fonts need refreshing.
+Use the individual commands when only one part of the machine needs an update:
+
+```bash
+outfitting-manager update nix switch
+outfitting-manager update nix switch --no-refresh
+outfitting-manager update brew
+outfitting-manager update brew --no-push
+```
+
+`update nix` accepts `build`, `test`, `dry`, or `switch`. The managed sparse Nix source refreshes by default; `--no-refresh` uses the local source. `update brew` upgrades installed Homebrew packages and records the observed inventory; it does not install missing Brewfile entries.

@@ -12,8 +12,8 @@ Run the post-install script in a new PowerShell session:
 irm win.jfa.dev/post-install | iex
 ```
 
-It installs Scoop when needed, runs the Windows manager setup, installs the public font list, and optionally downloads the protected licensed-font archive to `%USERPROFILE%\Downloads\fonts`.
+> Heads up: Scoop will abort the installation if you run it from an elevated session.
 
-Manager download failures are best-effort. Scoop and public-font failures return a failure status after the remaining work; private-font failures are reported but do not fail the script.
+It installs Scoop when needed, runs the Windows manager setup, installs the public font list, and optionally downloads the protected licensed-font archive to `%USERPROFILE%\Downloads\fonts`.
 
 See [CLI setup](/docs/cli/setup/) and [CLI fonts](/docs/cli/fonts/) for detailed command behavior.

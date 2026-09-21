@@ -14,6 +14,6 @@ curl -L mac.jfa.dev/post-install | bash
 
 It installs the public FontGet list from the sparse source, authenticates for the protected licensed archive, validates the download, and installs verified fonts under `/Library/Fonts`.
 
-The script requires FontGet, Homebrew, Cloudflare Access authorization, and `sudo`. It is strict: missing lists, failed downloads, checksum mismatches, unsafe archives, and installation failures return a non-zero status.
+The script requires FontGet and Homebrew (installed on the main installation process), Cloudflare Access authorization (access to the private font collection), and `sudo`.
 
 Operators publish the licensed archive with [CLI fonts](/docs/cli/fonts/).

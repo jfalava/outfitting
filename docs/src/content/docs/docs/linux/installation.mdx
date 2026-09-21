@@ -6,11 +6,8 @@ sidebar:
   order: 1
 ---
 
-Outfitting manages a Linux development environment with the compiled `outfitting-manager`, native packages (apt or pacman), and optional Home Manager configuration.
-
 ## Prerequisites
 
-- Linux x64 or arm64.
 - An interactive shell and an account that can use `sudo` when the package manager needs it.
 - Network access to GitHub and the Outfitting release assets.
 
@@ -20,17 +17,11 @@ Outfitting manages a Linux development environment with the compiled `outfitting
 curl -L linux.jfa.dev | bash
 ```
 
-The bootstrap:
+The installer will detect the package manager of your distro. State lives under `~/.config/outfitting`.
 
-1. Picks the matching `outfitting-manager` release (x64 or arm64) and verifies its checksum.
-2. Installs the binary on your `PATH`.
-3. Runs `init` then `setup` for the default **generic-linux** profile.
+> Only APT-based and pacman-based distros are supported for now.
 
-It detects **apt** (Debian-family) or **pacman** (Arch-family) from `/etc/os-release` and the installed tools. State lives under `~/.config/outfitting`.
-
-Open a new shell when the installer finishes.
-
-## Profiles (optional)
+## Profiles
 
 By default you get the portable package list. Other profiles select a different package manifest and, when present, a Home Manager flake:
 
@@ -42,17 +33,34 @@ By default you get the portable package list. Other profiles select a different 
 
 ```bash
 curl -L linux.jfa.dev | bash -s -- --profile generic-linux
-curl -L linux.jfa.dev | bash -s -- --profile ubuntu-wsl
-curl -L linux.jfa.dev | bash -s -- --profile oci-agents
 ```
 
 You can also set the profile later:
 
 ```bash
-outfitting-manager init --profile ubuntu-wsl
+outfitting-manager init --profile oci-agents
 outfitting-manager setup --no-fetch
 ```
 
-Use a full checkout instead of the sparse source with `--repo /path/to/outfitting` on `init` / `setup`.
+## BYOR (Bring Your Own Repo)
+
+You can use a compatible repository instead of the default Outfitting source. For a local checkout, select a profile and pass its path to setup:
+
+```bash
+outfitting-manager setup \
+  --profile generic-linux \
+  --repo ~/src/my-machine-config
+```
+
+For a hosted repository, provide its raw-content base URL and Git ref:
+
+```bash
+outfitting-manager setup \
+  --profile generic-linux \
+  --manifest-base-url https://raw.githubusercontent.com/example/my-machine-config \
+  --manifest-ref main
+```
+
+Use `--profile oci-agents` or `--profile ubuntu-wsl` when the repository provides that Home Manager configuration. The repository must include the selected profile's package manifest; Nix-backed profiles also require their profile flake, lockfile, Home Manager files, shared modules, and bootstrap files. Setup validates and selects the source before applying packages or Home Manager state.
 
 For command-level workflows, see [init](/docs/cli/init/), [setup](/docs/cli/setup/), and the [Linux CLI reference](/docs/cli/linux/).

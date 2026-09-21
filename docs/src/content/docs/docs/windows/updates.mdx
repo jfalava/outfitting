@@ -6,7 +6,7 @@ sidebar:
   order: 3
 ---
 
-The Windows manager stores configuration, fetched manifests, and `windows.lock.json` under `%USERPROFILE%\.config\outfitting`. It does not need a monorepo checkout.
+The Windows manager stores configuration, fetched manifests, and `windows.lock.json` under `%USERPROFILE%\.config\outfitting`. Set `OUTFITTING_STATE_ROOT` to use another state directory.
 
 Use the [Windows CLI reference](/docs/cli/windows/) for the complete workflows:
 
@@ -14,15 +14,27 @@ Use the [Windows CLI reference](/docs/cli/windows/) for the complete workflows:
 2. Run [setup](/docs/cli/setup/) for initialization and missing packages.
 3. Run [apply](/docs/cli/apply/) to reconcile cached declarations.
 4. Run [update](/docs/cli/update/) to upgrade installed packages.
-5. Run [sync](/docs/cli/sync/) when local state should be uploaded.
+5. Run [sync](/docs/cli/sync/) to explicitly push or pull lockfile state.
 
-Typical maintenance:
+## Update installed packages
+
+`update` upgrades packages that are already installed. It does not install missing profile declarations; use `apply` for that.
 
 ```powershell
-outfitting-manager apply
 outfitting-manager update all
-outfitting-manager sync push windows
-bun update -g
+outfitting-manager update winget
+outfitting-manager update scoop --no-push
+```
+
+`update all` runs WinGet, then Scoop, and synchronizes `windows.lock.json`. It continues after a failed step and exits nonzero if any step failed. Updates upload the lock by default; `--no-push` keeps the new state local.
+
+Use comma-separated profiles with [apply](/docs/cli/apply/) when the machine is missing declared packages:
+
+```powershell
+outfitting-manager apply --profile base,dev
+outfitting-manager apply --profile base,dev --winget-only
 ```
 
 Use [CLI upgrade](/docs/cli/upgrade/) to update the compiled manager itself.
+
+Update global Bun packages with `bun update -g`.
