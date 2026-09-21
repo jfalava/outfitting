@@ -21,7 +21,7 @@ import { which } from "@/process";
 import { envValue } from "@/secrets";
 import { syncMacosSource } from "@/setup/source";
 import { ui } from "@/ui";
-import { isLinuxProfile, prepareLinuxSource, type LinuxProfile } from "@/update/linux-source";
+import { isBuiltInLinuxProfile, isLinuxProfile, prepareLinuxSource } from "@/update/linux-source";
 import { activateHomeManager, activateNixSystem } from "@/update/nix/activate";
 import { buildNixSystem } from "@/update/nix/build";
 import { closeNixLock, openNixLock } from "@/update/nix/lock";
@@ -78,36 +78,52 @@ function resolveMacosRepo(options: UpdateNixOptions, config: ManagerConfig) {
   });
 }
 
+function missingLinuxFlake(profile: string): CliFailure {
+  return new CliFailure({
+    message: `No Nix flake for Linux profile \`${profile}\`.`,
+  });
+}
+
+function requireLinuxFlakeRepo(
+  repo: OutfittingRepo,
+  profile: string,
+): Effect.Effect<OutfittingRepo, CliFailure> {
+  if (repo.flakeKind === "none" || repo.flakePath.length === 0) {
+    return Effect.fail(missingLinuxFlake(profile));
+  }
+  return Effect.succeed(repo);
+}
+
 function resolveLinuxNixRepo(options: UpdateNixOptions, config: ManagerConfig) {
   return Effect.gen(function* () {
     const profile = options.profile ?? config.linux?.profile;
-    if (options.noRefresh !== true && options.repo === undefined) {
-      const selected = profile ?? DEFAULT_LINUX_PROFILE;
-      if (!isLinuxProfile(selected)) {
-        return yield* new CliFailure({
-          message: `Unknown Linux profile \`${selected}\`.`,
-        });
-      }
-      const source = yield* tryPromise(() =>
-        prepareLinuxSource({
-          config,
-          profile: selected as LinuxProfile,
-          refresh: true,
-          offline: options.offline,
-          fetcher: options.sourceFetcher,
-        }),
-      );
-      if (source.repo !== undefined) {
-        return source.repo;
-      }
-      return yield* new CliFailure({
-        message: "No Nix flake for the selected Linux profile.",
-      });
-    }
     if (options.repo !== undefined) {
       return options.repo;
     }
-    return yield* tryPromise(() => resolveOutfittingRepo({ config, profile }));
+    if (options.noRefresh === true) {
+      const resolved = yield* tryPromise(() => resolveOutfittingRepo({ config, profile }));
+      return yield* requireLinuxFlakeRepo(resolved, profile ?? DEFAULT_LINUX_PROFILE);
+    }
+
+    const selected = profile ?? DEFAULT_LINUX_PROFILE;
+    if (!isLinuxProfile(selected)) {
+      return yield* new CliFailure({
+        message: `Invalid Linux profile \`${selected}\`.`,
+      });
+    }
+    const source = yield* tryPromise(() =>
+      prepareLinuxSource({
+        config,
+        profile: selected,
+        refresh: true,
+        offline: options.offline,
+        fetcher: options.sourceFetcher,
+      }),
+    );
+    if (source.repo === undefined) {
+      return yield* missingLinuxFlake(selected);
+    }
+    return yield* requireLinuxFlakeRepo(source.repo, selected);
   });
 }
 
@@ -260,16 +276,20 @@ function validateLinuxNixProfile(
   }
   const profile = options.profile ?? config.linux?.profile ?? DEFAULT_LINUX_PROFILE;
   if (!isLinuxProfile(profile)) {
-    return Effect.fail(new CliFailure({ message: `Unknown Linux profile \`${profile}\`.` }));
+    return Effect.fail(new CliFailure({ message: `Invalid Linux profile \`${profile}\`.` }));
   }
-  return profile === "generic-linux"
-    ? Effect.fail(
-        new CliFailure({
-          message:
-            "No Nix flake for this machine. Set linux.profile to oci-agents or ubuntu-wsl, or use a macOS source.",
-        }),
-      )
-    : Effect.void;
+  // Built-in generic-linux never has a flake. Built-in oci-agents/ubuntu-wsl do.
+  // BYOR names are allowed here; resolveLinuxNixRepo / validateOutfittingRepo fail if
+  // the contract lacks a nix backend or the flake is missing.
+  if (isBuiltInLinuxProfile(profile) && profile === "generic-linux") {
+    return Effect.fail(
+      new CliFailure({
+        message:
+          "No Nix flake for generic-linux. Use a BYOR profile with a nix backend, set linux.profile to oci-agents or ubuntu-wsl, or use a macOS source.",
+      }),
+    );
+  }
+  return Effect.void;
 }
 
 /**
@@ -300,14 +320,21 @@ export const updateNix = (options: UpdateNixOptions) =>
 
     const repo = yield* resolveActiveRepo(options, config);
     if (repo.flakeKind === "none" || repo.flakePath.length === 0) {
-      return yield* new CliFailure({
-        message:
-          "No Nix flake for this machine. Set linux.profile to oci-agents or ubuntu-wsl, or use a macOS source.",
-      });
+      return yield* missingLinuxFlake(
+        options.profile ?? config.linux?.profile ?? DEFAULT_LINUX_PROFILE,
+      );
     }
 
     yield* tryPromise(() => ensureNixSymlinks(repo));
+    yield* runNixActionWithPublish(options, config, repo);
+  });
 
+function runNixActionWithPublish(
+  options: UpdateNixOptions,
+  config: ManagerConfig,
+  repo: OutfittingRepo,
+) {
+  return Effect.gen(function* () {
     const { lockPath, lockDir, warning } = yield* openActionLock(repo, config);
     let stagedLockDir: string | undefined;
     try {
@@ -318,28 +345,31 @@ export const updateNix = (options: UpdateNixOptions) =>
 
       if (options.noPush === true) {
         yield* Console.log(ui.muted("Skipped Nix lock upload (--no-push)."));
-      } else {
-        const publishPath = lockPath ?? (yield* tryPromise(() => localFlakeLockPath(repo)));
-        if (publishPath === undefined) {
-          return yield* new CliFailure({
-            message: "Nix action succeeded but no flake.lock was available to publish.",
-          });
-        }
-        const stagedLock = yield* tryPromise(() => stageNixLockForPush(publishPath));
-        stagedLockDir = stagedLock.directory;
-        yield* Console.log(ui.heading(`Publishing ${config.machineId}/${NIX_LOCK_KIND}…`));
-        yield* pushLockfile({
-          machine: config.machineId,
-          kind: NIX_LOCK_KIND,
-          path: stagedLock.path,
+        return;
+      }
+
+      const publishPath = lockPath ?? (yield* tryPromise(() => localFlakeLockPath(repo)));
+      if (publishPath === undefined) {
+        return yield* new CliFailure({
+          message: "Nix action succeeded but no flake.lock was available to publish.",
         });
       }
+      const stagedLock = yield* tryPromise(() => stageNixLockForPush(publishPath));
+      stagedLockDir = stagedLock.directory;
+      yield* Console.log(ui.heading(`Publishing ${config.machineId}/${NIX_LOCK_KIND}…`));
+      yield* pushLockfile({
+        machine: config.machineId,
+        kind: NIX_LOCK_KIND,
+        path: stagedLock.path,
+      });
     } finally {
-      if (stagedLockDir !== undefined) {
-        yield* tryPromise(() => rm(stagedLockDir!, { force: true, recursive: true }));
+      const cleanupLockDir = stagedLockDir;
+      if (cleanupLockDir !== undefined) {
+        yield* tryPromise(() => rm(cleanupLockDir, { force: true, recursive: true }));
       }
       if (lockDir !== undefined) {
         yield* tryPromise(() => closeNixLock(lockDir));
       }
     }
   });
+}

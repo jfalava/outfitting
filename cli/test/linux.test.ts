@@ -725,6 +725,59 @@ test("Linux setup consumes an arbitrary apt-only BYOR profile", async () => {
   ]);
 });
 
+test("Linux setup applies a nix-only BYOR profile without native packages", async () => {
+  const stateRoot = await mkdtemp(join(tmpdir(), "outfitting-linux-byor-nix-state-"));
+  const repo = await mkdtemp(join(tmpdir(), "outfitting-linux-byor-nix-repo-"));
+  const calls: Array<{ command: string; args: ReadonlyArray<string> }> = [];
+  let fetchCount = 0;
+  try {
+    await mkdir(join(repo, "system", "server"), { recursive: true });
+    await writeFile(join(repo, "system", "server", "flake.nix"), "{ outputs = {}; }\n");
+    await writeFile(
+      join(repo, "outfitting.json"),
+      `${JSON.stringify({
+        schema: 1,
+        profiles: {
+          "nix-server": {
+            linux: {
+              nix: {
+                flake: "system/server",
+                attribute: "homeConfigurations.server.activationPackage",
+              },
+            },
+          },
+        },
+      })}\n`,
+    );
+
+    await Effect.runPromise(
+      runLinuxSetup({
+        stateRoot,
+        repo,
+        profile: "nix-server",
+        bootstrapNix: false,
+        which: async () => {
+          throw new Error("native package tools must not run for nix-only BYOR");
+        },
+        fetcher: async () => {
+          fetchCount += 1;
+          return new Response("must not fetch a local BYOR repository");
+        },
+        run: async (command, args) => {
+          calls.push({ command, args });
+          return { code: 0, stdout: "", stderr: "" };
+        },
+      }),
+    );
+  } finally {
+    await rm(stateRoot, { force: true, recursive: true });
+    await rm(repo, { force: true, recursive: true });
+  }
+
+  expect(fetchCount).toBe(0);
+  expect(calls).toEqual([]);
+});
+
 test("Linux setup reuses a persisted BYOR repository without repeating --repo", async () => {
   const stateRoot = await mkdtemp(join(tmpdir(), "outfitting-linux-byor-reuse-state-"));
   const repo = await mkdtemp(join(tmpdir(), "outfitting-linux-byor-reuse-repo-"));

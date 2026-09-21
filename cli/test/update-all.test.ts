@@ -13,7 +13,8 @@ vi.mock("@/update/brew", () => ({
   updateBrew: vi.fn(() => Effect.void),
 }));
 vi.mock("@/update/linux", () => ({
-  isLinuxProfile: (value: string) =>
+  isLinuxProfile: (value: string) => /^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(value),
+  isBuiltInLinuxProfile: (value: string) =>
     value === "generic-linux" || value === "oci-agents" || value === "ubuntu-wsl",
   updateLinux: vi.fn(() => Effect.void),
 }));
@@ -91,7 +92,8 @@ test("Linux generic update all stays native-only", async () => {
 });
 
 test("Linux update all continues with native packages after Home Manager fails", async () => {
-  vi.mocked(updateNix).mockReturnValueOnce(
+  // Bun's vi.mocked can lose the mock brand after clearAllMocks; call the mock API directly.
+  (updateNix as ReturnType<typeof vi.fn>).mockReturnValueOnce(
     Effect.fail(new CliFailure({ message: "source unavailable" })),
   );
 

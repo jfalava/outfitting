@@ -16,7 +16,7 @@ import { repoPathFile } from "@/config/paths";
 import type { ManagerConfig } from "@/config/types";
 import { runCommand } from "@/process";
 import { envValue } from "@/secrets";
-import { hasByorContract, readByorContract } from "@/source/contract";
+import { selectByorProfile, tryReadByorContract } from "@/source/contract";
 
 export const DEFAULT_OUTFITTING_REPO_URL = "https://github.com/jfalava/outfitting.git";
 
@@ -172,26 +172,13 @@ async function resolveByorFlakeSelection(
   absolute: string,
   profile: string | undefined,
 ): Promise<FlakeSelection | undefined> {
-  if (!(await hasByorContract(absolute))) {
+  const contract = await tryReadByorContract(absolute);
+  if (contract === undefined) {
     return undefined;
   }
 
-  const contract = await readByorContract(absolute);
-  const names = Object.keys(contract.profiles);
-  const selected =
-    profile ??
-    (names.length === 1
-      ? names[0]
-      : (() => {
-          throw new Error(
-            `The BYOR repository defines multiple profiles. Pass a profile (${names.join(", ")}).`,
-          );
-        })());
-  const declaration = contract.profiles[selected!];
-  if (declaration === undefined) {
-    throw new Error(`Unknown BYOR profile \`${selected}\`. Choose: ${names.join(", ")}.`);
-  }
-  if (declaration.linux.nix === undefined) {
+  const selected = selectByorProfile(contract, profile);
+  if (selected.linux.nix === undefined) {
     return {
       flakePath: "",
       darwinNixPath: "",
@@ -200,18 +187,18 @@ async function resolveByorFlakeSelection(
     };
   }
 
-  const flakePath = join(absolute, declaration.linux.nix.flake);
+  const flakePath = join(absolute, selected.linux.nix.flake);
   if (!(await pathExists(join(flakePath, "flake.nix")))) {
     throw new Error(
-      `BYOR profile \`${selected}\` declares a missing Nix flake at ${join(flakePath, "flake.nix")}.`,
+      `BYOR profile \`${selected.name}\` declares a missing Nix flake at ${join(flakePath, "flake.nix")}.`,
     );
   }
   return {
     flakePath,
     darwinNixPath: "",
     flakeKind: "home-manager",
-    systemAttr: declaration.linux.nix.attribute,
-    homeManagerName: selected,
+    systemAttr: selected.linux.nix.attribute,
+    homeManagerName: selected.name,
   };
 }
 

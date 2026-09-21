@@ -5,7 +5,13 @@ import { join } from "node:path";
 import { afterEach, describe, expect, test } from "vitest";
 
 import { validateOutfittingRepo } from "@/config/repo";
-import { parseByorContract, validateLinuxByorSource } from "@/source/contract";
+import {
+  hasByorContract,
+  parseByorContract,
+  selectByorProfile,
+  tryReadByorContract,
+  validateLinuxByorSource,
+} from "@/source/contract";
 
 const temporaryRoots: string[] = [];
 
@@ -83,7 +89,7 @@ describe("BYOR contract", () => {
     ).toThrow(/repository-relative path without traversal/);
   });
 
-  test("rejects a missing Nix flake and invalid package manifest", async () => {
+  test("rejects an invalid package manifest", async () => {
     const root = await repository();
     await writeContract(root, {
       schema: 1,
@@ -91,7 +97,6 @@ describe("BYOR contract", () => {
         broken: {
           linux: {
             pacman: { manifest: "packages.txt" },
-            nix: { flake: "system", attribute: "homeConfigurations.broken" },
           },
         },
       },
@@ -101,6 +106,88 @@ describe("BYOR contract", () => {
     await expect(validateLinuxByorSource({ root, profile: "broken" })).rejects.toThrow(
       /invalid pacman manifest/,
     );
+  });
+
+  test("rejects a missing Nix flake", async () => {
+    const root = await repository();
+    await writeContract(root, {
+      schema: 1,
+      profiles: {
+        broken: {
+          linux: {
+            nix: { flake: "system", attribute: "homeConfigurations.broken" },
+          },
+        },
+      },
+    });
+
+    await expect(validateLinuxByorSource({ root, profile: "broken" })).rejects.toThrow(
+      /flake.nix is missing/,
+    );
+  });
+
+  test("treats a missing contract as legacy and rejects an invalid contract file", async () => {
+    const missing = await repository();
+    await expect(tryReadByorContract(missing)).resolves.toBeUndefined();
+    await expect(hasByorContract(missing)).resolves.toBe(false);
+
+    const invalid = await repository();
+    await writeFile(join(invalid, "outfitting.json"), "{ not-a-contract: true }\n", "utf8");
+    await expect(tryReadByorContract(invalid)).rejects.toThrow(/not valid JSON/);
+    await expect(hasByorContract(invalid)).rejects.toThrow(/not valid JSON/);
+    await expect(validateOutfittingRepo(invalid)).rejects.toThrow(/not valid JSON/);
+
+    const wrongSchema = await repository();
+    await writeContract(wrongSchema, { schema: 99, profiles: {} });
+    await expect(tryReadByorContract(wrongSchema)).rejects.toThrow(/outfitting\.json is invalid/);
+    await expect(validateOutfittingRepo(wrongSchema)).rejects.toThrow(
+      /outfitting\.json is invalid/,
+    );
+  });
+
+  test("schema failures name the offending path", () => {
+    expect(() =>
+      parseByorContract({
+        schema: 1,
+        profiles: {
+          broken: {
+            linux: {
+              // attribute must be a string; number fails at the Schema boundary.
+              nix: { flake: "home", attribute: 1 },
+            },
+          },
+        },
+      } as never),
+    ).toThrow(/outfitting\.json is invalid/);
+  });
+
+  test("rejects an empty package manifest", async () => {
+    const root = await repository();
+    await writeContract(root, {
+      schema: 1,
+      profiles: {
+        empty: { linux: { apt: { manifest: "packages.txt" } } },
+      },
+    });
+    await writeFile(join(root, "packages.txt"), "# nothing installed\n\n", "utf8");
+    await expect(validateLinuxByorSource({ root, profile: "empty" })).rejects.toThrow(
+      /empty apt manifest/,
+    );
+  });
+
+  test("selectByorProfile is shared by validation and flake resolution", () => {
+    const contract = parseByorContract({
+      schema: 1,
+      profiles: {
+        one: { linux: { apt: { manifest: "one.txt" } } },
+        two: { linux: { pacman: { manifest: "two.txt" } } },
+      },
+    });
+    expect(() => selectByorProfile(contract, undefined)).toThrow("Pass --profile (one, two)");
+    expect(selectByorProfile(contract, "two")).toEqual({
+      name: "two",
+      linux: { pacman: { manifest: "two.txt" } },
+    });
   });
 
   test("resolves an arbitrary Nix output for setup and update commands", async () => {

@@ -10,15 +10,26 @@ import { envValue } from "@/secrets";
 import { linuxSourcePaths } from "@/setup/manifests";
 import { syncSparseSource } from "@/setup/source";
 import { hasByorContract, validateLinuxByorSource } from "@/source/contract";
+import {
+  isBuiltInLinuxProfile,
+  LINUX_PROFILES,
+  type BuiltInLinuxProfile,
+  type LinuxProfile,
+} from "@/source/linux-profile";
 
-export const LINUX_PROFILES = ["generic-linux", "oci-agents", "ubuntu-wsl"] as const;
-export type LinuxProfile = string;
+export {
+  isBuiltInLinuxProfile,
+  isLinuxProfile,
+  LINUX_PROFILES,
+  type BuiltInLinuxProfile,
+  type LinuxProfile,
+} from "@/source/linux-profile";
 
 const LINUX_PROFILE_MANIFEST_PATHS = {
   "generic-linux": "packages/linux/generic-linux.txt",
   "oci-agents": "packages/linux/oci-agents.txt",
   "ubuntu-wsl": "packages/ubuntu-wsl/apt.txt",
-} satisfies Record<LinuxProfile, string>;
+} satisfies Record<BuiltInLinuxProfile, string>;
 
 export interface LinuxSourceOptions {
   config: ManagerConfig;
@@ -37,18 +48,9 @@ export interface LinuxSource {
   repo?: OutfittingRepo;
 }
 
-export function isLinuxProfile(value: string): value is LinuxProfile {
-  return /^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(value);
-}
-
-export function linuxManifestPath(profile: LinuxProfile): string {
-  const path = LINUX_PROFILE_MANIFEST_PATHS[profile as keyof typeof LINUX_PROFILE_MANIFEST_PATHS];
-  if (path === undefined) {
-    throw new Error(
-      `Profile \`${profile}\` is repository-defined; read its manifest from outfitting.json.`,
-    );
-  }
-  return path;
+/** Sparse-source package manifest path for a built-in Linux profile. */
+export function linuxManifestPath(profile: BuiltInLinuxProfile): string {
+  return LINUX_PROFILE_MANIFEST_PATHS[profile];
 }
 
 function isNotFound(cause: unknown): boolean {
@@ -202,6 +204,11 @@ async function refreshSparseSource(root: string, options: LinuxSourceOptions): P
   if (options.offline) {
     throw new Error("--refresh cannot be combined with --offline.");
   }
+  if (!isBuiltInLinuxProfile(options.profile)) {
+    throw new Error(
+      `Profile \`${options.profile}\` is repository-defined; sparse source refresh requires a built-in profile or a local BYOR checkout.`,
+    );
+  }
   await syncSparseSource({
     config: options.config,
     sourceRoot: root,
@@ -266,9 +273,19 @@ export async function readLinuxManifest(
     if (await hasByorContract(root)) {
       return readByorLinuxManifest(root, profile, packageManager);
     }
+    if (!isBuiltInLinuxProfile(profile)) {
+      throw new Error(
+        `Unknown Linux profile \`${profile}\`. Built-ins: ${LINUX_PROFILES.join(", ")}. BYOR profiles require outfitting.json.`,
+      );
+    }
     return readFile(join(root, linuxManifestPath(profile)), "utf8");
   }
 
+  if (!isBuiltInLinuxProfile(profile)) {
+    throw new Error(
+      `Unknown Linux profile \`${profile}\`. Built-ins: ${LINUX_PROFILES.join(", ")}. BYOR profiles require outfitting.json.`,
+    );
+  }
   const relative = linuxManifestPath(profile);
 
   for (const path of [

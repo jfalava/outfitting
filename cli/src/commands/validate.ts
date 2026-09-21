@@ -19,20 +19,17 @@ export const validateCommand = Command.make(
     ),
   },
   ({ repo, profile }) =>
-    tryPromise(() =>
-      validateLinuxByorSource({
-        root: Option.getOrElse(repo, () => process.cwd()),
-        profile: Option.getOrUndefined(profile),
-      }),
-    ).pipe(
-      Effect.flatMap((result) =>
-        Effect.gen(function* () {
-          yield* Console.log(ui.success(`BYOR contract valid: ${result.root}`));
-          yield* Console.log(`profile: ${result.profile}`);
-          yield* Console.log(`backends: ${result.backends.join(", ")}`);
+    Effect.gen(function* () {
+      const result = yield* tryPromise(() =>
+        validateLinuxByorSource({
+          root: Option.getOrElse(repo, () => process.cwd()),
+          profile: Option.getOrUndefined(profile),
         }),
-      ),
-    ),
+      );
+      yield* Console.log(ui.success(`BYOR contract valid: ${result.root}`));
+      yield* Console.log(`profile: ${result.profile}`);
+      yield* Console.log(`backends: ${result.backends.join(", ")}`);
+    }),
 ).pipe(
   Command.withDescription("Validate a repository-owned Linux profile without changing the system."),
 );

@@ -1,9 +1,10 @@
 import { readFile, realpath, stat } from "node:fs/promises";
 import { isAbsolute, join } from "node:path";
 
-import { Option, Schema } from "effect";
+import { Result, Schema } from "effect";
 
 import { parseLinuxPackageManifest } from "@/source/linux-manifest";
+import { isLinuxProfile, type LinuxProfile } from "@/source/linux-profile";
 
 export const BYOR_CONTRACT_PATH = "outfitting.json";
 export const BYOR_CONTRACT_SCHEMA = 1;
@@ -34,21 +35,17 @@ export interface ByorContract {
   profiles: Readonly<Record<string, ByorProfileDeclaration>>;
 }
 
+export interface SelectedByorProfile {
+  name: LinuxProfile;
+  linux: LinuxProfileDeclaration;
+}
+
 export interface ValidatedLinuxByorProfile {
   root: string;
-  profile: string;
+  profile: LinuxProfile;
   contract: ByorContract;
   linux: LinuxProfileDeclaration;
   backends: ReadonlyArray<LinuxPackageBackend | "nix">;
-}
-
-export async function hasByorContract(root: string): Promise<boolean> {
-  try {
-    await stat(join(root, BYOR_CONTRACT_PATH));
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 type JsonPrimitive = string | number | boolean | null;
@@ -81,7 +78,13 @@ type DecodedNixDeclaration = Schema.Schema.Type<typeof NixDeclarationSchema>;
 type DecodedLinuxProfile = Schema.Schema.Type<typeof LinuxProfileSchema>;
 type DecodedContract = Schema.Schema.Type<typeof ByorContractSchema>;
 
-const decodeByorContract = Schema.decodeUnknownOption(ByorContractSchema);
+const decodeByorContract = Schema.decodeUnknownResult(ByorContractSchema);
+
+function isEnoent(cause: unknown): boolean {
+  return (
+    cause instanceof Error && "code" in cause && (cause as NodeJS.ErrnoException).code === "ENOENT"
+  );
+}
 
 function requiredString(value: string, label: string): string {
   if (value.trim().length === 0) {
@@ -90,9 +93,9 @@ function requiredString(value: string, label: string): string {
   return value.trim();
 }
 
-function profileName(value: string, label: string): string {
+function profileName(value: string, label: string): LinuxProfile {
   const profile = requiredString(value, label);
-  if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(profile)) {
+  if (!isLinuxProfile(profile)) {
     throw new Error(`${label} must contain only letters, numbers, ., _, and -.`);
   }
   return profile;
@@ -153,10 +156,15 @@ function parseLinuxProfile(value: DecodedLinuxProfile, label: string): LinuxProf
 /** Parse and validate the repository-owned BYOR contract. */
 export function parseByorContract(value: JsonValue): ByorContract {
   const decoded = decodeByorContract(value);
-  if (Option.isNone(decoded)) {
-    throw new Error(`${BYOR_CONTRACT_PATH} must match schema ${BYOR_CONTRACT_SCHEMA}.`);
+  if (Result.isFailure(decoded)) {
+    const detail = decoded.failure.message.trim();
+    throw new Error(
+      detail.length > 0
+        ? `${BYOR_CONTRACT_PATH} is invalid:\n${detail}`
+        : `${BYOR_CONTRACT_PATH} must match schema ${BYOR_CONTRACT_SCHEMA}.`,
+    );
   }
-  const contract: DecodedContract = decoded.value;
+  const contract: DecodedContract = decoded.success;
   if (Object.keys(contract.profiles).length === 0) {
     throw new Error(`${BYOR_CONTRACT_PATH}.profiles must contain at least one profile.`);
   }
@@ -177,10 +185,14 @@ async function fileExists(path: string): Promise<boolean> {
   }
 }
 
-function selectProfile(
+/**
+ * Select a profile from a parsed contract.
+ * Shared by validation and flake resolution so messages and defaults stay identical.
+ */
+export function selectByorProfile(
   contract: ByorContract,
   requested: string | undefined,
-): [string, LinuxProfileDeclaration] {
+): SelectedByorProfile {
   if (requested !== undefined) {
     const name = profileName(requested, "--profile");
     const profile = contract.profiles[name];
@@ -189,7 +201,7 @@ function selectProfile(
         `Unknown BYOR profile \`${name}\`. Choose: ${Object.keys(contract.profiles).join(", ")}.`,
       );
     }
-    return [name, profile.linux];
+    return { name, linux: profile.linux };
   }
 
   const names = Object.keys(contract.profiles);
@@ -198,13 +210,17 @@ function selectProfile(
       `The BYOR repository defines multiple profiles. Pass --profile (${names.join(", ")}).`,
     );
   }
-  const name = names[0]!;
-  return [name, contract.profiles[name]!.linux];
+  const name = profileName(names[0]!, `${BYOR_CONTRACT_PATH}.profiles profile name`);
+  const profile = contract.profiles[name];
+  if (profile === undefined) {
+    throw new Error(`Unknown BYOR profile \`${name}\`.`);
+  }
+  return { name, linux: profile.linux };
 }
 
 async function validatePackageBackend(options: {
   root: string;
-  profile: string;
+  profile: LinuxProfile;
   backend: LinuxPackageBackend;
   declaration: LinuxPackageDeclaration;
 }): Promise<LinuxPackageBackend> {
@@ -233,7 +249,7 @@ async function validatePackageBackend(options: {
 
 async function validateNixBackend(options: {
   root: string;
-  profile: string;
+  profile: LinuxProfile;
   declaration: LinuxNixDeclaration;
 }): Promise<"nix"> {
   const flakePath = join(options.root, options.declaration.flake, "flake.nix");
@@ -248,6 +264,10 @@ async function validateNixBackend(options: {
   return "nix";
 }
 
+/**
+ * Read and parse `outfitting.json`.
+ * Missing file throws; invalid JSON or schema throws — never treated as legacy.
+ */
 export async function readByorContract(root: string): Promise<ByorContract> {
   let raw: string;
   try {
@@ -266,6 +286,36 @@ export async function readByorContract(root: string): Promise<ByorContract> {
     throw new Error(`${BYOR_CONTRACT_PATH} is not valid JSON.`, { cause });
   }
   return parseByorContract(parsed);
+}
+
+/**
+ * Load a BYOR contract when present.
+ * - missing `outfitting.json` → `undefined` (legacy layout)
+ * - present but invalid → throw (do not fall through to legacy markers)
+ */
+export async function tryReadByorContract(root: string): Promise<ByorContract | undefined> {
+  let raw: string;
+  try {
+    raw = await readFile(join(root, BYOR_CONTRACT_PATH), "utf8");
+  } catch (cause) {
+    if (isEnoent(cause)) {
+      return undefined;
+    }
+    throw cause;
+  }
+
+  let parsed: JsonValue;
+  try {
+    parsed = JSON.parse(raw) as JsonValue;
+  } catch (cause) {
+    throw new Error(`${BYOR_CONTRACT_PATH} is not valid JSON.`, { cause });
+  }
+  return parseByorContract(parsed);
+}
+
+/** True when the root contains a parseable BYOR contract. Invalid files throw. */
+export async function hasByorContract(root: string): Promise<boolean> {
+  return (await tryReadByorContract(root)) !== undefined;
 }
 
 /** Validate a user-provided Linux BYOR repository without changing the host. */
@@ -288,20 +338,39 @@ export async function validateLinuxByorSource(options: {
   }
 
   const contract = await readByorContract(root);
-  const [profile, linux] = selectProfile(contract, options.profile);
+  const selected = selectByorProfile(contract, options.profile);
   const backends: Array<LinuxPackageBackend | "nix"> = [];
 
   for (const backend of ["apt", "pacman"] as const) {
-    const declaration = linux[backend];
+    const declaration = selected.linux[backend];
     if (declaration === undefined) {
       continue;
     }
-    backends.push(await validatePackageBackend({ root, profile, backend, declaration }));
+    backends.push(
+      await validatePackageBackend({
+        root,
+        profile: selected.name,
+        backend,
+        declaration,
+      }),
+    );
   }
 
-  if (linux.nix !== undefined) {
-    backends.push(await validateNixBackend({ root, profile, declaration: linux.nix }));
+  if (selected.linux.nix !== undefined) {
+    backends.push(
+      await validateNixBackend({
+        root,
+        profile: selected.name,
+        declaration: selected.linux.nix,
+      }),
+    );
   }
 
-  return { root, profile, contract, linux, backends };
+  return {
+    root,
+    profile: selected.name,
+    contract,
+    linux: selected.linux,
+    backends,
+  };
 }

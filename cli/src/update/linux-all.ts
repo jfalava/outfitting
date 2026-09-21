@@ -18,7 +18,7 @@ function validateLinuxUpdateAll(config: LinuxUpdateAllOptions["config"], offline
   const profile = config?.linux?.profile ?? DEFAULT_LINUX_PROFILE;
   if (!isLinuxProfile(profile)) {
     return new CliFailure({
-      message: `Unknown Linux profile \`${profile}\`. Choose: generic-linux, oci-agents, ubuntu-wsl.`,
+      message: `Invalid Linux profile \`${profile}\`. Built-ins: generic-linux, oci-agents, ubuntu-wsl; BYOR names are allowed when outfitting.json is present.`,
     });
   }
   if (offline) {

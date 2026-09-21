@@ -2,7 +2,7 @@ import { Option } from "effect";
 import { Flag } from "effect/unstable/cli";
 
 import { type LinuxPackageManager } from "@/platform/linux";
-import { isLinuxProfile, LINUX_PROFILES } from "@/update/linux";
+import { isLinuxProfile, LINUX_PROFILES, type LinuxProfile } from "@/update/linux";
 
 export const linuxProfileFlag = Flag.String("profile").pipe(
   Flag.withDefault("generic-linux"),
@@ -45,7 +45,7 @@ export function requestedLinuxPackageManager(
   return manager;
 }
 
-export function requireLinuxProfile(profile: string): string {
+export function requireLinuxProfile(profile: string): LinuxProfile {
   if (!isLinuxProfile(profile)) {
     throw new Error(
       `Invalid Linux profile \`${profile}\`. Use letters, numbers, ., _, and - only.`,

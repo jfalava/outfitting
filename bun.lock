@@ -79,7 +79,7 @@
       "version": "0.35.0",
       "dependencies": {
         "@cloudflare/nimbus-docs": "0.14.1",
-        "@fontsource/google-sans-code": "5.3.0",
+        "@fontsource/google-sans-code": "5.3.1",
         "@fontsource/ibm-plex-sans": "5.3.0",
         "@fontsource/zilla-slab": "5.3.0",
         "@iconify-json/ph": "1.2.2",
@@ -495,7 +495,7 @@
 
     "@eslint/plugin-kit": ["@eslint/plugin-kit@0.7.3", "", { "dependencies": { "@eslint/core": "^1.2.1", "levn": "^0.4.1" } }, "sha512-IkO+/KEUvwbVpiURZg+P7zF74z5Jxe0UgJxVni+RtoHQ6IZieXaO02kmadomap/q+l6bc/jdPGGqTjhuZnuz1Q=="],
 
-    "@fontsource/google-sans-code": ["@fontsource/google-sans-code@5.3.0", "", {}, "sha512-z1IDzMNX66oWak+RSEwk84DxsglnEuLDERpMnzzuatLTewbFeB/HM/aKXOkpXMKGDT3tm+TQZaX59q8g6+BqQw=="],
+    "@fontsource/google-sans-code": ["@fontsource/google-sans-code@5.3.1", "", {}, "sha512-TMhtUlLvRjgwO4jdP3uXXqOtfrV2QenJxsXXRWhA169HMrescdhzVMxNtTKKL5Z7a/cSCchxA66USV5uwbJE4w=="],
 
     "@fontsource/ibm-plex-sans": ["@fontsource/ibm-plex-sans@5.3.0", "", {}, "sha512-CbE4CbbEEZJX860XyUiRpsksXIQR8Rp2XDva2VO53NJox9tVNtusrysd2x5YkUEY3ErQ66W1IiiQL8/wihhw5w=="],
 

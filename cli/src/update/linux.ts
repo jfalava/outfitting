@@ -22,6 +22,7 @@ import { runCommand, which } from "@/process";
 import { parseLinuxPackageManifest } from "@/source/linux-manifest";
 import { ui } from "@/ui";
 import {
+  isBuiltInLinuxProfile,
   isLinuxProfile,
   LINUX_PROFILES,
   prepareLinuxSource,
@@ -31,9 +32,11 @@ import {
 } from "@/update/linux-source";
 
 export {
+  isBuiltInLinuxProfile,
   isLinuxProfile,
   LINUX_PROFILES,
   linuxManifestPath,
+  type BuiltInLinuxProfile,
   type LinuxProfile,
 } from "@/update/linux-source";
 
@@ -227,7 +230,9 @@ export interface LinuxApplyOptions<ConfirmR = never> extends LinuxUpdateOptions 
 function resolveProfile(value: string | undefined, config?: ManagerConfig): LinuxProfile {
   const profile = value ?? config?.linux?.profile ?? DEFAULT_LINUX_PROFILE;
   if (!isLinuxProfile(profile)) {
-    throw new Error(`Unknown Linux profile \`${profile}\`. Choose: ${LINUX_PROFILES.join(", ")}.`);
+    throw new Error(
+      `Invalid Linux profile \`${profile}\`. Use letters, numbers, ., _, and - only. Built-ins: ${LINUX_PROFILES.join(", ")}.`,
+    );
   }
   return profile;
 }
@@ -280,12 +285,13 @@ export async function runLinuxProfileBootstrap(
   config: ManagerConfig,
   run: typeof runCommand,
 ): Promise<void> {
+  if (!isBuiltInLinuxProfile(profile) || profile === "generic-linux") {
+    return;
+  }
   if (profile === "oci-agents") {
     return runLinuxOciBootstrap(config, run);
   }
-  if (profile === "ubuntu-wsl") {
-    return runLinuxWslBootstrap(config, run);
-  }
+  return runLinuxWslBootstrap(config, run);
 }
 
 async function runLinuxBootstrapScript(

@@ -3,6 +3,7 @@ export { updateLinuxAll, type LinuxUpdateAllOptions } from "@/update/linux-all";
 export { parseBunGlobalList } from "@/update/bun";
 export { updateBrew, parseBrewfileTaps, BREWFILE_MANIFEST_PATH } from "@/update/brew";
 export {
+  isBuiltInLinuxProfile,
   isLinuxProfile,
   applyLinux,
   linuxManifestPath,
@@ -13,6 +14,7 @@ export {
   missingLinuxPackages,
   parseLinuxPackageManifest,
   updateLinux,
+  type BuiltInLinuxProfile,
   type LinuxPackageAction,
   type LinuxPackageInventoryOptions,
   type LinuxProfile,

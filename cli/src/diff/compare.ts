@@ -411,7 +411,7 @@ function resolveLinuxDiffProfile(
   }
   const profile = profiles?.[0] ?? config.linux?.profile ?? DEFAULT_LINUX_PROFILE;
   if (!isLinuxProfile(profile)) {
-    throw new Error(`Unknown Linux profile \`${profile}\`.`);
+    throw new Error(`Invalid Linux profile \`${profile}\`.`);
   }
   return profile;
 }
