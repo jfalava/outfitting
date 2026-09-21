@@ -14,14 +14,16 @@ outfitting-manager init
 outfitting-manager init --no-fetch
 ```
 
-Common source options are [`--machine-id`](/docs/source-configuration/#machine-id), `--manifest-base-url`, `--manifest-ref`, and `--no-fetch`. macOS and Linux also accept `--repo`; Windows and Linux accept `--profile` as described in [Profiles](/docs/source-configuration/#profiles).
+Common source options are [`--machine-id`](/docs/source-configuration/#machine-id), `--manifest-base-url`, `--manifest-ref`, and `--no-fetch`. macOS and Linux also accept `--repo`; all platforms accept `--profile` when the selected source uses profiles (Windows always; Linux always; macOS when a BYOR contract declares several names). See [Profiles](/docs/source-configuration/#profiles) and [BYOR](/docs/source-configuration/#byor-outfittingjson).
 
 `--no-fetch` creates or refreshes configuration while using declarations already cached in the state root. Source overrides are saved for later commands.
 
+To check a repository-owned `outfitting.json` without writing state, use [validate](/docs/cli/validate/).
+
 ## Platform differences
 
-| Platform | What `init` prepares                                                                                 | Platform-specific invocation                                            |
-| -------- | ---------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| macOS    | A sparse macOS source or a saved local checkout, validated for the nix-darwin and Brewfile contract. | `outfitting-manager init --repo ~/src/my-machine-config`                |
-| Windows  | Configured manifests and the cached PowerShell profile.                                              | `outfitting-manager init --profile base,dev`                            |
-| Linux    | The selected profile-scoped source and persisted `linux.profile`.                                    | `outfitting-manager init --profile ubuntu-wsl --repo ~/code/outfitting` |
+| Platform | What `init` prepares                                                                                                      | Platform-specific invocation                                            |
+| -------- | ------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| macOS    | A sparse macOS source or a saved local checkout (legacy layout or BYOR macOS contract).                                   | `outfitting-manager init --repo ~/src/my-machine-config`                |
+| Windows  | Configured manifests and the cached PowerShell profile, or a local BYOR Windows checkout.                                 | `outfitting-manager init --profile base,dev`                            |
+| Linux    | The selected profile-scoped source and persisted `linux.profile` (built-in or BYOR).                                      | `outfitting-manager init --profile ubuntu-wsl --repo ~/code/outfitting` |

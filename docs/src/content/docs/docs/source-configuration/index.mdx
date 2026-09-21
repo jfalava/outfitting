@@ -29,15 +29,33 @@ For macOS and Linux, `OUTFITTING_REPO` takes precedence over the saved `repo-pat
 
 ## Profiles
 
-Windows profiles are comma-composable bundles. For example, `--profile base,dev` combines both manifests and records both bundles as active. Linux profiles are exclusive: `--profile ubuntu-wsl` replaces the active Linux profile rather than composing with it. macOS has one platform configuration and does not expose profile selection.
+| Platform | Profile model                                      | Typical selection                                                 |
+| -------- | -------------------------------------------------- | ----------------------------------------------------------------- |
+| macOS    | One exclusive profile (built-in layout or BYOR)    | Optional `--profile` when a BYOR contract declares several names. |
+| Windows  | Multiple comma-composable bundles                  | `--profile base,dev`                                              |
+| Linux    | One exclusive profile (built-in or BYOR)           | `--profile generic-linux`, `--profile ubuntu-wsl`, or a BYOR name |
 
-Windows commands and Linux `apply` reuse the saved active selection when `--profile` is omitted. New Windows state uses configured default profiles; new Linux state defaults to `generic-linux`. Linux `init` and `setup` default explicitly to `generic-linux`, so pass `--profile` when preparing a different Linux profile. Package upgrades do not select a profile; Linux Nix actions use the saved profile.
+Windows profiles are comma-composable. Linux and macOS profiles are exclusive: selecting one replaces the active profile rather than composing with it.
 
-| Platform | Profile model                     | Typical selection                                   |
-| -------- | --------------------------------- | --------------------------------------------------- |
-| macOS    | One platform configuration        | No `--profile` option.                              |
-| Windows  | Multiple comma-composable bundles | `--profile base,dev`                                |
-| Linux    | One exclusive profile             | `--profile generic-linux` or `--profile ubuntu-wsl` |
+Windows commands and Linux `apply` reuse the saved active selection when `--profile` is omitted. New Windows state uses configured default profiles (or BYOR `windows.defaultProfiles`); new Linux state defaults to `generic-linux`. Linux `init` and `setup` default explicitly to `generic-linux`, so pass `--profile` when preparing a different Linux profile. Package upgrades do not select a profile; Linux Nix actions use the saved profile.
+
+## BYOR (`outfitting.json`)
+
+A repository-owned contract at the checkout root can declare platform blocks without matching Outfitting’s monorepo paths. Schema `1` profiles may include `linux`, `windows`, and/or `macos`. Validate without changing the host:
+
+```bash
+outfitting-manager validate --repo ~/src/my-machine-config --platform linux
+```
+
+Pass `--platform` when the contract declares more than one platform. Contracts require a **local checkout** (`--repo`, `OUTFITTING_REPO`, or saved `repo-path`). Hosted sparse/raw sources still use each platform’s built-in layout or Windows `config.json` routes.
+
+| Platform | Contract surface                         | Detail                                              |
+| -------- | ---------------------------------------- | --------------------------------------------------- |
+| Linux    | `profiles.*.linux` (apt / pacman / nix)  | [BYOR for Linux](/docs/source-configuration/byor/linux/)     |
+| Windows  | `profiles.*.windows.winget` + optional top-level `windows` | [BYOR for Windows](/docs/source-configuration/byor/windows/) |
+| macOS    | `profiles.*.macos` (nix + optional brewfile/fonts/paths) | [BYOR for macOS](/docs/source-configuration/byor/macos/)     |
+
+See also [validate](/docs/cli/validate/).
 
 ## Machine ID
 
@@ -47,7 +65,7 @@ The ID scopes remote state. Set it deliberately when multiple installations shou
 
 ## Platform source layouts
 
-Each platform consumes a different local source layout. macOS and Linux fetch only the files required by their selected source bundle. Windows caches the repository-relative manifests and profile files it needs.
+Each platform consumes a different local source layout. macOS and Linux fetch only the files required by their selected source bundle when no full checkout is selected. Windows caches the repository-relative manifests and profile files it needs.
 
 ### Windows
 
@@ -59,7 +77,7 @@ Windows stores configuration and fetched manifests under:
 %USERPROFILE%\.config\outfitting
 ```
 
-`config.json` records the manifest source and repository-relative Windows routes. `manifests` contains the selected WinGet files, the configured Scoop manifest, and the cached PowerShell profile. Windows package reconciliation does not require a monorepo checkout.
+`config.json` records the manifest source and repository-relative Windows routes. `manifests` contains the selected WinGet files, the configured Scoop manifest, and the cached PowerShell profile. Windows package reconciliation does not require a monorepo checkout when using hosted routes; a local BYOR checkout supplies contract paths instead.
 
 The installer links these PowerShell profile entry points to the cached profile:
 
@@ -80,7 +98,7 @@ Existing profiles are backed up with a timestamp before they are replaced. Windo
 ~/.nixpkgs/darwin-configuration.nix -> ~/.config/outfitting/source/system/macos/darwin.nix
 ```
 
-The macOS manager fetches its allowlisted source paths into `~/.config/outfitting/source`; it does not clone the monorepo or create a repository `flake.lock`. `outfitting-manager init` validates the source before `outfitting-manager setup` applies it. Repository requirements are documented in [BYOR for macOS](/docs/source-configuration/byor/macos/).
+Without a local BYOR contract, the macOS manager fetches its allowlisted monorepo paths into `~/.config/outfitting/source`; it does not clone the monorepo or create a repository `flake.lock`. `outfitting-manager init` validates the source before `outfitting-manager setup` applies it. With a local `outfitting.json` macOS profile, flake and Brewfile paths come from the contract. See [BYOR for macOS](/docs/source-configuration/byor/macos/).
 
 ### Linux
 
@@ -90,13 +108,13 @@ Linux keeps a profile-scoped sparse source at:
 ~/.config/outfitting/source
 ```
 
-The bundle contains the selected profile's package manifest and, for Nix-backed profiles, the shared modules, dotfiles, flake, lockfile, bootstrap, and Zsh plugin.
+For built-in profiles, the bundle contains the selected profile's package manifest and, for Nix-backed profiles, the shared modules, dotfiles, flake, lockfile, bootstrap, and Zsh plugin.
 
-Home Manager links for Nix-backed profiles point to the selected source:
+Home Manager links for built-in Nix-backed profiles point to the selected source:
 
 ```text
 ~/.config/home-manager -> ~/.config/outfitting/source/system/ubuntu-wsl
 ~/.config/home-manager -> ~/.config/outfitting/source/system/oci-agents
 ```
 
-Use [BYOR for Linux](/docs/source-configuration/byor/linux/) when the source should come from a full checkout or a repository other than the default Outfitting source.
+Use [BYOR for Linux](/docs/source-configuration/byor/linux/) when the source should come from a full checkout with a repository-owned contract or a layout other than the default Outfitting sparse source.

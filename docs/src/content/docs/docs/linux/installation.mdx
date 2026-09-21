@@ -23,7 +23,7 @@ The installer will detect the package manager of your distro. State lives under 
 
 ## Profiles
 
-By default you get the portable package list. Other profiles select a different package manifest and, when present, a Home Manager flake:
+By default you get the portable package list. Other built-in profiles select a different package manifest and, when present, a Home Manager flake:
 
 | Profile         | Role                                                                   |
 | --------------- | ---------------------------------------------------------------------- |
@@ -44,15 +44,20 @@ outfitting-manager setup --no-fetch
 
 ## BYOR (Bring Your Own Repo)
 
-You can use a compatible repository instead of the default Outfitting source. For a local checkout, select a profile and pass its path to setup:
+### Local contract (`outfitting.json`)
+
+Point the manager at a checkout that declares Linux profiles, then validate and apply without requiring Outfitting’s default layout:
 
 ```bash
-outfitting-manager setup \
-  --profile generic-linux \
-  --repo ~/src/my-machine-config
+outfitting-manager validate --repo ~/src/my-machine-config --platform linux
+outfitting-manager setup --repo ~/src/my-machine-config --profile debian-minimal
 ```
 
-For a hosted repository, provide its raw-content base URL and Git ref:
+Profiles may declare apt, pacman, nix, or any combination. See [BYOR for Linux](/docs/source-configuration/byor/linux/) for the contract schema and multi-platform contracts.
+
+### Hosted sparse source
+
+For a hosted repository without a local checkout, provide its raw-content base URL and Git ref. Hosted sources still use the built-in profile layouts (`generic-linux`, `oci-agents`, `ubuntu-wsl`):
 
 ```bash
 outfitting-manager setup \
@@ -61,6 +66,4 @@ outfitting-manager setup \
   --manifest-ref main
 ```
 
-Use `--profile oci-agents` or `--profile ubuntu-wsl` when the repository provides that Home Manager configuration. The repository must include the selected profile's package manifest; Nix-backed profiles also require their profile flake, lockfile, Home Manager files, shared modules, and bootstrap files. Setup validates and selects the source before applying packages or Home Manager state.
-
-For command-level workflows, see [init](/docs/cli/init/), [setup](/docs/cli/setup/), and the [Linux CLI reference](/docs/cli/linux/).
+For command-level workflows, see [init](/docs/cli/init/), [setup](/docs/cli/setup/), [validate](/docs/cli/validate/), and the [Linux CLI reference](/docs/cli/linux/).

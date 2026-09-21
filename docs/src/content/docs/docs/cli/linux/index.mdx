@@ -44,10 +44,15 @@ outfitting-manager apply apt
 
 Without `--repo`, the sparse source is `$HOME/.config/outfitting/source`. Set `OUTFITTING_REPO` or pass `--repo` for a full checkout.
 
+## BYOR
+
+Local checkouts may declare arbitrary Linux profiles in `outfitting.json`. See [BYOR for Linux](/docs/source-configuration/byor/linux/) and [validate](/docs/cli/validate/).
+
 ## Commands
 
 - [Init](/docs/cli/init/) — materialize source and record the profile.
 - [Setup](/docs/cli/setup/) — initialize and install missing declarations.
+- [Validate](/docs/cli/validate/) — check a repository-owned `outfitting.json` without applying it.
 - [Apply](/docs/cli/apply/) — reconcile cached apt or pacman declarations.
 - [Update](/docs/cli/update/) — upgrade installed packages.
 - [Sync](/docs/cli/sync/) — transport remote state.

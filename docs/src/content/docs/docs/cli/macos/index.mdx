@@ -8,10 +8,15 @@ sidebar:
 
 The macOS installer provides the compiled `outfitting-manager` and the Zsh profile puts it on `PATH`.
 
+## BYOR
+
+Local checkouts may declare a macOS profile in `outfitting.json` with custom flake, Brewfile, and fonts paths. See [BYOR for macOS](/docs/source-configuration/byor/macos/) and [validate](/docs/cli/validate/).
+
 ## Commands
 
-- [Init](/docs/cli/init/) - validate the state and repository source without applying it.
+- [Init](/docs/cli/init/) - prepare the state and repository source without applying it.
 - [Setup](/docs/cli/setup/) - activate Nix and install missing Homebrew declarations.
+- [Validate](/docs/cli/validate/) - check a repository-owned `outfitting.json` without applying it.
 - [Update](/docs/cli/update/) - upgrade installed Nix and Homebrew state.
 - [Diff](/docs/cli/diff/) - compare live Homebrew and Nix state with the repository.
 - [Snapshot](/docs/cli/macos/snapshot/) - capture observed Homebrew state.

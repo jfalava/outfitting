@@ -1,0 +1,40 @@
+---
+title: Validate
+description: Validate a repository-owned outfitting.json contract without changing the machine.
+sidebar:
+  order: 7
+---
+
+`validate` checks a local BYOR checkout’s `outfitting.json` without installing packages, evaluating flakes for activation, or writing machine state beyond reading the contract.
+
+## Usage
+
+```bash
+outfitting-manager validate
+outfitting-manager validate --repo ~/src/my-machine-config
+outfitting-manager validate --repo ~/src/my-machine-config --profile workstation
+outfitting-manager validate --repo ~/src/my-machine-config --platform linux
+```
+
+| Flag         | Purpose                                                                                          |
+| ------------ | ------------------------------------------------------------------------------------------------ |
+| `--repo`     | Local repository root (default: current directory).                                              |
+| `--profile`  | Profile name. Required when several Linux or macOS profiles exist. Comma-separated for Windows. |
+| `--platform` | `linux`, `windows`, or `macos` when the contract declares more than one platform.              |
+
+## What it checks
+
+- Schema `1` shape and path safety (no traversal outside the checkout).
+- **Linux:** selected profile backends (apt / pacman / nix), non-empty manifests, flake file when declared.
+- **Windows:** selected winget manifests and optional shared scoop / PowerShell / fonts / registry paths.
+- **macOS:** flake contains `darwinConfigurations`, darwin module path, optional brewfile / fonts / extra paths.
+
+Success prints the root, platform, and selected profile(s). Failures name the offending field or missing file.
+
+## Platform notes
+
+- Available on the Linux, Windows, and macOS manager entrypoints.
+- Auto-detects the platform when only one is declared; otherwise pass `--platform`.
+- Contracts require a **local checkout**. Hosted sparse sources are not validated as BYOR contracts.
+
+Repository shapes are documented under [source configuration](/docs/source-configuration/) and the per-platform [BYOR](/docs/source-configuration/byor/linux/) pages.
