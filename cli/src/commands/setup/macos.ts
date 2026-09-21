@@ -1,8 +1,17 @@
-import { Option } from "effect";
+import { realpath } from "node:fs/promises";
+import { isAbsolute, resolve } from "node:path";
+
+import { Effect, Option } from "effect";
 import { Command, Flag } from "effect/unstable/cli";
 
+import { tryPromise } from "@/lockfiles/effect";
 import { MACOS_SOURCE_PATHS } from "@/setup/manifests";
 import { runSetup } from "@/setup/run";
+import {
+  byorContractPlatforms,
+  tryReadByorContract,
+  validateMacosByorSource,
+} from "@/source/contract";
 
 /**
  * Prepare and validate the macOS state root and repository source. This
@@ -27,23 +36,48 @@ export const macosInitCommand = Command.make(
       Flag.optional,
       Flag.withDescription("Existing local repository checkout to validate and use."),
     ),
+    profile: Flag.String("profile").pipe(
+      Flag.optional,
+      Flag.withDescription(
+        "BYOR macOS profile when outfitting.json defines more than one macOS profile.",
+      ),
+    ),
     noFetch: Flag.Boolean("no-fetch").pipe(
       Flag.withDefault(false),
       Flag.withDescription("Skip fetching; validate the source already in the state root."),
     ),
   },
-  ({ machineId, manifestBaseUrl, manifestRef, repo, noFetch }) => {
+  ({ machineId, manifestBaseUrl, manifestRef, repo, profile, noFetch }) => {
     const repoPath = Option.getOrUndefined(repo);
-    return runSetup({
-      machineId: Option.getOrUndefined(machineId),
-      manifestBaseUrl: Option.getOrUndefined(manifestBaseUrl),
-      manifestRef: Option.getOrUndefined(manifestRef),
-      repo: repoPath,
-      fetchManifests: !noFetch && repoPath === undefined,
-      sourcePaths: MACOS_SOURCE_PATHS,
-      skipSymlinks: true,
-      validateSource: true,
-      nextCommand: "Next: outfit setup",
+    const profileName = Option.getOrUndefined(profile);
+
+    return Effect.gen(function* () {
+      let byor = false;
+      let resolvedRepo = repoPath;
+      if (repoPath !== undefined) {
+        const absolute = isAbsolute(repoPath) ? repoPath : resolve(repoPath);
+        const root = yield* tryPromise(() => realpath(absolute));
+        const contract = yield* tryPromise(() => tryReadByorContract(root));
+        if (contract !== undefined && byorContractPlatforms(contract).macos) {
+          yield* tryPromise(() => validateMacosByorSource({ root, profile: profileName }));
+          byor = true;
+          resolvedRepo = root;
+        }
+      }
+
+      yield* runSetup({
+        machineId: Option.getOrUndefined(machineId),
+        manifestBaseUrl: Option.getOrUndefined(manifestBaseUrl),
+        manifestRef: Option.getOrUndefined(manifestRef),
+        repo: resolvedRepo,
+        repoProfile: profileName,
+        // Local BYOR checkout: skip sparse monorepo fetch and fixed-path validation list.
+        fetchManifests: byor ? false : !noFetch && repoPath === undefined,
+        sourcePaths: byor ? undefined : MACOS_SOURCE_PATHS,
+        skipSymlinks: true,
+        validateSource: true,
+        nextCommand: "Next: outfit setup",
+      });
     });
   },
 ).pipe(

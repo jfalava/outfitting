@@ -60,12 +60,12 @@ Repositories can describe arbitrary Windows profile names and artifact paths:
 
 Rules:
 
-- Each profile must declare `linux` and/or `windows`.
+- Each profile must declare `linux`, `windows`, and/or `macos`.
 - A Windows profile must declare `winget` with a non-empty valid WinGet list.
 - Top-level `windows` is optional. When omitted, defaults are every profile that has `windows.winget`.
 - Paths are repository-relative and cannot traverse outside the checkout.
 - Windows profiles are composable: pass comma-separated names (`--profile base,dev`).
-- The same contract may mix Linux and Windows profiles. Use `--platform windows` (or `linux`) with `validate` when both are present.
+- The same contract may mix Linux, Windows, and macOS profiles. Use `--platform windows` (or `linux` / `macos`) with `validate` when more than one platform is present. See also [BYOR for macOS](/docs/source-configuration/byor/macos/).
 
 Validate without changing machine state:
 

@@ -71,7 +71,7 @@ outfitting-manager setup \
 
 The built-in `generic-linux`, `oci-agents`, and `ubuntu-wsl` layouts remain supported for existing repositories. Repository-owned contracts currently require a local checkout; hosted raw sources continue to use the built-in sparse-source layout.
 
-The same `outfitting.json` may also declare Windows profiles. See [BYOR for Windows](/docs/source-configuration/byor/windows/). When both platforms are present, pass `--platform linux` to `validate`.
+The same `outfitting.json` may also declare Windows or macOS profiles. See [BYOR for Windows](/docs/source-configuration/byor/windows/) and [BYOR for macOS](/docs/source-configuration/byor/macos/). When more than one platform is present, pass `--platform linux` (or `windows` / `macos`) to `validate`.
 
 ## Repository schema
 

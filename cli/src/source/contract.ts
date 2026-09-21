@@ -55,6 +55,25 @@ export interface WindowsProfileDeclaration {
   winget: WindowsWingetDeclaration;
 }
 
+export interface MacosNixDeclaration {
+  flake: string;
+  attribute: string;
+  /** Repository-relative darwin.nix path; defaults to `<flake>/darwin.nix`. */
+  darwin?: string;
+}
+
+export interface MacosFontsDeclaration {
+  manifest: string;
+}
+
+export interface MacosProfileDeclaration {
+  nix: MacosNixDeclaration;
+  brewfile?: string;
+  fonts?: MacosFontsDeclaration;
+  /** Extra repository-relative paths that must exist as files. */
+  paths?: string[];
+}
+
 export interface ByorWindowsShared {
   defaultProfiles?: string[];
   scoop?: WindowsManifestDeclaration;
@@ -66,6 +85,7 @@ export interface ByorWindowsShared {
 export interface ByorProfileDeclaration {
   linux?: LinuxProfileDeclaration;
   windows?: WindowsProfileDeclaration;
+  macos?: MacosProfileDeclaration;
 }
 
 export interface ByorContract {
@@ -77,6 +97,11 @@ export interface ByorContract {
 export interface SelectedByorProfile {
   name: LinuxProfile;
   linux: LinuxProfileDeclaration;
+}
+
+export interface SelectedMacosByorProfile {
+  name: LinuxProfile;
+  macos: MacosProfileDeclaration;
 }
 
 export interface SelectedWindowsByorProfiles {
@@ -91,6 +116,18 @@ export interface ValidatedLinuxByorProfile {
   contract: ByorContract;
   linux: LinuxProfileDeclaration;
   backends: ReadonlyArray<LinuxPackageBackend | "nix">;
+}
+
+export interface ValidatedMacosByorProfile {
+  root: string;
+  profile: LinuxProfile;
+  contract: ByorContract;
+  macos: MacosProfileDeclaration;
+  /** Absolute flake directory (contains flake.nix). */
+  flakePath: string;
+  /** Absolute darwin.nix path. */
+  darwinNixPath: string;
+  systemAttr: string;
 }
 
 export interface ValidatedWindowsByorSource {
@@ -127,6 +164,23 @@ const WindowsProfileSchema = Schema.Struct({
   winget: WindowsWingetSchema,
 });
 
+const MacosNixSchema = Schema.Struct({
+  flake: Schema.String,
+  attribute: Schema.String,
+  darwin: Schema.optionalKey(Schema.String),
+});
+
+const MacosFontsSchema = Schema.Struct({
+  manifest: Schema.String,
+});
+
+const MacosProfileSchema = Schema.Struct({
+  nix: MacosNixSchema,
+  brewfile: Schema.optionalKey(Schema.String),
+  fonts: Schema.optionalKey(MacosFontsSchema),
+  paths: Schema.optionalKey(Schema.Array(Schema.String)),
+});
+
 const WindowsPathSchema = Schema.Struct({
   path: Schema.String,
 });
@@ -146,6 +200,7 @@ const ByorWindowsSharedSchema = Schema.Struct({
 const ByorProfileSchema = Schema.Struct({
   linux: Schema.optionalKey(LinuxProfileSchema),
   windows: Schema.optionalKey(WindowsProfileSchema),
+  macos: Schema.optionalKey(MacosProfileSchema),
 });
 
 const ByorContractSchema = Schema.Struct({
@@ -158,6 +213,7 @@ type DecodedPackageDeclaration = Schema.Schema.Type<typeof PackageDeclarationSch
 type DecodedNixDeclaration = Schema.Schema.Type<typeof NixDeclarationSchema>;
 type DecodedLinuxProfile = Schema.Schema.Type<typeof LinuxProfileSchema>;
 type DecodedWindowsProfile = Schema.Schema.Type<typeof WindowsProfileSchema>;
+type DecodedMacosProfile = Schema.Schema.Type<typeof MacosProfileSchema>;
 type DecodedWindowsShared = Schema.Schema.Type<typeof ByorWindowsSharedSchema>;
 type DecodedContract = Schema.Schema.Type<typeof ByorContractSchema>;
 
@@ -208,15 +264,34 @@ function parsePackageDeclaration(
   };
 }
 
-function parseNixDeclaration(value: DecodedNixDeclaration, label: string): LinuxNixDeclaration {
-  const attribute = requiredString(value.attribute, `${label}.attribute`);
+function parseNixAttribute(value: string, label: string): string {
+  const attribute = requiredString(value, label);
   if (!/^[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*$/.test(attribute)) {
-    throw new Error(`${label}.attribute must be a dot-separated Nix attribute path.`);
+    throw new Error(`${label} must be a dot-separated Nix attribute path.`);
   }
+  return attribute;
+}
+
+function parseNixDeclaration(value: DecodedNixDeclaration, label: string): LinuxNixDeclaration {
   return {
     flake: relativeSourcePath(value.flake, `${label}.flake`),
-    attribute,
+    attribute: parseNixAttribute(value.attribute, `${label}.attribute`),
   };
+}
+
+function parseMacosNixDeclaration(
+  value: DecodedMacosProfile["nix"],
+  label: string,
+): MacosNixDeclaration {
+  const flake = relativeSourcePath(value.flake, `${label}.flake`);
+  const nix: MacosNixDeclaration = {
+    flake,
+    attribute: parseNixAttribute(value.attribute, `${label}.attribute`),
+  };
+  if (value.darwin !== undefined) {
+    nix.darwin = relativeSourcePath(value.darwin, `${label}.darwin`);
+  }
+  return nix;
 }
 
 function parseLinuxProfile(value: DecodedLinuxProfile, label: string): LinuxProfileDeclaration {
@@ -245,6 +320,26 @@ function parseWindowsProfile(
       manifest: relativeSourcePath(value.winget.manifest, `${label}.winget.manifest`),
     },
   };
+}
+
+function parseMacosProfile(value: DecodedMacosProfile, label: string): MacosProfileDeclaration {
+  const macos: MacosProfileDeclaration = {
+    nix: parseMacosNixDeclaration(value.nix, `${label}.nix`),
+  };
+  if (value.brewfile !== undefined) {
+    macos.brewfile = relativeSourcePath(value.brewfile, `${label}.brewfile`);
+  }
+  if (value.fonts !== undefined) {
+    macos.fonts = {
+      manifest: relativeSourcePath(value.fonts.manifest, `${label}.fonts.manifest`),
+    };
+  }
+  if (value.paths !== undefined) {
+    macos.paths = value.paths.map((path, index) =>
+      relativeSourcePath(path, `${label}.paths[${index}]`),
+    );
+  }
+  return macos;
 }
 
 function parseWindowsShared(value: DecodedWindowsShared): ByorWindowsShared {
@@ -323,8 +418,15 @@ function parseProfileEntry(
   if (valueForProfile.windows !== undefined) {
     profile.windows = parseWindowsProfile(valueForProfile.windows, `${name}.windows`);
   }
-  if (profile.linux === undefined && profile.windows === undefined) {
-    throw new Error(`${name} must declare linux and/or windows.`);
+  if (valueForProfile.macos !== undefined) {
+    profile.macos = parseMacosProfile(valueForProfile.macos, `${name}.macos`);
+  }
+  if (
+    profile.linux === undefined &&
+    profile.windows === undefined &&
+    profile.macos === undefined
+  ) {
+    throw new Error(`${name} must declare linux, windows, and/or macos.`);
   }
   return { name, profile };
 }
@@ -379,6 +481,35 @@ function windowsProfileNames(contract: ByorContract): string[] {
   );
 }
 
+function macosProfileNames(contract: ByorContract): string[] {
+  return Object.keys(contract.profiles).filter(
+    (name) => contract.profiles[name]?.macos !== undefined,
+  );
+}
+
+/** Default darwin.nix path relative to the repository root for a macOS flake. */
+export function macosDarwinRelativePath(nix: MacosNixDeclaration): string {
+  return nix.darwin ?? `${nix.flake}/darwin.nix`;
+}
+
+/**
+ * Repository-relative paths a macOS BYOR profile declares (flake, darwin, brewfile, fonts, paths).
+ * Useful for existence checks and optional materialization.
+ */
+export function macosPathsFromProfile(decl: MacosProfileDeclaration): string[] {
+  const paths = [`${decl.nix.flake}/flake.nix`, macosDarwinRelativePath(decl.nix)];
+  if (decl.brewfile !== undefined) {
+    paths.push(decl.brewfile);
+  }
+  if (decl.fonts !== undefined) {
+    paths.push(decl.fonts.manifest);
+  }
+  if (decl.paths !== undefined) {
+    paths.push(...decl.paths);
+  }
+  return paths;
+}
+
 /**
  * Select a Linux profile from a parsed contract.
  * Shared by validation and flake resolution so messages and defaults stay identical.
@@ -413,6 +544,42 @@ export function selectByorProfile(
     throw new Error(`Unknown BYOR Linux profile \`${name}\`.`);
   }
   return { name, linux: profile.linux };
+}
+
+/**
+ * Select a macOS profile from a parsed contract.
+ * macOS profiles are exclusive (one at a time), like Linux.
+ */
+export function selectMacosByorProfile(
+  contract: ByorContract,
+  requested: string | undefined,
+): SelectedMacosByorProfile {
+  const macosNames = macosProfileNames(contract);
+  if (macosNames.length === 0) {
+    throw new Error(`${BYOR_CONTRACT_PATH} does not declare any macOS profiles.`);
+  }
+  if (requested !== undefined) {
+    const name = profileName(requested, "--profile");
+    const profile = contract.profiles[name];
+    if (profile?.macos === undefined) {
+      throw new Error(
+        `Unknown BYOR macOS profile \`${name}\`. Choose: ${macosNames.join(", ")}.`,
+      );
+    }
+    return { name, macos: profile.macos };
+  }
+
+  if (macosNames.length !== 1) {
+    throw new Error(
+      `The BYOR repository defines multiple macOS profiles. Pass --profile (${macosNames.join(", ")}).`,
+    );
+  }
+  const name = profileName(macosNames[0]!, `${BYOR_CONTRACT_PATH}.profiles profile name`);
+  const profile = contract.profiles[name];
+  if (profile?.macos === undefined) {
+    throw new Error(`Unknown BYOR macOS profile \`${name}\`.`);
+  }
+  return { name, macos: profile.macos };
 }
 
 /**
@@ -803,9 +970,103 @@ export async function validateWindowsByorSource(options: {
   };
 }
 
+async function validateOptionalMacosFile(options: {
+  root: string;
+  profile: string;
+  label: string;
+  relative: string;
+}): Promise<void> {
+  const path = join(options.root, options.relative);
+  if (!(await fileExists(path))) {
+    throw new Error(
+      `BYOR profile \`${options.profile}\` declares ${options.label} ${options.relative}, but the file is missing.`,
+    );
+  }
+  if ((await readFile(path, "utf8")).trim().length === 0) {
+    throw new Error(
+      `BYOR profile \`${options.profile}\` has an empty ${options.label}: ${options.relative}.`,
+    );
+  }
+}
+
+/** Validate a user-provided macOS BYOR repository without changing the host. */
+export async function validateMacosByorSource(options: {
+  root: string;
+  profile?: string;
+}): Promise<ValidatedMacosByorProfile> {
+  const root = await resolveByorRoot(options.root);
+  const contract = await readByorContract(root);
+  if (macosProfileNames(contract).length === 0) {
+    throw new Error(`${BYOR_CONTRACT_PATH} does not declare any macOS profiles.`);
+  }
+  const selected = selectMacosByorProfile(contract, options.profile);
+  const flakeDir = join(root, selected.macos.nix.flake);
+  const flakePath = join(flakeDir, "flake.nix");
+  if (!(await fileExists(flakePath))) {
+    throw new Error(
+      `BYOR profile \`${selected.name}\` declares Nix flake ${selected.macos.nix.flake}, but flake.nix is missing.`,
+    );
+  }
+  const flakeContent = await readFile(flakePath, "utf8");
+  if (flakeContent.trim().length === 0) {
+    throw new Error(`BYOR profile \`${selected.name}\` has an empty Nix flake: ${flakePath}.`);
+  }
+  if (!/\bdarwinConfigurations\s*=/.test(flakeContent)) {
+    throw new Error(
+      `BYOR profile \`${selected.name}\` has an invalid flake.nix: darwinConfigurations is required.`,
+    );
+  }
+
+  const darwinRelative = macosDarwinRelativePath(selected.macos.nix);
+  const darwinNixPath = join(root, darwinRelative);
+  if (!(await fileExists(darwinNixPath))) {
+    throw new Error(
+      `BYOR profile \`${selected.name}\` declares darwin path ${darwinRelative}, but the file is missing.`,
+    );
+  }
+
+  if (selected.macos.brewfile !== undefined) {
+    await validateOptionalMacosFile({
+      root,
+      profile: selected.name,
+      label: "brewfile",
+      relative: selected.macos.brewfile,
+    });
+  }
+  if (selected.macos.fonts !== undefined) {
+    await validateOptionalMacosFile({
+      root,
+      profile: selected.name,
+      label: "fonts.manifest",
+      relative: selected.macos.fonts.manifest,
+    });
+  }
+  if (selected.macos.paths !== undefined) {
+    for (const relative of selected.macos.paths) {
+      const path = join(root, relative);
+      if (!(await fileExists(path))) {
+        throw new Error(
+          `BYOR profile \`${selected.name}\` declares path ${relative}, but the file is missing.`,
+        );
+      }
+    }
+  }
+
+  return {
+    root,
+    profile: selected.name,
+    contract,
+    macos: selected.macos,
+    flakePath: flakeDir,
+    darwinNixPath,
+    systemAttr: selected.macos.nix.attribute,
+  };
+}
+
 export interface ByorContractPlatforms {
   linux: boolean;
   windows: boolean;
+  macos: boolean;
 }
 
 /** Detect which platforms a contract declares. */
@@ -813,5 +1074,6 @@ export function byorContractPlatforms(contract: ByorContract): ByorContractPlatf
   return {
     linux: linuxProfileNames(contract).length > 0,
     windows: windowsProfileNames(contract).length > 0,
+    macos: macosProfileNames(contract).length > 0,
   };
 }

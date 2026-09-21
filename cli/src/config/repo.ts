@@ -16,7 +16,14 @@ import { repoPathFile } from "@/config/paths";
 import type { ManagerConfig } from "@/config/types";
 import { runCommand } from "@/process";
 import { envValue } from "@/secrets";
-import { selectByorProfile, tryReadByorContract } from "@/source/contract";
+import {
+  macosDarwinRelativePath,
+  selectByorProfile,
+  selectMacosByorProfile,
+  tryReadByorContract,
+  type ByorContract,
+  type ByorProfileDeclaration,
+} from "@/source/contract";
 
 export const DEFAULT_OUTFITTING_REPO_URL = "https://github.com/jfalava/outfitting.git";
 
@@ -168,6 +175,121 @@ async function pathExists(path: string): Promise<boolean> {
   }
 }
 
+function profileNamesWith(
+  contract: ByorContract,
+  predicate: (entry: ByorProfileDeclaration) => boolean,
+): string[] {
+  return Object.keys(contract.profiles).filter((name) => {
+    const entry = contract.profiles[name];
+    return entry !== undefined && predicate(entry);
+  });
+}
+
+type ByorFlakeKind = "macos" | "linux" | "none";
+
+interface ByorFlakeInventory {
+  macos: string[];
+  linuxNix: string[];
+  linuxAny: string[];
+}
+
+function inventoryByorFlakes(contract: ByorContract): ByorFlakeInventory {
+  return {
+    macos: profileNamesWith(contract, (entry) => entry.macos !== undefined),
+    linuxNix: profileNamesWith(contract, (entry) => entry.linux?.nix !== undefined),
+    linuxAny: profileNamesWith(contract, (entry) => entry.linux !== undefined),
+  };
+}
+
+function kindFromEntry(entry: ByorProfileDeclaration | undefined): ByorFlakeKind | undefined {
+  if (entry === undefined) {
+    return undefined;
+  }
+  if (entry.macos !== undefined) {
+    return "macos";
+  }
+  if (entry.linux !== undefined) {
+    return entry.linux.nix !== undefined ? "linux" : "none";
+  }
+  if (entry.windows !== undefined) {
+    return "none";
+  }
+  return undefined;
+}
+
+/** Unknown profile name: pick a selector platform so select* can list choices. */
+function kindForUnknownProfile(inv: ByorFlakeInventory): ByorFlakeKind {
+  if (inv.linuxAny.length > 0) {
+    return "linux";
+  }
+  if (inv.macos.length > 0) {
+    return "macos";
+  }
+  return "none";
+}
+
+function throwAmbiguousByorProfiles(inv: ByorFlakeInventory): never {
+  const choices = [
+    ...inv.macos.map((name) => `${name} (macos)`),
+    ...inv.linuxNix.map((name) => `${name} (linux)`),
+  ];
+  throw new Error(
+    `The BYOR repository defines multiple Nix profiles. Pass --profile (${choices.join(", ")}).`,
+  );
+}
+
+function uniqueFlakeKind(inv: ByorFlakeInventory): ByorFlakeKind | undefined {
+  const flakeNames = [...new Set([...inv.macos, ...inv.linuxNix])];
+  if (flakeNames.length !== 1) {
+    return undefined;
+  }
+  return inv.macos.includes(flakeNames[0]!) ? "macos" : "linux";
+}
+
+function hostPreferredKind(inv: ByorFlakeInventory): ByorFlakeKind | undefined {
+  if (process.platform === "darwin" && inv.macos.length === 1) {
+    return "macos";
+  }
+  if (process.platform !== "darwin" && inv.linuxNix.length === 1) {
+    return "linux";
+  }
+  return undefined;
+}
+
+/**
+ * Auto-select flake platform when `--profile` is omitted.
+ * Prefer host platform when both Linux and macOS nix profiles exist.
+ */
+function defaultByorFlakeKind(inv: ByorFlakeInventory): ByorFlakeKind {
+  if (inv.macos.length === 0 && inv.linuxNix.length === 0) {
+    return "none";
+  }
+  // Exactly one macos profile and no linux → macos
+  if (inv.macos.length === 1 && inv.linuxAny.length === 0) {
+    return "macos";
+  }
+  // Exactly one linux.nix profile and no macos → linux
+  if (inv.linuxNix.length === 1 && inv.macos.length === 0) {
+    return "linux";
+  }
+  return uniqueFlakeKind(inv) ?? hostPreferredKind(inv) ?? throwAmbiguousByorProfiles(inv);
+}
+
+/**
+ * Choose which platform flake a BYOR checkout should drive.
+ * Prefer the host platform when both Linux and macOS nix profiles exist.
+ */
+function resolveByorPlatformKind(
+  contract: ByorContract,
+  profile: string | undefined,
+): ByorFlakeKind {
+  const inv = inventoryByorFlakes(contract);
+  if (profile === undefined) {
+    return defaultByorFlakeKind(inv);
+  }
+  return kindFromEntry(contract.profiles[profile]) ?? kindForUnknownProfile(inv);
+}
+
 async function resolveByorFlakeSelection(
   absolute: string,
   profile: string | undefined,
@@ -177,14 +299,30 @@ async function resolveByorFlakeSelection(
     return undefined;
   }
 
-  const hasLinux = Object.values(contract.profiles).some((entry) => entry.linux !== undefined);
-  if (!hasLinux) {
-    // Windows-only (or otherwise non-Nix) BYOR contracts are valid checkouts with no flake.
+  const kind = resolveByorPlatformKind(contract, profile);
+  if (kind === "none") {
     return {
       flakePath: "",
       darwinNixPath: "",
       flakeKind: "none",
       systemAttr: "",
+    };
+  }
+
+  if (kind === "macos") {
+    const selected = selectMacosByorProfile(contract, profile);
+    const flakePath = join(absolute, selected.macos.nix.flake);
+    if (!(await pathExists(join(flakePath, "flake.nix")))) {
+      throw new Error(
+        `BYOR profile \`${selected.name}\` declares a missing Nix flake at ${join(flakePath, "flake.nix")}.`,
+      );
+    }
+    const darwinRelative = macosDarwinRelativePath(selected.macos.nix);
+    return {
+      flakePath,
+      darwinNixPath: join(absolute, darwinRelative),
+      flakeKind: "macos",
+      systemAttr: selected.macos.nix.attribute,
     };
   }
 

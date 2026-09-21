@@ -9,9 +9,11 @@ import {
   hasByorContract,
   parseByorContract,
   selectByorProfile,
+  selectMacosByorProfile,
   selectWindowsByorProfiles,
   tryReadByorContract,
   validateLinuxByorSource,
+  validateMacosByorSource,
   validateWindowsByorSource,
   windowsRoutesFromContract,
 } from "@/source/contract";
@@ -354,3 +356,209 @@ describe("BYOR contract", () => {
     expect(windowsRoutesFromContract(custom).wingetProfilePath).toBe("byor/{profile}");
   });
 });
+
+  test("accepts macos-only profiles with custom flake and brewfile paths", async () => {
+    const root = await repository();
+    await mkdir(join(root, "system", "work"), { recursive: true });
+    await writeFile(
+      join(root, "system", "work", "flake.nix"),
+      "{\n  outputs = { ... }: { darwinConfigurations = {}; };\n}\n",
+    );
+    await writeFile(join(root, "system", "work", "darwin.nix"), "{ ... }: {}\n");
+    await mkdir(join(root, "packages", "work"), { recursive: true });
+    await writeFile(join(root, "packages", "work", "Brewfile"), 'brew "git"\n');
+    await mkdir(join(root, "fonts"), { recursive: true });
+    await writeFile(join(root, "fonts", "fontget.txt"), "Inter\n");
+    await writeFile(join(root, "system", "work", "home.nix"), "{ ... }: {}\n");
+    await writeContract(root, {
+      schema: 1,
+      profiles: {
+        workstation: {
+          macos: {
+            nix: {
+              flake: "system/work",
+              attribute: "darwinConfigurations.workstation.system",
+            },
+            brewfile: "packages/work/Brewfile",
+            fonts: { manifest: "fonts/fontget.txt" },
+            paths: ["system/work/home.nix"],
+          },
+        },
+      },
+    });
+
+    await expect(validateMacosByorSource({ root })).resolves.toMatchObject({
+      profile: "workstation",
+      systemAttr: "darwinConfigurations.workstation.system",
+      macos: {
+        brewfile: "packages/work/Brewfile",
+        nix: { flake: "system/work" },
+      },
+    });
+  });
+
+  test("rejects missing flake, missing darwinConfigurations, and path traversal for macos", async () => {
+    const missingFlake = await repository();
+    await writeContract(missingFlake, {
+      schema: 1,
+      profiles: {
+        broken: {
+          macos: {
+            nix: { flake: "system/missing", attribute: "darwinConfigurations.x.system" },
+          },
+        },
+      },
+    });
+    await expect(validateMacosByorSource({ root: missingFlake })).rejects.toThrow(
+      /flake.nix is missing/,
+    );
+
+    const noDarwin = await repository();
+    await mkdir(join(noDarwin, "system", "mac"), { recursive: true });
+    await writeFile(join(noDarwin, "system", "mac", "flake.nix"), "{ outputs = {}; }\n");
+    await writeFile(join(noDarwin, "system", "mac", "darwin.nix"), "{ ... }: {}\n");
+    await writeContract(noDarwin, {
+      schema: 1,
+      profiles: {
+        broken: {
+          macos: {
+            nix: { flake: "system/mac", attribute: "darwinConfigurations.x.system" },
+          },
+        },
+      },
+    });
+    await expect(validateMacosByorSource({ root: noDarwin })).rejects.toThrow(
+      /darwinConfigurations is required/,
+    );
+
+    expect(() =>
+      parseByorContract({
+        schema: 1,
+        profiles: {
+          unsafe: {
+            macos: {
+              nix: { flake: "../escape", attribute: "darwinConfigurations.x.system" },
+            },
+          },
+        },
+      }),
+    ).toThrow(/repository-relative path without traversal/);
+  });
+
+  test("selects macos from mixed linux+macos contracts with an explicit profile", async () => {
+    const root = await repository();
+    await mkdir(join(root, "system", "mac"), { recursive: true });
+    await writeFile(
+      join(root, "system", "mac", "flake.nix"),
+      "{ outputs = { ... }: { darwinConfigurations = {}; }; }\n",
+    );
+    await writeFile(join(root, "system", "mac", "darwin.nix"), "{ ... }: {}\n");
+    await mkdir(join(root, "packages"), { recursive: true });
+    await writeFile(join(root, "packages", "apt.txt"), "curl\n");
+    await writeContract(root, {
+      schema: 1,
+      profiles: {
+        desk: {
+          macos: {
+            nix: {
+              flake: "system/mac",
+              attribute: "darwinConfigurations.desk.system",
+              darwin: "system/mac/darwin.nix",
+            },
+          },
+        },
+        "debian-minimal": { linux: { apt: { manifest: "packages/apt.txt" } } },
+      },
+    });
+
+    await expect(validateMacosByorSource({ root, profile: "desk" })).resolves.toMatchObject({
+      profile: "desk",
+      systemAttr: "darwinConfigurations.desk.system",
+    });
+    await expect(
+      validateLinuxByorSource({ root, profile: "debian-minimal" }),
+    ).resolves.toMatchObject({ profile: "debian-minimal", backends: ["apt"] });
+
+    const contract = parseByorContract({
+      schema: 1,
+      profiles: {
+        desk: {
+          macos: {
+            nix: {
+              flake: "system/mac",
+              attribute: "darwinConfigurations.desk.system",
+            },
+          },
+        },
+        "debian-minimal": { linux: { apt: { manifest: "packages/apt.txt" } } },
+      },
+    });
+    expect(selectMacosByorProfile(contract, "desk")).toMatchObject({ name: "desk" });
+    expect(() => selectMacosByorProfile(contract, undefined)).not.toThrow();
+  });
+
+  test("validateOutfittingRepo returns flakeKind macos with custom systemAttr and darwin path", async () => {
+    const root = await repository();
+    await mkdir(join(root, "system", "custom"), { recursive: true });
+    await writeFile(
+      join(root, "system", "custom", "flake.nix"),
+      "{ outputs = { ... }: { darwinConfigurations = {}; }; }\n",
+    );
+    await writeFile(join(root, "system", "custom", "darwin-host.nix"), "{ ... }: {}\n");
+    await writeContract(root, {
+      schema: 1,
+      profiles: {
+        laptop: {
+          macos: {
+            nix: {
+              flake: "system/custom",
+              attribute: "darwinConfigurations.laptop.system",
+              darwin: "system/custom/darwin-host.nix",
+            },
+          },
+        },
+      },
+    });
+
+    await expect(validateOutfittingRepo(root)).resolves.toMatchObject({
+      root,
+      flakePath: join(root, "system", "custom"),
+      darwinNixPath: join(root, "system", "custom", "darwin-host.nix"),
+      flakeKind: "macos",
+      systemAttr: "darwinConfigurations.laptop.system",
+    });
+  });
+
+  test("windows-only and linux-only BYOR still resolve without macos", async () => {
+    const windowsOnly = await repository();
+    await writeFile(join(windowsOnly, "winget.txt"), "Git.Git\n");
+    await writeContract(windowsOnly, {
+      schema: 1,
+      profiles: { base: { windows: { winget: { manifest: "winget.txt" } } } },
+    });
+    await expect(validateOutfittingRepo(windowsOnly)).resolves.toMatchObject({
+      flakeKind: "none",
+      systemAttr: "",
+    });
+
+    const linuxOnly = await repository();
+    await mkdir(join(linuxOnly, "home"), { recursive: true });
+    await writeFile(join(linuxOnly, "home", "flake.nix"), "{ outputs = {}; }\n");
+    await writeContract(linuxOnly, {
+      schema: 1,
+      profiles: {
+        server: {
+          linux: {
+            nix: {
+              flake: "home",
+              attribute: "homeConfigurations.server.activationPackage",
+            },
+          },
+        },
+      },
+    });
+    await expect(validateOutfittingRepo(linuxOnly)).resolves.toMatchObject({
+      flakeKind: "home-manager",
+      systemAttr: "homeConfigurations.server.activationPackage",
+    });
+  });

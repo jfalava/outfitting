@@ -1,8 +1,13 @@
-import { Option } from "effect";
+import { realpath } from "node:fs/promises";
+import { isAbsolute, resolve } from "node:path";
+
+import { Effect, Option } from "effect";
 import { Command, Flag } from "effect/unstable/cli";
 
+import { tryPromise } from "@/lockfiles/effect";
 import { runMacosSetup } from "@/setup/macos";
 import { MACOS_SOURCE_PATHS } from "@/setup/manifests";
+import { byorContractPlatforms, tryReadByorContract } from "@/source/contract";
 
 /**
  * Prepare and apply a repository's declared macOS configuration.
@@ -30,21 +35,45 @@ export const setupCommand = Command.make(
         "Existing local repository checkout to validate and use; omit for sparse source.",
       ),
     ),
+    profile: Flag.String("profile").pipe(
+      Flag.optional,
+      Flag.withDescription(
+        "BYOR macOS profile when outfitting.json defines more than one macOS profile.",
+      ),
+    ),
     noFetch: Flag.Boolean("no-fetch").pipe(
       Flag.withDefault(false),
       Flag.withDescription("Skip fetching; apply the source already in the state root."),
     ),
   },
-  ({ machineId, manifestBaseUrl, manifestRef, repo, noFetch }) => {
+  ({ machineId, manifestBaseUrl, manifestRef, repo, profile, noFetch }) => {
     const repoPath = Option.getOrUndefined(repo);
-    return runMacosSetup({
-      machineId: Option.getOrUndefined(machineId),
-      manifestBaseUrl: Option.getOrUndefined(manifestBaseUrl),
-      manifestRef: Option.getOrUndefined(manifestRef),
-      repo: repoPath,
-      fetchManifests: !noFetch && repoPath === undefined,
-      sourcePaths: MACOS_SOURCE_PATHS,
-      nextCommand: "Applying macOS repository configuration…",
+    const profileName = Option.getOrUndefined(profile);
+
+    return Effect.gen(function* () {
+      let byor = false;
+      let resolvedRepo = repoPath;
+      if (repoPath !== undefined) {
+        const absolute = isAbsolute(repoPath) ? repoPath : resolve(repoPath);
+        const root = yield* tryPromise(() => realpath(absolute));
+        const contract = yield* tryPromise(() => tryReadByorContract(root));
+        if (contract !== undefined && byorContractPlatforms(contract).macos) {
+          byor = true;
+          resolvedRepo = root;
+        }
+      }
+
+      yield* runMacosSetup({
+        machineId: Option.getOrUndefined(machineId),
+        manifestBaseUrl: Option.getOrUndefined(manifestBaseUrl),
+        manifestRef: Option.getOrUndefined(manifestRef),
+        repo: resolvedRepo,
+        profile: profileName,
+        repoProfile: profileName,
+        fetchManifests: byor ? false : !noFetch && repoPath === undefined,
+        sourcePaths: byor ? undefined : MACOS_SOURCE_PATHS,
+        nextCommand: "Applying macOS repository configuration…",
+      });
     });
   },
 ).pipe(

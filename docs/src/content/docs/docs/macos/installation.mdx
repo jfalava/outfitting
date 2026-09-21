@@ -22,13 +22,22 @@ Open a new shell after installation. See [setup](/docs/cli/setup/) for state-sou
 
 ## BYOR (Bring Your Own Repo)
 
-You can use a compatible repository instead of the default Outfitting source. For a local checkout, pass its path to setup:
+You can use a compatible repository instead of the default Outfitting source.
+
+### Local contract (`outfitting.json`)
+
+Point the manager at a checkout that declares a macOS profile, then validate and apply:
 
 ```bash
+outfitting-manager validate --repo ~/src/my-machine-config --platform macos
 outfitting-manager setup --repo ~/src/my-machine-config
 ```
 
-For a hosted repository, provide its raw-content base URL and Git ref:
+See [BYOR for macOS](/docs/source-configuration/byor/macos/) for the contract schema, optional Brewfile/fonts paths, and profile selection.
+
+### Hosted sparse source
+
+For a hosted repository without a local checkout, provide its raw-content base URL and Git ref:
 
 ```bash
 outfitting-manager setup \
@@ -36,6 +45,6 @@ outfitting-manager setup \
   --manifest-ref main
 ```
 
-The repository must include the macOS source closure: `system/macos/flake.nix`, `system/macos/darwin.nix`, `system/macos/home.nix`, the shared modules and package files, and `packages/macos/Brewfile`. The flake must expose `darwinConfigurations`. Setup validates the source before activating Nix or applying Homebrew state.
+Hosted sources still use the legacy fixed macOS path closure (`system/macos/*`, `packages/macos/Brewfile`, and so on). The flake must expose `darwinConfigurations`. Setup validates the source before activating Nix or applying Homebrew state.
 
 The complete manager command tree and Zsh compatibility helpers are in the [macOS CLI reference](/docs/cli/macos/).

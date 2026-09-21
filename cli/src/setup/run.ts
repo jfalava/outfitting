@@ -176,8 +176,10 @@ export const runSetup = (options: SetupOptions = {}) =>
     }
 
     if (options.validateSource === true) {
-      const repo = yield* tryPromise(() => resolveOutfittingRepo({ config }));
-      yield* tryPromise(() => validateMacosSource(repo));
+      const repo = yield* tryPromise(() =>
+        resolveOutfittingRepo({ config, profile: options.repoProfile }),
+      );
+      yield* tryPromise(() => validateMacosSource(repo, { profile: options.repoProfile }));
       yield* Console.log(ui.success(`macOS repository contract valid: ${repo.root}`));
     }
 

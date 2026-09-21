@@ -1,6 +1,6 @@
 ---
 title: macOS
-description: Configure a macOS repository for Outfitting.
+description: Configure a macOS repository and BYOR contract for Outfitting.
 sidebar:
   order: 1
 ---
@@ -15,9 +15,69 @@ outfitting-manager setup --repo ~/src/my-machine-config
 
 Use `init` instead of `setup` when you want to validate and prepare the source without applying packages or Nix state.
 
-## Repository schema
+For a local BYOR checkout that owns an `outfitting.json` contract, validate before applying:
 
-The macOS source must provide this complete closure:
+```bash
+outfitting-manager validate --repo ~/src/my-machine-config --platform macos
+outfitting-manager init --repo ~/src/my-machine-config
+outfitting-manager setup --repo ~/src/my-machine-config
+```
+
+`OUTFITTING_REPO` and the persisted `repo-path` file also select a local checkout. When `outfitting.json` declares a macOS profile, flake and Brewfile paths come from the contract — the fixed monorepo layout is only required when no macOS contract is present.
+
+## User-defined profiles (`outfitting.json`)
+
+Repositories can describe arbitrary macOS profile names and artifact paths:
+
+```json
+{
+  "schema": 1,
+  "profiles": {
+    "workstation": {
+      "macos": {
+        "nix": {
+          "flake": "system/work",
+          "attribute": "darwinConfigurations.workstation.system",
+          "darwin": "system/work/darwin.nix"
+        },
+        "brewfile": "packages/work/Brewfile",
+        "fonts": { "manifest": "fonts/fontget.txt" },
+        "paths": ["system/work/home.nix"]
+      }
+    }
+  }
+}
+```
+
+Rules:
+
+- Each profile must declare `linux`, `windows`, and/or `macos`.
+- A macOS profile must declare `nix.flake` and `nix.attribute` (a dot-separated Nix attribute path).
+- `nix.darwin` is optional and defaults to `<flake>/darwin.nix`.
+- `brewfile`, `fonts`, and `paths` are optional. When `brewfile` is omitted, setup skips Homebrew bundle.
+- Paths are repository-relative and cannot traverse outside the checkout.
+- macOS profiles are exclusive: one profile at a time (not comma-lists). Pass `--profile` when more than one macOS profile exists.
+- The same contract may mix Linux, Windows, and macOS profiles. Use `--platform macos` (or `linux` / `windows`) with `validate` when more than one platform is present.
+
+Validate without changing machine state:
+
+```bash
+outfitting-manager validate \
+  --repo ~/src/my-machine-config \
+  --profile workstation
+```
+
+The validator checks profile names, repository-relative paths, the flake file (must contain `darwinConfigurations`), the darwin module path, and any declared brewfile, fonts manifest, or extra paths.
+
+After validation, local checkouts use the same profile with `init` or `setup`. Local BYOR checkouts do not fetch the monorepo sparse source closure.
+
+Repository-owned contracts currently require a local checkout; hosted raw sources continue to use the built-in sparse-source layout.
+
+See also [BYOR for Linux](/docs/source-configuration/byor/linux/) and [BYOR for Windows](/docs/source-configuration/byor/windows/).
+
+## Legacy monorepo layout
+
+When no `outfitting.json` macOS profile is present, the manager expects the fixed Outfitting closure:
 
 ```text
 system/macos/flake.nix

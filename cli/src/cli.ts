@@ -11,6 +11,7 @@ import { makeStatusCommand } from "@/commands/status";
 import { syncCommand } from "@/commands/sync";
 import { makeMacosUpdateCommand } from "@/commands/update";
 import { makeUpgradeCommand } from "@/commands/upgrade";
+import { validateCommand } from "@/commands/validate";
 
 /**
  * macOS root command surface.
@@ -22,6 +23,7 @@ export const makeMacosRootCommand = (currentVersion: string) =>
     Command.withSubcommands([
       macosInitCommand,
       setupCommand,
+      validateCommand,
       makeMacosUpdateCommand(),
       makeMacosDiffCommand(),
       snapshotCommand,
