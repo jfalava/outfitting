@@ -17,9 +17,9 @@ const yesFlag = Flag.Boolean("yes").pipe(
   Flag.withDescription("Apply the displayed install/removal plan without prompting."),
 );
 
-const refreshFlag = Flag.Boolean("refresh").pipe(
+const noRefreshFlag = Flag.Boolean("no-refresh").pipe(
   Flag.withDefault(false),
-  Flag.withDescription("Refresh the active Linux source before planning changes."),
+  Flag.withDescription("Use the local Linux source without fetching remote changes."),
 );
 
 function makeLinuxApplySubcommand(manager?: LinuxPackageManager) {
@@ -30,7 +30,7 @@ function makeLinuxApplySubcommand(manager?: LinuxPackageManager) {
       prune: pruneFlag,
       offline: linuxOfflineFlag,
       yes: yesFlag,
-      refresh: refreshFlag,
+      noRefresh: noRefreshFlag,
     },
     (flags) =>
       applyLinux({
@@ -39,7 +39,7 @@ function makeLinuxApplySubcommand(manager?: LinuxPackageManager) {
         prune: flags.prune,
         offline: flags.offline,
         yes: flags.yes,
-        refresh: flags.refresh,
+        noRefresh: flags.noRefresh,
         confirm: Prompt.Confirm({
           message: "Apply this plan?",
           initial: false,
@@ -48,8 +48,8 @@ function makeLinuxApplySubcommand(manager?: LinuxPackageManager) {
   ).pipe(
     Command.withDescription(
       manager === undefined
-        ? "Apply the local Linux profile with the detected package manager."
-        : `Apply the local Linux profile with ${manager}.`,
+        ? "Refresh and apply the Linux profile with the detected package manager."
+        : `Refresh and apply the Linux profile with ${manager}.`,
     ),
   );
 }

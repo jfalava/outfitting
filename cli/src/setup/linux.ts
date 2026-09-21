@@ -91,6 +91,7 @@ export const runLinuxSetup = (options: LinuxSetupOptions) =>
       readOsRelease,
       // runSetup has already populated the local source; offline also constrains package downloads.
       offline: setupOptions.offline,
+      noRefresh: true,
       yes: true,
     });
 

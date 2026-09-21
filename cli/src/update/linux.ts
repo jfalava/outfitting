@@ -241,7 +241,8 @@ export interface LinuxApplyOptions<ConfirmR = never> extends LinuxUpdateOptions 
   profile?: string;
   prune?: boolean;
   yes?: boolean;
-  refresh?: boolean;
+  /** Use the selected local source without fetching remote changes. */
+  noRefresh?: boolean;
   sourceFetcher?: ManifestFetcher;
   confirm?: Effect.Effect<boolean, never, ConfirmR>;
 }
@@ -259,17 +260,18 @@ async function resolveLinuxApplySource<ConfirmR>(
   config: ManagerConfig,
   profile: LinuxProfile,
 ): Promise<LinuxSource | undefined> {
+  const shouldRefresh = options.noRefresh !== true && options.offline !== true;
   if (
-    options.refresh &&
+    shouldRefresh &&
     options.profile !== undefined &&
     profile !== (config.linux?.profile ?? DEFAULT_LINUX_PROFILE)
   ) {
     throw new CliFailure({
       message:
-        "--refresh requires the configured Linux profile; run init or setup first when switching profiles.",
+        "Automatic source refresh requires the configured Linux profile; run init or setup first when switching profiles, or pass --no-refresh.",
     });
   }
-  if (!options.refresh) {
+  if (!shouldRefresh) {
     return undefined;
   }
   return prepareLinuxSource({

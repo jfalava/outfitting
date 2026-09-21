@@ -93,8 +93,8 @@ test("Linux entrypoint registers update nix alongside apt/pacman", async () => {
   const apply = await execFileAsync("bun", [linuxEntry, "apply", "all", "--help"], {
     encoding: "utf8",
   });
-  expect(`${apply.stdout}\n${apply.stderr}`).toContain("Apply the local Linux profile");
-  expect(`${apply.stdout}\n${apply.stderr}`).toContain("--refresh");
+  expect(`${apply.stdout}\n${apply.stderr}`).toContain("Refresh and apply the Linux profile");
+  expect(`${apply.stdout}\n${apply.stderr}`).toContain("--no-refresh");
 
   const packageUpdateHelp = await execFileAsync("bun", [linuxEntry, "update", "apt", "--help"], {
     encoding: "utf8",
@@ -360,6 +360,7 @@ describe("Linux package adapter", () => {
             manifest: { baseUrl: "https://example.test/outfitting", ref: "main" },
           },
           packageManager: "apt",
+          noRefresh: true,
           readOsRelease: async () => "ID=ubuntu\n",
           which: async (command) =>
             ({
@@ -441,6 +442,7 @@ test("Linux prune respects asymmetric profile ownership and requires confirmatio
       profile: "generic-linux",
       packageManager: "apt" as const,
       prune: true,
+      noRefresh: true,
       which: async (command: string) =>
         ({ apt: "/usr/bin/apt", "dpkg-query": "/usr/bin/dpkg-query", sudo: "/usr/bin/sudo" })[
           command
@@ -492,6 +494,7 @@ test("Linux prune refuses a simulated dependency cascade", async () => {
           },
           packageManager: "apt",
           prune: true,
+          noRefresh: true,
           yes: true,
           which: async (command) =>
             ({ apt: "/usr/bin/apt", "dpkg-query": "/usr/bin/dpkg-query" })[command],
@@ -566,7 +569,37 @@ test("Linux apply refreshes the active sparse profile before planning packages",
           manifest: { baseUrl: "https://example.test/outfitting", ref: "main" },
         },
         packageManager: "apt",
-        refresh: true,
+        yes: true,
+        sourceFetcher: async (url) => {
+          fetched.push(url);
+          return new Response("curl\n");
+        },
+        which: async (command) =>
+          ({ apt: "/usr/bin/apt", "dpkg-query": "/usr/bin/dpkg-query", sudo: "/usr/bin/sudo" })[
+            command
+          ],
+        run: async (command, args) => {
+          calls.push(args);
+          if (command === "/usr/bin/dpkg-query") return { code: 0, stdout: "", stderr: "" };
+          return { code: 0, stdout: "", stderr: "" };
+        },
+      }),
+    );
+
+    expect(fetched).toEqual([
+      "https://example.test/outfitting/main/packages/linux/generic-linux.txt",
+    ]);
+    fetched.length = 0;
+    await Effect.runPromise(
+      applyLinux({
+        config: {
+          stateRoot,
+          machineId: "test:x86_64-linux",
+          machineIdOverridden: true,
+          manifest: { baseUrl: "https://example.test/outfitting", ref: "main" },
+        },
+        packageManager: "apt",
+        noRefresh: true,
         yes: true,
         sourceFetcher: async (url) => {
           fetched.push(url);
@@ -587,9 +620,7 @@ test("Linux apply refreshes the active sparse profile before planning packages",
     await rm(stateRoot, { force: true, recursive: true });
   }
 
-  expect(fetched).toEqual([
-    "https://example.test/outfitting/main/packages/linux/generic-linux.txt",
-  ]);
+  expect(fetched).toEqual([]);
   expect(calls).toContainEqual(["/usr/bin/apt", "install", "-y", "curl"]);
 });
 
@@ -726,6 +757,7 @@ test("Linux shares only proven ownership and bare apply retains stale packages",
   const common = {
     config,
     packageManager: "apt" as const,
+    noRefresh: true,
     yes: true,
     run,
     which: async (name: string) => (name === "sudo" ? undefined : name),
