@@ -31,6 +31,8 @@ export interface SetupOptions {
   manifestRef?: string;
   /** Monorepo path to persist as repo-path (set_outfitting_repo replacement). */
   repo?: string;
+  /** Linux BYOR profile used when validating a repository-owned contract. */
+  repoProfile?: string;
   /** Fetch core manifests into state root (default true). */
   fetchManifests?: boolean;
   /** Manifest paths to prefetch; defaults to the macOS set. */
@@ -166,7 +168,9 @@ export const runSetup = (options: SetupOptions = {}) =>
     }
 
     if (options.repo !== undefined) {
-      const written = yield* tryPromise(() => writeRepoPath(options.repo!, { stateRoot: root }));
+      const written = yield* tryPromise(() =>
+        writeRepoPath(options.repo!, { stateRoot: root, profile: options.repoProfile }),
+      );
       yield* Console.log(ui.success(`Repository path set to: ${written.repo.root}`));
       yield* Console.log(ui.muted(`repo-path: ${written.pathFile}`));
     }

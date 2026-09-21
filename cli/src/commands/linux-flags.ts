@@ -6,13 +6,15 @@ import { isLinuxProfile, LINUX_PROFILES } from "@/update/linux";
 
 export const linuxProfileFlag = Flag.String("profile").pipe(
   Flag.withDefault("generic-linux"),
-  Flag.withDescription(`Linux package profile (${LINUX_PROFILES.join(", ")}).`),
+  Flag.withDescription(
+    `Linux package profile (built-ins: ${LINUX_PROFILES.join(", ")}; BYOR names are allowed).`,
+  ),
 );
 
 export const linuxOptionalProfileFlag = Flag.String("profile").pipe(
   Flag.optional,
   Flag.withDescription(
-    `Linux profile (default: ${LINUX_PROFILES[0]} or config.json linux.profile).`,
+    `Linux profile (default: ${LINUX_PROFILES[0]} or config.json linux.profile; BYOR names are allowed).`,
   ),
 );
 
@@ -43,9 +45,11 @@ export function requestedLinuxPackageManager(
   return manager;
 }
 
-export function requireLinuxProfile(profile: string): (typeof LINUX_PROFILES)[number] {
+export function requireLinuxProfile(profile: string): string {
   if (!isLinuxProfile(profile)) {
-    throw new Error(`Unknown Linux profile \`${profile}\`. Choose: ${LINUX_PROFILES.join(", ")}.`);
+    throw new Error(
+      `Invalid Linux profile \`${profile}\`. Use letters, numbers, ., _, and - only.`,
+    );
   }
   return profile;
 }

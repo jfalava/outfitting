@@ -19,6 +19,7 @@ import {
   type LinuxPackageManager,
 } from "@/platform/linux";
 import { runCommand, which } from "@/process";
+import { parseLinuxPackageManifest } from "@/source/linux-manifest";
 import { ui } from "@/ui";
 import {
   isLinuxProfile,
@@ -40,7 +41,7 @@ const LINUX_OWNERSHIP_FILE = "linux-package-ownership.json";
 
 interface LinuxOwnershipState {
   version: 1;
-  profiles: Partial<Record<LinuxProfile, Partial<Record<LinuxPackageManager, string[]>>>>;
+  profiles: Record<string, Partial<Record<LinuxPackageManager, string[]>>>;
 }
 
 const ManagerOwnershipSchema = Schema.Struct({
@@ -50,36 +51,12 @@ const ManagerOwnershipSchema = Schema.Struct({
 
 const LinuxOwnershipSchema = Schema.Struct({
   version: Schema.Literal(1),
-  profiles: Schema.Struct({
-    "generic-linux": Schema.optionalKey(ManagerOwnershipSchema),
-    "oci-agents": Schema.optionalKey(ManagerOwnershipSchema),
-    "ubuntu-wsl": Schema.optionalKey(ManagerOwnershipSchema),
-  }),
+  profiles: Schema.Record(Schema.String, ManagerOwnershipSchema),
 });
 
 const decodeLinuxOwnership = Schema.decodeUnknownPromise(LinuxOwnershipSchema);
 
-/** Parse a Linux package manifest as one package name per line. */
-export function parseLinuxPackageManifest(content: string): string[] {
-  const packages: string[] = [];
-  const seen = new Set<string>();
-  for (const raw of content.split(/\r?\n/)) {
-    const packageName = raw.split("#", 1)[0]?.trim();
-    if (packageName === undefined || packageName.length === 0 || seen.has(packageName)) {
-      continue;
-    }
-    if (
-      !/^[a-z0-9][a-z0-9+._-]*(?::[a-z0-9][a-z0-9_-]*)?(?:=[a-zA-Z0-9][a-zA-Z0-9.+:~_-]*)?$/.test(
-        packageName,
-      )
-    ) {
-      throw new Error(`Invalid Linux package entry: ${raw.trim()}`);
-    }
-    seen.add(packageName);
-    packages.push(packageName);
-  }
-  return packages;
-}
+export { parseLinuxPackageManifest } from "@/source/linux-manifest";
 
 export type LinuxPackageAction = "update" | "upgrade" | "install" | "remove";
 
@@ -351,11 +328,7 @@ async function readOwnership(config: ManagerConfig): Promise<LinuxOwnershipState
     );
     const decoded = await decodeLinuxOwnership(parsed);
     const state = emptyOwnership();
-    for (const profile of LINUX_PROFILES) {
-      const decodedProfile = decoded.profiles[profile];
-      if (decodedProfile === undefined) {
-        continue;
-      }
+    for (const [profile, decodedProfile] of Object.entries(decoded.profiles)) {
       const managers: Partial<Record<LinuxPackageManager, string[]>> = {};
       if (decodedProfile.apt !== undefined) {
         managers.apt = [...decodedProfile.apt];
@@ -421,7 +394,7 @@ function otherOwners(
   manager: LinuxPackageManager,
   name: string,
 ): LinuxProfile[] {
-  return LINUX_PROFILES.filter(
+  return Object.keys(state.profiles).filter(
     (profile) => profile !== active && owned(state, profile, manager).includes(name),
   );
 }
@@ -548,7 +521,7 @@ function reconcileOwnership(
 ): void {
   const { ownership, profile, command } = context;
   // Forget absent installations before assigning shared ownership. Never claim manual installs.
-  for (const owner of LINUX_PROFILES) {
+  for (const owner of Object.keys(ownership.profiles)) {
     setOwned(
       ownership,
       owner,
@@ -609,7 +582,9 @@ export const applyLinux = <ConfirmR = never>(options: LinuxApplyOptions<ConfirmR
     const command = yield* tryPromise(() => detectManager(options, config));
     const declared = yield* Effect.tryPromise({
       try: async () =>
-        parseLinuxPackageManifest(await readLinuxManifest(config, profile, source?.root)),
+        parseLinuxPackageManifest(
+          await readLinuxManifest(config, profile, source?.root, command.manager),
+        ),
       catch: toCliFailure,
     });
     const installed = yield* tryPromise(() => listInstalledLinuxPackages(command.manager, command));

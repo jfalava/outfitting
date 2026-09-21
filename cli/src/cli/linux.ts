@@ -9,6 +9,7 @@ import { makeStatusCommand } from "@/commands/status";
 import { syncCommand } from "@/commands/sync";
 import { makeLinuxUpdateCommand } from "@/commands/update/linux";
 import { makeUpgradeCommand } from "@/commands/upgrade";
+import { validateCommand } from "@/commands/validate";
 
 /** Linux root command surface, including the explicit Ubuntu WSL profile. */
 export const makeLinuxRootCommand = (currentVersion: string) =>
@@ -17,6 +18,7 @@ export const makeLinuxRootCommand = (currentVersion: string) =>
     Command.withSubcommands([
       linuxInitCommand,
       linuxSetupCommand,
+      validateCommand,
       makeLinuxUpdateCommand(),
       makeLinuxDiffCommand(),
       makeLinuxApplyCommand(),

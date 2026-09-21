@@ -429,7 +429,7 @@ async function compareLinuxSection(
   }
 
   const desired = parseLinuxPackageManifest(
-    await readLinuxManifest(context.config, profile, context.linuxSource?.root),
+    await readLinuxManifest(context.config, profile, context.linuxSource?.root, manager),
   );
   const installed = await listInstalledLinuxPackages(manager, {
     run: context.run,

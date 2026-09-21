@@ -28,6 +28,49 @@ outfitting-manager init --profile oci-agents --repo ~/src/my-machine-config
 outfitting-manager setup --profile ubuntu-wsl --repo ~/src/my-machine-config
 ```
 
+## User-defined profiles
+
+Repositories can describe their own Linux profiles in `outfitting.json`. Profile names are arbitrary, and a profile may contain only Nix, only apt, only pacman, or any combination of those backends:
+
+```json
+{
+  "schema": 1,
+  "profiles": {
+    "nix-server": {
+      "linux": {
+        "nix": {
+          "flake": "system/server",
+          "attribute": "homeConfigurations.server.activationPackage"
+        }
+      }
+    },
+    "debian-minimal": {
+      "linux": {
+        "apt": { "manifest": "packages/debian/minimal.txt" }
+      }
+    }
+  }
+}
+```
+
+Validate a local repository without installing packages, evaluating a flake, or changing machine state:
+
+```bash
+outfitting-manager validate \
+  --repo ~/src/my-machine-config \
+  --profile nix-server
+```
+
+The validator checks profile names, repository-relative paths, package manifests, and the declared Nix flake file. After validation, local checkouts can use the same profile with `init` or `setup`:
+
+```bash
+outfitting-manager setup \
+  --repo ~/src/my-machine-config \
+  --profile debian-minimal
+```
+
+The built-in `generic-linux`, `oci-agents`, and `ubuntu-wsl` layouts remain supported for existing repositories. Repository-owned contracts currently require a local checkout; hosted raw sources continue to use the built-in sparse-source layout.
+
 ## Repository schema
 
 Linux selects one profile at a time. Every Nix-backed profile includes the common closure:

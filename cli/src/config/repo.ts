@@ -16,6 +16,7 @@ import { repoPathFile } from "@/config/paths";
 import type { ManagerConfig } from "@/config/types";
 import { runCommand } from "@/process";
 import { envValue } from "@/secrets";
+import { hasByorContract, readByorContract } from "@/source/contract";
 
 export const DEFAULT_OUTFITTING_REPO_URL = "https://github.com/jfalava/outfitting.git";
 
@@ -167,6 +168,86 @@ async function pathExists(path: string): Promise<boolean> {
   }
 }
 
+async function resolveByorFlakeSelection(
+  absolute: string,
+  profile: string | undefined,
+): Promise<FlakeSelection | undefined> {
+  if (!(await hasByorContract(absolute))) {
+    return undefined;
+  }
+
+  const contract = await readByorContract(absolute);
+  const names = Object.keys(contract.profiles);
+  const selected =
+    profile ??
+    (names.length === 1
+      ? names[0]
+      : (() => {
+          throw new Error(
+            `The BYOR repository defines multiple profiles. Pass a profile (${names.join(", ")}).`,
+          );
+        })());
+  const declaration = contract.profiles[selected!];
+  if (declaration === undefined) {
+    throw new Error(`Unknown BYOR profile \`${selected}\`. Choose: ${names.join(", ")}.`);
+  }
+  if (declaration.linux.nix === undefined) {
+    return {
+      flakePath: "",
+      darwinNixPath: "",
+      flakeKind: "none",
+      systemAttr: "",
+    };
+  }
+
+  const flakePath = join(absolute, declaration.linux.nix.flake);
+  if (!(await pathExists(join(flakePath, "flake.nix")))) {
+    throw new Error(
+      `BYOR profile \`${selected}\` declares a missing Nix flake at ${join(flakePath, "flake.nix")}.`,
+    );
+  }
+  return {
+    flakePath,
+    darwinNixPath: "",
+    flakeKind: "home-manager",
+    systemAttr: declaration.linux.nix.attribute,
+    homeManagerName: selected,
+  };
+}
+
+async function validateLegacyRepo(
+  absolute: string,
+  profile: string | undefined,
+): Promise<OutfittingRepo> {
+  const markers = SOURCE_MARKERS.map((relative) => join(absolute, relative));
+  const present = await Promise.all(markers.map((path) => pathExists(path)));
+  if (!present.some(Boolean)) {
+    throw new Error(
+      `Outfitting repo at ${absolute} is missing a recognized source marker (system/macos, system/oci-agents, system/ubuntu-wsl, or packages/linux/generic-linux.txt). Check OUTFITTING_REPO / repo-path.`,
+    );
+  }
+
+  const selection = await resolveFlakeSelection(absolute, profile, present);
+  if (
+    (profile === "oci-agents" || profile === "ubuntu-wsl") &&
+    selection.flakeKind === "home-manager"
+  ) {
+    const flakeNix = join(selection.flakePath, "flake.nix");
+    if (!(await pathExists(flakeNix))) {
+      throw new Error(`Missing flake at ${flakeNix}.`);
+    }
+  }
+
+  return {
+    root: absolute,
+    flakePath: selection.flakePath,
+    darwinNixPath: selection.darwinNixPath,
+    flakeKind: selection.flakeKind,
+    systemAttr: selection.systemAttr,
+    homeManagerName: selection.homeManagerName,
+  };
+}
+
 function isNotFound(cause: unknown): boolean {
   return (
     cause instanceof Error && "code" in cause && (cause as NodeJS.ErrnoException).code === "ENOENT"
@@ -203,33 +284,15 @@ export async function validateOutfittingRepo(
     throw new Error(`Outfitting repository path does not exist: ${candidate}`);
   }
 
-  const markers = SOURCE_MARKERS.map((relative) => join(absolute, relative));
-  const present = await Promise.all(markers.map((path) => pathExists(path)));
-  if (!present.some(Boolean)) {
-    throw new Error(
-      `Outfitting repo at ${absolute} is missing a recognized source marker (system/macos, system/oci-agents, system/ubuntu-wsl, or packages/linux/generic-linux.txt). Check OUTFITTING_REPO / repo-path.`,
-    );
+  const byorSelection = await resolveByorFlakeSelection(absolute, options?.profile);
+  if (byorSelection !== undefined) {
+    return {
+      root: absolute,
+      ...byorSelection,
+    };
   }
 
-  const selection = await resolveFlakeSelection(absolute, options?.profile, present);
-  if (
-    (options?.profile === "oci-agents" || options?.profile === "ubuntu-wsl") &&
-    selection.flakeKind === "home-manager"
-  ) {
-    const flakeNix = join(selection.flakePath, "flake.nix");
-    if (!(await pathExists(flakeNix))) {
-      throw new Error(`Missing flake at ${flakeNix}.`);
-    }
-  }
-
-  return {
-    root: absolute,
-    flakePath: selection.flakePath,
-    darwinNixPath: selection.darwinNixPath,
-    flakeKind: selection.flakeKind,
-    systemAttr: selection.systemAttr,
-    homeManagerName: selection.homeManagerName,
-  };
+  return validateLegacyRepo(absolute, options?.profile);
 }
 
 /**

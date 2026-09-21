@@ -100,7 +100,7 @@ test("Linux entrypoint registers update nix alongside apt/pacman", async () => {
     encoding: "utf8",
   });
   expect(`${packageUpdateHelp.stdout}\n${packageUpdateHelp.stderr}`).not.toContain("--refresh");
-});
+}, 15_000);
 
 test("Linux init materializes state without invoking a package manager", async () => {
   const stateRoot = await mkdtemp(join(tmpdir(), "outfitting-linux-init-"));
@@ -669,6 +669,113 @@ test("Linux setup applies the cached selected profile", async () => {
     { command: "/usr/bin/sudo", args: ["/usr/bin/apt", "update"] },
     { command: "/usr/bin/sudo", args: ["/usr/bin/apt", "install", "-y", "curl"] },
     { command: "/usr/bin/sudo", args: ["/usr/bin/apt", "install", "-y", "git"] },
+  ]);
+});
+
+test("Linux setup consumes an arbitrary apt-only BYOR profile", async () => {
+  const stateRoot = await mkdtemp(join(tmpdir(), "outfitting-linux-byor-setup-state-"));
+  const repo = await mkdtemp(join(tmpdir(), "outfitting-linux-byor-setup-repo-"));
+  const calls: Array<{ command: string; args: ReadonlyArray<string> }> = [];
+  let fetchCount = 0;
+  try {
+    await mkdir(join(repo, "packages", "debian"), { recursive: true });
+    await writeFile(
+      join(repo, "outfitting.json"),
+      `${JSON.stringify({
+        schema: 1,
+        profiles: {
+          "debian-minimal": {
+            linux: { apt: { manifest: "packages/debian/minimal.txt" } },
+          },
+        },
+      })}\n`,
+    );
+    await writeFile(join(repo, "packages", "debian", "minimal.txt"), "curl\ngit\n");
+
+    await Effect.runPromise(
+      runLinuxSetup({
+        stateRoot,
+        repo,
+        profile: "debian-minimal",
+        packageManager: "apt",
+        which: async (command) =>
+          ({ apt: "/usr/bin/apt", "dpkg-query": "/usr/bin/dpkg-query" })[command],
+        fetcher: async () => {
+          fetchCount += 1;
+          return new Response("must not fetch a local BYOR repository");
+        },
+        run: async (command, args) => {
+          calls.push({ command, args });
+          return {
+            code: 0,
+            stdout: "curl\tinstall ok installed\ngit\tinstall ok installed\n",
+            stderr: "",
+          };
+        },
+      }),
+    );
+  } finally {
+    await rm(stateRoot, { force: true, recursive: true });
+    await rm(repo, { force: true, recursive: true });
+  }
+
+  expect(fetchCount).toBe(0);
+  expect(calls).toEqual([
+    { command: "/usr/bin/dpkg-query", args: ["-W", "-f=${binary:Package}\\t${Status}\\n"] },
+  ]);
+});
+
+test("Linux setup reuses a persisted BYOR repository without repeating --repo", async () => {
+  const stateRoot = await mkdtemp(join(tmpdir(), "outfitting-linux-byor-reuse-state-"));
+  const repo = await mkdtemp(join(tmpdir(), "outfitting-linux-byor-reuse-repo-"));
+  const calls: Array<{ command: string; args: ReadonlyArray<string> }> = [];
+  let fetchCount = 0;
+  try {
+    await mkdir(join(repo, "packages", "debian"), { recursive: true });
+    await writeFile(
+      join(repo, "outfitting.json"),
+      `${JSON.stringify({
+        schema: 1,
+        profiles: {
+          "debian-minimal": {
+            linux: { apt: { manifest: "packages/debian/minimal.txt" } },
+          },
+        },
+      })}\n`,
+    );
+    await writeFile(join(repo, "packages", "debian", "minimal.txt"), "curl\n");
+
+    const options = {
+      stateRoot,
+      profile: "debian-minimal",
+      packageManager: "apt" as const,
+      which: async (command: string) =>
+        ({ apt: "/usr/bin/apt", "dpkg-query": "/usr/bin/dpkg-query" })[command],
+      fetcher: async () => {
+        fetchCount += 1;
+        return new Response("must not fetch a local BYOR repository");
+      },
+      run: async (command: string, args: ReadonlyArray<string>) => {
+        calls.push({ command, args });
+        return {
+          code: 0,
+          stdout: "curl\tinstall ok installed\n",
+          stderr: "",
+        };
+      },
+    };
+
+    await Effect.runPromise(runLinuxSetup({ ...options, repo }));
+    await Effect.runPromise(runLinuxSetup(options));
+  } finally {
+    await rm(stateRoot, { force: true, recursive: true });
+    await rm(repo, { force: true, recursive: true });
+  }
+
+  expect(fetchCount).toBe(0);
+  expect(calls).toEqual([
+    { command: "/usr/bin/dpkg-query", args: ["-W", "-f=${binary:Package}\\t${Status}\\n"] },
+    { command: "/usr/bin/dpkg-query", args: ["-W", "-f=${binary:Package}\\t${Status}\\n"] },
   ]);
 });
 

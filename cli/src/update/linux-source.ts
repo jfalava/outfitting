@@ -9,9 +9,10 @@ import { runCommand } from "@/process";
 import { envValue } from "@/secrets";
 import { linuxSourcePaths } from "@/setup/manifests";
 import { syncSparseSource } from "@/setup/source";
+import { hasByorContract, validateLinuxByorSource } from "@/source/contract";
 
 export const LINUX_PROFILES = ["generic-linux", "oci-agents", "ubuntu-wsl"] as const;
-export type LinuxProfile = (typeof LINUX_PROFILES)[number];
+export type LinuxProfile = string;
 
 const LINUX_PROFILE_MANIFEST_PATHS = {
   "generic-linux": "packages/linux/generic-linux.txt",
@@ -37,11 +38,17 @@ export interface LinuxSource {
 }
 
 export function isLinuxProfile(value: string): value is LinuxProfile {
-  return (LINUX_PROFILES as ReadonlyArray<string>).includes(value);
+  return /^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(value);
 }
 
 export function linuxManifestPath(profile: LinuxProfile): string {
-  return LINUX_PROFILE_MANIFEST_PATHS[profile];
+  const path = LINUX_PROFILE_MANIFEST_PATHS[profile as keyof typeof LINUX_PROFILE_MANIFEST_PATHS];
+  if (path === undefined) {
+    throw new Error(
+      `Profile \`${profile}\` is repository-defined; read its manifest from outfitting.json.`,
+    );
+  }
+  return path;
 }
 
 function isNotFound(cause: unknown): boolean {
@@ -229,21 +236,40 @@ export async function prepareLinuxSource(options: LinuxSourceOptions): Promise<L
   return { ...selected, repo };
 }
 
+async function readByorLinuxManifest(
+  root: string,
+  profile: LinuxProfile,
+  packageManager: "apt" | "pacman" | undefined,
+): Promise<string> {
+  const validated = await validateLinuxByorSource({ root, profile });
+  const manager =
+    packageManager ??
+    (["apt", "pacman"] as const).find((candidate) => validated.linux[candidate] !== undefined);
+  if (manager === undefined || validated.linux[manager] === undefined) {
+    throw new Error(
+      `BYOR profile \`${profile}\` does not declare a ${packageManager ?? "native"} package manifest.`,
+    );
+  }
+  return readFile(join(root, validated.linux[manager].manifest), "utf8");
+}
+
 /** Read a profile declaration from the selected local source or cache without fetching. */
 export async function readLinuxManifest(
   config: ManagerConfig,
   profile: LinuxProfile,
   sourceRoot?: string,
+  packageManager?: "apt" | "pacman",
 ): Promise<string> {
-  const relative = linuxManifestPath(profile);
-  if (sourceRoot !== undefined) {
-    return readFile(join(sourceRoot, relative), "utf8");
+  const configured = sourceRoot ?? envValue("OUTFITTING_REPO") ?? (await readRepoPathFile(config));
+  if (configured !== undefined) {
+    const root = await canonical(configured);
+    if (await hasByorContract(root)) {
+      return readByorLinuxManifest(root, profile, packageManager);
+    }
+    return readFile(join(root, linuxManifestPath(profile)), "utf8");
   }
 
-  const configured = envValue("OUTFITTING_REPO") ?? (await readRepoPathFile(config));
-  if (configured !== undefined) {
-    return readFile(join(await canonical(configured), relative), "utf8");
-  }
+  const relative = linuxManifestPath(profile);
 
   for (const path of [
     join(manifestsDir(config.stateRoot), relative),

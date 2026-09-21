@@ -72,9 +72,7 @@ export const LINUX_SOURCE_PATHS = [
 ] as const;
 
 /** Resolve the sparse source closure for a Linux profile. */
-export function linuxSourcePaths(
-  profile: "generic-linux" | "oci-agents" | "ubuntu-wsl",
-): ReadonlyArray<string> {
+export function linuxSourcePaths(profile: string): ReadonlyArray<string> {
   switch (profile) {
     case "generic-linux":
       return GENERIC_LINUX_SOURCE_PATHS;
@@ -83,8 +81,7 @@ export function linuxSourcePaths(
     case "ubuntu-wsl":
       return UBUNTU_WSL_SOURCE_PATHS;
     default: {
-      const exhaustive: never = profile;
-      return exhaustive;
+      throw new Error(`No built-in sparse source closure exists for Linux profile ${profile}.`);
     }
   }
 }
