@@ -1,0 +1,40 @@
+---
+title: macOS
+description: Configure a macOS repository for Outfitting.
+sidebar:
+  order: 1
+---
+
+## Choose a source
+
+macOS accepts a local checkout with `--repo` or a hosted source with `--manifest-base-url` and `--manifest-ref`:
+
+```bash
+outfitting-manager setup --repo ~/src/my-machine-config
+```
+
+Use `init` instead of `setup` when you want to validate and prepare the source without applying packages or Nix state.
+
+## Repository schema
+
+The macOS source must provide this complete closure:
+
+```text
+system/macos/flake.nix
+system/macos/darwin.nix
+system/macos/home.nix
+system/macos/zsh/macos.plugin.zsh
+system/common/zsh.nix
+system/common/zsh/outfitting.plugin.zsh
+system/common/zsh/hm-profile.inc.zsh
+packages/common/programs.nix
+packages/common/packages.nix
+packages/common/opencode-mcp.nix
+packages/macos/programs.nix
+packages/macos/packages.nix
+packages/macos/zed.nix
+packages/macos/Brewfile
+fonts/fontget.txt
+```
+
+`system/macos/flake.nix` must expose `darwinConfigurations`. The manager validates the closure before activating nix-darwin or applying Homebrew state.

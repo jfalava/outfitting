@@ -36,4 +36,4 @@ Committed desired state: `packages/macos/` (Brewfile, nix), `packages/windows/` 
 
 Root `*-install-script.{sh,ps1}` files are served live from the installer hosts. Windows bootstraps the checksum-verified `outfitting-manager` release, fetches the selected manifests and PowerShell profile sparsely from GitHub, and symlinks profile entry points to the cached profile. Registry/OpenSSH setup remains PowerShell; post-install adds Scoop and fonts (with package installs delegated to the CLI).
 
-Day-to-day Windows and Linux reconciliation uses `outfitting-manager apply`. Remote transport is explicit under `outfitting-manager sync`; see [Profiles and machine identity](/docs/cli/profiles/) for how remote state is scoped. macOS continues to use `nix` plus `homebrew-inventory`.
+Day-to-day Windows and Linux reconciliation uses `outfitting-manager apply`. Remote transport is explicit under `outfitting-manager sync`; see [Machine ID](/docs/source-configuration/#machine-id) for how remote state is scoped. macOS continues to use `nix` plus `homebrew-inventory`.

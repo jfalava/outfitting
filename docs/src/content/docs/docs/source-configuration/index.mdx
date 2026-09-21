@@ -1,0 +1,100 @@
+---
+title: Local source
+description: Understand profiles, machine identity, and the source state Outfitting keeps on each machine.
+sidebar:
+  order: 1
+---
+
+Outfitting keeps machine-local state separate from the repository source it consumes. The state root contains configuration, cached declarations, and the managed source used by later commands.
+
+## State root
+
+The default state root is:
+
+| Platform        | State root                         |
+| --------------- | ---------------------------------- |
+| macOS and Linux | `~/.config/outfitting`             |
+| Windows         | `%USERPROFILE%\.config\outfitting` |
+
+Set `OUTFITTING_STATE_ROOT` to use another location. The important entries below live under that root:
+
+| Entry         | Purpose                                                                             |
+| ------------- | ----------------------------------------------------------------------------------- |
+| `config.json` | Manifest source, machine ID override, Windows routes, and the active Linux profile. |
+| `manifests/`  | Materialized copies of fetched package lists and other declarations.                |
+| `source/`     | Managed sparse source for macOS and Linux when no full checkout is selected.        |
+| `repo-path`   | Saved path to the source selected with `--repo` or to the managed sparse source.    |
+
+For macOS and Linux, `OUTFITTING_REPO` takes precedence over the saved `repo-path`. When neither is configured, setup uses the managed sparse source for the selected platform or profile. Windows reads cached manifests from the configured manifest source instead of requiring a checkout.
+
+## Profiles
+
+Windows profiles are comma-composable bundles. For example, `--profile base,dev` combines both manifests and records both bundles as active. Linux profiles are exclusive: `--profile ubuntu-wsl` replaces the active Linux profile rather than composing with it. macOS has one platform configuration and does not expose profile selection.
+
+Windows commands and Linux `apply` reuse the saved active selection when `--profile` is omitted. New Windows state uses configured default profiles; new Linux state defaults to `generic-linux`. Linux `init` and `setup` default explicitly to `generic-linux`, so pass `--profile` when preparing a different Linux profile. Package upgrades do not select a profile; Linux Nix actions use the saved profile.
+
+| Platform | Profile model                     | Typical selection                                   |
+| -------- | --------------------------------- | --------------------------------------------------- |
+| macOS    | One platform configuration        | No `--profile` option.                              |
+| Windows  | Multiple comma-composable bundles | `--profile base,dev`                                |
+| Linux    | One exclusive profile             | `--profile generic-linux` or `--profile ubuntu-wsl` |
+
+## Machine ID
+
+The machine ID resolves from `OUTFITTING_MACHINE_ID`, then `config.json` `machineId`, then the automatic `<username>:<architecture>-<platform>` value. For example, `jfalava:aarch64-darwin`. The username resolves from `USER`, then `USERNAME`, then the operating-system account. Supported CPU names normalize to `aarch64`, `x86_64`, or `i686`.
+
+The ID scopes remote state. Set it deliberately when multiple installations should share an identity; otherwise let Outfitting derive it.
+
+## Platform source layouts
+
+Each platform consumes a different local source layout. macOS and Linux fetch only the files required by their selected source bundle. Windows caches the repository-relative manifests and profile files it needs.
+
+### Windows
+
+Windows stores configuration and fetched manifests under:
+
+```text
+%USERPROFILE%\.config\outfitting
+```
+
+`config.json` records the manifest source and repository-relative Windows routes. `manifests` contains the selected WinGet files, the configured Scoop manifest, and the cached PowerShell profile. Windows package reconciliation does not require a monorepo checkout.
+
+The installer links these PowerShell profile entry points to the cached profile:
+
+```text
+%USERPROFILE%\Documents\PowerShell\Microsoft.PowerShell_profile.ps1
+%USERPROFILE%\Documents\PowerShell\Microsoft.VSCode_profile.ps1
+%USERPROFILE%\Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1
+    -> %USERPROFILE%\.config\outfitting\manifests\<configured PowerShell route>
+```
+
+Existing profiles are backed up with a timestamp before they are replaced. Windows symbolic links require Developer Mode or an elevated installer session.
+
+### macOS
+
+```text
+~/.config/outfitting/repo-path -> ~/.config/outfitting/source
+~/.config/home-manager -> ~/.config/outfitting/source/system/macos
+~/.nixpkgs/darwin-configuration.nix -> ~/.config/outfitting/source/system/macos/darwin.nix
+```
+
+The macOS manager fetches its allowlisted source paths into `~/.config/outfitting/source`; it does not clone the monorepo or create a repository `flake.lock`. `outfitting-manager init` validates the source before `outfitting-manager setup` applies it. Repository requirements are documented in [BYOR for macOS](/docs/source-configuration/byor/macos/).
+
+### Linux
+
+Linux keeps a profile-scoped sparse source at:
+
+```text
+~/.config/outfitting/source
+```
+
+The bundle contains the selected profile's package manifest and, for Nix-backed profiles, the shared modules, dotfiles, flake, lockfile, bootstrap, and Zsh plugin.
+
+Home Manager links for Nix-backed profiles point to the selected source:
+
+```text
+~/.config/home-manager -> ~/.config/outfitting/source/system/ubuntu-wsl
+~/.config/home-manager -> ~/.config/outfitting/source/system/oci-agents
+```
+
+Use [BYOR for Linux](/docs/source-configuration/byor/linux/) when the source should come from a full checkout or a repository other than the default Outfitting source.

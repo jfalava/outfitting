@@ -26,6 +26,8 @@ ajeetdsouza.zoxide
 BurntSushi.ripgrep.MSVC
 sharkdp.bat
 eza-community.eza
+Cloudflare.cloudflared
+FocusriteAudioEngineeringLtd.FocusriteControl2
 Fastfetch-cli.Fastfetch
 Microsoft.Git
 M2Team.NanaZip
@@ -64,4 +66,3 @@ msstore:9PCFS5B6T72H
 msstore:9WZDNCRFHWKN
 msstore:9WZDNCRFJBBG
 msstore:9WZDNCRFJBH4
-msstore:9NWVGWLHPB1Z

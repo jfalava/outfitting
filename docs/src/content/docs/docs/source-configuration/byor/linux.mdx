@@ -1,0 +1,54 @@
+---
+title: Linux
+description: Configure a Linux repository and profile for Outfitting.
+sidebar:
+  order: 2
+---
+
+## Choose a source
+
+Linux accepts a local checkout with `--repo` or a hosted source with `--manifest-base-url` and `--manifest-ref`:
+
+```bash
+outfitting-manager setup \
+  --profile generic-linux \
+  --repo ~/src/my-machine-config
+
+# Hosted source
+outfitting-manager setup \
+  --profile generic-linux \
+  --manifest-base-url https://raw.githubusercontent.com/example/my-machine-config \
+  --manifest-ref main
+```
+
+Use `init` instead of `setup` when you want to validate and prepare the source without applying packages or Nix state. Linux requires an explicit non-default profile when the repository provides `oci-agents` or `ubuntu-wsl`:
+
+```bash
+outfitting-manager init --profile oci-agents --repo ~/src/my-machine-config
+outfitting-manager setup --profile ubuntu-wsl --repo ~/src/my-machine-config
+```
+
+## Repository schema
+
+Linux selects one profile at a time. Every Nix-backed profile includes the common closure:
+
+```text
+system/common/zsh.nix
+system/common/zsh/outfitting.plugin.zsh
+system/common/zsh/hm-profile.inc.zsh
+system/common/dotfiles.nix
+dotfiles/ssh.config
+packages/common/programs.nix
+packages/common/packages.nix
+packages/common/opencode-mcp.nix
+```
+
+Add the paths for the selected profile:
+
+| Profile         | Required package manifest          | Required profile source                                                                                                                                         |
+| --------------- | ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `generic-linux` | `packages/linux/generic-linux.txt` | No Nix source.                                                                                                                                                  |
+| `oci-agents`    | `packages/linux/oci-agents.txt`    | `packages/oci-agents/packages.nix` and `system/oci-agents/{agent-guidance.md,agents.nix,bootstrap.sh,flake.lock,flake.nix,home.nix,zsh/oci-agents.plugin.zsh}`. |
+| `ubuntu-wsl`    | `packages/ubuntu-wsl/apt.txt`      | `packages/ubuntu-wsl/packages.nix` and `system/ubuntu-wsl/{base.nix,bootstrap.sh,flake.lock,flake.nix,zsh/wsl.plugin.zsh}`.                                     |
+
+The `oci-agents` flake must expose `homeConfigurations.oci-agents`; the `ubuntu-wsl` flake must expose `homeConfigurations.jfalava`. The selected profile's setup fetches or reads only its closure.

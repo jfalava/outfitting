@@ -1,4 +1,6 @@
-import nimbus, { defineConfig as defineNimbusConfig } from "@cloudflare/nimbus-docs";
+import nimbus, {
+  defineConfig as defineNimbusConfig,
+} from "@cloudflare/nimbus-docs";
 import { tableScroll } from "@cloudflare/nimbus-docs/markdown";
 import tailwindcss from "@tailwindcss/vite";
 import icon from "astro-icon";
@@ -30,7 +32,10 @@ const nimbusConfig = defineNimbusConfig({
         label: "CLI",
         items: [{ autogenerate: { directory: "docs/cli" }, collapsed: true }],
       },
-      "docs/repository-configuration",
+      {
+        label: "Source configuration",
+        items: [{ autogenerate: { directory: "docs/source-configuration" } }],
+      },
       {
         label: "Architecture",
         items: [{ autogenerate: { directory: "docs/architecture" } }],

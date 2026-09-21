@@ -2,6 +2,7 @@ Valve.Steam
 EpicGames.EpicGamesLauncher
 GOG.Galaxy
 NexusMods.Vortex
+Blizzard.BattleNet
 goatcorp.XIVLauncher
 WowUp.Wowup
 bozbez.WinCaptureAudio.beta
