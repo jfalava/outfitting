@@ -177,6 +177,17 @@ async function resolveByorFlakeSelection(
     return undefined;
   }
 
+  const hasLinux = Object.values(contract.profiles).some((entry) => entry.linux !== undefined);
+  if (!hasLinux) {
+    // Windows-only (or otherwise non-Nix) BYOR contracts are valid checkouts with no flake.
+    return {
+      flakePath: "",
+      darwinNixPath: "",
+      flakeKind: "none",
+      systemAttr: "",
+    };
+  }
+
   const selected = selectByorProfile(contract, profile);
   if (selected.linux.nix === undefined) {
     return {

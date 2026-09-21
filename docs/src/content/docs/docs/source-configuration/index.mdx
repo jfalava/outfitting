@@ -25,7 +25,7 @@ Set `OUTFITTING_STATE_ROOT` to use another location. The important entries below
 | `source/`     | Managed sparse source for macOS and Linux when no full checkout is selected.        |
 | `repo-path`   | Saved path to the source selected with `--repo` or to the managed sparse source.    |
 
-For macOS and Linux, `OUTFITTING_REPO` takes precedence over the saved `repo-path`. When neither is configured, setup uses the managed sparse source for the selected platform or profile. Windows reads cached manifests from the configured manifest source instead of requiring a checkout.
+For macOS and Linux, `OUTFITTING_REPO` takes precedence over the saved `repo-path`. When neither is configured, setup uses the managed sparse source for the selected platform or profile. Windows reads cached manifests from the configured manifest source, or from a local BYOR checkout when `outfitting.json` declares Windows profiles.
 
 ## Profiles
 
@@ -50,6 +50,8 @@ The ID scopes remote state. Set it deliberately when multiple installations shou
 Each platform consumes a different local source layout. macOS and Linux fetch only the files required by their selected source bundle. Windows caches the repository-relative manifests and profile files it needs.
 
 ### Windows
+
+Windows can use legacy `config.json` routes or a repository-owned `outfitting.json` contract. See [BYOR for Windows](/docs/source-configuration/byor/windows/).
 
 Windows stores configuration and fetched manifests under:
 

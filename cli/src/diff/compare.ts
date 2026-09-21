@@ -4,12 +4,16 @@ import { join } from "node:path";
 
 import { Console, Effect, Option, Schema } from "effect";
 
-import { parseWindowsPackageList, resolveWindowsProfiles } from "@/commands/windows-apply";
+import {
+  parseWindowsPackageList,
+  resolveWindowsProfiles,
+  resolveWindowsSource,
+  windowsWingetProfilePath,
+} from "@/commands/windows-apply";
 import {
   DEFAULT_LINUX_PROFILE,
   loadConfig,
   resolveOutfittingRepo,
-  resolveWindowsRoutes,
   type ManagerConfig,
   type OutfittingRepo,
 } from "@/config";
@@ -18,6 +22,7 @@ import { fetchManifest, type ManifestFetcher } from "@/fetch";
 import { pullLockfile } from "@/lockfiles";
 import type { LinuxPackageManager } from "@/platform/linux";
 import { runCommand, which } from "@/process";
+import { selectWindowsByorProfiles } from "@/source/contract";
 import { parseBrewfileManifest, BREWFILE_MANIFEST_PATH } from "@/update/brew";
 import {
   isLinuxProfile,
@@ -350,13 +355,20 @@ async function compareWindowsSection(
   options: WindowsDiffOptions,
   context: DiffContext,
 ): Promise<DiffSection> {
-  const routes = resolveWindowsRoutes(context.config.windows);
+  const source = await resolveWindowsSource(context.config, options.profiles);
   const currentLock = await readWindowsLock(context.config);
   const selectedProfiles = resolveWindowsProfiles(
     options.profiles,
     currentLock.profiles,
-    routes.defaultProfiles,
+    source.routes.defaultProfiles,
   );
+  const resolved =
+    source.contract === undefined
+      ? source
+      : {
+          ...source,
+          byor: selectWindowsByorProfiles(source.contract, selectedProfiles),
+        };
 
   if (options.manager === "winget") {
     const executable = await context.which("winget");
@@ -365,7 +377,7 @@ async function compareWindowsSection(
     }
     const desired: string[] = [];
     for (const profile of selectedProfiles) {
-      const path = routes.wingetProfilePath.replaceAll("{profile}", profile);
+      const path = windowsWingetProfilePath(context.config, profile, resolved);
       desired.push(
         ...parseWindowsPackageList(await fetchDiffManifest(path, context), path).map(
           (packageInfo) =>
@@ -387,7 +399,9 @@ async function compareWindowsSection(
     if (executable === undefined) {
       return unavailableSection("scoop", "Scoop is not installed or not in PATH.");
     }
-    const desired = parseScoopManifest(await fetchDiffManifest(routes.scoopPath, context));
+    const desired = parseScoopManifest(
+      await fetchDiffManifest(resolved.routes.scoopPath, context),
+    );
     const actualResult = await runScoopCommand(context.run, executable, ["export"], {
       inherit: false,
     });

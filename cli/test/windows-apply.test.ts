@@ -384,4 +384,60 @@ describe("Windows apply", () => {
       await rm(root, { recursive: true, force: true });
     }
   });
+
+  test("apply reads winget from a local BYOR checkout without default monorepo layout", async () => {
+    const stateRoot = await mkdtemp(join(tmpdir(), "outfitting-byor-apply-state-"));
+    const repo = await mkdtemp(join(tmpdir(), "outfitting-byor-apply-repo-"));
+    try {
+      await mkdir(join(repo, "machine", "winget"), { recursive: true });
+      await writeFile(join(repo, "machine", "winget", "core.txt"), "Git.Git\nMicrosoft.WindowsTerminal\n");
+      await writeFile(
+        join(repo, "outfitting.json"),
+        `${JSON.stringify({
+          schema: 1,
+          windows: { defaultProfiles: ["core"] },
+          profiles: {
+            core: { windows: { winget: { manifest: "machine/winget/core.txt" } } },
+          },
+        })}\n`,
+      );
+      await writeFile(join(stateRoot, "repo-path"), `${repo}\n`);
+
+      const config = configFor(stateRoot);
+      const installed = new Set<string>();
+      await Effect.runPromise(
+        applyWindows({
+          config,
+          profiles: ["core"],
+          wingetOnly: true,
+          yes: true,
+          which: async (name) => name,
+          run: async (_command, args) => {
+            if (args[0] === "list") {
+              return installed.has(args[2] ?? "") ? ok("Name Id\nGit Git.Git") : missing();
+            }
+            if (args[0] === "install") {
+              installed.add(args[2] ?? "");
+              return ok();
+            }
+            return ok();
+          },
+        }),
+      );
+
+      const lock = await readWindowsLock(config);
+      expect(lock.profiles).toEqual(["core"]);
+      expect(lock.packages.winget.map((entry) => entry.name).toSorted()).toEqual([
+        "Git.Git",
+        "Microsoft.WindowsTerminal",
+      ]);
+      // Default monorepo path must not be required.
+      await expect(
+        readFile(join(stateRoot, "manifests", "packages", "windows", "core.txt"), "utf8"),
+      ).rejects.toThrow();
+    } finally {
+      await rm(stateRoot, { recursive: true, force: true });
+      await rm(repo, { recursive: true, force: true });
+    }
+  });
 });

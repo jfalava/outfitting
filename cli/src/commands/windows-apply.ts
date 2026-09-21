@@ -10,12 +10,24 @@ import {
   readRepoPathFile,
   resolveWindowsRoutes,
   type ManagerConfig,
+  type WindowsRoutesConfig,
 } from "@/config";
 import { CliFailure } from "@/errors";
 import { fetchManifest } from "@/fetch";
 import { tryPromise } from "@/lockfiles/effect";
 import { runCommand, which } from "@/process";
 import { envValue } from "@/secrets";
+import {
+  selectWindowsByorProfiles,
+  tryReadByorContract,
+  windowsRoutesFromContract,
+  type ByorContract,
+  type SelectedWindowsByorProfiles,
+} from "@/source/contract";
+import {
+  parseWindowsPackageList,
+  type WindowsWingetPackage,
+} from "@/source/windows-manifest";
 import { ui } from "@/ui";
 import { parseScoopManifest, type ScoopBucket, type ScoopManifest } from "@/update/scoop";
 import { runScoopCommand } from "@/update/scoop-command";
@@ -35,12 +47,80 @@ import { wingetPackageArgs } from "@/update/winget";
 
 export const WINDOWS_PROFILE_NAMES = ["base", "dev", "gaming", "network", "qol", "work"] as const;
 
-export function windowsWingetProfilePath(config: ManagerConfig, profile: string): string {
-  return resolveWindowsRoutes(config.windows).wingetProfilePath.replaceAll("{profile}", profile);
+export type { WindowsWingetPackage };
+export { parseWindowsPackageList };
+
+export interface WindowsSourceResolution {
+  routes: WindowsRoutesConfig;
+  /** When set, winget paths come from the contract — never from template substitution. */
+  byor: SelectedWindowsByorProfiles | undefined;
+  contract: ByorContract | undefined;
 }
 
-export function windowsPowerShellProfilePath(config: ManagerConfig): string {
-  return resolveWindowsRoutes(config.windows).powershellProfilePath;
+/** Resolve Windows routes from a local BYOR contract when present, else config.json. */
+export async function resolveWindowsSource(
+  config: ManagerConfig,
+  profiles?: ReadonlyArray<string>,
+): Promise<WindowsSourceResolution> {
+  const repo = envValue("OUTFITTING_REPO") ?? (await readRepoPathFile(config));
+  if (repo !== undefined) {
+    const contract = await tryReadByorContract(repo);
+    if (contract !== undefined) {
+      const hasWindows = Object.values(contract.profiles).some(
+        (entry) => entry.windows !== undefined,
+      );
+      if (hasWindows) {
+        const byor = selectWindowsByorProfiles(
+          contract,
+          profiles === undefined ? undefined : [...profiles],
+        );
+        return {
+          routes: windowsRoutesFromContract(contract),
+          byor,
+          contract,
+        };
+      }
+    }
+  }
+  return {
+    routes: resolveWindowsRoutes(config.windows),
+    byor: undefined,
+    contract: undefined,
+  };
+}
+
+export function windowsWingetProfilePath(
+  config: ManagerConfig,
+  profile: string,
+  source?: WindowsSourceResolution,
+): string {
+  if (source?.byor !== undefined) {
+    const path = source.byor.wingetPaths[profile];
+    if (path === undefined) {
+      throw new Error(
+        `Unknown BYOR Windows profile \`${profile}\`. Choose: ${source.byor.names.join(", ")}.`,
+      );
+    }
+    return path;
+  }
+  return (source?.routes ?? resolveWindowsRoutes(config.windows)).wingetProfilePath.replaceAll(
+    "{profile}",
+    profile,
+  );
+}
+
+export function windowsPowerShellProfilePath(
+  config: ManagerConfig,
+  source?: WindowsSourceResolution,
+): string {
+  return (source?.routes ?? resolveWindowsRoutes(config.windows)).powershellProfilePath;
+}
+
+export function windowsScoopPath(
+  config: ManagerConfig,
+  source?: WindowsSourceResolution,
+): string {
+  return (source?.routes ?? resolveWindowsRoutes(config.windows)).scoopPath;
 }
 
 export interface WindowsApplyOptions<ConfirmR = never> {
@@ -52,11 +132,6 @@ export interface WindowsApplyOptions<ConfirmR = never> {
   run?: typeof runCommand;
   which?: typeof which;
   confirm?: Effect.Effect<boolean, never, ConfirmR>;
-}
-
-export interface WindowsWingetPackage {
-  name: string;
-  source?: "msstore";
 }
 
 interface OwnedWingetPackage extends WindowsWingetPackage {
@@ -77,34 +152,6 @@ interface ApplyPlan {
 
 function packageName(value: string): string {
   return value.split("/").at(-1) ?? value;
-}
-
-export function parseWindowsPackageList(content: string, path: string): WindowsWingetPackage[] {
-  const packages: WindowsWingetPackage[] = [];
-  const seen = new Set<string>();
-  const invalid: string[] = [];
-  for (const [index, raw] of content.split(/\r?\n/).entries()) {
-    const value = raw.trim();
-    if (value.length === 0 || value.startsWith("#")) {
-      continue;
-    }
-    const isStore = /^msstore:/i.test(value);
-    const name = isStore ? value.slice("msstore:".length) : value;
-    if (!/^(?!-)[^\s:]+$/.test(name)) {
-      invalid.push(`line ${index + 1}: ${value}`);
-      continue;
-    }
-    const source = isStore ? "msstore" : undefined;
-    const key = wingetIdentity(name, source);
-    if (!seen.has(key)) {
-      seen.add(key);
-      packages.push(source === undefined ? { name } : { name, source });
-    }
-  }
-  if (invalid.length > 0) {
-    throw new Error(`Invalid WinGet manifest entries in ${path}: ${invalid.join("; ")}`);
-  }
-  return packages;
 }
 
 export function resolveWindowsProfiles(
@@ -172,12 +219,13 @@ async function readDeclaration(
 const loadDeclarations = Effect.fn("loadWindowsDeclarations")(function* (
   config: ManagerConfig,
   profiles: ReadonlyArray<string>,
+  source: WindowsSourceResolution,
   options: WindowsApplyOptions<unknown>,
 ) {
   const byIdentity = new Map<string, OwnedWingetPackage>();
   for (const profile of profiles) {
     const manifest = yield* tryPromise(() =>
-      readDeclaration(config, windowsWingetProfilePath(config, profile)),
+      readDeclaration(config, windowsWingetProfilePath(config, profile, source)),
     );
     const entries = yield* Effect.try({
       try: () => parseWindowsPackageList(manifest.text, manifest.path),
@@ -199,7 +247,7 @@ const loadDeclarations = Effect.fn("loadWindowsDeclarations")(function* (
     return { winget: [...byIdentity.values()], scoop: undefined };
   }
   const scoopManifest = yield* tryPromise(() =>
-    readDeclaration(config, resolveWindowsRoutes(config.windows).scoopPath),
+    readDeclaration(config, windowsScoopPath(config, source)),
   );
   const scoop = yield* Effect.try({
     try: () => parseScoopManifest(scoopManifest.text),
@@ -454,17 +502,28 @@ function prepareApply<ConfirmR>(options: WindowsApplyOptions<ConfirmR>) {
   return Effect.gen(function* () {
     const config = options.config ?? (yield* tryPromise(() => loadConfig()));
     const current = yield* tryPromise(() => readWindowsLock(config));
+    // Resolve BYOR first so defaultProfiles come from the contract when present.
+    const source = yield* tryPromise(() => resolveWindowsSource(config, options.profiles));
     const profiles = yield* Effect.try({
       try: () =>
         resolveWindowsProfiles(
           options.profiles,
           current.profiles,
-          resolveWindowsRoutes(config.windows).defaultProfiles,
+          source.routes.defaultProfiles,
         ),
       catch: (cause) =>
         new CliFailure({ message: cause instanceof Error ? cause.message : String(cause) }),
     });
-    const declarations = yield* loadDeclarations(config, profiles, options);
+    // Re-select BYOR with the final profile list so winget paths match the lock selection.
+    const resolved =
+      source.contract === undefined
+        ? source
+        : {
+            ...source,
+            byor: selectWindowsByorProfiles(source.contract, profiles),
+            routes: windowsRoutesFromContract(source.contract),
+          };
+    const declarations = yield* loadDeclarations(config, profiles, resolved, options);
     const run = options.run ?? runCommand;
     const whichFn = options.which ?? which;
     const wingetPath = yield* tryPromise(() => whichFn("winget"));

@@ -3,13 +3,13 @@ import { stat } from "node:fs/promises";
 import { Console, Effect } from "effect";
 import { Command } from "effect/unstable/cli";
 
+import { resolveWindowsSource } from "@/commands/windows-apply";
 import {
   autoMachineId,
   configFilePath,
   DEFAULT_LINUX_PROFILE,
   loadConfig,
   readRepoPathFile,
-  resolveWindowsRoutes,
   type ManagerConfig,
 } from "@/config";
 import { tryPromise } from "@/lockfiles/effect";
@@ -76,11 +76,12 @@ export async function readStatus(
     profile = config.linux?.profile ?? DEFAULT_LINUX_PROFILE;
   } else if (platform === "windows") {
     const lock = await readWindowsLock(config);
-    profile = (
-      lock.profiles.length > 0
-        ? lock.profiles
-        : resolveWindowsRoutes(config.windows).defaultProfiles
-    ).join(",");
+    if (lock.profiles.length > 0) {
+      profile = lock.profiles.join(",");
+    } else {
+      const source = await resolveWindowsSource(config);
+      profile = source.routes.defaultProfiles.join(",");
+    }
   }
   const lines = [
     `Platform: ${platform} (${process.arch})`,

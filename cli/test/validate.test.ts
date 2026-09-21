@@ -9,8 +9,11 @@ import {
   hasByorContract,
   parseByorContract,
   selectByorProfile,
+  selectWindowsByorProfiles,
   tryReadByorContract,
   validateLinuxByorSource,
+  validateWindowsByorSource,
+  windowsRoutesFromContract,
 } from "@/source/contract";
 
 const temporaryRoots: string[] = [];
@@ -215,5 +218,139 @@ describe("BYOR contract", () => {
       systemAttr: "homeConfigurations.workstation.activationPackage",
       homeManagerName: "workstation",
     });
+  });
+
+  test("accepts windows-only profiles with custom winget paths", async () => {
+    const root = await repository();
+    await mkdir(join(root, "packages", "custom"), { recursive: true });
+    await writeFile(join(root, "packages", "custom", "base-winget.txt"), "Git.Git\n");
+    await writeFile(join(root, "packages", "custom", "dev-winget.txt"), "OpenAI.Codex\n");
+    await writeContract(root, {
+      schema: 1,
+      windows: {
+        defaultProfiles: ["base", "dev"],
+        scoop: { manifest: "packages/custom/scoop.txt" },
+      },
+      profiles: {
+        base: { windows: { winget: { manifest: "packages/custom/base-winget.txt" } } },
+        dev: { windows: { winget: { manifest: "packages/custom/dev-winget.txt" } } },
+      },
+    });
+    await writeFile(join(root, "packages", "custom", "scoop.txt"), 'package "fzf"\n');
+
+    await expect(validateWindowsByorSource({ root })).resolves.toMatchObject({
+      names: ["base", "dev"],
+      wingetPaths: {
+        base: "packages/custom/base-winget.txt",
+        dev: "packages/custom/dev-winget.txt",
+      },
+    });
+  });
+
+  test("selects composable multi-profile Windows sets", () => {
+    const contract = parseByorContract({
+      schema: 1,
+      profiles: {
+        base: { windows: { winget: { manifest: "base.txt" } } },
+        dev: { windows: { winget: { manifest: "dev.txt" } } },
+        gaming: { windows: { winget: { manifest: "gaming.txt" } } },
+      },
+    });
+    expect(selectWindowsByorProfiles(contract, ["base,dev"])).toEqual({
+      names: ["base", "dev"],
+      wingetPaths: { base: "base.txt", dev: "dev.txt" },
+      shared: undefined,
+    });
+    expect(() => selectWindowsByorProfiles(contract, ["missing"])).toThrow(
+      /Unknown BYOR Windows profile `missing`/,
+    );
+  });
+
+  test("rejects missing, empty, and invalid Windows winget manifests", async () => {
+    const missing = await repository();
+    await writeContract(missing, {
+      schema: 1,
+      profiles: {
+        broken: { windows: { winget: { manifest: "missing.txt" } } },
+      },
+    });
+    await expect(validateWindowsByorSource({ root: missing })).rejects.toThrow(/file is missing/);
+
+    const empty = await repository();
+    await writeFile(join(empty, "empty.txt"), "# nothing\n", "utf8");
+    await writeContract(empty, {
+      schema: 1,
+      profiles: { empty: { windows: { winget: { manifest: "empty.txt" } } } },
+    });
+    await expect(validateWindowsByorSource({ root: empty })).rejects.toThrow(/empty winget manifest/);
+
+    const invalid = await repository();
+    await writeFile(join(invalid, "bad.txt"), "Git.Git --silent\n", "utf8");
+    await writeContract(invalid, {
+      schema: 1,
+      profiles: { bad: { windows: { winget: { manifest: "bad.txt" } } } },
+    });
+    await expect(validateWindowsByorSource({ root: invalid })).rejects.toThrow(
+      /invalid winget manifest/,
+    );
+  });
+
+  test("rejects Windows path traversal in the contract", () => {
+    expect(() =>
+      parseByorContract({
+        schema: 1,
+        profiles: {
+          unsafe: { windows: { winget: { manifest: "../escape.txt" } } },
+        },
+      }),
+    ).toThrow(/repository-relative path without traversal/);
+  });
+
+  test("keeps Linux-only contracts working alongside mixed platform contracts", async () => {
+    const root = await repository();
+    await mkdir(join(root, "packages"), { recursive: true });
+    await writeFile(join(root, "packages", "apt.txt"), "curl\n");
+    await writeFile(join(root, "packages", "winget.txt"), "Git.Git\n");
+    await writeContract(root, {
+      schema: 1,
+      profiles: {
+        "debian-minimal": { linux: { apt: { manifest: "packages/apt.txt" } } },
+        workstation: { windows: { winget: { manifest: "packages/winget.txt" } } },
+      },
+    });
+
+    await expect(
+      validateLinuxByorSource({ root, profile: "debian-minimal" }),
+    ).resolves.toMatchObject({ profile: "debian-minimal", backends: ["apt"] });
+    await expect(
+      validateWindowsByorSource({ root, profiles: ["workstation"] }),
+    ).resolves.toMatchObject({
+      names: ["workstation"],
+      wingetPaths: { workstation: "packages/winget.txt" },
+    });
+    // Selecting Windows must not require a Linux profile to exist on disk beyond the contract.
+    await expect(validateWindowsByorSource({ root, profiles: ["workstation"] })).resolves.toBeDefined();
+  });
+
+  test("windowsRoutesFromContract prefers a common template or uses the BYOR sentinel", () => {
+    const templated = parseByorContract({
+      schema: 1,
+      profiles: {
+        base: { windows: { winget: { manifest: "packages/windows/base.txt" } } },
+        dev: { windows: { winget: { manifest: "packages/windows/dev.txt" } } },
+      },
+    });
+    expect(windowsRoutesFromContract(templated).wingetProfilePath).toBe(
+      "packages/windows/{profile}.txt",
+    );
+
+    const custom = parseByorContract({
+      schema: 1,
+      profiles: {
+        base: { windows: { winget: { manifest: "custom/base-winget.txt" } } },
+        dev: { windows: { winget: { manifest: "elsewhere/dev.txt" } } },
+      },
+    });
+    expect(windowsRoutesFromContract(custom).wingetProfilePath).toBe("byor/{profile}");
   });
 });

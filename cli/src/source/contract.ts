@@ -3,11 +3,24 @@ import { isAbsolute, join } from "node:path";
 
 import { Result, Schema } from "effect";
 
+import type { WindowsRoutesConfig } from "@/config/types";
 import { parseLinuxPackageManifest } from "@/source/linux-manifest";
 import { isLinuxProfile, type LinuxProfile } from "@/source/linux-profile";
+import { parseWindowsPackageList } from "@/source/windows-manifest";
+
+/** Defaults matching DEFAULT_WINDOWS_ROUTES without importing config runtime. */
+const FALLBACK_WINDOWS_ROUTES = {
+  scoopPath: "packages/windows/scoop.txt",
+  powershellProfilePath: "dotfiles/Microsoft.PowerShell_profile.ps1",
+  fontListPath: "fonts/fontget.txt",
+  registryPath: "system/windows/registry",
+} as const;
 
 export const BYOR_CONTRACT_PATH = "outfitting.json";
 export const BYOR_CONTRACT_SCHEMA = 1;
+
+/** Sentinel winget path template for BYOR contracts without a common `{profile}` pattern. */
+export const BYOR_WINDOWS_WINGET_SENTINEL = "byor/{profile}";
 
 export type LinuxPackageBackend = "apt" | "pacman";
 
@@ -26,12 +39,38 @@ export interface LinuxProfileDeclaration {
   nix?: LinuxNixDeclaration;
 }
 
+export interface WindowsWingetDeclaration {
+  manifest: string;
+}
+
+export interface WindowsPathDeclaration {
+  path: string;
+}
+
+export interface WindowsManifestDeclaration {
+  manifest: string;
+}
+
+export interface WindowsProfileDeclaration {
+  winget: WindowsWingetDeclaration;
+}
+
+export interface ByorWindowsShared {
+  defaultProfiles?: string[];
+  scoop?: WindowsManifestDeclaration;
+  powershell?: WindowsPathDeclaration;
+  fonts?: WindowsManifestDeclaration;
+  registry?: WindowsPathDeclaration;
+}
+
 export interface ByorProfileDeclaration {
-  linux: LinuxProfileDeclaration;
+  linux?: LinuxProfileDeclaration;
+  windows?: WindowsProfileDeclaration;
 }
 
 export interface ByorContract {
   schema: typeof BYOR_CONTRACT_SCHEMA;
+  windows?: ByorWindowsShared;
   profiles: Readonly<Record<string, ByorProfileDeclaration>>;
 }
 
@@ -40,12 +79,26 @@ export interface SelectedByorProfile {
   linux: LinuxProfileDeclaration;
 }
 
+export interface SelectedWindowsByorProfiles {
+  names: string[];
+  wingetPaths: Record<string, string>;
+  shared: ByorWindowsShared | undefined;
+}
+
 export interface ValidatedLinuxByorProfile {
   root: string;
   profile: LinuxProfile;
   contract: ByorContract;
   linux: LinuxProfileDeclaration;
   backends: ReadonlyArray<LinuxPackageBackend | "nix">;
+}
+
+export interface ValidatedWindowsByorSource {
+  root: string;
+  names: string[];
+  wingetPaths: Record<string, string>;
+  shared: ByorWindowsShared | undefined;
+  contract: ByorContract;
 }
 
 type JsonPrimitive = string | number | boolean | null;
@@ -66,16 +119,46 @@ const LinuxProfileSchema = Schema.Struct({
   nix: Schema.optionalKey(NixDeclarationSchema),
 });
 
-const ByorProfileSchema = Schema.Struct({ linux: LinuxProfileSchema });
+const WindowsWingetSchema = Schema.Struct({
+  manifest: Schema.String,
+});
+
+const WindowsProfileSchema = Schema.Struct({
+  winget: WindowsWingetSchema,
+});
+
+const WindowsPathSchema = Schema.Struct({
+  path: Schema.String,
+});
+
+const WindowsManifestSchema = Schema.Struct({
+  manifest: Schema.String,
+});
+
+const ByorWindowsSharedSchema = Schema.Struct({
+  defaultProfiles: Schema.optionalKey(Schema.Array(Schema.String)),
+  scoop: Schema.optionalKey(WindowsManifestSchema),
+  powershell: Schema.optionalKey(WindowsPathSchema),
+  fonts: Schema.optionalKey(WindowsManifestSchema),
+  registry: Schema.optionalKey(WindowsPathSchema),
+});
+
+const ByorProfileSchema = Schema.Struct({
+  linux: Schema.optionalKey(LinuxProfileSchema),
+  windows: Schema.optionalKey(WindowsProfileSchema),
+});
 
 const ByorContractSchema = Schema.Struct({
   schema: Schema.Literal(BYOR_CONTRACT_SCHEMA),
+  windows: Schema.optionalKey(ByorWindowsSharedSchema),
   profiles: Schema.Record(Schema.String, ByorProfileSchema),
 });
 
 type DecodedPackageDeclaration = Schema.Schema.Type<typeof PackageDeclarationSchema>;
 type DecodedNixDeclaration = Schema.Schema.Type<typeof NixDeclarationSchema>;
 type DecodedLinuxProfile = Schema.Schema.Type<typeof LinuxProfileSchema>;
+type DecodedWindowsProfile = Schema.Schema.Type<typeof WindowsProfileSchema>;
+type DecodedWindowsShared = Schema.Schema.Type<typeof ByorWindowsSharedSchema>;
 type DecodedContract = Schema.Schema.Type<typeof ByorContractSchema>;
 
 const decodeByorContract = Schema.decodeUnknownResult(ByorContractSchema);
@@ -153,8 +236,61 @@ function parseLinuxProfile(value: DecodedLinuxProfile, label: string): LinuxProf
   return linux;
 }
 
-/** Parse and validate the repository-owned BYOR contract. */
-export function parseByorContract(value: JsonValue): ByorContract {
+function parseWindowsProfile(
+  value: DecodedWindowsProfile,
+  label: string,
+): WindowsProfileDeclaration {
+  return {
+    winget: {
+      manifest: relativeSourcePath(value.winget.manifest, `${label}.winget.manifest`),
+    },
+  };
+}
+
+function parseWindowsShared(value: DecodedWindowsShared): ByorWindowsShared {
+  const shared: ByorWindowsShared = {};
+  if (value.defaultProfiles !== undefined) {
+    if (value.defaultProfiles.length === 0) {
+      throw new Error(`${BYOR_CONTRACT_PATH}.windows.defaultProfiles must not be empty.`);
+    }
+    shared.defaultProfiles = [
+      ...new Set(
+        value.defaultProfiles.map((name, index) =>
+          profileName(name, `${BYOR_CONTRACT_PATH}.windows.defaultProfiles[${index}]`),
+        ),
+      ),
+    ];
+  }
+  if (value.scoop !== undefined) {
+    shared.scoop = {
+      manifest: relativeSourcePath(value.scoop.manifest, `${BYOR_CONTRACT_PATH}.windows.scoop.manifest`),
+    };
+  }
+  if (value.powershell !== undefined) {
+    shared.powershell = {
+      path: relativeSourcePath(
+        value.powershell.path,
+        `${BYOR_CONTRACT_PATH}.windows.powershell.path`,
+      ),
+    };
+  }
+  if (value.fonts !== undefined) {
+    shared.fonts = {
+      manifest: relativeSourcePath(
+        value.fonts.manifest,
+        `${BYOR_CONTRACT_PATH}.windows.fonts.manifest`,
+      ),
+    };
+  }
+  if (value.registry !== undefined) {
+    shared.registry = {
+      path: relativeSourcePath(value.registry.path, `${BYOR_CONTRACT_PATH}.windows.registry.path`),
+    };
+  }
+  return shared;
+}
+
+function decodeContractRoot(value: JsonValue): DecodedContract {
   const decoded = decodeByorContract(value);
   if (Result.isFailure(decoded)) {
     const detail = decoded.failure.message.trim();
@@ -164,17 +300,65 @@ export function parseByorContract(value: JsonValue): ByorContract {
         : `${BYOR_CONTRACT_PATH} must match schema ${BYOR_CONTRACT_SCHEMA}.`,
     );
   }
-  const contract: DecodedContract = decoded.success;
-  if (Object.keys(contract.profiles).length === 0) {
+  if (Object.keys(decoded.success.profiles).length === 0) {
     throw new Error(`${BYOR_CONTRACT_PATH}.profiles must contain at least one profile.`);
   }
+  return decoded.success;
+}
 
+interface ParsedProfileEntry {
+  name: string;
+  profile: ByorProfileDeclaration;
+}
+
+function parseProfileEntry(
+  rawName: string,
+  valueForProfile: DecodedContract["profiles"][string],
+): ParsedProfileEntry {
+  const name = profileName(rawName, `${BYOR_CONTRACT_PATH}.profiles profile name`);
+  const profile: ByorProfileDeclaration = {};
+  if (valueForProfile.linux !== undefined) {
+    profile.linux = parseLinuxProfile(valueForProfile.linux, `${name}.linux`);
+  }
+  if (valueForProfile.windows !== undefined) {
+    profile.windows = parseWindowsProfile(valueForProfile.windows, `${name}.windows`);
+  }
+  if (profile.linux === undefined && profile.windows === undefined) {
+    throw new Error(`${name} must declare linux and/or windows.`);
+  }
+  return { name, profile };
+}
+
+function parseOptionalWindowsShared(
+  raw: DecodedWindowsShared | undefined,
+  profiles: Record<string, ByorProfileDeclaration>,
+): ByorWindowsShared | undefined {
+  if (raw === undefined) {
+    return undefined;
+  }
+  const windows = parseWindowsShared(raw);
+  for (const name of windows.defaultProfiles ?? []) {
+    if (profiles[name]?.windows === undefined) {
+      throw new Error(
+        `${BYOR_CONTRACT_PATH}.windows.defaultProfiles references unknown Windows profile \`${name}\`.`,
+      );
+    }
+  }
+  return windows;
+}
+
+/** Parse and validate the repository-owned BYOR contract. */
+export function parseByorContract(value: JsonValue): ByorContract {
+  const contract = decodeContractRoot(value);
   const profiles: Record<string, ByorProfileDeclaration> = {};
   for (const [rawName, valueForProfile] of Object.entries(contract.profiles)) {
-    const name = profileName(rawName, `${BYOR_CONTRACT_PATH}.profiles profile name`);
-    profiles[name] = { linux: parseLinuxProfile(valueForProfile.linux, `${name}.linux`) };
+    const parsed = parseProfileEntry(rawName, valueForProfile);
+    profiles[parsed.name] = parsed.profile;
   }
-  return { schema: BYOR_CONTRACT_SCHEMA, profiles };
+  const windows = parseOptionalWindowsShared(contract.windows, profiles);
+  return windows === undefined
+    ? { schema: BYOR_CONTRACT_SCHEMA, profiles }
+    : { schema: BYOR_CONTRACT_SCHEMA, windows, profiles };
 }
 
 async function fileExists(path: string): Promise<boolean> {
@@ -185,37 +369,144 @@ async function fileExists(path: string): Promise<boolean> {
   }
 }
 
+function linuxProfileNames(contract: ByorContract): string[] {
+  return Object.keys(contract.profiles).filter((name) => contract.profiles[name]?.linux !== undefined);
+}
+
+function windowsProfileNames(contract: ByorContract): string[] {
+  return Object.keys(contract.profiles).filter(
+    (name) => contract.profiles[name]?.windows !== undefined,
+  );
+}
+
 /**
- * Select a profile from a parsed contract.
+ * Select a Linux profile from a parsed contract.
  * Shared by validation and flake resolution so messages and defaults stay identical.
  */
 export function selectByorProfile(
   contract: ByorContract,
   requested: string | undefined,
 ): SelectedByorProfile {
+  const linuxNames = linuxProfileNames(contract);
+  if (linuxNames.length === 0) {
+    throw new Error(`${BYOR_CONTRACT_PATH} does not declare any Linux profiles.`);
+  }
   if (requested !== undefined) {
     const name = profileName(requested, "--profile");
     const profile = contract.profiles[name];
-    if (profile === undefined) {
+    if (profile?.linux === undefined) {
       throw new Error(
-        `Unknown BYOR profile \`${name}\`. Choose: ${Object.keys(contract.profiles).join(", ")}.`,
+        `Unknown BYOR Linux profile \`${name}\`. Choose: ${linuxNames.join(", ")}.`,
       );
     }
     return { name, linux: profile.linux };
   }
 
-  const names = Object.keys(contract.profiles);
-  if (names.length !== 1) {
+  if (linuxNames.length !== 1) {
     throw new Error(
-      `The BYOR repository defines multiple profiles. Pass --profile (${names.join(", ")}).`,
+      `The BYOR repository defines multiple profiles. Pass --profile (${linuxNames.join(", ")}).`,
     );
   }
-  const name = profileName(names[0]!, `${BYOR_CONTRACT_PATH}.profiles profile name`);
+  const name = profileName(linuxNames[0]!, `${BYOR_CONTRACT_PATH}.profiles profile name`);
   const profile = contract.profiles[name];
-  if (profile === undefined) {
-    throw new Error(`Unknown BYOR profile \`${name}\`.`);
+  if (profile?.linux === undefined) {
+    throw new Error(`Unknown BYOR Linux profile \`${name}\`.`);
   }
   return { name, linux: profile.linux };
+}
+
+/**
+ * Select one or more Windows profiles from a parsed contract.
+ * Supports comma-composed names (Windows profiles are composable).
+ */
+export function selectWindowsByorProfiles(
+  contract: ByorContract,
+  requested: string[] | undefined,
+): SelectedWindowsByorProfiles {
+  const available = windowsProfileNames(contract);
+  if (available.length === 0) {
+    throw new Error(`${BYOR_CONTRACT_PATH} does not declare any Windows profiles.`);
+  }
+
+  const defaults =
+    contract.windows?.defaultProfiles !== undefined && contract.windows.defaultProfiles.length > 0
+      ? contract.windows.defaultProfiles
+      : available;
+
+  const rawRequested =
+    requested === undefined || requested.length === 0
+      ? defaults
+      : requested.flatMap((value) => value.split(","));
+
+  const names = [
+    ...new Set(rawRequested.map((value) => profileName(value.trim(), "--profile")).filter(Boolean)),
+  ];
+  if (names.length === 0) {
+    throw new Error("At least one Windows profile must be selected.");
+  }
+
+  const wingetPaths: Record<string, string> = {};
+  for (const name of names) {
+    const profile = contract.profiles[name];
+    if (profile?.windows === undefined) {
+      throw new Error(
+        `Unknown BYOR Windows profile \`${name}\`. Choose: ${available.join(", ")}.`,
+      );
+    }
+    wingetPaths[name] = profile.windows.winget.manifest;
+  }
+
+  return { names, wingetPaths, shared: contract.windows };
+}
+
+function inferWingetTemplate(selected: SelectedWindowsByorProfiles): string {
+  const firstName = selected.names[0];
+  const firstPath = firstName === undefined ? undefined : selected.wingetPaths[firstName];
+  if (firstName === undefined || firstPath === undefined || !firstPath.includes(firstName)) {
+    return BYOR_WINDOWS_WINGET_SENTINEL;
+  }
+  const template = firstPath.replaceAll(firstName, "{profile}");
+  if (!template.includes("{profile}")) {
+    return BYOR_WINDOWS_WINGET_SENTINEL;
+  }
+  const matchesAll = selected.names.every(
+    (name) => selected.wingetPaths[name] === template.replaceAll("{profile}", name),
+  );
+  return matchesAll ? template : BYOR_WINDOWS_WINGET_SENTINEL;
+}
+
+function sharedRouteOrFallback(
+  declared: string | undefined,
+  fallback: string,
+): string {
+  return declared ?? fallback;
+}
+
+/**
+ * Derive config-compatible Windows routes from a BYOR contract.
+ * Winget paths for apply/diff must still be resolved via contract lookup —
+ * the template is only a status/setup compatibility surface.
+ */
+export function windowsRoutesFromContract(contract: ByorContract): WindowsRoutesConfig {
+  const selected = selectWindowsByorProfiles(contract, undefined);
+  const shared = contract.windows;
+  return {
+    wingetProfilePath: inferWingetTemplate(selected),
+    scoopPath: sharedRouteOrFallback(shared?.scoop?.manifest, FALLBACK_WINDOWS_ROUTES.scoopPath),
+    powershellProfilePath: sharedRouteOrFallback(
+      shared?.powershell?.path,
+      FALLBACK_WINDOWS_ROUTES.powershellProfilePath,
+    ),
+    fontListPath: sharedRouteOrFallback(
+      shared?.fonts?.manifest,
+      FALLBACK_WINDOWS_ROUTES.fontListPath,
+    ),
+    registryPath: sharedRouteOrFallback(
+      shared?.registry?.path,
+      FALLBACK_WINDOWS_ROUTES.registryPath,
+    ),
+    defaultProfiles: [...selected.names],
+  };
 }
 
 async function validatePackageBackend(options: {
@@ -262,6 +553,61 @@ async function validateNixBackend(options: {
     throw new Error(`BYOR profile \`${options.profile}\` has an empty Nix flake: ${flakePath}.`);
   }
   return "nix";
+}
+
+async function validateWingetManifest(options: {
+  root: string;
+  profile: string;
+  manifest: string;
+}): Promise<void> {
+  const manifestPath = join(options.root, options.manifest);
+  if (!(await fileExists(manifestPath))) {
+    throw new Error(
+      `BYOR profile \`${options.profile}\` declares winget manifest ${options.manifest}, but the file is missing.`,
+    );
+  }
+  let packages: ReturnType<typeof parseWindowsPackageList>;
+  try {
+    packages = parseWindowsPackageList(await readFile(manifestPath, "utf8"), options.manifest);
+  } catch (cause) {
+    throw new Error(
+      `BYOR profile \`${options.profile}\` has an invalid winget manifest ${options.manifest}: ${cause instanceof Error ? cause.message : String(cause)}`,
+      { cause },
+    );
+  }
+  if (packages.length === 0) {
+    throw new Error(
+      `BYOR profile \`${options.profile}\` has an empty winget manifest: ${options.manifest}.`,
+    );
+  }
+}
+
+async function validateOptionalSharedFile(options: {
+  root: string;
+  label: string;
+  relative: string;
+  parse?: (content: string) => void;
+}): Promise<void> {
+  const path = join(options.root, options.relative);
+  if (!(await fileExists(path))) {
+    throw new Error(
+      `BYOR windows.${options.label} declares ${options.relative}, but the file is missing.`,
+    );
+  }
+  const content = await readFile(path, "utf8");
+  if (content.trim().length === 0) {
+    throw new Error(`BYOR windows.${options.label} file is empty: ${options.relative}.`);
+  }
+  if (options.parse !== undefined) {
+    try {
+      options.parse(content);
+    } catch (cause) {
+      throw new Error(
+        `BYOR windows.${options.label} is invalid (${options.relative}): ${cause instanceof Error ? cause.message : String(cause)}`,
+        { cause },
+      );
+    }
+  }
 }
 
 /**
@@ -318,16 +664,12 @@ export async function hasByorContract(root: string): Promise<boolean> {
   return (await tryReadByorContract(root)) !== undefined;
 }
 
-/** Validate a user-provided Linux BYOR repository without changing the host. */
-export async function validateLinuxByorSource(options: {
-  root: string;
-  profile?: string;
-}): Promise<ValidatedLinuxByorProfile> {
+async function resolveByorRoot(candidate: string): Promise<string> {
   let root: string;
   try {
-    root = await realpath(options.root);
+    root = await realpath(candidate);
   } catch (cause) {
-    throw new Error(`BYOR repository does not exist: ${options.root}.`, { cause });
+    throw new Error(`BYOR repository does not exist: ${candidate}.`, { cause });
   }
   try {
     if (!(await stat(root)).isDirectory()) {
@@ -336,8 +678,19 @@ export async function validateLinuxByorSource(options: {
   } catch (cause) {
     throw new Error(`BYOR repository is not a directory: ${root}.`, { cause });
   }
+  return root;
+}
 
+/** Validate a user-provided Linux BYOR repository without changing the host. */
+export async function validateLinuxByorSource(options: {
+  root: string;
+  profile?: string;
+}): Promise<ValidatedLinuxByorProfile> {
+  const root = await resolveByorRoot(options.root);
   const contract = await readByorContract(root);
+  if (linuxProfileNames(contract).length === 0) {
+    throw new Error(`${BYOR_CONTRACT_PATH} does not declare any Linux profiles.`);
+  }
   const selected = selectByorProfile(contract, options.profile);
   const backends: Array<LinuxPackageBackend | "nix"> = [];
 
@@ -372,5 +725,93 @@ export async function validateLinuxByorSource(options: {
     contract,
     linux: selected.linux,
     backends,
+  };
+}
+
+async function validateWindowsSharedArtifacts(
+  root: string,
+  shared: ByorWindowsShared | undefined,
+): Promise<void> {
+  if (shared === undefined) {
+    return;
+  }
+  if (shared.scoop !== undefined) {
+    const { parseScoopManifest } = await import("@/update/scoop");
+    await validateOptionalSharedFile({
+      root,
+      label: "scoop",
+      relative: shared.scoop.manifest,
+      parse: (content) => {
+        parseScoopManifest(content);
+      },
+    });
+  }
+  if (shared.powershell !== undefined) {
+    await validateOptionalSharedFile({
+      root,
+      label: "powershell",
+      relative: shared.powershell.path,
+    });
+  }
+  if (shared.fonts !== undefined) {
+    await validateOptionalSharedFile({
+      root,
+      label: "fonts",
+      relative: shared.fonts.manifest,
+    });
+  }
+  if (shared.registry !== undefined) {
+    const registryPath = join(root, shared.registry.path);
+    try {
+      const info = await stat(registryPath);
+      if (!info.isDirectory() && !info.isFile()) {
+        throw new Error("missing");
+      }
+    } catch (cause) {
+      throw new Error(
+        `BYOR windows.registry declares ${shared.registry.path}, but the path is missing.`,
+        { cause },
+      );
+    }
+  }
+}
+
+/** Validate a user-provided Windows BYOR repository without changing the host. */
+export async function validateWindowsByorSource(options: {
+  root: string;
+  profiles?: string[];
+}): Promise<ValidatedWindowsByorSource> {
+  const root = await resolveByorRoot(options.root);
+  const contract = await readByorContract(root);
+  const selected = selectWindowsByorProfiles(contract, options.profiles);
+
+  for (const name of selected.names) {
+    await validateWingetManifest({
+      root,
+      profile: name,
+      manifest: selected.wingetPaths[name]!,
+    });
+  }
+  await validateWindowsSharedArtifacts(root, selected.shared);
+
+  return {
+    root,
+    names: selected.names,
+    wingetPaths: selected.wingetPaths,
+    shared: selected.shared,
+    contract,
+  };
+}
+
+export interface ByorContractPlatforms {
+  linux: boolean;
+  windows: boolean;
+}
+
+/** Detect which platforms a contract declares. */
+export function byorContractPlatforms(contract: ByorContract): ByorContractPlatforms {
+  return {
+    linux: linuxProfileNames(contract).length > 0,
+    windows: windowsProfileNames(contract).length > 0,
   };
 }

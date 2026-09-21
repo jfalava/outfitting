@@ -8,6 +8,7 @@ import { makeStatusCommand } from "@/commands/status";
 import { syncCommand } from "@/commands/sync";
 import { makeWindowsUpdateCommand } from "@/commands/update/windows";
 import { makeUpgradeCommand } from "@/commands/upgrade";
+import { validateCommand } from "@/commands/validate";
 import { windowsApplyCommand } from "@/commands/windows-apply";
 import { windowsConfigCommand } from "@/commands/windows-config";
 import { windowsPackageCommands } from "@/commands/windows-packages";
@@ -21,6 +22,7 @@ export const makeWindowsRootCommand = (currentVersion: string) =>
       windowsConfigCommand,
       windowsInitCommand,
       windowsSetupCommand,
+      validateCommand,
       makeWindowsUpdateCommand(),
       makeWindowsDiffCommand(),
       windowsApplyCommand,

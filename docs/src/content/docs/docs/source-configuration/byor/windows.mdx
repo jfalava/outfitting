@@ -1,0 +1,88 @@
+---
+title: Windows
+description: Configure a Windows repository and BYOR contract for Outfitting.
+sidebar:
+  order: 3
+---
+
+## Choose a source
+
+Windows can consume cached manifests from a hosted raw-compatible source, or a local checkout that owns an `outfitting.json` contract (BYOR).
+
+Configure a hosted repository and its routes with the Windows config command:
+
+```powershell
+outfitting-manager config `
+  --repo https://github.com/example/my-machine-config `
+  --ref main
+```
+
+See [Windows config](/docs/cli/windows/config/) for route and default-profile options. The equivalent environment variables are `OUTFITTING_MANIFEST_BASE_URL` and `OUTFITTING_MANIFEST_REF`.
+
+For a local BYOR checkout, point the manager at the repository and validate before applying:
+
+```powershell
+outfitting-manager validate --repo C:\src\my-machine-config --platform windows
+outfitting-manager init --repo C:\src\my-machine-config --profile base,dev
+outfitting-manager apply --profile base,dev
+```
+
+`OUTFITTING_REPO` and the persisted `repo-path` file also select a local checkout. When `outfitting.json` declares Windows profiles, routes come from the contract — `config.json` Windows routes are only used when no contract is present.
+
+## User-defined profiles (`outfitting.json`)
+
+Repositories can describe arbitrary Windows profile names and artifact paths:
+
+```json
+{
+  "schema": 1,
+  "windows": {
+    "defaultProfiles": ["base", "dev"],
+    "scoop": { "manifest": "packages/windows/scoop.txt" },
+    "powershell": { "path": "dotfiles/Microsoft.PowerShell_profile.ps1" },
+    "fonts": { "manifest": "fonts/fontget.txt" },
+    "registry": { "path": "system/windows/registry" }
+  },
+  "profiles": {
+    "base": {
+      "windows": {
+        "winget": { "manifest": "packages/windows/base.txt" }
+      }
+    },
+    "dev": {
+      "windows": {
+        "winget": { "manifest": "packages/custom/dev-winget.txt" }
+      }
+    }
+  }
+}
+```
+
+Rules:
+
+- Each profile must declare `linux` and/or `windows`.
+- A Windows profile must declare `winget` with a non-empty valid WinGet list.
+- Top-level `windows` is optional. When omitted, defaults are every profile that has `windows.winget`.
+- Paths are repository-relative and cannot traverse outside the checkout.
+- Windows profiles are composable: pass comma-separated names (`--profile base,dev`).
+- The same contract may mix Linux and Windows profiles. Use `--platform windows` (or `linux`) with `validate` when both are present.
+
+Validate without changing machine state:
+
+```powershell
+outfitting-manager validate --repo C:\src\my-machine-config --profile base,dev
+```
+
+## Legacy `config.json` routes
+
+When no `outfitting.json` Windows contract is present, Windows uses repository-relative routes stored in `config.json`:
+
+| Route                   | Default                                     |
+| ----------------------- | ------------------------------------------- |
+| `wingetProfilePath`     | `packages/windows/{profile}.txt`            |
+| `scoopPath`             | `packages/windows/scoop.txt`                |
+| `powershellProfilePath` | `dotfiles/Microsoft.PowerShell_profile.ps1` |
+| `fontListPath`          | `fonts/fontget.txt`                         |
+| `registryPath`          | `system/windows/registry`                   |
+
+The WinGet route must contain `{profile}`. Routes cannot escape the repository, and profile names may contain only letters, numbers, `.`, `_`, or `-`. `defaultProfiles` selects the WinGet profiles used on a new machine. Windows setup caches these routes under the state root before applying packages and the PowerShell profile.

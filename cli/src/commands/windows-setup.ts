@@ -24,17 +24,22 @@ export const windowsSetupCommand = Command.make(
       Flag.optional,
       Flag.withDescription("Comma-separated profile names from the configured repository."),
     ),
+    repo: Flag.String("repo").pipe(
+      Flag.optional,
+      Flag.withDescription("Local BYOR repository checkout to validate and use."),
+    ),
     wingetOnly: Flag.Boolean("winget-only").pipe(
       Flag.withDefault(false),
       Flag.withDescription("Skip Scoop while bootstrapping WinGet."),
     ),
   },
-  ({ machineId, manifestBaseUrl, manifestRef, profile, wingetOnly }) =>
+  ({ machineId, manifestBaseUrl, manifestRef, profile, repo, wingetOnly }) =>
     initializeWindows({
       profiles: Option.isSome(profile) ? [profile.value] : undefined,
       machineId: Option.getOrUndefined(machineId),
       manifestBaseUrl: Option.getOrUndefined(manifestBaseUrl),
       manifestRef: Option.getOrUndefined(manifestRef),
+      repo: Option.getOrUndefined(repo),
       useWindowsRoutes: true,
       nextCommand: "Applying Windows desired state…",
     }).pipe(
