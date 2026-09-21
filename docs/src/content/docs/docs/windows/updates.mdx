@@ -6,35 +6,40 @@ sidebar:
   order: 3
 ---
 
-The Windows manager stores configuration, fetched manifests, and `windows.lock.json` under `%USERPROFILE%\.config\outfitting`. Set `OUTFITTING_STATE_ROOT` to use another state directory.
+The Windows manager stores configuration, fetched manifests, and `windows.lock.json` under `%USERPROFILE%\.config\outfitting`. You can set `OUTFITTING_STATE_ROOT` to choose a different directory.
 
-Use the [Windows CLI reference](/docs/cli/windows/) for the complete workflows:
+## Upgrade installed packages (`update`)
 
-1. Run [config](/docs/cli/windows/config/) when the repository or route map changes.
-2. Run [setup](/docs/cli/setup/) for initialization and missing packages.
-3. Run [apply](/docs/cli/apply/) to reconcile cached declarations.
-4. Run [update](/docs/cli/update/) to upgrade installed packages.
-5. Run [sync](/docs/cli/sync/) to explicitly push or pull lockfile state.
-
-## Update installed packages
-
-`update` upgrades packages that are already installed. It does not install missing profile declarations; use `apply` for that.
+Use `update` to upgrade existing software to the latest versions. Note that `update` only upgrades packages you already have; to install newly added profile packages, use [`apply`](#apply-profile-changes-apply).
 
 ```powershell
+# Upgrade all packages (WinGet and Scoop)
 outfitting-manager update all
+
+# Upgrade only WinGet packages
 outfitting-manager update winget
+
+# Upgrade Scoop packages without pushing lockfile changes
 outfitting-manager update scoop --no-push
 ```
 
-`update all` runs WinGet, then Scoop, and synchronizes `windows.lock.json`. It continues after a failed step and exits nonzero if any step failed. Updates upload the lock by default; `--no-push` keeps the new state local.
+`update all` updates WinGet first, then Scoop, and finally synchronizes `windows.lock.json`. It will continue through errors and exit with a non-zero code if any step fails. Lockfile changes are pushed to remote state by default; pass `--no-push` to keep them local.
 
-Use comma-separated profiles with [apply](/docs/cli/apply/) when the machine is missing declared packages:
+## Apply profile changes (`apply`)
+
+When you add new packages to your profile manifests, run `apply` to install them:
 
 ```powershell
+# Install missing packages for selected profiles
 outfitting-manager apply --profile base,dev
+
+# Apply only WinGet packages
 outfitting-manager apply --profile base,dev --winget-only
 ```
 
-Use [CLI upgrade](/docs/cli/upgrade/) to update the compiled manager itself.
+## Update Outfitting and dependencies
 
-Update global Bun packages with `bun update -g`.
+- **Outfitting CLI:** Update the compiled manager binary by running `outfitting-manager upgrade`.
+- **Bun packages:** Update global Bun packages with `bun update -g`.
+
+For the complete command reference, see the [Windows CLI reference](/docs/cli/windows/).

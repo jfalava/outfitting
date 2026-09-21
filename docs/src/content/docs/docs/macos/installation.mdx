@@ -8,36 +8,41 @@ sidebar:
 
 ## Prerequisites
 
-- Apple Silicon macOS.
-- An interactive terminal and an account that can use `sudo`.
-- Network access to GitHub, Homebrew, Determinate Systems, and the Outfitting lockfile service.
+- **Hardware:** Apple Silicon Mac (M1/M2/M3/M4).
+- **Permissions:** An interactive terminal session with `sudo` access.
+- **Network:** Internet access to GitHub, Homebrew, Determinate Systems (Nix installer), and the Outfitting lockfile service.
 
 ## Install
+
+Run the hosted installer script:
 
 ```bash
 curl -L mac.jfa.dev | bash
 ```
 
-Open a new shell after installation. See [setup](/docs/cli/setup/) for state-source options and [update](/docs/cli/update/) for ongoing maintenance.
+Once the installation finishes, open a new shell session to load updated environment variables.
 
-## BYOR (Bring Your Own Repo)
+## Bring Your Own Repo (BYOR)
 
-You can use a compatible repository instead of the default Outfitting source.
+You can use your own dotfiles repository instead of Outfitting's built-in configuration.
 
-### Local contract (`outfitting.json`)
+### Custom repository (`outfitting.json`)
 
-Point the manager at a checkout that declares a macOS profile, then validate and apply:
+If your repository has an `outfitting.json` file defining a macOS profile, point `outfitting-manager` to your local clone:
 
 ```bash
+# Validate the configuration without making changes
 outfitting-manager validate --repo ~/src/my-machine-config --platform macos
+
+# Apply nix-darwin and Homebrew configuration
 outfitting-manager setup --repo ~/src/my-machine-config
 ```
 
-See [BYOR for macOS](/docs/source-configuration/byor/macos/) for the contract schema, optional Brewfile/fonts paths, and profile selection.
+See [BYOR for macOS](/docs/source-configuration/byor/macos/) for configuration options, Brewfile paths, and font manifests.
 
-### Hosted sparse source
+### Hosted remote repository
 
-For a hosted repository without a local checkout, provide its raw-content base URL and Git ref:
+If you prefer to pull directly from a hosted Git repository without keeping a local clone, pass the raw URL and branch:
 
 ```bash
 outfitting-manager setup \
@@ -45,6 +50,6 @@ outfitting-manager setup \
   --manifest-ref main
 ```
 
-Hosted sources still use the legacy fixed macOS path closure (`system/macos/*`, `packages/macos/Brewfile`, and so on). The flake must expose `darwinConfigurations`. Setup validates the source before activating Nix or applying Homebrew state.
+Hosted sources expect Outfitting's default macOS directory structure (e.g., `system/macos/flake.nix`, `packages/macos/Brewfile`), and the Nix flake must expose `darwinConfigurations`.
 
-The complete manager command tree and Zsh compatibility helpers are in the [macOS CLI reference](/docs/cli/macos/).
+For the full list of macOS commands and shell helpers, see the [macOS CLI reference](/docs/cli/macos/).

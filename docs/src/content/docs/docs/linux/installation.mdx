@@ -8,34 +8,39 @@ sidebar:
 
 ## Prerequisites
 
-- An interactive shell and an account that can use `sudo` when the package manager needs it.
-- Network access to GitHub and the Outfitting release assets.
+- An interactive terminal and an account with `sudo` privileges.
+- Network access to GitHub and Outfitting release assets.
 
 ## Install
+
+Run the hosted installation script:
 
 ```bash
 curl -L linux.jfa.dev | bash
 ```
 
-The installer will detect the package manager of your distro. State lives under `~/.config/outfitting`.
+The installer automatically detects your distribution's package manager (`apt` on Debian/Ubuntu, `pacman` on Arch Linux). State is stored under `~/.config/outfitting`.
 
-> Only APT-based and pacman-based distros are supported for now.
+> [!NOTE]
+> Outfitting currently supports APT-based and pacman-based Linux distributions.
 
-## Profiles
+## Built-in profiles
 
-By default you get the portable package list. Other built-in profiles select a different package manifest and, when present, a Home Manager flake:
+By default, installation applies the `generic-linux` package list. You can select another built-in profile that includes a Home Manager flake:
 
-| Profile         | Role                                                                   |
-| --------------- | ---------------------------------------------------------------------- |
-| `generic-linux` | Default. Native packages only (apt or pacman).                         |
-| `ubuntu-wsl`    | Ubuntu package set plus Home Manager under `system/ubuntu-wsl`.        |
-| `oci-agents`    | Headless host package set plus Home Manager under `system/oci-agents`. |
+| Profile | Description |
+| --- | --- |
+| `generic-linux` | Default. Native packages only (`apt` or `pacman`). |
+| `ubuntu-wsl` | Ubuntu package set plus WSL Home Manager configuration (`system/ubuntu-wsl`). |
+| `oci-agents` | Headless host packages plus Home Manager configuration (`system/oci-agents`). |
+
+Select a profile during installation:
 
 ```bash
-curl -L linux.jfa.dev | bash -s -- --profile generic-linux
+curl -L linux.jfa.dev | bash -s -- --profile ubuntu-wsl
 ```
 
-You can also set the profile later:
+Or switch profiles after installation:
 
 ```bash
 outfitting-manager init --profile oci-agents

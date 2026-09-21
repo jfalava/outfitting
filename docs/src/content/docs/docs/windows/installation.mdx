@@ -8,34 +8,51 @@ sidebar:
 
 ## Prerequisites
 
-- WinGet installed and current. Update it from the [Microsoft Store listing](https://apps.microsoft.com/detail/9NBLGGH4NNS1) when needed.
-- An elevated PowerShell session. OpenSSH, firewall, and machine-level registry changes require elevation.
+- **WinGet:** Installed and up to date. Update it from the [Microsoft Store](https://apps.microsoft.com/detail/9NBLGGH4NNS1) if needed.
+- **PowerShell:** Run in an **elevated (Administrator)** session. Elevation is required for OpenSSH, Windows Firewall rules, and machine-level registry tweaks.
 
-> If PowerShell blocks the hosted script, run `Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process`.
+> [!TIP]
+> If PowerShell blocks running the installation script, allow scripts for the current process:
+> ```powershell
+> Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process
+> ```
 
-## Install a profile
+## Install
 
-Use a profile route from the hosted installer:
+Run the hosted installer in an elevated PowerShell session:
 
 ```powershell
 irm win.jfa.dev | iex
 ```
 
-> Note: the installer has a mix of WinGet packages and Microsoft Store packages
+> [!NOTE]
+> The installer provisions your machine using a blend of WinGet and Microsoft Store packages.
 
-Run the [post-install script](/docs/windows/post-install/) afterward to install Scoop and fonts.
+Once complete, open a regular (non-elevated) PowerShell session and run the [post-install script](/docs/windows/post-install/) to install Scoop and developer fonts.
 
-## BYOR (Bring Your Own Repo)
+## Bring Your Own Repo (BYOR)
 
-For a hosted repository that still uses the legacy monorepo layout, set `OUTFITTING_MANIFEST_BASE_URL` and `OUTFITTING_MANIFEST_REF` before running the installer. Configure repository routes later with [CLI config](/docs/cli/windows/config/).
+### Custom repository (`outfitting.json`)
 
-For a local checkout that owns an `outfitting.json` contract, validate and apply without requiring Outfitting’s default `packages/windows/{profile}.txt` layout:
+If you maintain your own configuration repository, add an `outfitting.json` file to its root. You can validate and apply it without following Outfitting's default file structure:
 
 ```powershell
 outfitting-manager validate --repo C:\src\my-machine-config --platform windows
 outfitting-manager setup --repo C:\src\my-machine-config --profile base,dev
 ```
 
-See [BYOR for Windows](/docs/source-configuration/byor/windows/) for the contract schema, composable profiles, and when `config.json` routes still apply.
+See [BYOR for Windows](/docs/source-configuration/byor/windows/) for schema options, composable profiles, and registry settings.
+
+### Hosted remote repository
+
+To pull from a hosted Git repository using Outfitting's default layout, set environment variables before running the installer:
+
+```powershell
+$env:OUTFITTING_MANIFEST_BASE_URL = "https://raw.githubusercontent.com/example/my-machine-config"
+$env:OUTFITTING_MANIFEST_REF = "main"
+irm win.jfa.dev | iex
+```
+
+You can also adjust repository settings later with [outfitting-manager config](/docs/cli/windows/config/).
 
 For command-level workflows, see the [Windows CLI reference](/docs/cli/windows/).

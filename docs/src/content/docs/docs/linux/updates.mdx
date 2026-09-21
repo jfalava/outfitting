@@ -6,53 +6,61 @@ sidebar:
   order: 2
 ---
 
-The Linux manager stores its configuration, cached manifests, and managed source under `~/.config/outfitting`. Linux uses one active profile at a time; see [Profiles](/docs/source-configuration/#profiles) for the selection rules.
+The Linux manager stores its configuration, cached manifests, and managed source under `~/.config/outfitting`. Linux activates one profile at a time; see [Profiles](/docs/source-configuration/#profiles) for selection rules.
 
-Use the [Linux CLI reference](/docs/cli/linux/) for the complete workflows:
+## Apply profile packages (`apply`)
 
-1. Run [setup](/docs/cli/setup/) to initialize the profile and install missing packages.
-2. Run [apply](/docs/cli/apply/) to reconcile declared packages.
-3. Run [update](/docs/cli/update/) to upgrade installed packages.
-4. Run [Home Manager](/docs/cli/linux/home-manager/) for Nix-backed profiles.
-
-## Reconcile declared packages
-
-Use [apply](/docs/cli/apply/) to install missing packages from the active profile. Without `--prune`, it does not remove packages.
-
-With `--prune`, Outfitting removes only packages it can prove it installed for the active profile and that the profile no longer declares. Manually installed, pre-existing, and shared packages stay installed.
+Use [`apply`](/docs/cli/apply/) to install missing packages declared by the active profile:
 
 ```bash
+# Reconcile all declared packages
 outfitting-manager apply all
+
+# Use local files without pulling remote source changes
 outfitting-manager apply all --no-refresh
+
+# Apply with a specific profile
 outfitting-manager apply apt --profile ubuntu-wsl
+
+# Remove packages no longer declared in the active profile
 outfitting-manager apply all --prune
 ```
 
-Linux `apply` refreshes the active profile source before planning changes. Use `--no-refresh` to use the selected local source, or `--offline` to skip source refresh and package-manager downloads.
+By default, `apply` only adds missing software and never uninstalls anything. When passed `--prune`, Outfitting only removes packages that it previously installed for the active profile and that are no longer in the manifest. Manually installed packages or pre-existing system packages are never removed.
 
-## Upgrade installed packages
+Use `--offline` to skip both repository refreshes and package-manager network calls.
 
-Use [update](/docs/cli/update/) to upgrade packages that are already installed:
+## Upgrade installed packages (`update`)
+
+Use [`update`](/docs/cli/update/) to upgrade existing packages to their newest versions:
 
 ```bash
+# Upgrade all packages (native and Nix if applicable)
 outfitting-manager update all
+
+# Upgrade only native packages
 outfitting-manager update apt
 outfitting-manager update pacman
 ```
 
-## Nix-managed profiles
+## Nix and Home Manager profiles
 
-`update all` refreshes and switches Home Manager before upgrading native packages for `oci-agents` and `ubuntu-wsl`. `generic-linux` remains native-only. The targeted `update apt` and `update pacman` forms upgrade native packages only.
+For Nix-backed profiles (`ubuntu-wsl` and `oci-agents`), `update all` rebuilds and switches Home Manager before upgrading native packages (`generic-linux` only manages native packages).
 
-Use `update nix` for a targeted Home Manager action:
+To run targeted Home Manager actions:
 
 ```bash
-outfitting-manager update all
-outfitting-manager update all --no-refresh
 outfitting-manager update nix build
+outfitting-manager update nix switch
 outfitting-manager update nix switch --no-refresh
 ```
 
-Nix actions use the checked-in `flake.lock` from the active profile and refresh the managed source by default. Use `--no-refresh` to use the local source and `--no-push` to keep the successful Nix lock update local.
+Nix operations read the profile's `flake.lock` and refresh the managed source by default. Use `--no-refresh` to use the local checkout and `--no-push` to keep lockfile changes local.
 
-See [Home Manager](/docs/cli/linux/home-manager/) for the `hm-*` shell helpers. Update global Bun packages with `bun update -g`, and update the manager binary with `outfitting-manager upgrade`.
+## Additional tools
+
+- **Manager CLI:** Run `outfitting-manager upgrade` to update the manager binary.
+- **Bun packages:** Run `bun update -g` to update global Bun packages.
+- **Shell helpers:** See [Home Manager](/docs/cli/linux/home-manager/) for `hm-*` aliases.
+
+For the full command list, see the [Linux CLI reference](/docs/cli/linux/).
