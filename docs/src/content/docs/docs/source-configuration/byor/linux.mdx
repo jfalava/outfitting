@@ -1,36 +1,15 @@
 ---
 title: Linux
-description: Configure a Linux repository and profile for Outfitting.
+description: Configure a Linux repository and profiles for Outfitting.
 sidebar:
   order: 2
 ---
 
-## Choose a source
+Outfitting lets you configure Linux hosts using your own Git repository. You can define custom profiles in an `outfitting.json` file at the root of your repo, or follow Outfitting's built-in profile layout.
 
-Linux accepts a local checkout with `--repo` or a hosted source with `--manifest-base-url` and `--manifest-ref`:
+## Define custom profiles (`outfitting.json`)
 
-```bash
-outfitting-manager setup \
-  --profile generic-linux \
-  --repo ~/src/my-machine-config
-
-# Hosted source
-outfitting-manager setup \
-  --profile generic-linux \
-  --manifest-base-url https://raw.githubusercontent.com/example/my-machine-config \
-  --manifest-ref main
-```
-
-Use `init` instead of `setup` when you want to validate and prepare the source without applying packages or Nix state. Linux requires an explicit non-default profile when the repository provides `oci-agents` or `ubuntu-wsl`:
-
-```bash
-outfitting-manager init --profile oci-agents --repo ~/src/my-machine-config
-outfitting-manager setup --profile ubuntu-wsl --repo ~/src/my-machine-config
-```
-
-## User-defined profiles (`outfitting.json`)
-
-Repositories can describe their own Linux profiles in `outfitting.json`. Profile names are arbitrary, and a profile may contain only Nix, only apt, only pacman, or any combination of those backends:
+To use your own repository structure, add an `outfitting.json` file to the root of your repository. You can choose any profile names you like, and configure `apt`, `pacman`, `nix`, or any combination of them for each profile:
 
 ```json
 {
@@ -53,29 +32,50 @@ Repositories can describe their own Linux profiles in `outfitting.json`. Profile
 }
 ```
 
-Validate a local repository without installing packages, evaluating a flake, or changing machine state:
+### Configuration rules
+
+- **Profile exclusivity:** Linux activates one profile at a time (e.g. `--profile debian-minimal`). Selecting a profile replaces the active one rather than combining with it.
+- **Backend combinations:** A single profile can combine `apt` or `pacman` manifests with a `nix` flake, or use only one backend.
+- **Path safety:** Manifest and flake paths are relative to your repository root and cannot traverse outside it.
+- **Multi-platform:** The same `outfitting.json` can also define profiles for Windows and macOS. See [BYOR for Windows](/docs/source-configuration/byor/windows/) and [BYOR for macOS](/docs/source-configuration/byor/macos/).
+
+## Validate and apply
+
+### 1. Validate your configuration
+
+Test your repository structure without installing packages or touching machine state:
 
 ```bash
 outfitting-manager validate \
   --repo ~/src/my-machine-config \
-  --profile nix-server
+  --profile debian-minimal
 ```
 
-The validator checks profile names, repository-relative paths, package manifests, and the declared Nix flake file. After validation, local checkouts can use the same profile with `init` or `setup`:
+If `outfitting.json` defines profiles for multiple platforms, add `--platform linux`.
+
+### 2. Initialize or apply
+
+Once validated, point `init` or `setup` to your repository:
 
 ```bash
+# Prepare state without modifying installed packages
+outfitting-manager init \
+  --repo ~/src/my-machine-config \
+  --profile debian-minimal
+
+# Install declared packages and apply Nix state
 outfitting-manager setup \
   --repo ~/src/my-machine-config \
   --profile debian-minimal
 ```
 
-The built-in `generic-linux`, `oci-agents`, and `ubuntu-wsl` layouts remain supported for existing repositories. Repository-owned contracts currently require a local checkout; hosted raw sources continue to use the built-in sparse-source layout.
+You can also set the `OUTFITTING_REPO` environment variable instead of passing `--repo` every time.
 
-The same `outfitting.json` may also declare Windows or macOS profiles. See [BYOR for Windows](/docs/source-configuration/byor/windows/) and [BYOR for macOS](/docs/source-configuration/byor/macos/). When more than one platform is present, pass `--platform linux` (or `windows` / `macos`) to `validate`.
+## Built-in repository layout
 
-## Repository schema
+If your repository does not contain an `outfitting.json`, Outfitting looks for its built-in profiles: `generic-linux`, `ubuntu-wsl`, or `oci-agents`. This layout is also used when pulling from a remote hosted source via `--manifest-base-url`.
 
-Linux selects one profile at a time. Every Nix-backed profile includes the common closure:
+Nix-backed built-in profiles expect these shared paths:
 
 ```text
 system/common/zsh.nix
@@ -88,12 +88,19 @@ packages/common/packages.nix
 packages/common/opencode-mcp.nix
 ```
 
-Add the paths for the selected profile:
+In addition, each built-in profile requires its specific manifests and files:
 
-| Profile         | Required package manifest          | Required profile source                                                                                                                                         |
-| --------------- | ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `generic-linux` | `packages/linux/generic-linux.txt` | No Nix source.                                                                                                                                                  |
-| `oci-agents`    | `packages/linux/oci-agents.txt`    | `packages/oci-agents/packages.nix` and `system/oci-agents/{agent-guidance.md,agents.nix,bootstrap.sh,flake.lock,flake.nix,home.nix,zsh/oci-agents.plugin.zsh}`. |
-| `ubuntu-wsl`    | `packages/ubuntu-wsl/apt.txt`      | `packages/ubuntu-wsl/packages.nix` and `system/ubuntu-wsl/{base.nix,bootstrap.sh,flake.lock,flake.nix,zsh/wsl.plugin.zsh}`.                                     |
+| Profile | Package manifest | Nix configuration |
+| --- | --- | --- |
+| `generic-linux` | `packages/linux/generic-linux.txt` | None (native packages only). |
+| `oci-agents` | `packages/linux/oci-agents.txt` | `packages/oci-agents/packages.nix` and `system/oci-agents/{agent-guidance.md,agents.nix,bootstrap.sh,flake.lock,flake.nix,home.nix,zsh/oci-agents.plugin.zsh}`. Flake must export `homeConfigurations.oci-agents`. |
+| `ubuntu-wsl` | `packages/ubuntu-wsl/apt.txt` | `packages/ubuntu-wsl/packages.nix` and `system/ubuntu-wsl/{base.nix,bootstrap.sh,flake.lock,flake.nix,zsh/wsl.plugin.zsh}`. Flake must export `homeConfigurations.jfalava`. |
 
-The `oci-agents` flake must expose `homeConfigurations.oci-agents`; the `ubuntu-wsl` flake must expose `homeConfigurations.jfalava`. The selected profile's setup fetches or reads only its closure.
+To use a hosted repository without a local checkout:
+
+```bash
+outfitting-manager setup \
+  --profile generic-linux \
+  --manifest-base-url https://raw.githubusercontent.com/example/my-machine-config \
+  --manifest-ref main
+```

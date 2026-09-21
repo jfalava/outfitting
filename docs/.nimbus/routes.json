@@ -25,6 +25,7 @@
     "/docs/cli/sync",
     "/docs/cli/update",
     "/docs/cli/upgrade",
+    "/docs/cli/validate",
     "/docs/cli/windows",
     "/docs/cli/windows/config",
     "/docs/cli/windows/packages",

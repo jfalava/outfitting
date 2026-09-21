@@ -34,4 +34,4 @@ The exact flags depend on the compiled platform binary:
 | Windows  | Installs missing packages from the selected WinGet and Scoop profiles and refreshes the cached PowerShell profile.                | `outfitting-manager setup --profile base,dev`; add `--winget-only` while bootstrapping WinGet.     |
 | Linux    | Installs missing apt or pacman packages. Nix-backed profiles also apply Home Manager.                                             | `outfitting-manager setup --profile generic-linux`; use `--package-manager` to override detection. |
 
-Local checkouts may own an `outfitting.json` contract instead of the built-in monorepo layout. Validate first with [`validate`](/docs/cli/validate/); see [BYOR](/docs/source-configuration/#byor-outfittingjson).
+Local checkouts can define custom profiles in an `outfitting.json` file instead of using the built-in layout. Validate your configuration first with [`validate`](/docs/cli/validate/); see [BYOR](/docs/source-configuration/#byor-outfittingjson).

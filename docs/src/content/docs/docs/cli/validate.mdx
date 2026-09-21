@@ -1,40 +1,49 @@
 ---
 title: Validate
-description: Validate a repository-owned outfitting.json contract without changing the machine.
+description: Validate an outfitting.json configuration without applying changes.
 sidebar:
   order: 7
 ---
 
-`validate` checks a local BYOR checkout’s `outfitting.json` without installing packages, evaluating flakes for activation, or writing machine state beyond reading the contract.
+`validate` inspects your repository's `outfitting.json` to verify that profiles, declared package manifests, Nix flakes, and file paths exist and are valid. It runs locally and makes no changes to your system.
 
 ## Usage
 
+Run `validate` inside your repository root, or point it to a checkout with `--repo`:
+
 ```bash
+# Validate the current directory
 outfitting-manager validate
+
+# Specify a repository path
 outfitting-manager validate --repo ~/src/my-machine-config
+
+# Validate a specific profile
 outfitting-manager validate --repo ~/src/my-machine-config --profile workstation
+
+# Specify the platform when outfitting.json defines multiple platforms
 outfitting-manager validate --repo ~/src/my-machine-config --platform linux
 ```
 
-| Flag         | Purpose                                                                                          |
-| ------------ | ------------------------------------------------------------------------------------------------ |
-| `--repo`     | Local repository root (default: current directory).                                              |
-| `--profile`  | Profile name. Required when several Linux or macOS profiles exist. Comma-separated for Windows. |
-| `--platform` | `linux`, `windows`, or `macos` when the contract declares more than one platform.              |
+| Flag | Description |
+| ---- | ----------- |
+| `--repo` | Path to the local repository root (defaults to current directory). |
+| `--profile` | Target profile name. Required when multiple Linux or macOS profiles are defined. Comma-separated on Windows. |
+| `--platform` | Target platform (`linux`, `windows`, or `macos`). Required when `outfitting.json` defines profiles for multiple platforms. |
 
-## What it checks
+## What gets checked
 
-- Schema `1` shape and path safety (no traversal outside the checkout).
-- **Linux:** selected profile backends (apt / pacman / nix), non-empty manifests, flake file when declared.
-- **Windows:** selected winget manifests and optional shared scoop / PowerShell / fonts / registry paths.
-- **macOS:** flake contains `darwinConfigurations`, darwin module path, optional brewfile / fonts / extra paths.
+- **Schema & path safety:** Verifies schema `1` formatting and ensures all file paths remain within the repository (no directory traversal).
+- **Linux:** Validates declared backends (`apt`, `pacman`, `nix`), ensures package manifests are non-empty, and checks that declared Nix flakes exist.
+- **Windows:** Validates declared WinGet manifests and checks optional Scoop, PowerShell profile, font, and registry paths.
+- **macOS:** Ensures Nix flakes define a `darwinConfigurations` attribute, checks the nix-darwin entrypoint, and validates optional Brewfile, font, and custom path references.
 
-Success prints the root, platform, and selected profile(s). Failures name the offending field or missing file.
+If validation succeeds, `validate` prints the resolved repository root, platform, and selected profile(s). If validation fails, it outputs the exact missing path or configuration error.
 
 ## Platform notes
 
-- Available on the Linux, Windows, and macOS manager entrypoints.
-- Auto-detects the platform when only one is declared; otherwise pass `--platform`.
-- Contracts require a **local checkout**. Hosted sparse sources are not validated as BYOR contracts.
+- Supported across Linux, macOS, and Windows.
+- Automatically selects the target platform when `outfitting.json` only declares one platform; pass `--platform` when disambiguation is needed.
+- Requires a local repository checkout. Hosted sparse sources cannot be validated with this command.
 
-Repository shapes are documented under [source configuration](/docs/source-configuration/) and the per-platform [BYOR](/docs/source-configuration/byor/linux/) pages.
+For schema references and platform examples, see [Source configuration](/docs/source-configuration/) and the BYOR guides for [Linux](/docs/source-configuration/byor/linux/), [macOS](/docs/source-configuration/byor/macos/), and [Windows](/docs/source-configuration/byor/windows/).

@@ -41,21 +41,25 @@ Windows commands and Linux `apply` reuse the saved active selection when `--prof
 
 ## BYOR (`outfitting.json`)
 
-A repository-owned contract at the checkout root can declare platform blocks without matching Outfitting’s monorepo paths. Schema `1` profiles may include `linux`, `windows`, and/or `macos`. Validate without changing the host:
+Bring Your Own Repo (BYOR) lets you manage your systems using your own repository structure instead of Outfitting's built-in layout.
+
+Place an `outfitting.json` file at the root of your local repository. A single configuration (using schema `1`) can define profiles for `linux`, `windows`, and `macos`.
+
+Before applying changes, verify your setup without touching system state:
 
 ```bash
 outfitting-manager validate --repo ~/src/my-machine-config --platform linux
 ```
 
-Pass `--platform` when the contract declares more than one platform. Contracts require a **local checkout** (`--repo`, `OUTFITTING_REPO`, or saved `repo-path`). Hosted sparse/raw sources still use each platform’s built-in layout or Windows `config.json` routes.
+Pass `--platform` whenever `outfitting.json` defines profiles for multiple platforms. BYOR requires a **local checkout** (via `--repo`, `OUTFITTING_REPO`, or saved `repo-path`). Hosted remote sources without a local checkout continue to use Outfitting’s built-in sparse layouts or Windows `config.json` routes.
 
-| Platform | Contract surface                         | Detail                                              |
+| Platform | Profile configuration                    | Guide                                               |
 | -------- | ---------------------------------------- | --------------------------------------------------- |
 | Linux    | `profiles.*.linux` (apt / pacman / nix)  | [BYOR for Linux](/docs/source-configuration/byor/linux/)     |
 | Windows  | `profiles.*.windows.winget` + optional top-level `windows` | [BYOR for Windows](/docs/source-configuration/byor/windows/) |
 | macOS    | `profiles.*.macos` (nix + optional brewfile/fonts/paths) | [BYOR for macOS](/docs/source-configuration/byor/macos/)     |
 
-See also [validate](/docs/cli/validate/).
+See also the [`validate`](/docs/cli/validate/) command reference.
 
 ## Machine ID
 
@@ -69,7 +73,7 @@ Each platform consumes a different local source layout. macOS and Linux fetch on
 
 ### Windows
 
-Windows can use legacy `config.json` routes or a repository-owned `outfitting.json` contract. See [BYOR for Windows](/docs/source-configuration/byor/windows/).
+Windows can use traditional `config.json` routes or a repository-owned `outfitting.json` file. See [BYOR for Windows](/docs/source-configuration/byor/windows/).
 
 Windows stores configuration and fetched manifests under:
 
@@ -77,7 +81,7 @@ Windows stores configuration and fetched manifests under:
 %USERPROFILE%\.config\outfitting
 ```
 
-`config.json` records the manifest source and repository-relative Windows routes. `manifests` contains the selected WinGet files, the configured Scoop manifest, and the cached PowerShell profile. Windows package reconciliation does not require a monorepo checkout when using hosted routes; a local BYOR checkout supplies contract paths instead.
+`config.json` records the manifest source and repository-relative Windows routes. `manifests` contains the selected WinGet files, the configured Scoop manifest, and the cached PowerShell profile. When using hosted routes, Windows does not require a full repository checkout. When using BYOR, Outfitting reads manifests directly from your local repository.
 
 The installer links these PowerShell profile entry points to the cached profile:
 
@@ -98,7 +102,7 @@ Existing profiles are backed up with a timestamp before they are replaced. Windo
 ~/.nixpkgs/darwin-configuration.nix -> ~/.config/outfitting/source/system/macos/darwin.nix
 ```
 
-Without a local BYOR contract, the macOS manager fetches its allowlisted monorepo paths into `~/.config/outfitting/source`; it does not clone the monorepo or create a repository `flake.lock`. `outfitting-manager init` validates the source before `outfitting-manager setup` applies it. With a local `outfitting.json` macOS profile, flake and Brewfile paths come from the contract. See [BYOR for macOS](/docs/source-configuration/byor/macos/).
+Without a local BYOR configuration, the macOS manager fetches only Outfitting's required paths into `~/.config/outfitting/source` without cloning the entire repository or creating a repository `flake.lock`. `outfitting-manager init` validates this sparse source before `outfitting-manager setup` applies it. With a local `outfitting.json` macOS profile, flake and Brewfile paths are resolved directly from your repository. See [BYOR for macOS](/docs/source-configuration/byor/macos/).
 
 ### Linux
 
@@ -117,4 +121,4 @@ Home Manager links for built-in Nix-backed profiles point to the selected source
 ~/.config/home-manager -> ~/.config/outfitting/source/system/oci-agents
 ```
 
-Use [BYOR for Linux](/docs/source-configuration/byor/linux/) when the source should come from a full checkout with a repository-owned contract or a layout other than the default Outfitting sparse source.
+Use [BYOR for Linux](/docs/source-configuration/byor/linux/) if you want Outfitting to read directly from your own repository checkout and `outfitting.json` configuration instead of the default sparse source.

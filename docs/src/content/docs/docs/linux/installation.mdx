@@ -42,22 +42,25 @@ outfitting-manager init --profile oci-agents
 outfitting-manager setup --no-fetch
 ```
 
-## BYOR (Bring Your Own Repo)
+## Bring Your Own Repo (BYOR)
 
-### Local contract (`outfitting.json`)
+### Custom profiles (`outfitting.json`)
 
-Point the manager at a checkout that declares Linux profiles, then validate and apply without requiring Outfitting’s default layout:
+To use your own repository, add an `outfitting.json` file defining your profiles. You can configure APT, pacman, Nix, or any combination without adhering to Outfitting’s default layout:
 
 ```bash
+# Validate the configuration
 outfitting-manager validate --repo ~/src/my-machine-config --platform linux
+
+# Apply the profile
 outfitting-manager setup --repo ~/src/my-machine-config --profile debian-minimal
 ```
 
-Profiles may declare apt, pacman, nix, or any combination. See [BYOR for Linux](/docs/source-configuration/byor/linux/) for the contract schema and multi-platform contracts.
+See [BYOR for Linux](/docs/source-configuration/byor/linux/) for configuration examples and multi-platform support.
 
-### Hosted sparse source
+### Hosted remote source
 
-For a hosted repository without a local checkout, provide its raw-content base URL and Git ref. Hosted sources still use the built-in profile layouts (`generic-linux`, `oci-agents`, `ubuntu-wsl`):
+If you want to pull directly from a Git host without a local clone, provide the repository's raw-content base URL and Git branch or tag. Hosted sources use the built-in profile layouts (`generic-linux`, `oci-agents`, or `ubuntu-wsl`):
 
 ```bash
 outfitting-manager setup \
