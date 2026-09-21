@@ -28,7 +28,7 @@
         "hono": "4.13.8"
       },
       "cloudflare": {
-        "@cloudflare/workers-types": "5.20260920.1"
+        "@cloudflare/workers-types": "5.20260921.1"
       },
       "effect": {
         "effect": "4.0.0-rc.115",
