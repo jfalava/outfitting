@@ -5,10 +5,10 @@ import { readRepoPathFile, sparseSourceRoot, type ManagerConfig } from "@/config
 import { manifestsDir } from "@/config/paths";
 import { validateOutfittingRepo, type OutfittingRepo } from "@/config/repo";
 import { fetchManifest, type ManifestFetcher } from "@/fetch";
+import { isRemoteByorSource } from "@/fetch/github";
 import { runCommand } from "@/process";
 import { envValue } from "@/secrets";
 import { linuxSourcePaths } from "@/setup/manifests";
-import { isRemoteByorSource } from "@/fetch/github";
 import { syncByorSparseSource, syncSparseSource } from "@/setup/source";
 import { hasByorContract, validateLinuxByorSource } from "@/source/contract";
 import {
@@ -205,7 +205,10 @@ async function refreshSparseSource(root: string, options: LinuxSourceOptions): P
   if (options.offline) {
     throw new Error("--refresh cannot be combined with --offline.");
   }
-  if (isRemoteByorSource(options.config.manifest.baseUrl) && (await hasByorContract(root))) {
+  if (
+    isRemoteByorSource(options.config.manifest.baseUrl, options.config.manifest.kind) &&
+    (await hasByorContract(root))
+  ) {
     await syncByorSparseSource({
       config: options.config,
       platform: "linux",

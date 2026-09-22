@@ -14,16 +14,22 @@ import {
   type ManagerConfigFile,
   type ManifestSourceConfig,
 } from "@/config";
-import type { OutfittingRepo } from "@/config/repo";
+import { sparseSourceRoot } from "@/config/paths";
+import { physicalPath, readRepoPathFile, type OutfittingRepo } from "@/config/repo";
 import type { ManifestFetcher } from "@/fetch";
+import { remoteByorPlatform } from "@/fetch/github";
 import { tryPromise } from "@/lockfiles/effect";
 import type { HostPlatform } from "@/platform";
+import type { runCommand } from "@/process";
+import { envValue } from "@/secrets";
 import { prefetchSetupManifests, windowsSetupManifestPaths } from "@/setup/manifests";
 import { syncByorSparseSource, syncSparseSource, type SparseSourceResult } from "@/setup/source";
 import { validateMacosSource } from "@/setup/validate";
 import { ui } from "@/ui";
 
 export interface SetupOptions {
+  /** Explicit platform for platform-specific entrypoints, including cross-platform tests. */
+  platform?: HostPlatform;
   /** Optional machine id override written to config.json. */
   machineId?: string;
   /** Optional manifest base URL. */
@@ -61,7 +67,29 @@ export interface SetupOptions {
   stateRoot?: string;
   /** Injected fetcher for tests. */
   fetcher?: ManifestFetcher;
+  run?: typeof runCommand;
   offline?: boolean;
+}
+
+/** Resolve persisted sources before selecting platform-specific fetch paths. */
+export async function resolveSetupSource(options: SetupOptions): Promise<SetupOptions> {
+  const config = await loadConfig({ stateRoot: options.stateRoot });
+  const explicitRepo = options.repo ?? envValue("OUTFITTING_REPO");
+  const saved = explicitRepo === undefined ? await readRepoPathFile(config) : undefined;
+  const managed =
+    saved === undefined ? undefined : sparseSourceRoot(await physicalPath(config.stateRoot));
+  const repo = explicitRepo ?? (saved === managed ? undefined : saved);
+  const baseUrl =
+    envValue("OUTFITTING_MANIFEST_BASE_URL") ?? options.manifestBaseUrl ?? config.manifest.baseUrl;
+  const platform =
+    options.platform ??
+    options.remoteByor ??
+    (process.platform === "darwin" ? "macos" : process.platform === "win32" ? "windows" : "linux");
+  return {
+    ...options,
+    repo,
+    remoteByor: remoteByorPlatform(platform, baseUrl, repo, config.manifest.kind),
+  };
 }
 
 function buildConfigPatch(options: SetupOptions): ManagerConfigFile | undefined {
@@ -109,6 +137,8 @@ function setupRemoteByor(options: SetupOptions, config: ManagerConfig, root: str
         profile: options.repoProfile,
         sourceRoot: options.sourceRoot,
         fetcher: options.fetcher,
+        run: options.run,
+        offline: options.offline,
       }),
     );
     yield* logSparseSource(source);
@@ -185,8 +215,9 @@ function prefetchCoreManifests(options: SetupOptions, config: ManagerConfig) {
  * Materialize state root: config, optional repo-path, source/manifests, nix symlinks.
  * Does not clone the monorepo.
  */
-export const runSetup = (options: SetupOptions = {}) =>
+export const runSetup = (input: SetupOptions = {}) =>
   Effect.gen(function* () {
+    const options = yield* tryPromise(() => resolveSetupSource(input));
     const root = yield* tryPromise(() =>
       options.stateRoot === undefined ? ensureStateRoot() : ensureStateRoot(options.stateRoot),
     );

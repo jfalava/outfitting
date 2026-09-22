@@ -14,10 +14,8 @@ import {
 } from "@/commands/windows-apply";
 import { loadConfig, writeRepoPath, type ManagerConfig } from "@/config";
 import { fetchManifest, type ManifestFetcher } from "@/fetch";
-import { remoteByorPlatform } from "@/fetch/github";
 import { tryPromise } from "@/lockfiles/effect";
-import { envValue } from "@/secrets";
-import { runSetup, type SetupOptions } from "@/setup/run";
+import { resolveSetupSource, runSetup, type SetupOptions } from "@/setup/run";
 import {
   selectWindowsByorProfiles,
   tryReadByorContract,
@@ -147,26 +145,31 @@ async function finishWindowsInit(
 
 export const initializeWindows = (options: SetupOptions & { profiles?: string[] } = {}) =>
   Effect.gen(function* () {
-    const repoCandidate = options.repo ?? envValue("OUTFITTING_REPO");
+    const source = yield* tryPromise(() => resolveSetupSource({ ...options, platform: "windows" }));
+    let profiles = options.profiles;
+    if (source.remoteByor !== undefined && profiles === undefined) {
+      const config = yield* tryPromise(() => loadConfig({ stateRoot: options.stateRoot }));
+      const lock = yield* tryPromise(() => readWindowsLock(config));
+      if (lock.profiles.length > 0) {
+        profiles = lock.profiles;
+      }
+    }
     const byorRoot = yield* tryPromise(() =>
-      prepareLocalByor(repoCandidate, options.profiles, options.stateRoot),
+      prepareLocalByor(source.repo, profiles, options.stateRoot),
     );
 
-    const remoteByor =
-      byorRoot === undefined
-        ? remoteByorPlatform("windows", options.manifestBaseUrl, options.repo)
-        : undefined;
     yield* runSetup({
-      ...options,
-      remoteByor: remoteByor ? "windows" : undefined,
-      repoProfile: options.profiles?.join(","),
+      ...source,
+      repoProfile: profiles?.join(","),
       // Local BYOR checkout: skip network prefetch of monorepo routes.
       fetchManifests: byorRoot !== undefined ? false : options.fetchManifests,
-      useWindowsRoutes: byorRoot === undefined && !remoteByor,
+      useWindowsRoutes: byorRoot === undefined && source.remoteByor === undefined,
       nextCommand: options.nextCommand ?? "Next: outfitting-manager setup",
     });
 
-    yield* tryPromise(() => finishWindowsInit(options, byorRoot, remoteByor !== undefined));
+    yield* tryPromise(() =>
+      finishWindowsInit({ ...options, profiles }, byorRoot, source.remoteByor !== undefined),
+    );
   });
 
 /**

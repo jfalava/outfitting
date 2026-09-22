@@ -1,8 +1,9 @@
-import { Option, Schema } from "effect";
+import { Schema } from "effect";
 
-import type { ManifestSourceConfig } from "@/config/types";
+import { DEFAULT_MANIFEST_BASE_URL, type ManifestSourceConfig } from "@/config/types";
 import type { ManifestFetcher } from "@/fetch/manifest";
 import { runCommand, type RunCommandResult } from "@/process";
+import { relativeSourcePath } from "@/source/contract";
 
 export type GitHubBlobTransport = "raw" | "gh";
 
@@ -39,7 +40,11 @@ function repositoryFromParts(host: string, owner: string, name: string): GitHubR
 function gitHubHost(hostname: string): string | undefined {
   const raw = hostname.match(/^(?:raw|codeload)\.([^/]+)$/i);
   const host = (raw?.[1] ?? hostname).toLowerCase();
-  if (host === "githubusercontent.com" || host.endsWith(".githubusercontent.com") || host === "www.github.com") {
+  if (
+    host === "githubusercontent.com" ||
+    host.endsWith(".githubusercontent.com") ||
+    host === "www.github.com"
+  ) {
     return "github.com";
   }
   if (host === "github.com" || host.endsWith(".ghe.com") || host.startsWith("github.")) {
@@ -85,48 +90,56 @@ export function gitHubAuthHint(host: string): string {
   return `gh auth login --hostname ${host}`;
 }
 
-const GitHubContentEntrySchema = Schema.Struct({
-  type: Schema.optional(Schema.String),
-  path: Schema.optional(Schema.String),
-  encoding: Schema.optional(Schema.String),
-  content: Schema.optional(Schema.String),
-  download_url: Schema.optional(Schema.Union([Schema.String, Schema.Null])),
+const GitHubTreeEntrySchema = Schema.Struct({
+  type: Schema.String,
+  path: Schema.String,
+  mode: Schema.String,
+  sha: Schema.String,
 });
 
-type GitHubContentEntry = Schema.Schema.Type<typeof GitHubContentEntrySchema>;
+const decodeCommit = Schema.decodeUnknownSync(Schema.Struct({ sha: Schema.String }));
+const decodeTree = Schema.decodeUnknownSync(
+  Schema.Struct({
+    truncated: Schema.Boolean,
+    tree: Schema.Array(GitHubTreeEntrySchema),
+  }),
+);
+const decodeBlob = Schema.decodeUnknownSync(
+  Schema.Struct({
+    encoding: Schema.Literal("base64"),
+    content: Schema.String,
+  }),
+);
 
-const decodeContentEntry = Schema.decodeUnknownOption(GitHubContentEntrySchema);
-const decodeContentList = Schema.decodeUnknownOption(Schema.Array(GitHubContentEntrySchema));
-
-function contentEntries(body: string): ReadonlyArray<GitHubContentEntry> {
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(body);
-  } catch (cause) {
-    throw new Error("gh api returned invalid JSON.", { cause });
-  }
-  const list = decodeContentList(parsed);
-  if (Option.isSome(list)) {
-    return list.value;
-  }
-  const entry = decodeContentEntry(parsed);
-  return Option.isSome(entry) ? [entry.value] : [];
+interface GitHubReadOptions {
+  repository: GitHubRepository;
+  ref: string;
+  paths: readonly string[];
+  run?: typeof runCommand;
+  fetcher?: ManifestFetcher;
 }
 
-async function ghApi(
-  host: string,
-  apiPath: string,
-  run: typeof runCommand,
-): Promise<string> {
+export interface GitHubSourceFile {
+  /** Always repository-relative, for both file and directory requests. */
+  path: string;
+  body: Uint8Array;
+  mode: number;
+}
+
+async function ghApi(host: string, apiPath: string, run: typeof runCommand): Promise<string> {
   let result: RunCommandResult;
   try {
     result = await run("gh", ["api", "--hostname", host, apiPath], { inherit: false });
   } catch (cause) {
-    const code = cause instanceof Error && "code" in cause ? (cause as NodeJS.ErrnoException).code : undefined;
+    const code =
+      cause instanceof Error && "code" in cause ? (cause as NodeJS.ErrnoException).code : undefined;
     if (code === "ENOENT") {
-      throw new Error(`GitHub CLI is not installed. Authenticate with \`${gitHubAuthHint(host)}\`.`, {
-        cause,
-      });
+      throw new Error(
+        `GitHub CLI is not installed. Authenticate with \`${gitHubAuthHint(host)}\`.`,
+        {
+          cause,
+        },
+      );
     }
     throw cause;
   }
@@ -140,119 +153,133 @@ async function ghApi(
   return result.stdout;
 }
 
-function decodeBase64(content: string): Uint8Array {
-  return Buffer.from(content.replaceAll("\n", ""), "base64");
+async function publicResponse(url: string, fetcher: ManifestFetcher = fetch): Promise<Response> {
+  const response = await fetcher(url, {
+    headers: { Accept: "application/vnd.github+json", "User-Agent": "outfitting-manager" },
+    signal: AbortSignal.timeout(30_000),
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to fetch ${url}: HTTP ${response.status}.`);
+  }
+  return response;
 }
 
-function relativeBlobPath(root: string, path: string): string {
-  if (root.length === 0) {
-    return path;
-  }
-  if (path === root) {
-    return path.split("/").pop() ?? path;
-  }
-  const prefix = `${root}/`;
-  return path.startsWith(prefix) ? path.slice(prefix.length) : path;
+function repositoryEndpoint(repository: GitHubRepository): string {
+  return `/repos/${encodeURIComponent(repository.owner)}/${encodeURIComponent(repository.name)}`;
 }
 
-async function readFileEntry(
-  entry: GitHubContentEntry,
-  fetcher: ManifestFetcher,
-): Promise<{ path: string; body: Uint8Array } | undefined> {
-  if (entry.type !== "file" || entry.path === undefined) {
-    return undefined;
+async function repositoryJson(options: GitHubReadOptions, endpoint: string): Promise<unknown> {
+  if (options.repository.transport === "gh") {
+    return JSON.parse(await ghApi(options.repository.host, endpoint, options.run ?? runCommand));
   }
-  if (entry.encoding === "base64" && entry.content !== undefined) {
-    return { path: entry.path, body: decodeBase64(entry.content) };
-  }
-  if (entry.download_url) {
-    const response = await fetcher(entry.download_url);
-    if (!response.ok) {
-      throw new Error(`Failed to download ${entry.path}: HTTP ${response.status}.`);
-    }
-    return { path: entry.path, body: new Uint8Array(await response.arrayBuffer()) };
-  }
-  return undefined;
+  const response = await publicResponse(`https://api.github.com${endpoint}`, options.fetcher);
+  return response.json();
 }
 
-async function collectGitHubBlobs(options: {
-  repository: GitHubRepository;
-  ref: string;
-  path: string;
-  run: typeof runCommand;
-  fetcher: ManifestFetcher;
-}): Promise<Array<{ path: string; body: Uint8Array }>> {
-  const repoPath = options.path.replace(/^\/+|\/+$/g, "");
-  const endpoint = `/repos/${options.repository.owner}/${options.repository.name}/contents/${repoPath}?ref=${encodeURIComponent(options.ref)}`;
-  const entries = contentEntries(await ghApi(options.repository.host, endpoint, options.run));
-  const files: Array<{ path: string; body: Uint8Array }> = [];
+function withinPath(path: string, root: string): boolean {
+  return root === "." || path === root || path.startsWith(`${root}/`);
+}
 
-  for (const entry of entries) {
-    if (entry.type === "dir" && entry.path !== undefined) {
-      const nested = await collectGitHubBlobs({ ...options, path: entry.path });
-      files.push(...nested);
-      continue;
-    }
-    if (entry.type === "file" && entry.encoding !== "base64" && entry.download_url == null) {
-      const fileEndpoint = `/repos/${options.repository.owner}/${options.repository.name}/contents/${entry.path}?ref=${encodeURIComponent(options.ref)}`;
-      const [fileEntry] = contentEntries(await ghApi(options.repository.host, fileEndpoint, options.run));
-      const file = fileEntry === undefined ? undefined : await readFileEntry(fileEntry, options.fetcher);
-      if (file !== undefined) {
-        files.push(file);
-      }
-      continue;
-    }
-    const file = await readFileEntry(entry, options.fetcher);
-    if (file !== undefined) {
-      files.push(file);
+type GitHubTreeEntry = Schema.Schema.Type<typeof GitHubTreeEntrySchema>;
+
+function selectSourceEntries(
+  entries: readonly GitHubTreeEntry[],
+  paths: readonly string[],
+): GitHubTreeEntry[] {
+  const roots = paths.map((path) => relativeSourcePath(path, "BYOR path"));
+  for (const root of roots) {
+    if (!entries.some((entry) => entry.type !== "tree" && withinPath(entry.path, root))) {
+      throw new Error(`GitHub path \`${root}\` is missing or empty.`);
     }
   }
+  const selected = entries.filter(
+    (entry) => entry.type !== "tree" && roots.some((root) => withinPath(entry.path, root)),
+  );
+  for (const entry of selected) {
+    relativeSourcePath(entry.path, "GitHub tree path");
+    if (entry.type !== "blob" || !["100644", "100755"].includes(entry.mode)) {
+      throw new Error(
+        `Unsupported GitHub entry ${entry.path} (${entry.mode}). Use a local checkout for symlinks or submodules.`,
+      );
+    }
+  }
+  return selected;
+}
 
-  if (files.length === 0) {
-    throw new Error(
-      `GitHub path \`${options.path}\` is missing from ${options.repository.host}/${options.repository.owner}/${options.repository.name}.`,
+async function readSourceFile(
+  options: GitHubReadOptions,
+  entry: GitHubTreeEntry,
+  commit: string,
+): Promise<GitHubSourceFile> {
+  let body: Uint8Array;
+  if (options.repository.transport === "gh") {
+    const blob = decodeBlob(
+      await repositoryJson(
+        options,
+        `${repositoryEndpoint(options.repository)}/git/blobs/${encodeURIComponent(entry.sha)}`,
+      ),
     );
+    body = Buffer.from(blob.content, "base64");
+  } else {
+    const path = entry.path.split("/").map(encodeURIComponent).join("/");
+    const response = await publicResponse(
+      `${options.repository.baseUrl}/${encodeURIComponent(commit)}/${path}`,
+      options.fetcher,
+    );
+    body = new Uint8Array(await response.arrayBuffer());
+  }
+  return { path: entry.path, body, mode: entry.mode === "100755" ? 0o755 : 0o644 };
+}
+
+/** Fetch the selected files/directories once, from one immutable repository revision. */
+export async function readGitHubBlobs(options: GitHubReadOptions): Promise<GitHubSourceFile[]> {
+  const endpoint = repositoryEndpoint(options.repository);
+  const commit = decodeCommit(
+    await repositoryJson(options, `${endpoint}/commits/${encodeURIComponent(options.ref)}`),
+  );
+  const tree = decodeTree(
+    await repositoryJson(
+      options,
+      `${endpoint}/git/trees/${encodeURIComponent(commit.sha)}?recursive=1`,
+    ),
+  );
+  if (tree.truncated) {
+    throw new Error(
+      "GitHub returned a truncated repository tree. Use a local checkout rather than publishing an incomplete source.",
+    );
+  }
+  const entries = selectSourceEntries(tree.tree, options.paths);
+  const files: GitHubSourceFile[] = [];
+  for (const entry of entries) {
+    files.push(await readSourceFile(options, entry, commit.sha));
   }
   return files;
 }
 
-/**
- * Read one repository-relative file or directory through `gh api`.
- * Directory reads return every nested file with paths relative to `path`.
- */
-export async function readGitHubBlob(options: {
-  repository: GitHubRepository;
-  ref: string;
-  path: string;
-  run?: typeof runCommand;
-  fetcher?: ManifestFetcher;
-}): Promise<Array<{ path: string; body: Uint8Array }>> {
-  const repoPath = options.path.replace(/^\/+|\/+$/g, "");
-  const files = await collectGitHubBlobs({
-    repository: options.repository,
-    ref: options.ref,
-    path: repoPath,
-    run: options.run ?? runCommand,
-    fetcher: options.fetcher ?? ((input, init) => fetch(input, init)),
-  });
-  return files.map((file) => ({ path: relativeBlobPath(repoPath, file.path), body: file.body }));
-}
-
 /** Resolve the authenticated GitHub repository recorded in manifest config, if any. */
-export function repositoryFromManifest(manifest: ManifestSourceConfig): GitHubRepository | undefined {
+export function repositoryFromManifest(
+  manifest: ManifestSourceConfig,
+): GitHubRepository | undefined {
   return classifyGitHubRepository(manifest.baseUrl);
 }
 
 /**
- * True when the configured source is a GitHub repository URL rather than the
- * built-in raw.githubusercontent.com monorepo base.
+ * Explicit layout wins. Without it, preserve legacy raw mirrors and recognize repository URLs.
  */
-export function isRemoteByorSource(baseUrl: string): boolean {
+export function isRemoteByorSource(baseUrl: string, kind?: ManifestSourceConfig["kind"]): boolean {
+  if (kind !== undefined) {
+    return kind === "byor";
+  }
   const repository = classifyGitHubRepository(baseUrl);
-  if (repository === undefined) {
+  if (repository === undefined || new URL(baseUrl).hostname === "raw.githubusercontent.com") {
     return false;
   }
-  return !baseUrl.includes("raw.githubusercontent.com");
+  const builtIn = classifyGitHubRepository(DEFAULT_MANIFEST_BASE_URL)!;
+  return (
+    repository.host !== builtIn.host ||
+    repository.owner.toLowerCase() !== builtIn.owner.toLowerCase() ||
+    repository.name.toLowerCase() !== builtIn.name.toLowerCase()
+  );
 }
 
 /** Remote BYOR applies only when no local checkout is selected and the URL is a GitHub repo. */
@@ -260,8 +287,9 @@ export function remoteByorPlatform(
   platform: "macos" | "linux" | "windows",
   baseUrl: string | undefined,
   localRepo: string | undefined,
+  kind?: ManifestSourceConfig["kind"],
 ): "macos" | "linux" | "windows" | undefined {
-  if (localRepo !== undefined || baseUrl === undefined || !isRemoteByorSource(baseUrl)) {
+  if (localRepo !== undefined || baseUrl === undefined || !isRemoteByorSource(baseUrl, kind)) {
     return undefined;
   }
   return platform;

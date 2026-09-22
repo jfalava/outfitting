@@ -4,7 +4,7 @@ import { Command, Flag, Prompt } from "effect/unstable/cli";
 import { byorMapPath, ensureStateRoot, saveConfigFile } from "@/config";
 import { CliFailure } from "@/errors";
 import { classifyGitHubRepository, normalizeRepositoryUrl } from "@/fetch/github";
-import { tryPromise } from "@/lockfiles/effect";
+import { toError, tryPromise } from "@/lockfiles/effect";
 import { readByorMap, writeByorProfile } from "@/source/byor-map";
 import {
   linuxPathsFromProfile,
@@ -69,7 +69,10 @@ export function parseConfirmedPaths(value: string): string[] {
     .map((path, index) => relativeSourcePath(path, `paths[${index}]`));
 }
 
-function linuxProfileFromAnswers(answers: ByorWizardAnswers, paths: string[]): LinuxProfileDeclaration {
+function linuxProfileFromAnswers(
+  answers: ByorWizardAnswers,
+  paths: string[],
+): LinuxProfileDeclaration {
   const linux: LinuxProfileDeclaration = { paths };
   const apt = optionalPath(answers.apt, "apt manifest");
   const pacman = optionalPath(answers.pacman, "pacman manifest");
@@ -99,7 +102,11 @@ export function profileFromAnswers(answers: ByorWizardAnswers): ByorProfileDecla
   }
   if (answers.platform === "macos") {
     const flake = optionalPath(answers.flake, "flake directory");
-    if (flake === undefined || answers.attribute === undefined || answers.attribute.trim().length === 0) {
+    if (
+      flake === undefined ||
+      answers.attribute === undefined ||
+      answers.attribute.trim().length === 0
+    ) {
       throw new Error("A macOS profile needs a flake directory and attribute.");
     }
     const macos: NonNullable<ByorProfileDeclaration["macos"]> = {
@@ -121,13 +128,13 @@ export function profileFromAnswers(answers: ByorWizardAnswers): ByorProfileDecla
 
 /** Paths the written profile will fetch, for the confirmation diff. */
 export function profileFetchPaths(profile: ByorProfileDeclaration): string[] {
-  if (profile.linux !== undefined) {
-    return linuxPathsFromProfile(profile.linux);
-  }
-  if (profile.macos !== undefined) {
-    return macosPathsFromProfile(profile.macos);
-  }
-  return profile.windows === undefined ? [] : [profile.windows.winget.manifest];
+  return [
+    ...new Set([
+      ...(profile.linux === undefined ? [] : linuxPathsFromProfile(profile.linux)),
+      ...(profile.macos === undefined ? [] : macosPathsFromProfile(profile.macos)),
+      ...(profile.windows === undefined ? [] : [profile.windows.winget.manifest]),
+    ]),
+  ];
 }
 
 function existingPaths(contract: ByorContract | undefined, name: string): string[] {
@@ -149,11 +156,12 @@ export async function saveByorWizardAnswers(
   const existing = await readByorMap(stateRoot);
   const profile = profileFromAnswers(answers);
   const before = existingPaths(existing, answers.profile);
-  const after = profileFetchPaths(profile);
+  const after = profileFetchPaths({ ...existing?.profiles[answers.profile], ...profile });
   await writeByorProfile({ stateRoot, name: answers.profile, profile, existing });
   await saveConfigFile(
     {
       manifest: {
+        kind: "byor",
         baseUrl: normalizeRepositoryUrl(answers.repoUrl),
         ref: answers.ref.trim(),
       },
@@ -171,7 +179,7 @@ function flagValue(flag: Option.Option<string>): string | undefined {
   return Option.getOrUndefined(flag);
 }
 
-function collectByorAnswers(flags: {
+interface ByorWizardFlags {
   repo: Option.Option<string>;
   ref: Option.Option<string>;
   profile: Option.Option<string>;
@@ -183,9 +191,50 @@ function collectByorAnswers(flags: {
   brewfile: Option.Option<string>;
   winget: Option.Option<string>;
   paths: Option.Option<string>;
-}) {
+}
+
+function collectPlatformPaths(flags: ByorWizardFlags, platform: ByorWizardAnswers["platform"]) {
+  return Effect.gen(function* () {
+    if (platform === "windows") {
+      return {
+        winget:
+          flagValue(flags.winget) ?? (yield* Prompt.String({ message: "WinGet manifest path" })),
+      };
+    }
+    if (platform === "macos") {
+      return {
+        flake: flagValue(flags.flake) ?? (yield* Prompt.String({ message: "Nix flake directory" })),
+        attribute:
+          flagValue(flags.attribute) ?? (yield* Prompt.String({ message: "Nix output attribute" })),
+        brewfile:
+          flagValue(flags.brewfile) ??
+          (yield* Prompt.String({ message: "Brewfile path (empty to skip)", default: "" })),
+      };
+    }
+    let apt = flagValue(flags.apt);
+    let pacman = flagValue(flags.pacman);
+    let flake = flagValue(flags.flake);
+    if ([apt, pacman, flake].every((value) => value === undefined)) {
+      apt = yield* Prompt.String({ message: "apt manifest path (empty to skip)", default: "" });
+      pacman = yield* Prompt.String({
+        message: "pacman manifest path (empty to skip)",
+        default: "",
+      });
+      flake = yield* Prompt.String({ message: "Nix flake directory (empty to skip)", default: "" });
+    }
+    const attribute = flake?.trim()
+      ? (flagValue(flags.attribute) ?? (yield* Prompt.String({ message: "Nix output attribute" })))
+      : undefined;
+    return { apt, pacman, flake, attribute };
+  });
+}
+
+export function collectByorAnswers(flags: ByorWizardFlags) {
   return Effect.gen(function* () {
     const platformValue = flagValue(flags.platform);
+    if (platformValue !== undefined && !["linux", "macos", "windows"].includes(platformValue)) {
+      return yield* new CliFailure({ message: "Platform must be linux, macos, or windows." });
+    }
     const platform =
       platformValue === "linux" || platformValue === "macos" || platformValue === "windows"
         ? platformValue
@@ -197,42 +246,39 @@ function collectByorAnswers(flags: {
               { title: "Windows", value: "windows" as const },
             ],
           });
-    const pathsValue = flagValue(flags.paths);
-    const pathsText =
-      pathsValue !== undefined
-        ? pathsValue
-        : yield* Prompt.String({
-            message:
-              "Files outside the flake directory that Nix reads from source/, comma-separated. Leave empty to confirm there are none.",
-            default: "",
-          });
     const repoUrl = yield* asWizardError(
-      repoText(
-        flagValue(flags.repo) ?? (yield* Prompt.String({ message: "Repository URL" })),
-      ),
+      repoText(flagValue(flags.repo) ?? (yield* Prompt.String({ message: "Repository URL" }))),
     );
     const ref = yield* asWizardError(
       requiredText(
-        flagValue(flags.ref) ?? (yield* Prompt.String({ message: "Repository ref", default: "main" })),
+        flagValue(flags.ref) ??
+          (yield* Prompt.String({ message: "Repository ref", default: "main" })),
         "Repository ref",
       ),
     );
     const profile = yield* asWizardError(
       profileText(flagValue(flags.profile) ?? (yield* Prompt.String({ message: "Profile name" }))),
     );
-    return {
+    const platformPaths = yield* collectPlatformPaths(flags, platform);
+    const pathsText =
+      platform === "windows"
+        ? ""
+        : (flagValue(flags.paths) ??
+          (yield* Prompt.String({
+            message: "Files outside the flake directory, comma-separated (empty to confirm none)",
+            default: "",
+          })));
+    const paths = yield* Effect.try({ try: () => parseConfirmedPaths(pathsText), catch: toError });
+    const answers = {
       repoUrl,
       ref,
       profile,
       platform,
-      apt: flagValue(flags.apt),
-      pacman: flagValue(flags.pacman),
-      flake: flagValue(flags.flake),
-      attribute: flagValue(flags.attribute),
-      brewfile: flagValue(flags.brewfile),
-      winget: flagValue(flags.winget),
-      paths: parseConfirmedPaths(pathsText),
+      ...platformPaths,
+      paths,
     } satisfies ByorWizardAnswers;
+    yield* Effect.try({ try: () => profileFromAnswers(answers), catch: toError });
+    return answers;
   });
 }
 
@@ -246,7 +292,10 @@ export const byorCommand = Command.make(
       Flag.optional,
       Flag.withDescription("linux, macos, or windows."),
     ),
-    apt: Flag.String("apt").pipe(Flag.optional, Flag.withDescription("Repository-relative apt manifest.")),
+    apt: Flag.String("apt").pipe(
+      Flag.optional,
+      Flag.withDescription("Repository-relative apt manifest."),
+    ),
     pacman: Flag.String("pacman").pipe(
       Flag.optional,
       Flag.withDescription("Repository-relative pacman manifest."),
@@ -276,10 +325,12 @@ export const byorCommand = Command.make(
       const answers = yield* collectByorAnswers(flags);
       const root = yield* tryPromise(() => ensureStateRoot());
       const existing = yield* tryPromise(() => readByorMap(root));
-      const profile = profileFromAnswers(answers);
-      const diff = pathDiff(existingPaths(existing, answers.profile), profileFetchPaths(profile));
+      const profile = yield* Effect.try({ try: () => profileFromAnswers(answers), catch: toError });
+      const merged = { ...existing?.profiles[answers.profile], ...profile };
+      const diff = pathDiff(existingPaths(existing, answers.profile), profileFetchPaths(merged));
       if (existing?.profiles[answers.profile] !== undefined) {
         yield* Console.log(diff.length === 0 ? "Profile paths are unchanged." : diff.join("\n"));
+        yield* Console.log(JSON.stringify(merged, null, 2));
         const confirmed = yield* Prompt.Confirm({
           message: `Replace local profile ${answers.profile}?`,
           initial: false,

@@ -6,6 +6,7 @@ import { Console, Effect } from "effect";
 
 import { DEFAULT_LINUX_PROFILE, loadConfig, sparseSourceRoot, type ManagerConfig } from "@/config";
 import {
+  physicalPath,
   readRepoPathFile,
   resolveOutfittingRepo,
   writeRepoPath,
@@ -13,14 +14,14 @@ import {
 } from "@/config/repo";
 import { CliFailure } from "@/errors";
 import type { ManifestFetcher } from "@/fetch";
+import { isRemoteByorSource } from "@/fetch/github";
 import { pullLockfile, pushLockfile } from "@/lockfiles";
 import { tryPromise } from "@/lockfiles/effect";
 import { isGitTrackedFile } from "@/lockfiles/files";
 import { which } from "@/process";
 import { envValue } from "@/secrets";
-import { isRemoteByorSource } from "@/fetch/github";
 import { syncByorSparseSource, syncMacosSource } from "@/setup/source";
-import { hasByorContract } from "@/source/contract";
+import { tryReadByorContract, selectMacosByorProfile } from "@/source/contract";
 import { ui } from "@/ui";
 import { isBuiltInLinuxProfile, isLinuxProfile, prepareLinuxSource } from "@/update/linux-source";
 import { activateHomeManager, activateNixSystem } from "@/update/nix/activate";
@@ -56,23 +57,26 @@ function resolveMacosRepo(options: UpdateNixOptions, config: ManagerConfig) {
       return yield* tryPromise(() => resolveOutfittingRepo({ config }));
     }
 
-    const managedRoot = sparseSourceRoot(config.stateRoot);
+    const managedRoot = sparseSourceRoot(yield* tryPromise(() => physicalPath(config.stateRoot)));
     const saved = yield* tryPromise(() => readRepoPathFile(config));
     if (saved !== undefined && saved !== managedRoot) {
       return yield* tryPromise(() => resolveOutfittingRepo({ config }));
     }
 
     yield* Console.log(ui.heading("Refreshing sparse macOS source…"));
-    const remoteByor =
-      isRemoteByorSource(config.manifest.baseUrl) &&
-      (yield* tryPromise(() => hasByorContract(managedRoot)));
+    const contract = yield* tryPromise(() => tryReadByorContract(managedRoot));
+    const remoteByor = isRemoteByorSource(config.manifest.baseUrl, config.manifest.kind);
+    const profile =
+      options.profile ??
+      (contract === undefined ? undefined : selectMacosByorProfile(contract, undefined).name);
     const source = remoteByor
       ? yield* tryPromise(() =>
           syncByorSparseSource({
             config,
             platform: "macos",
-            profile: options.profile,
+            profile,
             fetcher: options.sourceFetcher,
+            offline: options.offline,
           }),
         )
       : yield* tryPromise(() =>
@@ -83,7 +87,7 @@ function resolveMacosRepo(options: UpdateNixOptions, config: ManagerConfig) {
           }),
         );
     const written = yield* tryPromise(() =>
-      writeRepoPath(source.root, { stateRoot: config.stateRoot }),
+      writeRepoPath(source.root, { stateRoot: config.stateRoot, profile }),
     );
     return written.repo;
   });

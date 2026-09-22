@@ -4,7 +4,7 @@ export {
   gitHubAuthHint,
   isRemoteByorSource,
   normalizeRepositoryUrl,
-  readGitHubBlob,
+  readGitHubBlobs,
   remoteByorPlatform,
   repositoryFromManifest,
   type GitHubBlobTransport,

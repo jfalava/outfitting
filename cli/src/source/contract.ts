@@ -315,7 +315,9 @@ function parseLinuxProfile(value: DecodedLinuxProfile, label: string): LinuxProf
     linux.nix = parseNixDeclaration(value.nix, `${label}.nix`);
   }
   if (value.paths !== undefined) {
-    linux.paths = value.paths.map((path, index) => relativeSourcePath(path, `${label}.paths[${index}]`));
+    linux.paths = value.paths.map((path, index) =>
+      relativeSourcePath(path, `${label}.paths[${index}]`),
+    );
   }
   if (linux.apt === undefined && linux.pacman === undefined && linux.nix === undefined) {
     throw new Error(`${label} must declare apt, pacman, or nix.`);
@@ -370,7 +372,10 @@ function parseWindowsShared(value: DecodedWindowsShared): ByorWindowsShared {
   }
   if (value.scoop !== undefined) {
     shared.scoop = {
-      manifest: relativeSourcePath(value.scoop.manifest, `${BYOR_CONTRACT_PATH}.windows.scoop.manifest`),
+      manifest: relativeSourcePath(
+        value.scoop.manifest,
+        `${BYOR_CONTRACT_PATH}.windows.scoop.manifest`,
+      ),
     };
   }
   if (value.powershell !== undefined) {
@@ -433,11 +438,7 @@ function parseProfileEntry(
   if (valueForProfile.macos !== undefined) {
     profile.macos = parseMacosProfile(valueForProfile.macos, `${name}.macos`);
   }
-  if (
-    profile.linux === undefined &&
-    profile.windows === undefined &&
-    profile.macos === undefined
-  ) {
+  if (profile.linux === undefined && profile.windows === undefined && profile.macos === undefined) {
     throw new Error(`${name} must declare linux, windows, and/or macos.`);
   }
   return { name, profile };
@@ -484,7 +485,9 @@ async function fileExists(path: string): Promise<boolean> {
 }
 
 function linuxProfileNames(contract: ByorContract): string[] {
-  return Object.keys(contract.profiles).filter((name) => contract.profiles[name]?.linux !== undefined);
+  return Object.keys(contract.profiles).filter(
+    (name) => contract.profiles[name]?.linux !== undefined,
+  );
 }
 
 function windowsProfileNames(contract: ByorContract): string[] {
@@ -505,11 +508,10 @@ export function macosDarwinRelativePath(nix: MacosNixDeclaration): string {
 }
 
 /**
- * Repository-relative paths a macOS BYOR profile declares (flake, darwin, brewfile, fonts, paths).
- * Useful for existence checks and optional materialization.
+ * Repository-relative files and complete flake directory a macOS profile fetches.
  */
 export function macosPathsFromProfile(decl: MacosProfileDeclaration): string[] {
-  const paths = [`${decl.nix.flake}/flake.nix`, macosDarwinRelativePath(decl.nix)];
+  const paths = [decl.nix.flake, macosDarwinRelativePath(decl.nix)];
   if (decl.brewfile !== undefined) {
     paths.push(decl.brewfile);
   }
@@ -538,9 +540,7 @@ export function selectByorProfile(
     const name = profileName(requested, "--profile");
     const profile = contract.profiles[name];
     if (profile?.linux === undefined) {
-      throw new Error(
-        `Unknown BYOR Linux profile \`${name}\`. Choose: ${linuxNames.join(", ")}.`,
-      );
+      throw new Error(`Unknown BYOR Linux profile \`${name}\`. Choose: ${linuxNames.join(", ")}.`);
     }
     return { name, linux: profile.linux };
   }
@@ -574,9 +574,7 @@ export function selectMacosByorProfile(
     const name = profileName(requested, "--profile");
     const profile = contract.profiles[name];
     if (profile?.macos === undefined) {
-      throw new Error(
-        `Unknown BYOR macOS profile \`${name}\`. Choose: ${macosNames.join(", ")}.`,
-      );
+      throw new Error(`Unknown BYOR macOS profile \`${name}\`. Choose: ${macosNames.join(", ")}.`);
     }
     return { name, macos: profile.macos };
   }
@@ -628,9 +626,7 @@ export function selectWindowsByorProfiles(
   for (const name of names) {
     const profile = contract.profiles[name];
     if (profile?.windows === undefined) {
-      throw new Error(
-        `Unknown BYOR Windows profile \`${name}\`. Choose: ${available.join(", ")}.`,
-      );
+      throw new Error(`Unknown BYOR Windows profile \`${name}\`. Choose: ${available.join(", ")}.`);
     }
     wingetPaths[name] = profile.windows.winget.manifest;
   }
@@ -710,10 +706,7 @@ function inferWingetTemplate(selected: SelectedWindowsByorProfiles): string {
   return matchesAll ? template : BYOR_WINDOWS_WINGET_SENTINEL;
 }
 
-function sharedRouteOrFallback(
-  declared: string | undefined,
-  fallback: string,
-): string {
+function sharedRouteOrFallback(declared: string | undefined, fallback: string): string {
   return declared ?? fallback;
 }
 

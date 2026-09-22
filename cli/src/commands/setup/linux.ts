@@ -7,7 +7,6 @@ import {
   requestedLinuxPackageManager,
   requireLinuxProfile,
 } from "@/commands/linux-flags";
-import { remoteByorPlatform } from "@/fetch/github";
 import { runLinuxInit, runLinuxSetup } from "@/setup/linux";
 
 const machineIdFlag = Flag.String("machine-id").pipe(
@@ -57,7 +56,6 @@ export const linuxInitCommand = Command.make(
       manifestBaseUrl: baseUrl,
       manifestRef: optionalString(manifestRef),
       repo: repoPath,
-      remoteByor: remoteByorPlatform("linux", baseUrl, repoPath),
       fetchManifests: !noFetch,
     });
   },
@@ -88,7 +86,6 @@ export const linuxSetupCommand = Command.make(
       manifestBaseUrl: baseUrl,
       manifestRef: optionalString(manifestRef),
       repo: repoPath,
-      remoteByor: remoteByorPlatform("linux", baseUrl, repoPath),
       fetchManifests: !noFetch,
       packageManager: requestedLinuxPackageManager(packageManager),
     });

@@ -1,5 +1,7 @@
 /** On-disk + resolved manager configuration. */
 export interface ManifestSourceConfig {
+  /** Explicit source layout. BYOR uses the local profile map; raw uses configured routes. */
+  kind?: "byor" | "raw";
   /** GitHub raw (or mirror) base without trailing slash, no ref. */
   baseUrl: string;
   /** Git ref (branch, tag, or SHA). */

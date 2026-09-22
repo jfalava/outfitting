@@ -23,6 +23,7 @@ import {
 import { envValue } from "@/secrets";
 
 const ManifestFileSchema = Schema.Struct({
+  kind: Schema.optionalKey(Schema.Literals(["byor", "raw"])),
   baseUrl: Schema.optionalKey(Schema.NonEmptyString),
   ref: Schema.optionalKey(Schema.NonEmptyString),
 });
@@ -131,6 +132,9 @@ function normalizeConfigFile(decoded: DecodedConfig): ManagerConfigFile {
   }
   if (decoded.manifest !== undefined) {
     const manifest: Partial<ManifestSourceConfig> = {};
+    if (decoded.manifest.kind !== undefined) {
+      manifest.kind = decoded.manifest.kind;
+    }
     if (decoded.manifest.baseUrl !== undefined) {
       manifest.baseUrl = stripTrailingSlash(decoded.manifest.baseUrl.trim());
     }
@@ -216,10 +220,14 @@ function resolveManifest(file: ManagerConfigFile): ManifestSourceConfig {
   const baseUrl =
     envValue("OUTFITTING_MANIFEST_BASE_URL") ?? file.manifest?.baseUrl ?? DEFAULT_MANIFEST_BASE_URL;
   const ref = envValue("OUTFITTING_MANIFEST_REF") ?? file.manifest?.ref ?? DEFAULT_MANIFEST_REF;
-  return {
+  const manifest: ManifestSourceConfig = {
     baseUrl: stripTrailingSlash(baseUrl),
     ref,
   };
+  if (file.manifest?.kind !== undefined) {
+    manifest.kind = file.manifest.kind;
+  }
+  return manifest;
 }
 
 /**
@@ -262,19 +270,17 @@ function pickManifest(
   patch: ManagerConfigFile,
   existing: ManagerConfigFile,
 ): Partial<ManifestSourceConfig> | undefined {
-  const baseUrl = patch.manifest?.baseUrl ?? existing.manifest?.baseUrl;
-  const ref = patch.manifest?.ref ?? existing.manifest?.ref;
-  if (baseUrl === undefined && ref === undefined) {
-    return undefined;
+  const manifest: Partial<ManifestSourceConfig> = { ...existing.manifest };
+  if (patch.manifest?.kind !== undefined) {
+    manifest.kind = patch.manifest.kind;
   }
-  const manifest: Partial<ManifestSourceConfig> = {};
-  if (baseUrl !== undefined) {
-    manifest.baseUrl = baseUrl;
+  if (patch.manifest?.baseUrl !== undefined) {
+    manifest.baseUrl = patch.manifest.baseUrl;
   }
-  if (ref !== undefined) {
-    manifest.ref = ref;
+  if (patch.manifest?.ref !== undefined) {
+    manifest.ref = patch.manifest.ref;
   }
-  return manifest;
+  return Object.keys(manifest).length === 0 ? undefined : manifest;
 }
 
 function mergeConfigFiles(

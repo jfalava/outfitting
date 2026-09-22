@@ -1,13 +1,13 @@
 import { Console, Effect } from "effect";
 
 import { loadConfig, readRepoPathFile, saveConfigFile, type ManagerConfig } from "@/config";
-import { isRemoteByorSource, remoteByorPlatform } from "@/fetch/github";
 import { validateOutfittingRepo, type OutfittingRepo } from "@/config/repo";
+import { isRemoteByorSource } from "@/fetch/github";
 import { tryPromise } from "@/lockfiles/effect";
 import { runCommand } from "@/process";
 import { envValue } from "@/secrets";
 import { linuxSourcePaths } from "@/setup/manifests";
-import { runSetup, type SetupOptions } from "@/setup/run";
+import { resolveSetupSource, runSetup, type SetupOptions } from "@/setup/run";
 import {
   tryReadByorContract,
   validateLinuxByorSource,
@@ -86,7 +86,7 @@ function resolveLinuxSourceContext(options: {
     const configuredRepo =
       options.repo ??
       envValue("OUTFITTING_REPO") ??
-      (yield* tryPromise(() => readRepoPathFile(config)));
+      (options.remoteByor ? undefined : yield* tryPromise(() => readRepoPathFile(config)));
 
     if (configuredRepo === undefined) {
       return {
@@ -94,7 +94,7 @@ function resolveLinuxSourceContext(options: {
         configuredRepo: undefined,
         byor: undefined,
         sparse:
-          options.remoteByor || isRemoteByorSource(config.manifest.baseUrl)
+          (options.remoteByor ?? isRemoteByorSource(config.manifest.baseUrl, config.manifest.kind))
             ? undefined
             : builtInSparsePaths(options.profile),
         outfittingRepo: undefined,
@@ -198,10 +198,13 @@ function applyLinuxSetup(options: {
 /** Prepare Linux state and validate/persist its selected source without applying it. */
 export const runLinuxInit = (options: LinuxInitOptions) =>
   Effect.gen(function* () {
-    const { profile, repo, ...setupOptions } = options;
+    const { profile, ...input } = options;
+    const setupOptions = yield* tryPromise(() =>
+      resolveSetupSource({ ...input, platform: "linux" }),
+    );
     const source = yield* resolveLinuxSourceContext({
       stateRoot: options.stateRoot,
-      repo,
+      repo: setupOptions.repo,
       profile,
       remoteByor: setupOptions.remoteByor !== undefined,
     });
@@ -210,11 +213,6 @@ export const runLinuxInit = (options: LinuxInitOptions) =>
       ...setupOptions,
       manifestPaths: source.byor === undefined ? source.sparse?.manifestPaths : undefined,
       sourcePaths: source.byor === undefined ? source.sparse?.sourcePaths : undefined,
-      remoteByor:
-        source.configuredRepo === undefined
-          ? (setupOptions.remoteByor ??
-            remoteByorPlatform("linux", source.config.manifest.baseUrl, undefined))
-          : undefined,
       fetchManifests: source.byor !== undefined ? false : setupOptions.fetchManifests,
       repoProfile: profile,
       nextCommand: "Next: outfitting-manager setup",
@@ -238,8 +236,11 @@ export const runLinuxSetup = (options: LinuxSetupOptions) =>
       osReleasePath,
       readOsRelease,
       bootstrapNix,
-      ...setupOptions
+      ...input
     } = options;
+    const setupOptions = yield* tryPromise(() =>
+      resolveSetupSource({ ...input, platform: "linux", run }),
+    );
     const source = yield* resolveLinuxSourceContext({
       stateRoot: options.stateRoot,
       repo: setupOptions.repo,
@@ -251,11 +252,6 @@ export const runLinuxSetup = (options: LinuxSetupOptions) =>
       ...setupOptions,
       manifestPaths: source.byor === undefined ? source.sparse?.manifestPaths : undefined,
       sourcePaths: source.byor === undefined ? source.sparse?.sourcePaths : undefined,
-      remoteByor:
-        source.configuredRepo === undefined
-          ? (setupOptions.remoteByor ??
-            remoteByorPlatform("linux", source.config.manifest.baseUrl, undefined))
-          : undefined,
       fetchManifests: source.byor !== undefined ? false : setupOptions.fetchManifests,
       repoProfile: profile,
       nextCommand: "Applying Linux package configuration…",
@@ -267,13 +263,13 @@ export const runLinuxSetup = (options: LinuxSetupOptions) =>
     yield* runSetup(setupArgs);
     yield* persistLinuxProfile(profile, options.stateRoot);
 
-    // runSetup may rewrite config/repo-path; reload before apply.
-    const config = yield* loadStateConfig(options.stateRoot);
+    // A first remote setup now has a contract and flake; do not apply the pre-fetch context.
+    const prepared = yield* resolveLinuxSourceContext({ stateRoot: options.stateRoot, profile });
     yield* applyLinuxSetup({
-      config,
+      config: prepared.config,
       profile,
-      byor: source.byor,
-      outfittingRepo: source.outfittingRepo,
+      byor: prepared.byor,
+      outfittingRepo: prepared.outfittingRepo,
       packageManager,
       which,
       osReleasePath,

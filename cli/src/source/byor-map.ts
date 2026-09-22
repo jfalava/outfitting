@@ -1,5 +1,5 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { dirname } from "node:path";
+import { mkdir, mkdtemp, readFile, rename, rm, writeFile } from "node:fs/promises";
+import { dirname, join } from "node:path";
 
 import { byorMapPath } from "@/config/paths";
 import {
@@ -10,7 +10,9 @@ import {
 } from "@/source/contract";
 
 function isEnoent(cause: unknown): boolean {
-  return cause instanceof Error && "code" in cause && (cause as NodeJS.ErrnoException).code === "ENOENT";
+  return (
+    cause instanceof Error && "code" in cause && (cause as NodeJS.ErrnoException).code === "ENOENT"
+  );
 }
 
 /** Read the local profile map. Missing file returns undefined; invalid JSON throws. */
@@ -47,15 +49,27 @@ export async function writeByorProfile(options: {
   profile: ByorProfileDeclaration;
   existing?: ByorContract;
 }): Promise<ByorContract> {
-  const profiles = { ...options.existing?.profiles, [options.name]: options.profile };
+  const existing = options.existing ?? (await readByorMap(options.stateRoot));
+  const profiles = {
+    ...existing?.profiles,
+    [options.name]: { ...existing?.profiles[options.name], ...options.profile },
+  };
   const contract: ByorContract =
-    options.existing?.windows === undefined
+    existing?.windows === undefined
       ? { schema: 1, profiles }
-      : { schema: 1, windows: options.existing.windows, profiles };
+      : { schema: 1, windows: existing.windows, profiles };
   const validated = parseByorContract(JSON.parse(JSON.stringify(contract)));
   const path = byorMapPath(options.stateRoot);
   await mkdir(dirname(path), { recursive: true });
-  await writeFile(path, `${JSON.stringify(validated, null, 2)}\n`, { mode: 0o600 });
+  const temporary = await mkdtemp(join(dirname(path), ".byor-map-"));
+  try {
+    await writeFile(join(temporary, "map.json"), `${JSON.stringify(validated, null, 2)}\n`, {
+      mode: 0o600,
+    });
+    await rename(join(temporary, "map.json"), path);
+  } finally {
+    await rm(temporary, { recursive: true, force: true });
+  }
   return validated;
 }
 
