@@ -11,9 +11,9 @@ sidebar:
 outfitting-manager status
 ```
 
-Use status before `apply` to confirm which local declarations and profile will be used.
+Run `status` before `apply` to verify your active profile, machine ID, and source configuration.
 
-The source is `OUTFITTING_REPO` or the saved checkout path. Status reports whether that directory exists and, when Git metadata exists, its branch and clean/dirty state. It reports "not configured" if neither source is set; it does not infer a checkout from an HTTP cache or read stored credentials. It also prints the configured remote URL and ref so a private sparse source is distinguishable from the built-in one.
+`status` checks your local source directory (configured via `OUTFITTING_REPO` or the saved checkout path). If git metadata is present, it reports the current branch and whether the working tree is clean or dirty. When using a remote or sparse source, it displays the configured repository URL and git ref, making it easy to see whether you are tracking a custom repository or Outfitting's built-in source.
 
 ## Platform differences
 

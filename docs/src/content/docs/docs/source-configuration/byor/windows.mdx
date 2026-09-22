@@ -78,6 +78,31 @@ outfitting-manager apply --profile base,dev
 
 You can also set the `OUTFITTING_REPO` environment variable instead of passing `--repo`.
 
+## Remote repositories (`byor.json`)
+
+If your repository is hosted on GitHub or GitHub Enterprise and you do not want to commit an `outfitting.json` file into it, use the interactive BYOR wizard:
+
+```powershell
+outfitting-manager byor
+```
+
+The wizard prompts for:
+- Repository URL and git ref (branch, tag, or commit).
+- Profile name and platform (`windows`).
+- Winget manifest path.
+- Any additional files outside the manifest directory.
+
+This writes a local profile map to `~/.config/outfitting/byor.json`. Manifests are fetched using raw HTTPS (for public GitHub) or `gh api` (for GitHub Enterprise).
+
+After running `byor`, initialize or apply your profile:
+
+```powershell
+outfitting-manager init
+outfitting-manager setup
+```
+
+See the [`byor` CLI reference](/docs/cli/byor/) for command flags.
+
 ## Hosted sources and legacy routes
 
 If you don't have a local checkout or an `outfitting.json` file, Windows can fetch manifests from a hosted repository using route templates stored in `config.json`:

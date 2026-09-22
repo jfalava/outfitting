@@ -71,6 +71,31 @@ outfitting-manager setup \
 
 You can also set the `OUTFITTING_REPO` environment variable instead of passing `--repo` every time.
 
+## Remote repositories (`byor.json`)
+
+If your repository is hosted on GitHub or GitHub Enterprise and you do not want to commit an `outfitting.json` file into it, you can map your repository using the interactive BYOR wizard:
+
+```bash
+outfitting-manager byor
+```
+
+The wizard prompts for:
+- Repository URL and git ref (branch, tag, or commit).
+- Profile name and platform (`linux`).
+- Manifest paths (`apt` or `pacman`) and/or Nix flake directory.
+- Any files outside your flake directory.
+
+This writes a local profile map to `~/.config/outfitting/byor.json`. Outfitting fetches manifests and complete Nix flake trees using raw HTTPS (for public GitHub) or `gh api` (for GitHub Enterprise).
+
+After running `byor`, initialize or apply your profile:
+
+```bash
+outfitting-manager init --profile debian-minimal
+outfitting-manager setup --profile debian-minimal
+```
+
+See the [`byor` CLI reference](/docs/cli/byor/) for command flags.
+
 ## Built-in repository layout
 
 If your repository does not contain an `outfitting.json`, Outfitting looks for its built-in profiles: `generic-linux`, `ubuntu-wsl`, or `oci-agents`. This layout is also used when pulling from a remote hosted source via `--manifest-base-url`.

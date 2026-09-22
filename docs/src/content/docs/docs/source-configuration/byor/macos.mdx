@@ -74,6 +74,31 @@ outfitting-manager setup --repo ~/src/my-machine-config
 
 You can also set the `OUTFITTING_REPO` environment variable instead of passing `--repo`. When using BYOR, Outfitting works directly from your local repository checkout without downloading monorepo sparse sources.
 
+## Remote repositories (`byor.json`)
+
+If your repository is hosted on GitHub or GitHub Enterprise and you do not want to commit an `outfitting.json` file into it, use the interactive BYOR wizard:
+
+```bash
+outfitting-manager byor
+```
+
+The wizard prompts for:
+- Repository URL and git ref (branch, tag, or commit).
+- Profile name and platform (`macos`).
+- Nix flake directory and attribute.
+- Optional Brewfile path and any files outside the flake directory.
+
+This writes a local profile map to `~/.config/outfitting/byor.json`. The flake directory is fetched as a complete tree using raw HTTPS (for public GitHub) or `gh api` (for GitHub Enterprise).
+
+After running `byor`, initialize or apply your profile:
+
+```bash
+outfitting-manager init
+outfitting-manager setup
+```
+
+See the [`byor` CLI reference](/docs/cli/byor/) for command flags.
+
 ## Default repository layout
 
 When no `outfitting.json` macOS profile is present, Outfitting expects its default file layout:

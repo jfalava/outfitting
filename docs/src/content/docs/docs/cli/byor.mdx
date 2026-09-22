@@ -1,0 +1,83 @@
+---
+title: BYOR
+description: Map a remote GitHub or GitHub Enterprise repository without adding an in-repo config.
+sidebar:
+  order: 7
+---
+
+`byor` sets up a local profile map (`~/.config/outfitting/byor.json`) for a remote Git repository. This lets you use your own dotfiles or infrastructure repo without committing an `outfitting.json` file to the remote repository.
+
+## Usage
+
+### Interactive wizard
+
+Run `byor` without arguments to launch the interactive prompt:
+
+```bash
+outfitting-manager byor
+```
+
+The wizard prompts for:
+1. Target platform (`linux`, `macos`, or `windows`).
+2. Repository URL (public `github.com` or GitHub Enterprise).
+3. Git branch or ref (defaults to `main`).
+4. Profile name.
+5. Platform-specific manifest or flake paths.
+6. Any extra files outside your flake directory.
+
+### Scripted invocation (flags)
+
+You can pass flags directly to bypass the interactive prompts:
+
+```bash
+# Linux example
+outfitting-manager byor \
+  --platform linux \
+  --repo https://github.com/my-org/my-configs \
+  --ref main \
+  --profile dev \
+  --apt packages/apt.txt
+
+# macOS example with Nix flake
+outfitting-manager byor \
+  --platform macos \
+  --repo https://github.mycompany.com/team/mac-config \
+  --ref main \
+  --profile workstation \
+  --flake system/darwin \
+  --attribute darwinConfigurations.workstation.system \
+  --brewfile Brewfile \
+  --paths dotfiles/zshrc
+
+# Windows example
+outfitting-manager byor `
+  --platform windows `
+  --repo https://github.com/my-org/win-config `
+  --ref main `
+  --profile base `
+  --winget packages/winget.txt
+```
+
+| Flag | Description |
+| ---- | ----------- |
+| `--platform` | Target platform (`linux`, `macos`, or `windows`). |
+| `--repo` | Repository URL (supports `github.com` or GitHub Enterprise hosts). |
+| `--ref` | Git branch, tag, or commit SHA (default: `main`). |
+| `--profile` | Profile name to create or update in the local map. |
+| `--apt` | Repository-relative path to an APT package manifest (Linux). |
+| `--pacman` | Repository-relative path to a pacman package manifest (Linux). |
+| `--flake` | Repository-relative path to a Nix flake directory. |
+| `--attribute` | Nix output attribute (required when `--flake` is specified). |
+| `--brewfile` | Repository-relative path to a Homebrew Brewfile (macOS). |
+| `--winget` | Repository-relative path to a WinGet package manifest (Windows). |
+| `--paths` | Comma-separated list of additional repository paths to fetch outside the flake directory. Pass empty string (`""`) to confirm there are none. |
+
+## How it works
+
+1. **Local mapping:** Configuration is saved locally to `~/.config/outfitting/byor.json` (or `%USERPROFILE%\.config\outfitting\byor.json` on Windows). The remote repository remains untouched.
+2. **Fetching source:** Running `outfitting-manager init` or `outfitting-manager setup` reads the local map and downloads the declared files into your local sparse source root:
+   - **Public GitHub:** Uses direct raw-content HTTP requests.
+   - **GitHub Enterprise:** Uses `gh api` against the target host. Ensure you have authenticated with `gh auth login --hostname <host>`.
+3. **Nix flake trees:** Flake directories are downloaded recursively as complete directory trees, ensuring local Nix evaluations have all module files.
+
+For repository layouts and schema options, see [Source configuration](/docs/source-configuration/) and the platform guides: [Linux](/docs/source-configuration/byor/linux/), [macOS](/docs/source-configuration/byor/macos/), and [Windows](/docs/source-configuration/byor/windows/).

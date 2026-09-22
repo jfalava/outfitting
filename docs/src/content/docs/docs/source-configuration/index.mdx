@@ -39,29 +39,50 @@ Windows profiles are comma-composable. Linux and macOS profiles are exclusive: s
 
 Windows commands and Linux `apply` reuse the saved active selection when `--profile` is omitted. New Windows state uses configured default profiles (or BYOR `windows.defaultProfiles`); new Linux state defaults to `generic-linux`. Linux `init` and `setup` default explicitly to `generic-linux`, so pass `--profile` when preparing a different Linux profile. Package upgrades do not select a profile; Linux Nix actions use the saved profile.
 
-## BYOR (`outfitting.json`)
+## Bring Your Own Repo (BYOR)
 
-Bring Your Own Repo (BYOR) lets you manage your systems using your own repository structure instead of Outfitting's built-in layout.
+Bring Your Own Repo (BYOR) lets you manage your machines using your own Git repository instead of Outfitting's built-in layout. You can configure BYOR in two ways:
 
-Place an `outfitting.json` file at the root of your local repository. A single configuration (using schema `1`) can define profiles for `linux`, `windows`, and `macos`.
+### 1. In-repository configuration (`outfitting.json`)
 
-Before applying changes, verify your setup without touching system state:
+If you maintain a local repository or clone, add an `outfitting.json` file at its root. A single configuration (using schema `1`) can define profiles for `linux`, `windows`, and `macos`.
+
+Before applying changes, test your configuration without altering system state:
 
 ```bash
 outfitting-manager validate --repo ~/src/my-machine-config --platform linux
 ```
 
-Pass `--platform` whenever `outfitting.json` defines profiles for multiple platforms. A local checkout (via `--repo`, `OUTFITTING_REPO`, or saved `repo-path`) is read directly and may contain `outfitting.json`.
+Pass `--platform` whenever `outfitting.json` defines profiles for multiple platforms. See the [`validate`](/docs/cli/validate/) command reference.
 
-A remote GitHub repository does not need an Outfitting file. Run `outfitting-manager byor` to write `~/.config/outfitting/byor.json` from your answers, then `init` without `--repo`. Public `github.com` uses raw URLs. Any other GitHub host, including `*.ghe.com`, uses `gh api` against that hostname. Authenticate first with `gh auth login --hostname <host>`. The local map names the files that are fetched. A flake directory is fetched as a tree. The wizard requires an explicit list of files outside that directory, or an explicit empty list. A missing mapped file leaves the previous tree in place. Refresh reads the local map and does not rewrite it.
+### 2. Remote repository mapping (`byor.json`)
+
+If your repository is hosted on GitHub or GitHub Enterprise and you do not want to add an `outfitting.json` to the repo itself, you can create a local profile map instead.
+
+Run the interactive setup wizard:
+
+```bash
+outfitting-manager byor
+```
+
+The wizard prompts for your repository URL, branch, platform, and package/flake paths, saving the profile map to `~/.config/outfitting/byor.json`. Afterwards, run `outfitting-manager init` or `outfitting-manager setup` to fetch your files:
+
+- **Public GitHub (`github.com`):** Fetched directly over HTTPS using raw content URLs.
+- **GitHub Enterprise (`*.ghe.com` or custom hosts):** Fetched via the GitHub CLI (`gh api`). Authenticate beforehand with:
+  ```bash
+  gh auth login --hostname <your-enterprise-host>
+  ```
+- **Nix flakes:** The flake directory is fetched as a complete tree, along with any extra file paths you specify.
+
+See the [`byor`](/docs/cli/byor/) command reference for scriptable flags.
+
+### Platform guides
 
 | Platform | Profile configuration                    | Guide                                               |
 | -------- | ---------------------------------------- | --------------------------------------------------- |
 | Linux    | `profiles.*.linux` (apt / pacman / nix)  | [BYOR for Linux](/docs/source-configuration/byor/linux/)     |
 | Windows  | `profiles.*.windows.winget` + optional top-level `windows` | [BYOR for Windows](/docs/source-configuration/byor/windows/) |
 | macOS    | `profiles.*.macos` (nix + optional brewfile/fonts/paths) | [BYOR for macOS](/docs/source-configuration/byor/macos/)     |
-
-See also the [`validate`](/docs/cli/validate/) command reference.
 
 ## Machine ID
 
