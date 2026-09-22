@@ -7,6 +7,7 @@ import {
   requestedLinuxPackageManager,
   requireLinuxProfile,
 } from "@/commands/linux-flags";
+import { remoteByorPlatform } from "@/fetch/github";
 import { runLinuxInit, runLinuxSetup } from "@/setup/linux";
 
 const machineIdFlag = Flag.String("machine-id").pipe(
@@ -47,15 +48,19 @@ export const linuxInitCommand = Command.make(
     repo: repoFlag,
     noFetch: noFetchFlag,
   },
-  ({ profile, machineId, manifestBaseUrl, manifestRef, repo, noFetch }) =>
-    runLinuxInit({
+  ({ profile, machineId, manifestBaseUrl, manifestRef, repo, noFetch }) => {
+    const baseUrl = optionalString(manifestBaseUrl);
+    const repoPath = optionalString(repo);
+    return runLinuxInit({
       profile: requireLinuxProfile(profile),
       machineId: optionalString(machineId),
-      manifestBaseUrl: optionalString(manifestBaseUrl),
+      manifestBaseUrl: baseUrl,
       manifestRef: optionalString(manifestRef),
-      repo: optionalString(repo),
+      repo: repoPath,
+      remoteByor: remoteByorPlatform("linux", baseUrl, repoPath),
       fetchManifests: !noFetch,
-    }),
+    });
+  },
 ).pipe(
   Command.withDescription(
     "Prepare Linux state and validate the selected source without changing the system.",
@@ -74,16 +79,20 @@ export const linuxSetupCommand = Command.make(
     noFetch: noFetchFlag,
     packageManager: linuxPackageManagerFlag,
   },
-  ({ profile, machineId, manifestBaseUrl, manifestRef, repo, noFetch, packageManager }) =>
-    runLinuxSetup({
+  ({ profile, machineId, manifestBaseUrl, manifestRef, repo, noFetch, packageManager }) => {
+    const baseUrl = optionalString(manifestBaseUrl);
+    const repoPath = optionalString(repo);
+    return runLinuxSetup({
       profile: requireLinuxProfile(profile),
       machineId: optionalString(machineId),
-      manifestBaseUrl: optionalString(manifestBaseUrl),
+      manifestBaseUrl: baseUrl,
       manifestRef: optionalString(manifestRef),
-      repo: optionalString(repo),
+      repo: repoPath,
+      remoteByor: remoteByorPlatform("linux", baseUrl, repoPath),
       fetchManifests: !noFetch,
       packageManager: requestedLinuxPackageManager(packageManager),
-    }),
+    });
+  },
 ).pipe(
   Command.withDescription(
     "Prepare and apply the selected Linux package profile with apt or pacman.",

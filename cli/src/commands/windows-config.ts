@@ -8,6 +8,7 @@ import {
   type ManagerConfigFile,
 } from "@/config";
 import { CliFailure } from "@/errors";
+import { normalizeRepositoryUrl } from "@/fetch/github";
 import { tryPromise } from "@/lockfiles/effect";
 import { ui } from "@/ui";
 
@@ -73,14 +74,6 @@ function asConfigError<A>(validation: Effect.Effect<A, string>): Effect.Effect<A
 
 function defaultProfilesText(value: string): Effect.Effect<string, string> {
   return profilesText(value).pipe(Effect.mapError((message) => `Default profiles: ${message}`));
-}
-
-function normalizeRepositoryUrl(value: string): string {
-  const normalized = value.replace(/\/+$/g, "");
-  const github = normalized.match(/^https?:\/\/github\.com\/([^/]+)\/([^/]+?)(?:\.git)?$/i);
-  return github === null
-    ? normalized
-    : `https://raw.githubusercontent.com/${github[1]}/${github[2]}`;
 }
 
 function answersToPatch(answers: ConfigAnswers): ManagerConfigFile {

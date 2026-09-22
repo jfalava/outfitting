@@ -1,6 +1,7 @@
 import { Console, Effect } from "effect";
 
 import { loadConfig, readRepoPathFile, saveConfigFile, type ManagerConfig } from "@/config";
+import { isRemoteByorSource, remoteByorPlatform } from "@/fetch/github";
 import { validateOutfittingRepo, type OutfittingRepo } from "@/config/repo";
 import { tryPromise } from "@/lockfiles/effect";
 import { runCommand } from "@/process";
@@ -78,6 +79,7 @@ function resolveLinuxSourceContext(options: {
   stateRoot?: string;
   repo?: string;
   profile: LinuxProfile;
+  remoteByor?: boolean;
 }): Effect.Effect<LinuxSourceContext, unknown> {
   return Effect.gen(function* () {
     const config = yield* loadStateConfig(options.stateRoot);
@@ -91,7 +93,10 @@ function resolveLinuxSourceContext(options: {
         config,
         configuredRepo: undefined,
         byor: undefined,
-        sparse: builtInSparsePaths(options.profile),
+        sparse:
+          options.remoteByor || isRemoteByorSource(config.manifest.baseUrl)
+            ? undefined
+            : builtInSparsePaths(options.profile),
         outfittingRepo: undefined,
       };
     }
@@ -198,18 +203,25 @@ export const runLinuxInit = (options: LinuxInitOptions) =>
       stateRoot: options.stateRoot,
       repo,
       profile,
+      remoteByor: setupOptions.remoteByor !== undefined,
     });
 
     const linuxSetupOptions: SetupOptions = {
       ...setupOptions,
-      manifestPaths: source.sparse?.manifestPaths,
-      sourcePaths: source.sparse?.sourcePaths,
+      manifestPaths: source.byor === undefined ? source.sparse?.manifestPaths : undefined,
+      sourcePaths: source.byor === undefined ? source.sparse?.sourcePaths : undefined,
+      remoteByor:
+        source.configuredRepo === undefined
+          ? (setupOptions.remoteByor ??
+            remoteByorPlatform("linux", source.config.manifest.baseUrl, undefined))
+          : undefined,
       fetchManifests: source.byor !== undefined ? false : setupOptions.fetchManifests,
       repoProfile: profile,
       nextCommand: "Next: outfitting-manager setup",
     };
     if (source.configuredRepo !== undefined) {
       linuxSetupOptions.repo = source.configuredRepo;
+      linuxSetupOptions.remoteByor = undefined;
     }
     yield* runSetup(linuxSetupOptions);
     yield* persistLinuxProfile(profile, options.stateRoot);
@@ -232,18 +244,25 @@ export const runLinuxSetup = (options: LinuxSetupOptions) =>
       stateRoot: options.stateRoot,
       repo: setupOptions.repo,
       profile,
+      remoteByor: setupOptions.remoteByor !== undefined,
     });
 
     const setupArgs: SetupOptions = {
       ...setupOptions,
-      manifestPaths: source.sparse?.manifestPaths,
-      sourcePaths: source.sparse?.sourcePaths,
+      manifestPaths: source.byor === undefined ? source.sparse?.manifestPaths : undefined,
+      sourcePaths: source.byor === undefined ? source.sparse?.sourcePaths : undefined,
+      remoteByor:
+        source.configuredRepo === undefined
+          ? (setupOptions.remoteByor ??
+            remoteByorPlatform("linux", source.config.manifest.baseUrl, undefined))
+          : undefined,
       fetchManifests: source.byor !== undefined ? false : setupOptions.fetchManifests,
       repoProfile: profile,
       nextCommand: "Applying Linux package configuration…",
     };
     if (source.configuredRepo !== undefined) {
       setupArgs.repo = source.configuredRepo;
+      setupArgs.remoteByor = undefined;
     }
     yield* runSetup(setupArgs);
     yield* persistLinuxProfile(profile, options.stateRoot);

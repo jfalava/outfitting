@@ -1,6 +1,7 @@
 export { autoMachineId, defaultUsername, hostSystemTriple } from "@/config/machine-id";
 export { ensureStateRoot, loadConfig, resolveLinuxConfig, saveConfigFile } from "@/config/load";
 export {
+  byorMapPath,
   configFilePath,
   defaultStateRoot,
   manifestCacheDir,

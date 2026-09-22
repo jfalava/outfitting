@@ -4,6 +4,7 @@ import { isAbsolute, resolve } from "node:path";
 import { Effect, Option } from "effect";
 import { Command, Flag } from "effect/unstable/cli";
 
+import { remoteByorPlatform } from "@/fetch/github";
 import { tryPromise } from "@/lockfiles/effect";
 import { runMacosSetup } from "@/setup/macos";
 import { MACOS_SOURCE_PATHS } from "@/setup/manifests";
@@ -63,15 +64,18 @@ export const setupCommand = Command.make(
         }
       }
 
+      const baseUrl = Option.getOrUndefined(manifestBaseUrl);
+      const remoteByor = byor ? undefined : remoteByorPlatform("macos", baseUrl, repoPath);
       yield* runMacosSetup({
         machineId: Option.getOrUndefined(machineId),
-        manifestBaseUrl: Option.getOrUndefined(manifestBaseUrl),
+        manifestBaseUrl: baseUrl,
         manifestRef: Option.getOrUndefined(manifestRef),
         repo: resolvedRepo,
         profile: profileName,
         repoProfile: profileName,
+        remoteByor: remoteByor ? "macos" : undefined,
         fetchManifests: byor ? false : !noFetch && repoPath === undefined,
-        sourcePaths: byor ? undefined : MACOS_SOURCE_PATHS,
+        sourcePaths: byor || remoteByor ? undefined : MACOS_SOURCE_PATHS,
         nextCommand: "Applying macOS repository configuration…",
       });
     });

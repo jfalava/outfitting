@@ -37,6 +37,11 @@ export interface LinuxProfileDeclaration {
   apt?: LinuxPackageDeclaration;
   pacman?: LinuxPackageDeclaration;
   nix?: LinuxNixDeclaration;
+  /**
+   * Files outside the flake directory that Nix reads from the sparse source.
+   * An empty array means the user confirmed there are no out-of-flake reads.
+   */
+  paths?: string[];
 }
 
 export interface WindowsWingetDeclaration {
@@ -70,7 +75,10 @@ export interface MacosProfileDeclaration {
   nix: MacosNixDeclaration;
   brewfile?: string;
   fonts?: MacosFontsDeclaration;
-  /** Extra repository-relative paths that must exist as files. */
+  /**
+   * Extra repository-relative paths that must exist as files.
+   * An empty array means the user confirmed there are no out-of-flake reads.
+   */
   paths?: string[];
 }
 
@@ -154,6 +162,7 @@ const LinuxProfileSchema = Schema.Struct({
   apt: Schema.optionalKey(PackageDeclarationSchema),
   pacman: Schema.optionalKey(PackageDeclarationSchema),
   nix: Schema.optionalKey(NixDeclarationSchema),
+  paths: Schema.optionalKey(Schema.Array(Schema.String)),
 });
 
 const WindowsWingetSchema = Schema.Struct({
@@ -305,7 +314,10 @@ function parseLinuxProfile(value: DecodedLinuxProfile, label: string): LinuxProf
   if (value.nix !== undefined) {
     linux.nix = parseNixDeclaration(value.nix, `${label}.nix`);
   }
-  if (Object.keys(linux).length === 0) {
+  if (value.paths !== undefined) {
+    linux.paths = value.paths.map((path, index) => relativeSourcePath(path, `${label}.paths[${index}]`));
+  }
+  if (linux.apt === undefined && linux.pacman === undefined && linux.nix === undefined) {
     throw new Error(`${label} must declare apt, pacman, or nix.`);
   }
   return linux;
@@ -624,6 +636,62 @@ export function selectWindowsByorProfiles(
   }
 
   return { names, wingetPaths, shared: contract.windows };
+}
+
+function pushUnique(paths: string[], path: string): void {
+  if (!paths.includes(path)) {
+    paths.push(path);
+  }
+}
+
+/** Repository-relative files and flake directories a Linux profile declares. */
+export function linuxPathsFromProfile(decl: LinuxProfileDeclaration): string[] {
+  const paths: string[] = [];
+  if (decl.apt !== undefined) {
+    pushUnique(paths, decl.apt.manifest);
+  }
+  if (decl.pacman !== undefined) {
+    pushUnique(paths, decl.pacman.manifest);
+  }
+  if (decl.nix !== undefined) {
+    pushUnique(paths, decl.nix.flake);
+  }
+  for (const path of decl.paths ?? []) {
+    pushUnique(paths, path);
+  }
+  return paths;
+}
+
+/**
+ * Repository-relative Windows files for the selected profiles.
+ * Shared scoop, PowerShell, fonts, and registry paths are included only when declared.
+ */
+export function windowsPathsFromContract(
+  contract: ByorContract,
+  requested: string[] | undefined,
+): string[] {
+  const selected = selectWindowsByorProfiles(contract, requested);
+  const paths: string[] = [];
+  for (const name of selected.names) {
+    const manifest = selected.wingetPaths[name];
+    if (manifest !== undefined) {
+      pushUnique(paths, manifest);
+    }
+  }
+  const shared = selected.shared;
+  if (shared?.scoop !== undefined) {
+    pushUnique(paths, shared.scoop.manifest);
+  }
+  if (shared?.powershell !== undefined) {
+    pushUnique(paths, shared.powershell.path);
+  }
+  if (shared?.fonts !== undefined) {
+    pushUnique(paths, shared.fonts.manifest);
+  }
+  if (shared?.registry !== undefined) {
+    pushUnique(paths, shared.registry.path);
+  }
+  return paths;
 }
 
 function inferWingetTemplate(selected: SelectedWindowsByorProfiles): string {

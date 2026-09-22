@@ -7,6 +7,8 @@ import { afterEach, describe, expect, test } from "vitest";
 import { validateOutfittingRepo } from "@/config/repo";
 import {
   hasByorContract,
+  linuxPathsFromProfile,
+  macosPathsFromProfile,
   parseByorContract,
   selectByorProfile,
   selectMacosByorProfile,
@@ -15,6 +17,7 @@ import {
   validateLinuxByorSource,
   validateMacosByorSource,
   validateWindowsByorSource,
+  windowsPathsFromContract,
   windowsRoutesFromContract,
 } from "@/source/contract";
 
@@ -495,6 +498,53 @@ describe("BYOR contract", () => {
     });
     expect(selectMacosByorProfile(contract, "desk")).toMatchObject({ name: "desk" });
     expect(() => selectMacosByorProfile(contract, undefined)).not.toThrow();
+  });
+
+  test("remote fetch closure keeps flake directories and declared out-of-flake paths", () => {
+    const contract = parseByorContract({
+      schema: 1,
+      windows: {
+        scoop: { manifest: "packages/scoop.txt" },
+        powershell: { path: "dotfiles/profile.ps1" },
+      },
+      profiles: {
+        desk: {
+          macos: {
+            nix: { flake: "nix/darwin", attribute: "darwinConfigurations.desk.system" },
+            brewfile: "brew/Brewfile",
+            paths: ["nix/common", "packages/common/packages.nix"],
+          },
+        },
+        "debian-minimal": {
+          linux: {
+            apt: { manifest: "packages/apt.txt" },
+            nix: { flake: "nix/linux", attribute: "homeConfigurations.debian.activationPackage" },
+            paths: ["nix/common"],
+          },
+        },
+        base: { windows: { winget: { manifest: "winget/base.txt" } } },
+        other: { windows: { winget: { manifest: "winget/other.txt" } } },
+      },
+    });
+
+    expect(linuxPathsFromProfile(contract.profiles["debian-minimal"]!.linux!)).toEqual([
+      "packages/apt.txt",
+      "nix/linux",
+      "nix/common",
+    ]);
+    expect(macosPathsFromProfile(contract.profiles.desk!.macos!)).toEqual([
+      "nix/darwin/flake.nix",
+      "nix/darwin/darwin.nix",
+      "brew/Brewfile",
+      "nix/common",
+      "packages/common/packages.nix",
+    ]);
+    expect(windowsPathsFromContract(contract, ["base"])).toEqual([
+      "winget/base.txt",
+      "packages/scoop.txt",
+      "dotfiles/profile.ps1",
+    ]);
+    expect(windowsPathsFromContract(contract, ["base"])).not.toContain("winget/other.txt");
   });
 
   test("validateOutfittingRepo returns flakeKind macos with custom systemAttr and darwin path", async () => {

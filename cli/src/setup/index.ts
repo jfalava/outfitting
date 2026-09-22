@@ -15,8 +15,10 @@ export { runSetup, type SetupOptions } from "@/setup/run";
 export { runLinuxSetup, type LinuxSetupOptions } from "@/setup/linux";
 export { runMacosSetup, type MacosSetupOptions } from "@/setup/macos";
 export {
+  syncByorSparseSource,
   syncMacosSource,
   syncSparseSource,
+  type ByorSparseSourceOptions,
   type SparseSourceFile,
   type SparseSourceResult,
 } from "@/setup/source";

@@ -116,6 +116,34 @@ test("Linux init materializes state without invoking a package manager", async (
   }
 });
 
+test("Linux init refuses a GitHub Enterprise URL without a local profile map", async () => {
+  const stateRoot = await mkdtemp(join(tmpdir(), "outfitting-linux-remote-byor-"));
+  const requested: string[] = [];
+  vi.stubEnv("OUTFITTING_MANIFEST_BASE_URL", "");
+  vi.stubEnv("OUTFITTING_MANIFEST_REF", "");
+  try {
+    await expect(
+      Effect.runPromise(
+        runLinuxInit({
+          stateRoot,
+          profile: "desk",
+          manifestBaseUrl: "https://pepito.ghe.com/jalava/machine-config",
+          manifestRef: "main",
+          remoteByor: "linux",
+          fetcher: async (url) => {
+            requested.push(url);
+            return new Response("built-in", { status: 200 });
+          },
+        }),
+      ),
+    ).rejects.toThrow(/outfitting-manager byor/);
+    expect(requested).toEqual([]);
+  } finally {
+    vi.unstubAllEnvs();
+    await rm(stateRoot, { force: true, recursive: true });
+  }
+});
+
 test("Linux OCI init materializes the oci-agents sparse source", async () => {
   const stateRoot = await mkdtemp(join(tmpdir(), "outfitting-linux-oci-sparse-state-"));
   const calls = vi

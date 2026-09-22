@@ -1,6 +1,7 @@
 import { Command } from "effect/unstable/cli";
 
 import { makeLinuxApplyCommand } from "@/commands/apply/linux";
+import { byorCommand } from "@/commands/byor";
 import { makeLinuxDiffCommand } from "@/commands/diff";
 import { fontsCommand } from "@/commands/fonts";
 import { provisionCommand } from "@/commands/provision";
@@ -18,6 +19,7 @@ export const makeLinuxRootCommand = (currentVersion: string) =>
     Command.withSubcommands([
       linuxInitCommand,
       linuxSetupCommand,
+      byorCommand,
       validateCommand,
       makeLinuxUpdateCommand(),
       makeLinuxDiffCommand(),

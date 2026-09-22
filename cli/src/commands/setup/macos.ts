@@ -4,6 +4,7 @@ import { isAbsolute, resolve } from "node:path";
 import { Effect, Option } from "effect";
 import { Command, Flag } from "effect/unstable/cli";
 
+import { remoteByorPlatform } from "@/fetch/github";
 import { tryPromise } from "@/lockfiles/effect";
 import { MACOS_SOURCE_PATHS } from "@/setup/manifests";
 import { runSetup } from "@/setup/run";
@@ -65,17 +66,20 @@ export const macosInitCommand = Command.make(
         }
       }
 
+      const baseUrl = Option.getOrUndefined(manifestBaseUrl);
+      const remoteByor = byor ? undefined : remoteByorPlatform("macos", baseUrl, repoPath);
       yield* runSetup({
         machineId: Option.getOrUndefined(machineId),
-        manifestBaseUrl: Option.getOrUndefined(manifestBaseUrl),
+        manifestBaseUrl: baseUrl,
         manifestRef: Option.getOrUndefined(manifestRef),
         repo: resolvedRepo,
         repoProfile: profileName,
+        remoteByor: remoteByor ? "macos" : undefined,
         // Local BYOR checkout: skip sparse monorepo fetch and fixed-path validation list.
         fetchManifests: byor ? false : !noFetch && repoPath === undefined,
-        sourcePaths: byor ? undefined : MACOS_SOURCE_PATHS,
+        sourcePaths: byor || remoteByor ? undefined : MACOS_SOURCE_PATHS,
         skipSymlinks: true,
-        validateSource: true,
+        validateSource: !remoteByor,
         nextCommand: "Next: outfit setup",
       });
     });

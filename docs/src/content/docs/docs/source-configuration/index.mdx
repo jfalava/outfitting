@@ -51,7 +51,9 @@ Before applying changes, verify your setup without touching system state:
 outfitting-manager validate --repo ~/src/my-machine-config --platform linux
 ```
 
-Pass `--platform` whenever `outfitting.json` defines profiles for multiple platforms. BYOR requires a **local checkout** (via `--repo`, `OUTFITTING_REPO`, or saved `repo-path`). Hosted remote sources without a local checkout continue to use Outfitting’s built-in sparse layouts or Windows `config.json` routes.
+Pass `--platform` whenever `outfitting.json` defines profiles for multiple platforms. A local checkout (via `--repo`, `OUTFITTING_REPO`, or saved `repo-path`) is read directly and may contain `outfitting.json`.
+
+A remote GitHub repository does not need an Outfitting file. Run `outfitting-manager byor` to write `~/.config/outfitting/byor.json` from your answers, then `init` without `--repo`. Public `github.com` uses raw URLs. Any other GitHub host, including `*.ghe.com`, uses `gh api` against that hostname. Authenticate first with `gh auth login --hostname <host>`. The local map names the files that are fetched. A flake directory is fetched as a tree. The wizard requires an explicit list of files outside that directory, or an explicit empty list. A missing mapped file leaves the previous tree in place. Refresh reads the local map and does not rewrite it.
 
 | Platform | Profile configuration                    | Guide                                               |
 | -------- | ---------------------------------------- | --------------------------------------------------- |

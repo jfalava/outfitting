@@ -14,6 +14,7 @@ import {
 } from "@/commands/windows-apply";
 import { loadConfig, writeRepoPath, type ManagerConfig } from "@/config";
 import { fetchManifest, type ManifestFetcher } from "@/fetch";
+import { remoteByorPlatform } from "@/fetch/github";
 import { tryPromise } from "@/lockfiles/effect";
 import { envValue } from "@/secrets";
 import { runSetup, type SetupOptions } from "@/setup/run";
@@ -63,6 +64,32 @@ async function materializePath(
   });
 }
 
+interface PreparedWindowsInit {
+  config: ManagerConfig;
+  lock: Awaited<ReturnType<typeof readWindowsLock>>;
+  profiles: string[];
+  resolved: WindowsSourceResolution;
+  source: WindowsSourceResolution;
+}
+
+async function prepareWindowsInit(
+  options: SetupOptions & { profiles?: string[] },
+): Promise<PreparedWindowsInit> {
+  const config = await loadConfig({ stateRoot: options.stateRoot });
+  const source = await resolveWindowsSource(config, options.profiles);
+  const lock = await readWindowsLock(config);
+  const profiles = await resolveWindowsProfiles(
+    options.profiles,
+    lock.profiles,
+    source.routes.defaultProfiles,
+  );
+  const resolved =
+    source.contract === undefined
+      ? source
+      : { ...source, byor: selectWindowsByorProfiles(source.contract, profiles) };
+  return { config, lock, profiles, resolved, source };
+}
+
 async function materializeByorCheckout(options: {
   byorRoot: string;
   config: ManagerConfig;
@@ -91,6 +118,33 @@ async function materializeByorCheckout(options: {
   });
 }
 
+async function finishWindowsInit(
+  options: SetupOptions & { profiles?: string[] },
+  byorRoot: string | undefined,
+  remoteByor: boolean,
+): Promise<void> {
+  const prepared = await prepareWindowsInit(options);
+  const { config, lock, profiles, resolved, source } = prepared;
+  if (options.fetchManifests !== false && byorRoot === undefined && !remoteByor) {
+    for (const path of [
+      ...profiles.map((profile) => windowsWingetProfilePath(config, profile, resolved)),
+      windowsPowerShellProfilePath(config, resolved),
+    ]) {
+      await fetchManifest({ path, config, materialize: true, fetcher: options.fetcher });
+    }
+  } else if (byorRoot !== undefined && options.fetchManifests !== false) {
+    await materializeByorCheckout({
+      byorRoot,
+      config,
+      profiles,
+      source,
+      fetcher: options.fetcher,
+    });
+  }
+  lock.profiles = profiles;
+  await writeWindowsLock(lock, { root: config.stateRoot });
+}
+
 export const initializeWindows = (options: SetupOptions & { profiles?: string[] } = {}) =>
   Effect.gen(function* () {
     const repoCandidate = options.repo ?? envValue("OUTFITTING_REPO");
@@ -98,49 +152,21 @@ export const initializeWindows = (options: SetupOptions & { profiles?: string[] 
       prepareLocalByor(repoCandidate, options.profiles, options.stateRoot),
     );
 
+    const remoteByor =
+      byorRoot === undefined
+        ? remoteByorPlatform("windows", options.manifestBaseUrl, options.repo)
+        : undefined;
     yield* runSetup({
       ...options,
+      remoteByor: remoteByor ? "windows" : undefined,
+      repoProfile: options.profiles?.join(","),
       // Local BYOR checkout: skip network prefetch of monorepo routes.
       fetchManifests: byorRoot !== undefined ? false : options.fetchManifests,
-      useWindowsRoutes: byorRoot === undefined,
+      useWindowsRoutes: byorRoot === undefined && !remoteByor,
       nextCommand: options.nextCommand ?? "Next: outfitting-manager setup",
     });
 
-    const config = yield* tryPromise(() => loadConfig({ stateRoot: options.stateRoot }));
-    const source = yield* tryPromise(() => resolveWindowsSource(config, options.profiles));
-    const lock = yield* tryPromise(() => readWindowsLock(config));
-    const profiles = yield* tryPromise(async () =>
-      resolveWindowsProfiles(options.profiles, lock.profiles, source.routes.defaultProfiles),
-    );
-
-    const resolved =
-      source.contract === undefined
-        ? source
-        : { ...source, byor: selectWindowsByorProfiles(source.contract, profiles) };
-
-    if (options.fetchManifests !== false && byorRoot === undefined) {
-      for (const path of [
-        ...profiles.map((profile) => windowsWingetProfilePath(config, profile, resolved)),
-        windowsPowerShellProfilePath(config, resolved),
-      ]) {
-        yield* tryPromise(() =>
-          fetchManifest({ path, config, materialize: true, fetcher: options.fetcher }),
-        );
-      }
-    } else if (byorRoot !== undefined && options.fetchManifests !== false) {
-      yield* tryPromise(() =>
-        materializeByorCheckout({
-          byorRoot,
-          config,
-          profiles,
-          source,
-          fetcher: options.fetcher,
-        }),
-      );
-    }
-
-    lock.profiles = profiles;
-    yield* tryPromise(() => writeWindowsLock(lock, { root: config.stateRoot }));
+    yield* tryPromise(() => finishWindowsInit(options, byorRoot, remoteByor !== undefined));
   });
 
 /**

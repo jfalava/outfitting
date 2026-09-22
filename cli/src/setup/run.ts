@@ -17,8 +17,9 @@ import {
 import type { OutfittingRepo } from "@/config/repo";
 import type { ManifestFetcher } from "@/fetch";
 import { tryPromise } from "@/lockfiles/effect";
+import type { HostPlatform } from "@/platform";
 import { prefetchSetupManifests, windowsSetupManifestPaths } from "@/setup/manifests";
-import { syncSparseSource, type SparseSourceResult } from "@/setup/source";
+import { syncByorSparseSource, syncSparseSource, type SparseSourceResult } from "@/setup/source";
 import { validateMacosSource } from "@/setup/validate";
 import { ui } from "@/ui";
 
@@ -41,6 +42,11 @@ export interface SetupOptions {
   useWindowsRoutes?: boolean;
   /** Fetch and publish a sparse source tree instead of loose manifests. */
   sourcePaths?: ReadonlyArray<string>;
+  /**
+   * Fetch a remote BYOR contract into the managed sparse tree.
+   * Ignored when `repo` is a local checkout.
+   */
+  remoteByor?: HostPlatform;
   /** Override the sparse source root. */
   sourceRoot?: string;
   /** Skip nix-darwin / home-manager symlink ensure. */
@@ -87,6 +93,44 @@ function logSparseSource(source: SparseSourceResult) {
         yield* Console.log(ui.muted(item.warning));
       }
     }
+  });
+}
+
+function setupRemoteByor(options: SetupOptions, config: ManagerConfig, root: string) {
+  return Effect.gen(function* () {
+    if (options.remoteByor === undefined) {
+      return;
+    }
+    yield* Console.log(ui.heading("Fetching remote BYOR source…"));
+    const source = yield* tryPromise(() =>
+      syncByorSparseSource({
+        config,
+        platform: options.remoteByor!,
+        profile: options.repoProfile,
+        sourceRoot: options.sourceRoot,
+        fetcher: options.fetcher,
+      }),
+    );
+    yield* logSparseSource(source);
+    const written = yield* tryPromise(() =>
+      writeRepoPath(source.root, { stateRoot: root, profile: options.repoProfile }),
+    );
+    yield* Console.log(ui.success(`Remote BYOR source set to: ${written.repo.root}`));
+    yield* Console.log(ui.muted(`repo-path: ${written.pathFile}`));
+  });
+}
+
+function fetchSetupSource(options: SetupOptions, config: ManagerConfig, root: string) {
+  return Effect.gen(function* () {
+    if (options.remoteByor !== undefined && options.repo === undefined) {
+      yield* setupRemoteByor(options, config, root);
+      return;
+    }
+    if (options.sourcePaths !== undefined && options.repo === undefined) {
+      yield* setupSparseSource(options, config, root);
+      return;
+    }
+    yield* prefetchCoreManifests(options, config);
   });
 }
 
@@ -160,11 +204,7 @@ export const runSetup = (options: SetupOptions = {}) =>
 
     const shouldFetch = options.fetchManifests !== false;
     if (shouldFetch) {
-      if (options.sourcePaths !== undefined && options.repo === undefined) {
-        yield* setupSparseSource(options, config, root);
-      } else {
-        yield* prefetchCoreManifests(options, config);
-      }
+      yield* fetchSetupSource(options, config, root);
     }
 
     if (options.repo !== undefined) {

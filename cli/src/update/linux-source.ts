@@ -8,7 +8,8 @@ import { fetchManifest, type ManifestFetcher } from "@/fetch";
 import { runCommand } from "@/process";
 import { envValue } from "@/secrets";
 import { linuxSourcePaths } from "@/setup/manifests";
-import { syncSparseSource } from "@/setup/source";
+import { isRemoteByorSource } from "@/fetch/github";
+import { syncByorSparseSource, syncSparseSource } from "@/setup/source";
 import { hasByorContract, validateLinuxByorSource } from "@/source/contract";
 import {
   isBuiltInLinuxProfile,
@@ -203,6 +204,17 @@ async function refreshCheckout(
 async function refreshSparseSource(root: string, options: LinuxSourceOptions): Promise<void> {
   if (options.offline) {
     throw new Error("--refresh cannot be combined with --offline.");
+  }
+  if (isRemoteByorSource(options.config.manifest.baseUrl) && (await hasByorContract(root))) {
+    await syncByorSparseSource({
+      config: options.config,
+      platform: "linux",
+      profile: options.profile,
+      sourceRoot: root,
+      fetcher: options.fetcher,
+      run: options.run,
+    });
+    return;
   }
   if (!isBuiltInLinuxProfile(options.profile)) {
     throw new Error(

@@ -21,6 +21,7 @@ test("status reports defaults without creating any state", async () => {
       expect(output).toContain(`Platform: ${platform}`);
       expect(output).toContain(`Config: ${join(absent, "config.json")}`);
       expect(output).toContain("Source checkout: not configured");
+      expect(output).toContain(`Remote: ${config.manifest.baseUrl}/${config.manifest.ref}`);
       expect(output).toContain(`Machine ID: ${config.machineId}`);
     }
     expect(await readdir(root)).toEqual([]);

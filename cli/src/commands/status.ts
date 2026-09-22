@@ -89,6 +89,7 @@ export async function readStatus(
     `Config: ${configFilePath(config.stateRoot)}`,
     `Machine ID: ${config.machineId} (${config.machineIdOverridden ? "configured" : "inferred"})`,
     `Inferred machine ID: ${autoMachineId()}`,
+    `Remote: ${config.manifest.baseUrl}/${config.manifest.ref}`,
   ];
   const source = options.envRepo ?? envValue("OUTFITTING_REPO") ?? (await readRepoPathFile(config));
   return [...lines, ...(await sourceStatus(source, options.run ?? runCommand))].join("\n");

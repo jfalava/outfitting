@@ -4,7 +4,20 @@ import { dirname, join } from "node:path";
 import { manifestCacheDir, sparseSourceRoot } from "@/config/paths";
 import type { ManagerConfig } from "@/config/types";
 import { fetchManifest, type ManifestFetcher } from "@/fetch";
+import { classifyGitHubRepository, readGitHubBlob } from "@/fetch/github";
+import { runCommand } from "@/process";
 import { LINUX_SOURCE_PATHS, MACOS_SOURCE_PATHS } from "@/setup/manifests";
+import { localMapAsSourceFile, readByorMap, byorMapMissingError } from "@/source/byor-map";
+import {
+  BYOR_CONTRACT_PATH,
+  linuxPathsFromProfile,
+  macosPathsFromProfile,
+  selectByorProfile,
+  selectMacosByorProfile,
+  windowsPathsFromContract,
+  type ByorContract,
+} from "@/source/contract";
+import type { HostPlatform } from "@/platform";
 
 export interface SparseSourceFile {
   path: string;
@@ -154,3 +167,120 @@ export async function syncSparseSource(options: SparseSourceOptions): Promise<Sp
 
 /** Backwards-compatible macOS name for the shared sparse-source synchronizer. */
 export const syncMacosSource = syncSparseSource;
+
+export interface ByorSparseSourceOptions {
+  config: ManagerConfig;
+  platform: HostPlatform;
+  /** Selected profile. Windows accepts comma-separated names. */
+  profile?: string;
+  sourceRoot?: string;
+  fetcher?: ManifestFetcher;
+  run?: typeof runCommand;
+}
+
+function byorClosure(contract: ByorContract, platform: HostPlatform, profile: string | undefined): string[] {
+  switch (platform) {
+    case "macos":
+      return macosPathsFromProfile(selectMacosByorProfile(contract, profile).macos);
+    case "linux":
+      return linuxPathsFromProfile(selectByorProfile(contract, profile).linux);
+    case "windows":
+      return windowsPathsFromContract(
+        contract,
+        profile === undefined ? undefined : profile.split(","),
+      );
+    default: {
+      const exhaustive: never = platform;
+      return exhaustive;
+    }
+  }
+}
+
+async function fetchByorPath(
+  options: ByorSparseSourceOptions,
+  path: string,
+): Promise<Array<{ path: string; body: Uint8Array }>> {
+  const repository = classifyGitHubRepository(options.config.manifest.baseUrl);
+  if (repository?.transport === "gh") {
+    const blobs = await readGitHubBlob({
+      repository,
+      ref: options.config.manifest.ref,
+      path,
+      run: options.run,
+      fetcher: options.fetcher,
+    });
+    return blobs.map((blob) => ({
+      path: blob.path === path || blob.path.startsWith(`${path}/`) ? blob.path : join(path, blob.path),
+      body: blob.body,
+    }));
+  }
+
+  const fetched = await fetchManifest({
+    path,
+    config: options.config,
+    fetcher: options.fetcher,
+    strict: true,
+  });
+  return [{ path, body: fetched.body }];
+}
+
+async function readLocalContract(stateRoot: string): Promise<ByorContract> {
+  const contract = await readByorMap(stateRoot);
+  if (contract === undefined) {
+    throw new Error(byorMapMissingError());
+  }
+  return contract;
+}
+
+async function stageByorFiles(
+  staged: string,
+  options: ByorSparseSourceOptions,
+  contract: ByorContract,
+  paths: ReadonlyArray<string>,
+): Promise<void> {
+  const mapFile = localMapAsSourceFile(contract);
+  await writeFile(join(staged, mapFile.path), mapFile.body);
+  for (const path of paths) {
+    const files = await fetchByorPath(options, path);
+    for (const file of files) {
+      const destination = join(staged, file.path);
+      await mkdir(dirname(destination), { recursive: true });
+      await writeFile(destination, file.body);
+    }
+  }
+}
+
+/**
+ * Fetch a remote BYOR contract and its selected platform closure into the managed sparse tree.
+ * A failed file leaves the previous tree in place.
+ */
+export async function syncByorSparseSource(
+  options: ByorSparseSourceOptions,
+): Promise<SparseSourceResult> {
+  const repository = classifyGitHubRepository(options.config.manifest.baseUrl);
+  if (repository === undefined) {
+    throw new Error(
+      `Remote BYOR requires a GitHub repository URL. Configured source ${options.config.manifest.baseUrl} is not a GitHub host.`,
+    );
+  }
+
+  const contract = await readLocalContract(options.config.stateRoot);
+  const paths = byorClosure(contract, options.platform, options.profile);
+  const target = options.sourceRoot ?? sparseSourceRoot(options.config.stateRoot);
+  await mkdir(dirname(target), { recursive: true });
+  const staged = await mkdtemp(join(dirname(target), ".outfitting-source-"));
+  try {
+    await stageByorFiles(staged, options, contract, paths);
+    await replaceSourceTree(staged, target);
+    return {
+      root: target,
+      files: [
+        { path: BYOR_CONTRACT_PATH, source: "network" },
+        ...paths.map((path) => ({ path, source: "network" as const })),
+      ],
+    };
+  } catch (cause) {
+    await rm(staged, { recursive: true, force: true });
+    throw cause;
+  }
+}

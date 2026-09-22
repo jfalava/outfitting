@@ -1,5 +1,16 @@
 export { readCachedManifest, writeCachedManifest, type CachedManifest } from "@/fetch/cache";
 export {
+  classifyGitHubRepository,
+  gitHubAuthHint,
+  isRemoteByorSource,
+  normalizeRepositoryUrl,
+  readGitHubBlob,
+  remoteByorPlatform,
+  repositoryFromManifest,
+  type GitHubBlobTransport,
+  type GitHubRepository,
+} from "@/fetch/github";
+export {
   fetchManifest,
   manifestUrl,
   type FetchManifestOptions,
