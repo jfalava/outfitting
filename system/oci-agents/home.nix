@@ -130,15 +130,6 @@ in
     ];
   };
 
-  # The shared configuration assumes the user's signing key is present. The
-  # Pulumi stack provisions only a login public key, so signing is opt-in here
-  # until the private signing key is provisioned separately.
-  programs.git = {
-    signing.signByDefault = lib.mkForce false;
-    settings.commit.gpgsign = lib.mkForce false;
-    settings.tag.gpgsign = lib.mkForce false;
-  };
-
   # Headless host: drop the Chrome DevTools MCP that needs a local browser.
   programs.opencode.settings.mcp = lib.mkForce (
     builtins.removeAttrs (import "${outfittingRepo}/packages/common/opencode-mcp.nix") [
