@@ -78,8 +78,8 @@ outfitting-manager sync history
 
 ## Platform differences
 
-| Platform | Meaning of `sync`                                                      | Invocation                                                                          |
-| -------- | ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| macOS    | Remote push, pull, list, history, and credential configuration.        | `outfitting-manager sync push nix updated-flake.lock`                               |
-| Windows  | Identical remote transport; package reconciliation belongs to `apply`. | `outfitting-manager sync push windows "$HOME/.config/outfitting/windows.lock.json"` |
-| Linux    | Identical remote transport; package reconciliation belongs to `apply`. | `outfitting-manager sync list`                                                      |
+| Platform | Meaning of `sync`                                                      | Invocation                                                                              |
+| -------- | ---------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| macOS    | Remote push, pull, list, history, and credential configuration.        | `outfitting-manager sync push nix updated-flake.lock`                                   |
+| Windows  | Identical remote transport; package reconciliation belongs to `apply`. | `outfitting-manager sync push windows "$env:LOCALAPPDATA\outfitting\windows.lock.json"` |
+| Linux    | Identical remote transport; package reconciliation belongs to `apply`. | `outfitting-manager sync list`                                                          |

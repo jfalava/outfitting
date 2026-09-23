@@ -17,7 +17,7 @@ Write-Host "❖ Installing Windows registry tweaks..." -ForegroundColor Cyan
 $manifestBaseUrl = $env:OUTFITTING_MANIFEST_BASE_URL
 $manifestRef = $env:OUTFITTING_MANIFEST_REF
 $outfittingStateRoot = if ([string]::IsNullOrWhiteSpace($env:OUTFITTING_STATE_ROOT)) {
-    "$env:USERPROFILE/.config/outfitting"
+    Join-Path $(if ($env:LOCALAPPDATA) { $env:LOCALAPPDATA } else { "$env:USERPROFILE/AppData/Local" }) "outfitting"
 } else {
     $env:OUTFITTING_STATE_ROOT
 }

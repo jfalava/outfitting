@@ -87,12 +87,13 @@ outfitting-manager byor
 ```
 
 The wizard prompts for:
+
 - Repository URL and git ref (branch, tag, or commit).
 - Profile name and platform (`windows`).
 - Winget manifest path.
 - Any additional files outside the manifest directory.
 
-This writes a local profile map to `~/.config/outfitting/byor.json`. Manifests are fetched using raw HTTPS (for public GitHub) or `gh api` (for GitHub Enterprise).
+This writes a local profile map to `%LOCALAPPDATA%\outfitting\byor.json`. Manifests are fetched using raw HTTPS (for public GitHub) or `gh api` (for GitHub Enterprise).
 
 After running `byor`, initialize or apply your profile:
 
@@ -115,12 +116,12 @@ outfitting-manager config `
 
 These default routes are used when no `outfitting.json` is present:
 
-| Route | Default path |
-| --- | --- |
-| `wingetProfilePath` | `packages/windows/{profile}.txt` |
-| `scoopPath` | `packages/windows/scoop.txt` |
+| Route                   | Default path                                |
+| ----------------------- | ------------------------------------------- |
+| `wingetProfilePath`     | `packages/windows/{profile}.txt`            |
+| `scoopPath`             | `packages/windows/scoop.txt`                |
 | `powershellProfilePath` | `dotfiles/Microsoft.PowerShell_profile.ps1` |
-| `fontListPath` | `fonts/fontget.txt` |
-| `registryPath` | `system/windows/registry` |
+| `fontListPath`          | `fonts/fontget.txt`                         |
+| `registryPath`          | `system/windows/registry`                   |
 
 See [Windows config](/docs/cli/windows/config/) for more options.

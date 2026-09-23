@@ -20,18 +20,18 @@ outfitting-manager config --repo https://github.com/me/my-fork --ref main --wing
 
 Available flags:
 
-| Flag | Configured value |
-| --- | --- |
-| `--repo <url>` | Repository URL. Public `github.com` URLs are converted to the raw-content source URL. GitHub Enterprise URLs stay on that host and are read with `gh`. |
-| `--ref <ref>` | Repository branch, tag, or commit. |
-| `--winget-profile-path <path>` | WinGet profile route template. |
-| `--scoop-path <path>` | Scoop manifest route. |
-| `--powershell-profile-path <path>` | PowerShell profile route. |
-| `--font-list-path <path>` | FontGet list route. |
-| `--registry-path <path>` | Registry tweaks directory route. |
-| `--default-profiles <profiles>` | Comma-separated default WinGet profiles. |
+| Flag                               | Configured value                                                                                                                                       |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `--repo <url>`                     | Repository URL. Public `github.com` URLs are converted to the raw-content source URL. GitHub Enterprise URLs stay on that host and are read with `gh`. |
+| `--ref <ref>`                      | Repository branch, tag, or commit.                                                                                                                     |
+| `--winget-profile-path <path>`     | WinGet profile route template.                                                                                                                         |
+| `--scoop-path <path>`              | Scoop manifest route.                                                                                                                                  |
+| `--powershell-profile-path <path>` | PowerShell profile route.                                                                                                                              |
+| `--font-list-path <path>`          | FontGet list route.                                                                                                                                    |
+| `--registry-path <path>`           | Registry tweaks directory route.                                                                                                                       |
+| `--default-profiles <profiles>`    | Comma-separated default WinGet profiles.                                                                                                               |
 
-The wizard saves `%USERPROFILE%\.config\outfitting\config.json`. It configures the raw source URL and ref plus these repository-relative routes:
+The wizard saves `%LOCALAPPDATA%\outfitting\config.json`. It configures the raw source URL and ref plus these repository-relative routes:
 
 - `wingetProfilePath` - a `{profile}` template for WinGet files.
 - `scoopPath` - the Scoop package manifest.

@@ -11,29 +11,31 @@ Outfitting keeps machine-local state separate from the repository source it cons
 
 The default state root is:
 
-| Platform        | State root                         |
-| --------------- | ---------------------------------- |
-| macOS and Linux | `~/.config/outfitting`             |
-| Windows         | `%USERPROFILE%\.config\outfitting` |
+| Platform        | State root                  |
+| --------------- | --------------------------- |
+| macOS and Linux | `~/.config/outfitting`      |
+| Windows         | `%LOCALAPPDATA%\outfitting` |
 
 Set `OUTFITTING_STATE_ROOT` to use another location. The important entries below live under that root:
 
-| Entry         | Purpose                                                                             |
-| ------------- | ----------------------------------------------------------------------------------- |
-| `config.json` | Manifest source, machine ID override, Windows routes, and the active Linux profile. |
-| `manifests/`  | Materialized copies of fetched package lists and other declarations.                |
-| `source/`     | Managed sparse source for macOS and Linux when no full checkout is selected.        |
-| `repo-path`   | Saved path to the source selected with `--repo` or to the managed sparse source.    |
+| Entry               | Purpose                                                                             |
+| ------------------- | ----------------------------------------------------------------------------------- |
+| `config.json`       | Manifest source, machine ID override, Windows routes, and the active Linux profile. |
+| `manifests/`        | Materialized copies of fetched package lists and other declarations.                |
+| `source/`           | Managed sparse source when no full checkout is selected.                            |
+| `repo-path`         | Saved path to the source selected with `--repo` or to the managed sparse source.    |
+| `byor.json`         | Local editable remote BYOR profile map.                                             |
+| `windows.lock.json` | Windows profile selection, package ownership, and operation history.                |
 
 For macOS and Linux, `OUTFITTING_REPO` takes precedence over the saved `repo-path`. When neither is configured, setup uses the managed sparse source for the selected platform or profile. Windows reads cached manifests from the configured manifest source, or from a local BYOR checkout when `outfitting.json` declares Windows profiles.
 
 ## Profiles
 
-| Platform | Profile model                                      | Typical selection                                                 |
-| -------- | -------------------------------------------------- | ----------------------------------------------------------------- |
-| macOS    | One exclusive profile (built-in layout or BYOR)    | Optional `--profile` when a BYOR contract declares several names. |
-| Windows  | Multiple comma-composable bundles                  | `--profile base,dev`                                              |
-| Linux    | One exclusive profile (built-in or BYOR)           | `--profile generic-linux`, `--profile ubuntu-wsl`, or a BYOR name |
+| Platform | Profile model                                   | Typical selection                                                 |
+| -------- | ----------------------------------------------- | ----------------------------------------------------------------- |
+| macOS    | One exclusive profile (built-in layout or BYOR) | Optional `--profile` when a BYOR contract declares several names. |
+| Windows  | Multiple comma-composable bundles               | `--profile base,dev`                                              |
+| Linux    | One exclusive profile (built-in or BYOR)        | `--profile generic-linux`, `--profile ubuntu-wsl`, or a BYOR name |
 
 Windows profiles are comma-composable. Linux and macOS profiles are exclusive: selecting one replaces the active profile rather than composing with it.
 
@@ -78,11 +80,11 @@ See the [`byor`](/docs/cli/byor/) command reference for scriptable flags.
 
 ### Platform guides
 
-| Platform | Profile configuration                    | Guide                                               |
-| -------- | ---------------------------------------- | --------------------------------------------------- |
-| Linux    | `profiles.*.linux` (apt / pacman / nix)  | [BYOR for Linux](/docs/source-configuration/byor/linux/)     |
+| Platform | Profile configuration                                      | Guide                                                        |
+| -------- | ---------------------------------------------------------- | ------------------------------------------------------------ |
+| Linux    | `profiles.*.linux` (apt / pacman / nix)                    | [BYOR for Linux](/docs/source-configuration/byor/linux/)     |
 | Windows  | `profiles.*.windows.winget` + optional top-level `windows` | [BYOR for Windows](/docs/source-configuration/byor/windows/) |
-| macOS    | `profiles.*.macos` (nix + optional brewfile/fonts/paths) | [BYOR for macOS](/docs/source-configuration/byor/macos/)     |
+| macOS    | `profiles.*.macos` (nix + optional brewfile/fonts/paths)   | [BYOR for macOS](/docs/source-configuration/byor/macos/)     |
 
 ## Machine ID
 
@@ -101,7 +103,7 @@ Windows can use traditional `config.json` routes or a repository-owned `outfitti
 Windows stores configuration and fetched manifests under:
 
 ```text
-%USERPROFILE%\.config\outfitting
+%LOCALAPPDATA%\outfitting
 ```
 
 `config.json` records the manifest source and repository-relative Windows routes. `manifests` contains the selected WinGet files, the configured Scoop manifest, and the cached PowerShell profile. When using hosted routes, Windows does not require a full repository checkout. When using BYOR, Outfitting reads manifests directly from your local repository.
@@ -112,10 +114,12 @@ The installer links these PowerShell profile entry points to the cached profile:
 %USERPROFILE%\Documents\PowerShell\Microsoft.PowerShell_profile.ps1
 %USERPROFILE%\Documents\PowerShell\Microsoft.VSCode_profile.ps1
 %USERPROFILE%\Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1
-    -> %USERPROFILE%\.config\outfitting\manifests\<configured PowerShell route>
+    -> %LOCALAPPDATA%\outfitting\manifests\<configured PowerShell route>
 ```
 
-Existing profiles are backed up with a timestamp before they are replaced. Windows symbolic links require Developer Mode or an elevated installer session.
+The installer backs up an existing profile before linking it to the configured manifest; a profile already linked to that manifest stays in place. Windows symbolic links require Developer Mode or an elevated installer session.
+
+Windows does not read or copy state from older default locations. Configure the new root directly, or set `OUTFITTING_STATE_ROOT` to use a different directory explicitly.
 
 ### macOS
 

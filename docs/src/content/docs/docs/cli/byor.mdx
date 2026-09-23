@@ -18,6 +18,7 @@ outfitting-manager byor
 ```
 
 The wizard prompts for:
+
 1. Target platform (`linux`, `macos`, or `windows`).
 2. Repository URL (public `github.com` or GitHub Enterprise).
 3. Git branch or ref (defaults to `main`).
@@ -58,23 +59,23 @@ outfitting-manager byor `
   --winget packages/winget.txt
 ```
 
-| Flag | Description |
-| ---- | ----------- |
-| `--platform` | Target platform (`linux`, `macos`, or `windows`). |
-| `--repo` | Repository URL (supports `github.com` or GitHub Enterprise hosts). |
-| `--ref` | Git branch, tag, or commit SHA (default: `main`). |
-| `--profile` | Profile name to create or update in the local map. |
-| `--apt` | Repository-relative path to an APT package manifest (Linux). |
-| `--pacman` | Repository-relative path to a pacman package manifest (Linux). |
-| `--flake` | Repository-relative path to a Nix flake directory. |
-| `--attribute` | Nix output attribute (required when `--flake` is specified). |
-| `--brewfile` | Repository-relative path to a Homebrew Brewfile (macOS). |
-| `--winget` | Repository-relative path to a WinGet package manifest (Windows). |
-| `--paths` | Comma-separated list of additional repository paths to fetch outside the flake directory. Pass empty string (`""`) to confirm there are none. |
+| Flag          | Description                                                                                                                                   |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--platform`  | Target platform (`linux`, `macos`, or `windows`).                                                                                             |
+| `--repo`      | Repository URL (supports `github.com` or GitHub Enterprise hosts).                                                                            |
+| `--ref`       | Git branch, tag, or commit SHA (default: `main`).                                                                                             |
+| `--profile`   | Profile name to create or update in the local map.                                                                                            |
+| `--apt`       | Repository-relative path to an APT package manifest (Linux).                                                                                  |
+| `--pacman`    | Repository-relative path to a pacman package manifest (Linux).                                                                                |
+| `--flake`     | Repository-relative path to a Nix flake directory.                                                                                            |
+| `--attribute` | Nix output attribute (required when `--flake` is specified).                                                                                  |
+| `--brewfile`  | Repository-relative path to a Homebrew Brewfile (macOS).                                                                                      |
+| `--winget`    | Repository-relative path to a WinGet package manifest (Windows).                                                                              |
+| `--paths`     | Comma-separated list of additional repository paths to fetch outside the flake directory. Pass empty string (`""`) to confirm there are none. |
 
 ## How it works
 
-1. **Local mapping:** Configuration is saved locally to `~/.config/outfitting/byor.json` (or `%USERPROFILE%\.config\outfitting\byor.json` on Windows). The remote repository remains untouched.
+1. **Local mapping:** Configuration is saved locally to `~/.config/outfitting/byor.json` (or `%LOCALAPPDATA%\outfitting\byor.json` on Windows). The remote repository remains untouched.
 2. **Fetching source:** Running `outfitting-manager init` or `outfitting-manager setup` reads the local map and downloads the declared files into your local sparse source root:
    - **Public GitHub:** Uses direct raw-content HTTP requests.
    - **GitHub Enterprise:** Uses `gh api` against the target host. Ensure you have authenticated with `gh auth login --hostname <host>`.

@@ -7,11 +7,13 @@ import { afterEach, describe, expect, test } from "vitest";
 import { windowsConfigPatch } from "@/commands/windows-config";
 import {
   autoMachineId,
+  defaultStateRoot,
   ensureStateRoot,
   hostSystemTriple,
   loadConfig,
   resolveWindowsRoutes,
   saveConfigFile,
+  stateRoot,
   syncOutfittingRepo,
 } from "@/config";
 
@@ -30,6 +32,16 @@ async function tempRoot(): Promise<string> {
   temps.push(dir);
   return dir;
 }
+
+test("Windows defaults to Local AppData; Unix and explicit state roots are unchanged", async () => {
+  const home = await tempRoot();
+  const localAppData = join(home, "different", "local");
+  expect(defaultStateRoot(home, "win32", localAppData)).toBe(join(localAppData, "outfitting"));
+  expect(defaultStateRoot(home, "win32", "")).toBe(join(home, "AppData", "Local", "outfitting"));
+  expect(defaultStateRoot(home, "linux")).toBe(join(home, ".config", "outfitting"));
+  process.env.OUTFITTING_STATE_ROOT = join(home, "custom");
+  expect(stateRoot(home)).toBe(join(home, "custom"));
+});
 
 describe("machine id", () => {
   test("builds nix-style triples", () => {

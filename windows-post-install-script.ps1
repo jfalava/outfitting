@@ -17,7 +17,7 @@ $outfittingManagerAsset = "outfitting-manager-windows-x64.zip"
 $outfittingManagerEntry = "outfitting-manager.exe"
 $outfittingManagerInstallPath = "$env:USERPROFILE\.local\bin\outfitting-manager.exe"
 $outfittingStateRoot = if ([string]::IsNullOrWhiteSpace($env:OUTFITTING_STATE_ROOT)) {
-    "$env:USERPROFILE\.config\outfitting"
+    Join-Path $(if ($env:LOCALAPPDATA) { $env:LOCALAPPDATA } else { "$env:USERPROFILE\AppData\Local" }) "outfitting"
 } else {
     $env:OUTFITTING_STATE_ROOT
 }
