@@ -6,6 +6,9 @@ Microsoft.DotNet.DesktopRuntime.7
 Microsoft.DotNet.DesktopRuntime.8
 Microsoft.DotNet.DesktopRuntime.9
 Microsoft.DotNet.DesktopRuntime.Preview
+Microsoft.DotNet.Native.Runtime
+Microsoft.DotNet.Runtime.8
+Microsoft.DirectX
 Microsoft.VCRedist.2005.x64
 Microsoft.VCRedist.2008.x64
 Microsoft.VCRedist.2010.x86
@@ -16,8 +19,11 @@ Microsoft.VCRedist.2013.x86
 Microsoft.VCRedist.2015+.x64
 Microsoft.VCRedist.2015+.x86
 Microsoft.EdgeWebView2Runtime
+Microsoft.WindowsAppRuntime.1.8
+Microsoft.WindowsAppRuntime.2
 Microsoft.UI.Xaml.2.7
 Microsoft.UI.Xaml.2.8
+Microsoft.VCLibs.14
 Microsoft.VCLibs.Desktop.14
 Microsoft.PowerShell
 Microsoft.PowerToys

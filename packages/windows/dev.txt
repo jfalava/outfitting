@@ -1,11 +1,7 @@
-OpenAI.Codex
-Microsoft.VisualStudioCode
-SST.opencode
 JesseDuffield.lazygit
 OpenJS.NodeJS
 DenoLand.Deno
-pnpm.pnpm
-BtbN.FFmpeg.GPL
+T3Tools.T3Code
 Cloudflare.cloudflared
 GitHub.cli
 # Microsoft Store packages

@@ -3,6 +3,7 @@ KDE.Krita
 Mega.MEGASync
 Proton.ProtonPass
 qBittorrent.qBittorrent
+BtbN.FFmpeg.GPL
 AprilNEA.OpenLogi
 # Microsoft Store packages
 msstore:9PFHDD62MXS1

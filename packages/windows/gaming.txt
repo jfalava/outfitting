@@ -4,7 +4,10 @@ GOG.Galaxy
 NexusMods.Vortex
 Blizzard.BattleNet
 goatcorp.XIVLauncher
-WowUp.Wowup
+Microsoft.GameInput
+Nvidia.PhysX
+SteelSeries.GG
+WowUp.Wowup.Beta
 bozbez.WinCaptureAudio.beta
 # Microsoft Store packages
 msstore:XPDC2RH70K22MN

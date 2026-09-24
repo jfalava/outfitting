@@ -31,3 +31,7 @@ iac/.env
 .amp/portals/*
 outfitting.deploy.json
 dist/
+
+# Local Outfitting Artifacts
+outfitting.json
+byor.json
