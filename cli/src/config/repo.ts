@@ -1,54 +1,31 @@
 import { constants } from "node:fs";
-import {
-  access,
-  chmod,
-  mkdir,
-  readFile,
-  readdir,
-  realpath,
-  stat,
-  writeFile,
-} from "node:fs/promises";
+import { access, chmod, mkdir, readFile, realpath, writeFile } from "node:fs/promises";
 import { dirname, isAbsolute, join, resolve } from "node:path";
 
 import { loadConfig } from "@/config/load";
 import { repoPathFile } from "@/config/paths";
 import type { ManagerConfig } from "@/config/types";
-import { runCommand } from "@/process";
 import { envValue } from "@/secrets";
 import {
   macosDarwinRelativePath,
+  readByorContract,
   selectByorProfile,
   selectMacosByorProfile,
-  tryReadByorContract,
   type ByorContract,
   type ByorProfileDeclaration,
 } from "@/source/contract";
-
-export const DEFAULT_OUTFITTING_REPO_URL = "https://github.com/jfalava/outfitting.git";
-
-/** Paths that identify a valid Outfitting source (full checkout or sparse tree). */
-const SOURCE_MARKERS = [
-  join("system", "macos", "flake.nix"),
-  join("system", "oci-agents", "flake.nix"),
-  join("system", "ubuntu-wsl", "flake.nix"),
-  join("packages", "linux", "generic-linux.txt"),
-] as const;
 
 /** Which Nix flake root a checkout is driving. */
 export type NixFlakeKind = "macos" | "home-manager" | "none";
 
 export interface OutfittingRepo {
-  /** Absolute path to the full repository or sparse source root. */
+  /** Absolute path to the full repository or published source root. */
   root: string;
-  /**
-   * Absolute path to the active flake root (`system/macos`, `system/oci-agents`,
-   * or `system/ubuntu-wsl`). Empty when the source has no Nix flake (generic-linux).
-   */
+  /** Absolute path to the flake root declared by the selected BYOR profile. */
   flakePath: string;
-  /** Absolute path to `system/macos/darwin.nix` when present; otherwise empty. */
+  /** Absolute path to the declared Darwin configuration file when present; otherwise empty. */
   darwinNixPath: string;
-  /** Active flake kind derived from on-disk markers and optional Linux profile. */
+  /** Active flake kind declared by the selected BYOR profile. */
   flakeKind: NixFlakeKind;
   /**
    * Flake output attribute for build/switch.
@@ -66,104 +43,6 @@ interface FlakeSelection {
   flakeKind: NixFlakeKind;
   systemAttr: string;
   homeManagerName?: string;
-}
-
-const MACOS_SYSTEM_ATTR = "darwinConfigurations.macos.system";
-
-function homeManagerSystemAttr(name: string): string {
-  return `homeConfigurations.${name}.activationPackage`;
-}
-
-function selectFlake(absolute: string, profile?: string): FlakeSelection {
-  const macosFlake = join(absolute, "system", "macos");
-  const ociFlake = join(absolute, "system", "oci-agents");
-  const wslFlake = join(absolute, "system", "ubuntu-wsl");
-  const macosDarwin = join(macosFlake, "darwin.nix");
-
-  // Prefer an explicit Linux profile when the matching flake exists.
-  if (profile === "oci-agents") {
-    return {
-      flakePath: ociFlake,
-      darwinNixPath: "",
-      flakeKind: "home-manager",
-      systemAttr: homeManagerSystemAttr("oci-agents"),
-      homeManagerName: "oci-agents",
-    };
-  }
-  if (profile === "ubuntu-wsl") {
-    return {
-      flakePath: wslFlake,
-      darwinNixPath: "",
-      flakeKind: "home-manager",
-      systemAttr: homeManagerSystemAttr("jfalava"),
-      homeManagerName: "jfalava",
-    };
-  }
-
-  // Marker priority for full checkouts without a Linux profile: macOS first,
-  // then headless HM profiles (oci-agents before WSL).
-  return {
-    flakePath: macosFlake,
-    darwinNixPath: macosDarwin,
-    flakeKind: "macos",
-    systemAttr: MACOS_SYSTEM_ATTR,
-  };
-}
-
-async function resolveFlakeSelection(
-  absolute: string,
-  profile: string | undefined,
-  markersPresent: boolean[],
-): Promise<FlakeSelection> {
-  const hasMacos = markersPresent[0] === true;
-  const hasOci = markersPresent[1] === true;
-  const hasWsl = markersPresent[2] === true;
-
-  if (profile === "oci-agents") {
-    if (!hasOci) {
-      throw new Error(
-        `Linux profile oci-agents requires ${join(absolute, "system", "oci-agents", "flake.nix")}.`,
-      );
-    }
-    return selectFlake(absolute, "oci-agents");
-  }
-  if (profile === "ubuntu-wsl") {
-    if (!hasWsl) {
-      throw new Error(
-        `Linux profile ubuntu-wsl requires ${join(absolute, "system", "ubuntu-wsl", "flake.nix")}.`,
-      );
-    }
-    return selectFlake(absolute, "ubuntu-wsl");
-  }
-
-  // generic-linux (and unknown profiles): never bind a flake just because the
-  // monorepo checkout also contains macOS/HM trees.
-  if (profile === "generic-linux") {
-    return {
-      flakePath: "",
-      darwinNixPath: "",
-      flakeKind: "none",
-      systemAttr: "",
-    };
-  }
-
-  if (hasMacos) {
-    return selectFlake(absolute);
-  }
-  if (hasOci) {
-    return selectFlake(absolute, "oci-agents");
-  }
-  if (hasWsl) {
-    return selectFlake(absolute, "ubuntu-wsl");
-  }
-
-  // generic-linux (or other non-Nix source): no flake root.
-  return {
-    flakePath: "",
-    darwinNixPath: "",
-    flakeKind: "none",
-    systemAttr: "",
-  };
 }
 
 async function pathExists(path: string): Promise<boolean> {
@@ -293,12 +172,8 @@ function resolveByorPlatformKind(
 async function resolveByorFlakeSelection(
   absolute: string,
   profile: string | undefined,
-): Promise<FlakeSelection | undefined> {
-  const contract = await tryReadByorContract(absolute);
-  if (contract === undefined) {
-    return undefined;
-  }
-
+): Promise<FlakeSelection> {
+  const contract = await readByorContract(absolute);
   const kind = resolveByorPlatformKind(contract, profile);
   if (kind === "none") {
     return {
@@ -351,45 +226,6 @@ async function resolveByorFlakeSelection(
   };
 }
 
-async function validateLegacyRepo(
-  absolute: string,
-  profile: string | undefined,
-): Promise<OutfittingRepo> {
-  const markers = SOURCE_MARKERS.map((relative) => join(absolute, relative));
-  const present = await Promise.all(markers.map((path) => pathExists(path)));
-  if (!present.some(Boolean)) {
-    throw new Error(
-      `Outfitting repo at ${absolute} is missing a recognized source marker (system/macos, system/oci-agents, system/ubuntu-wsl, or packages/linux/generic-linux.txt). Check OUTFITTING_REPO / repo-path.`,
-    );
-  }
-
-  const selection = await resolveFlakeSelection(absolute, profile, present);
-  if (
-    (profile === "oci-agents" || profile === "ubuntu-wsl") &&
-    selection.flakeKind === "home-manager"
-  ) {
-    const flakeNix = join(selection.flakePath, "flake.nix");
-    if (!(await pathExists(flakeNix))) {
-      throw new Error(`Missing flake at ${flakeNix}.`);
-    }
-  }
-
-  return {
-    root: absolute,
-    flakePath: selection.flakePath,
-    darwinNixPath: selection.darwinNixPath,
-    flakeKind: selection.flakeKind,
-    systemAttr: selection.systemAttr,
-    homeManagerName: selection.homeManagerName,
-  };
-}
-
-function isNotFound(cause: unknown): boolean {
-  return (
-    cause instanceof Error && "code" in cause && (cause as NodeJS.ErrnoException).code === "ENOENT"
-  );
-}
-
 export async function readRepoPathFile(config: ManagerConfig): Promise<string | undefined> {
   const path = repoPathFile(config.stateRoot);
   try {
@@ -407,7 +243,7 @@ export async function readRepoPathFile(config: ManagerConfig): Promise<string | 
   }
 }
 
-/** Validate a repository or sparse source root and return structured paths. */
+/** Validate a repository source root. A valid source always has outfitting.json. */
 export async function validateOutfittingRepo(
   candidate: string,
   options?: { profile?: string },
@@ -420,20 +256,12 @@ export async function validateOutfittingRepo(
     throw new Error(`Outfitting repository path does not exist: ${candidate}`);
   }
 
-  const byorSelection = await resolveByorFlakeSelection(absolute, options?.profile);
-  if (byorSelection !== undefined) {
-    return {
-      root: absolute,
-      ...byorSelection,
-    };
-  }
-
-  return validateLegacyRepo(absolute, options?.profile);
+  const selection = await resolveByorFlakeSelection(absolute, options?.profile);
+  return { root: absolute, ...selection };
 }
 
 /**
- * Persist a repository or sparse source path to the legacy `repo-path` file (mode 600).
- * Matches `set_outfitting_repo` so shell and manager share one source of truth.
+ * Persist a selected local or published source path (mode 600).
  */
 export async function writeRepoPath(
   repoRoot: string,
@@ -451,74 +279,9 @@ export async function writeRepoPath(
   return { repo, pathFile };
 }
 
-/** Clone or fast-forward the repository used by Linux Nix-backed profiles. */
-export async function syncOutfittingRepo(
-  candidate: string,
-  options: {
-    ref: string;
-    run?: typeof runCommand;
-  },
-): Promise<OutfittingRepo> {
-  const root = isAbsolute(candidate) ? candidate : resolve(candidate);
-  const run = options.run ?? runCommand;
-  await mkdir(dirname(root), { recursive: true });
-
-  let clone = false;
-  try {
-    const info = await stat(root);
-    clone = info.isDirectory() && (await readdir(root)).length === 0;
-  } catch (cause) {
-    if (!isNotFound(cause)) {
-      throw cause;
-    }
-    clone = true;
-  }
-
-  if (clone) {
-    await runGit(run, ["clone", "--depth", "1", DEFAULT_OUTFITTING_REPO_URL, root], {
-      cwd: dirname(root),
-      inherit: true,
-    });
-  } else {
-    const status = await runGit(run, ["-C", root, "status", "--porcelain"], {
-      inherit: false,
-    });
-    if (status.stdout.trim().length > 0) {
-      throw new Error(
-        `Outfitting repository at ${root} has uncommitted changes; refusing to pull.`,
-      );
-    }
-  }
-
-  await runGit(run, ["-C", root, "fetch", "--prune", "origin", options.ref], {
-    inherit: true,
-  });
-  await runGit(run, ["-C", root, "checkout", "--detach", "FETCH_HEAD"], {
-    inherit: true,
-  });
-
-  return validateOutfittingRepo(root);
-}
-
-async function runGit(
-  run: typeof runCommand,
-  args: ReadonlyArray<string>,
-  options: Parameters<typeof runCommand>[2],
-) {
-  const result = await run("git", args, options);
-  if (result.code !== 0) {
-    const detail = (result.stderr || result.stdout).trim();
-    throw new Error(
-      `git ${args.join(" ")} failed (exit ${result.code})${detail.length > 0 ? `: ${detail}` : "."}`,
-    );
-  }
-  return result;
-}
-
 /**
- * Resolve monorepo root.
- * Precedence: `OUTFITTING_REPO` → legacy `repo-path` file → fail.
- * Pass `profile` (or rely on `config.linux.profile`) so Linux HM flakes resolve correctly.
+ * Resolve the selected source.
+ * Precedence: `OUTFITTING_REPO` → saved source path → fail.
  */
 export async function resolveOutfittingRepo(options?: {
   config?: ManagerConfig;
@@ -532,7 +295,7 @@ export async function resolveOutfittingRepo(options?: {
 
   if (candidate === undefined) {
     throw new Error(
-      "Outfitting repository location is not configured. Set OUTFITTING_REPO or run: outfitting-manager setup --repo /path/to/outfitting",
+      "Machine source is not configured. Set OUTFITTING_REPO to a checkout containing outfitting.json or run outfitting-manager byor.",
     );
   }
 

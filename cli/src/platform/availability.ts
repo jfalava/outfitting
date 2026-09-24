@@ -12,7 +12,7 @@ export const PACKAGE_MANAGER_PLATFORM = {
   apt: "linux",
   bun: "all",
   brew: "macos",
-  // nix-darwin on macOS; Home Manager on Linux (oci-agents / ubuntu-wsl)
+  // nix-darwin on macOS; Home Manager when declared by the selected Linux BYOR profile
   nix: "all",
   pacman: "linux",
   scoop: "windows",

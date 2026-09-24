@@ -1,6 +1,6 @@
 ---
 title: Installation
-description: Install Outfitting on Linux with the hosted bootstrap and outfitting-manager.
+description: Install Outfitting on Linux and configure a BYOR source.
 audience: linux
 sidebar:
   order: 1
@@ -9,69 +9,37 @@ sidebar:
 ## Prerequisites
 
 - An interactive terminal and an account with `sudo` privileges.
-- Network access to GitHub and Outfitting release assets.
+- Network access to Git and Outfitting release assets.
 
 ## Install
 
-Run the hosted installation script:
+The hosted Linux bootstrap installs `outfitting-manager`:
 
 ```bash
 curl -L linux.jfa.dev | bash
 ```
 
-The installer automatically detects your distribution's package manager (`apt` on Debian/Ubuntu, `pacman` on Arch Linux). State is stored under `~/.config/outfitting`.
+The script detects `apt` or `pacman`. Manager state is stored under `~/.config/outfitting`.
 
-> [!NOTE]
-> Outfitting currently supports APT-based and pacman-based Linux distributions.
+> [!WARNING]
+> The bootstrap still invokes the manager's retired implicit-source flow. The BYOR-only manager cannot complete package setup through this script until the installer is migrated. Installer scripts are unchanged by this migration.
 
-## Built-in profiles
+## Configure a source
 
-By default, installation applies the `generic-linux` package list. You can select another built-in profile that includes a Home Manager flake:
+The manager accepts either a local checkout with a root `outfitting.json` or a remote Git source explicitly declared in the state-root `byor.json`. It does not provide built-in Linux profiles.
 
-| Profile | Description |
-| --- | --- |
-| `generic-linux` | Default. Native packages only (`apt` or `pacman`). |
-| `ubuntu-wsl` | Ubuntu package set plus WSL Home Manager configuration (`system/ubuntu-wsl`). |
-| `oci-agents` | Headless host packages plus Home Manager configuration (`system/oci-agents`). |
-
-Select a profile during installation:
+For a local checkout:
 
 ```bash
-curl -L linux.jfa.dev | bash -s -- --profile ubuntu-wsl
-```
-
-Or switch profiles after installation:
-
-```bash
-outfitting-manager init --profile oci-agents
-outfitting-manager setup --no-fetch
-```
-
-## Bring Your Own Repo (BYOR)
-
-### Custom profiles (`outfitting.json`)
-
-To use your own repository, add an `outfitting.json` file defining your profiles. You can configure APT, pacman, Nix, or any combination without adhering to Outfitting’s default layout:
-
-```bash
-# Validate the configuration
 outfitting-manager validate --repo ~/src/my-machine-config --platform linux
-
-# Apply the profile
-outfitting-manager setup --repo ~/src/my-machine-config --profile debian-minimal
+outfitting-manager setup --repo ~/src/my-machine-config --profile workstation
 ```
 
-See [BYOR for Linux](/docs/source-configuration/byor/linux/) for configuration examples and multi-platform support.
-
-### Hosted remote source
-
-If you want to pull directly from a Git host without a local clone, provide the repository's raw-content base URL and Git branch or tag. Hosted sources use the built-in profile layouts (`generic-linux`, `oci-agents`, or `ubuntu-wsl`):
+For a remote repository, configure its source map with [`byor`](/docs/cli/byor/), then select one of its declared Linux profiles:
 
 ```bash
-outfitting-manager setup \
-  --profile generic-linux \
-  --manifest-base-url https://raw.githubusercontent.com/example/my-machine-config \
-  --manifest-ref main
+outfitting-manager byor
+outfitting-manager setup --profile workstation
 ```
 
-For command-level workflows, see [init](/docs/cli/init/), [setup](/docs/cli/setup/), [validate](/docs/cli/validate/), and the [Linux CLI reference](/docs/cli/linux/).
+See [BYOR for Linux](/docs/source-configuration/byor/linux/) for arbitrary contract paths and profile examples. For command workflows, see [init](/docs/cli/init/), [setup](/docs/cli/setup/), [validate](/docs/cli/validate/), and the [Linux CLI reference](/docs/cli/linux/).

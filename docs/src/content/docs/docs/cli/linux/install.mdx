@@ -1,6 +1,6 @@
 ---
 title: Install
-description: Install Outfitting on Linux with the hosted bootstrap.
+description: Install the Linux manager and understand the bootstrap limitation.
 audience: linux
 sidebar:
   order: 1
@@ -10,14 +10,9 @@ sidebar:
 curl -L linux.jfa.dev | bash
 ```
 
-Supports Linux x64 and arm64. The script installs `outfitting-manager`, runs `init` and `setup`, detects apt or pacman, and applies the selected profile (default: `generic-linux`).
+The hosted script supports Linux x64 and arm64 and installs `outfitting-manager`.
 
-## Profile examples
+> [!WARNING]
+> The current bootstrap still runs `init` with an implicit built-in profile. BYOR-only source selection removes that behavior, so the manager's package setup does not complete through this script until the installer is updated. Installer scripts remain unchanged and are outside this migration.
 
-```bash
-curl -L linux.jfa.dev | bash -s -- --profile generic-linux
-curl -L linux.jfa.dev | bash -s -- --profile ubuntu-wsl
-curl -L linux.jfa.dev | bash -s -- --profile oci-agents
-```
-
-Nix-backed profiles expect Nix to be available on the machine (or installed by that profile’s bootstrap). See [init](/docs/cli/init/) for `--repo` and source flags.
+After the installer integration is updated, configure either a local checkout containing root `outfitting.json` or a remote Git source in the state-root `byor.json`. See [BYOR for Linux](/docs/source-configuration/byor/linux/) and the [source configuration overview](/docs/source-configuration/).

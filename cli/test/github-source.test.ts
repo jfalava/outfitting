@@ -1,29 +1,28 @@
+import { execFile } from "node:child_process";
 import { mkdtemp, mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { promisify } from "node:util";
 
 import { Console, Effect } from "effect";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
 import { saveByorWizardAnswers } from "@/commands/byor";
 import { initializeWindows } from "@/commands/setup/windows";
-import { loadConfig, sparseSourceRoot, saveConfigFile } from "@/config";
+import { loadConfig, sparseSourceRoot } from "@/config";
 import type { ManifestFetcher } from "@/fetch";
-import {
-  classifyGitHubRepository,
-  isRemoteByorSource,
-  normalizeRepositoryUrl,
-  readGitHubBlobs,
-} from "@/fetch/github";
+import { classifyGitHubRepository, readGitHubBlobs } from "@/fetch/github";
+import { runCommand as executeCommand } from "@/process";
 import type { runCommand } from "@/process";
 import { runLinuxInit } from "@/setup/linux";
 import { runSetup } from "@/setup/run";
 import { syncByorSparseSource } from "@/setup/source";
-import { readByorMap, writeByorProfile } from "@/source/byor-map";
+import { normalizeGitRepository, readByorMap, writeByorProfile } from "@/source/byor-map";
 import { readByorContract } from "@/source/contract";
 import { readWindowsLock } from "@/update/windows-lock";
 
 const temps: string[] = [];
+const execFileAsync = promisify(execFile);
 
 afterEach(async () => {
   vi.unstubAllEnvs();
@@ -51,11 +50,11 @@ describe("classifyGitHubRepository", () => {
       host: "github.com",
       owner: "org",
       name: "machine-config",
-      baseUrl: "https://raw.githubusercontent.com/org/machine-config",
       transport: "raw",
+      baseUrl: "https://raw.githubusercontent.com/org/machine-config",
     });
-    expect(normalizeRepositoryUrl("https://github.com/org/machine-config")).toBe(
-      "https://raw.githubusercontent.com/org/machine-config",
+    expect(normalizeGitRepository("https://github.com/org/machine-config")).toBe(
+      "https://github.com/org/machine-config",
     );
 
     const enterprise = classifyGitHubRepository("https://github.example.com/org/machine-config");
@@ -66,8 +65,11 @@ describe("classifyGitHubRepository", () => {
       transport: "gh",
     });
     expect(enterprise?.baseUrl).not.toContain("raw.githubusercontent.com");
-    expect(normalizeRepositoryUrl("https://github.example.com/org/machine-config")).toBe(
+    expect(normalizeGitRepository("https://github.example.com/org/machine-config")).toBe(
       "https://github.example.com/org/machine-config",
+    );
+    expect(normalizeGitRepository("git@code.example.com:team/machine-config.git")).toBe(
+      "git@code.example.com:team/machine-config.git",
     );
   });
 });
@@ -163,11 +165,7 @@ describe.each(["github.com", "pepito.ghe.com"])("remote BYOR on %s", (host) => {
   test.each(["linux", "macos", "windows"] as const)(
     "wizard → %s init uses saved config and materializes valid files",
     async (platform) => {
-      for (const key of [
-        "OUTFITTING_REPO",
-        "OUTFITTING_MANIFEST_BASE_URL",
-        "OUTFITTING_MANIFEST_REF",
-      ]) {
+      for (const key of ["OUTFITTING_REPO"]) {
         vi.stubEnv(key, "");
       }
       const stateRoot = await tempRoot();
@@ -209,8 +207,6 @@ describe.each(["github.com", "pepito.ghe.com"])("remote BYOR on %s", (host) => {
                 ...options,
                 platform,
                 repoProfile: "desk",
-                validateSource: true,
-                sourcePaths: ["system/macos/flake.nix"],
               });
       await Effect.runPromise(
         init.pipe(Effect.provideService(Console.Console, { ...console, log: () => {} })),
@@ -250,15 +246,90 @@ describe.each(["github.com", "pepito.ghe.com"])("remote BYOR on %s", (host) => {
   );
 });
 
-test("BYOR detection compares repository identity, not raw URL spelling", () => {
-  expect(
-    isRemoteByorSource(normalizeRepositoryUrl("https://github.com/org/machine-config"), "byor"),
-  ).toBe(true);
-  expect(isRemoteByorSource("https://github.com/org/machine-config", "raw")).toBe(false);
-  expect(isRemoteByorSource("https://raw.githubusercontent.com/org/machine-config")).toBe(false);
-  expect(isRemoteByorSource("https://github.com/JFALAVA/OUTFITTING.git/")).toBe(false);
-  expect(isRemoteByorSource("https://raw.githubusercontent.com/jfalava/outfitting")).toBe(false);
-  expect(isRemoteByorSource("https://example.test/mirror")).toBe(false);
+test("BYOR accepts Git repository URLs without converting them into raw-content URLs", () => {
+  expect(normalizeGitRepository("https://github.com/org/machine-config")).toBe(
+    "https://github.com/org/machine-config",
+  );
+  expect(normalizeGitRepository("ssh://git@code.example.com/team/config.git")).toBe(
+    "ssh://git@code.example.com/team/config.git",
+  );
+  expect(normalizeGitRepository("git@code.example.com:team/config.git")).toBe(
+    "git@code.example.com:team/config.git",
+  );
+});
+
+test.each([
+  "https://git.example.com/team/machine-config.git",
+  "git@git.example.com:team/machine-config.git",
+])("generic Git transport fetches one revision for %s", async (repository) => {
+  const root = await tempRoot();
+  const remoteRoot = join(root, "remote.git");
+  const stateRoot = join(root, "state");
+  await mkdir(join(remoteRoot, "packages", "custom"), { recursive: true });
+  await mkdir(join(remoteRoot, "packages", "unselected"), { recursive: true });
+  await writeFile(join(remoteRoot, "packages", "custom", "apt.txt"), "curl\n");
+  await writeFile(join(remoteRoot, "packages", "unselected", "apt.txt"), "vim\n");
+  await execFileAsync("git", ["init", "--quiet", "--initial-branch=main", remoteRoot]);
+  await execFileAsync("git", ["-C", remoteRoot, "config", "user.name", "BYOR test"]);
+  await execFileAsync("git", ["-C", remoteRoot, "config", "user.email", "byor@example.test"]);
+  await execFileAsync("git", ["-C", remoteRoot, "add", "."]);
+  await execFileAsync("git", ["-C", remoteRoot, "commit", "--quiet", "-m", "BYOR fixture"]);
+  const revision = (
+    await execFileAsync("git", ["-C", remoteRoot, "rev-parse", "HEAD"], { encoding: "utf8" })
+  ).stdout.trim();
+
+  await writeByorProfile({
+    stateRoot,
+    name: "custom-linux",
+    repository,
+    ref: "main",
+    profile: { linux: { apt: { manifest: "packages/custom/apt.txt" } } },
+  });
+  const gitCalls: string[][] = [];
+  const run: typeof runCommand = async (command, args, options) => {
+    expect(command).toBe("git");
+    const actualArgs = [...args];
+    gitCalls.push([...args]);
+    if (actualArgs[0] === "remote" && actualArgs[1] === "add") {
+      actualArgs[3] = remoteRoot;
+    }
+    return executeCommand(command, actualArgs, options);
+  };
+
+  await syncByorSparseSource({
+    config: await loadConfig({ stateRoot }),
+    platform: "linux",
+    profile: "custom-linux",
+    run,
+  });
+
+  expect(gitCalls.find((args) => args[0] === "remote" && args[1] === "add")).toEqual([
+    "remote",
+    "add",
+    "origin",
+    repository,
+  ]);
+  expect(gitCalls.filter((args) => args[0] === "fetch")).toHaveLength(1);
+  expect(gitCalls.filter((args) => args[0] === "rev-parse")).toEqual([
+    ["rev-parse", "--verify", "FETCH_HEAD^{commit}"],
+  ]);
+  expect(gitCalls.filter((args) => args[0] === "ls-tree")[0]).toContain(revision);
+  expect(gitCalls.filter((args) => args[0] === "checkout")[0]).toEqual([
+    "checkout",
+    revision,
+    "--",
+    "packages/custom/apt.txt",
+  ]);
+  expect(await readFile(join(sparseSourceRoot(stateRoot), "packages/custom/apt.txt"), "utf8")).toBe(
+    "curl\n",
+  );
+  await expect(
+    readFile(join(sparseSourceRoot(stateRoot), "packages/unselected/apt.txt"), "utf8"),
+  ).rejects.toMatchObject({ code: "ENOENT" });
+  const metadata = JSON.parse(
+    await readFile(join(sparseSourceRoot(stateRoot), ".outfitting-source.json"), "utf8"),
+  );
+  expect(metadata).toEqual({ repository, ref: "main", revision });
 });
 
 test.each(["missing", "download", "invalid", "truncated", "symlink", "submodule", "traversal"])(
@@ -266,13 +337,11 @@ test.each(["missing", "download", "invalid", "truncated", "symlink", "submodule"
   async (failure) => {
     const stateRoot = await tempRoot();
     const remote = remoteFixture("github.com");
-    await saveConfigFile(
-      { manifest: { baseUrl: "https://github.com/org/machine-config", ref: "feature/desk" } },
-      { stateRoot },
-    );
     await writeByorProfile({
       stateRoot,
       name: "desk",
+      repository: "https://github.com/org/machine-config",
+      ref: "feature/desk",
       profile: { linux: { apt: { manifest: "packages/apt.txt" }, paths: ["nix"] } },
     });
     const source = sparseSourceRoot(stateRoot);
@@ -319,13 +388,11 @@ test.each(["missing", "download", "invalid", "truncated", "symlink", "submodule"
 test("offline reuses the validated source without GitHub or the edited local map", async () => {
   const stateRoot = await tempRoot();
   const remote = remoteFixture("github.com");
-  await saveConfigFile(
-    { manifest: { baseUrl: "https://github.com/org/machine-config", ref: "feature/desk" } },
-    { stateRoot },
-  );
   await writeByorProfile({
     stateRoot,
     name: "desk",
+    repository: "https://github.com/org/machine-config",
+    ref: "feature/desk",
     profile: { linux: { apt: { manifest: "packages/apt.txt" } } },
   });
   const config = await loadConfig({ stateRoot });

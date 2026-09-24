@@ -27,7 +27,6 @@ test.each([
         stateRoot: root,
         machineId: "test:x64-windows",
         machineIdOverridden: true,
-        manifest: { baseUrl: "https://example.test/outfitting", ref: "main" },
       };
       const before = await readWindowsLock(config);
       before.profiles = ["dev"];

@@ -1,11 +1,10 @@
 import { Console, Effect, Option } from "effect";
 import { Command, Flag, Prompt } from "effect/unstable/cli";
 
-import { byorMapPath, ensureStateRoot, saveConfigFile } from "@/config";
+import { byorMapPath, ensureStateRoot } from "@/config";
 import { CliFailure } from "@/errors";
-import { classifyGitHubRepository, normalizeRepositoryUrl } from "@/fetch/github";
 import { toError, tryPromise } from "@/lockfiles/effect";
-import { readByorMap, writeByorProfile } from "@/source/byor-map";
+import { normalizeGitRepository, readByorMap, writeByorProfile } from "@/source/byor-map";
 import {
   linuxPathsFromProfile,
   macosPathsFromProfile,
@@ -46,11 +45,11 @@ function profileText(value: string): Effect.Effect<string, string> {
 }
 
 function repoText(value: string): Effect.Effect<string, string> {
-  const trimmed = value.trim();
-  if (classifyGitHubRepository(trimmed) === undefined) {
-    return Effect.fail("Repository must be a GitHub or GitHub Enterprise URL.");
+  try {
+    return Effect.succeed(normalizeGitRepository(value));
+  } catch (cause) {
+    return Effect.fail(cause instanceof Error ? cause.message : String(cause));
   }
-  return Effect.succeed(trimmed);
 }
 
 function optionalPath(value: string | undefined, label: string): string | undefined {
@@ -157,17 +156,14 @@ export async function saveByorWizardAnswers(
   const profile = profileFromAnswers(answers);
   const before = existingPaths(existing, answers.profile);
   const after = profileFetchPaths({ ...existing?.profiles[answers.profile], ...profile });
-  await writeByorProfile({ stateRoot, name: answers.profile, profile, existing });
-  await saveConfigFile(
-    {
-      manifest: {
-        kind: "byor",
-        baseUrl: normalizeRepositoryUrl(answers.repoUrl),
-        ref: answers.ref.trim(),
-      },
-    },
-    { stateRoot },
-  );
+  await writeByorProfile({
+    stateRoot,
+    name: answers.profile,
+    profile,
+    repository: answers.repoUrl,
+    ref: answers.ref,
+    existing,
+  });
   return { path: byorMapPath(stateRoot), diff: pathDiff(before, after) };
 }
 
@@ -251,8 +247,7 @@ export function collectByorAnswers(flags: ByorWizardFlags) {
     );
     const ref = yield* asWizardError(
       requiredText(
-        flagValue(flags.ref) ??
-          (yield* Prompt.String({ message: "Repository ref", default: "main" })),
+        flagValue(flags.ref) ?? (yield* Prompt.String({ message: "Repository ref" })),
         "Repository ref",
       ),
     );
@@ -285,7 +280,10 @@ export function collectByorAnswers(flags: ByorWizardFlags) {
 export const byorCommand = Command.make(
   "byor",
   {
-    repo: Flag.String("repo").pipe(Flag.optional, Flag.withDescription("GitHub repository URL.")),
+    repo: Flag.String("repo").pipe(
+      Flag.optional,
+      Flag.withDescription("Git remote URL or SSH-style Git address."),
+    ),
     ref: Flag.String("ref").pipe(Flag.optional, Flag.withDescription("Repository ref.")),
     profile: Flag.String("profile").pipe(Flag.optional, Flag.withDescription("Profile name.")),
     platform: Flag.String("platform").pipe(
@@ -343,8 +341,4 @@ export const byorCommand = Command.make(
       yield* Console.log(ui.success(`Local BYOR profile map: ${saved.path}`));
       yield* Console.log(ui.muted("The remote repository was not modified."));
     }),
-).pipe(
-  Command.withDescription(
-    "Write a local BYOR profile map for a remote repository that does not contain outfitting.json.",
-  ),
-);
+).pipe(Command.withDescription("Configure a remote Git source and local BYOR profile map."));

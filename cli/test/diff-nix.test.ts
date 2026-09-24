@@ -26,7 +26,6 @@ const config = {
   stateRoot: "/state",
   machineId: "test:arm64-darwin",
   machineIdOverridden: true,
-  manifest: { baseUrl: "https://example.test", ref: "main" },
 };
 
 beforeEach(() => {

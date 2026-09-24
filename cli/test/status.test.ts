@@ -21,7 +21,8 @@ test("status reports defaults without creating any state", async () => {
       expect(output).toContain(`Platform: ${platform}`);
       expect(output).toContain(`Config: ${join(absent, "config.json")}`);
       expect(output).toContain("Source checkout: not configured");
-      expect(output).toContain(`Remote: ${config.manifest.baseUrl}/${config.manifest.ref}`);
+      expect(output).toContain("BYOR map: not configured");
+      expect(output).not.toContain("Remote:");
       expect(output).toContain(`Machine ID: ${config.machineId}`);
     }
     expect(await readdir(root)).toEqual([]);
@@ -34,6 +35,18 @@ test("status preserves saved profiles and distinguishes sparse, missing and dirt
   const root = await mkdtemp(join(tmpdir(), "outfitting-status-source-"));
   try {
     const config = await loadConfig({ stateRoot: root });
+    config.linux = { profile: "linux-work" };
+    await writeFile(
+      join(root, "outfitting.json"),
+      `${JSON.stringify({
+        schema: 1,
+        profiles: {
+          work: { windows: { winget: { manifest: "packages/work.txt" } } },
+          dev: { windows: { winget: { manifest: "packages/dev.txt" } } },
+          "linux-work": { linux: { apt: { manifest: "packages/linux.txt" } } },
+        },
+      })}\n`,
+    );
     const lock = await readWindowsLock(config);
     lock.profiles = ["work", "dev"];
     await writeWindowsLock(lock, { root });

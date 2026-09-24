@@ -1,24 +1,31 @@
 import { Console, Effect } from "effect";
 
-import { DEFAULT_LINUX_PROFILE, loadConfig } from "@/config";
+import { loadConfig } from "@/config";
 import { CliFailure } from "@/errors";
-import type { ManifestFetcher } from "@/fetch";
+import type { ManifestFetcher } from "@/fetch/github";
 import { tryPromise } from "@/lockfiles/effect";
+import { validateLinuxByorSource } from "@/source/contract";
 import { ui } from "@/ui";
 import { isLinuxProfile, updateLinux, type LinuxUpdateOptions } from "@/update/linux";
+import { prepareLinuxSource } from "@/update/linux-source";
 import { updateNix } from "@/update/nix";
 
 export interface LinuxUpdateAllOptions extends LinuxUpdateOptions {
+  profile?: string;
   noPush?: boolean;
   noRefresh?: boolean;
   sourceFetcher?: ManifestFetcher;
 }
 
-function validateLinuxUpdateAll(config: LinuxUpdateAllOptions["config"], offline: boolean) {
-  const profile = config?.linux?.profile ?? DEFAULT_LINUX_PROFILE;
+function validateLinuxUpdateAll(profile: string | undefined, offline: boolean) {
+  if (profile === undefined) {
+    return new CliFailure({
+      message: "No Linux BYOR profile is selected. Run init --profile <name> or pass --profile.",
+    });
+  }
   if (!isLinuxProfile(profile)) {
     return new CliFailure({
-      message: `Invalid Linux profile \`${profile}\`. Built-ins: generic-linux, oci-agents, ubuntu-wsl; BYOR names are allowed when outfitting.json is present.`,
+      message: `Invalid Linux profile \`${profile}\`.`,
     });
   }
   if (offline) {
@@ -62,11 +69,27 @@ function printLinuxUpdateSummary(
 export const updateLinuxAll = (options: LinuxUpdateAllOptions = {}) =>
   Effect.gen(function* () {
     const config = options.config ?? (yield* tryPromise(() => loadConfig()));
-    const validation = validateLinuxUpdateAll(config, options.offline === true);
+    const validation = validateLinuxUpdateAll(
+      options.profile ?? config.linux?.profile,
+      options.offline === true,
+    );
     if (validation instanceof CliFailure) {
       return yield* validation;
     }
     const profile = validation;
+    const source = yield* tryPromise(() =>
+      prepareLinuxSource({
+        config,
+        profile,
+        refresh: options.noRefresh !== true,
+        offline: options.offline,
+        fetcher: options.sourceFetcher,
+        run: options.run,
+      }),
+    );
+    const selected = yield* tryPromise(() =>
+      validateLinuxByorSource({ root: source.root, profile }),
+    );
 
     const results: Array<{ name: string; ok: boolean; error?: string }> = [];
     const runStep = <A, E, R>(
@@ -85,7 +108,7 @@ export const updateLinuxAll = (options: LinuxUpdateAllOptions = {}) =>
         }),
       );
 
-    const hasHomeManager = profile === "oci-agents" || profile === "ubuntu-wsl";
+    const hasHomeManager = selected.linux.nix !== undefined;
     yield* Console.log(
       ui.heading(
         hasHomeManager
@@ -100,9 +123,9 @@ export const updateLinuxAll = (options: LinuxUpdateAllOptions = {}) =>
         updateNix({
           action: "switch",
           config,
+          repo: source.repo,
+          profile,
           noPush: options.noPush === true,
-          noRefresh: options.noRefresh === true,
-          sourceFetcher: options.sourceFetcher,
         }),
       );
     }

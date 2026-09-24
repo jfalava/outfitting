@@ -1,7 +1,12 @@
+import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
 import { Effect } from "effect";
-import { beforeEach, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import type { ManagerConfig } from "@/config";
+import { writeRepoPath } from "@/config/repo";
 import { CliFailure } from "@/errors";
 import { updateAll } from "@/update/all";
 import { updateBrew } from "@/update/brew";
@@ -14,8 +19,6 @@ vi.mock("@/update/brew", () => ({
 }));
 vi.mock("@/update/linux", () => ({
   isLinuxProfile: (value: string) => /^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(value),
-  isBuiltInLinuxProfile: (value: string) =>
-    value === "generic-linux" || value === "oci-agents" || value === "ubuntu-wsl",
   updateLinux: vi.fn(() => Effect.void),
 }));
 vi.mock("@/update/nix", () => ({
@@ -26,10 +29,47 @@ const config: ManagerConfig = {
   stateRoot: "/state",
   machineId: "test:aarch64-darwin",
   machineIdOverridden: true,
-  manifest: { baseUrl: "https://example.test/outfitting", ref: "main" },
 };
 
 beforeEach(() => vi.clearAllMocks());
+
+const temporaryRoots: string[] = [];
+afterEach(async () => {
+  await Promise.all(
+    temporaryRoots.splice(0).map((root) => rm(root, { force: true, recursive: true })),
+  );
+});
+
+async function makeLinuxConfig(
+  profile: string,
+  declaration: { apt: string; nix?: { flake: string; attribute: string } },
+): Promise<{ config: ManagerConfig; repo: string }> {
+  const stateRoot = await mkdtemp(join(tmpdir(), "outfitting-update-all-state-"));
+  const repo = await mkdtemp(join(tmpdir(), "outfitting-update-all-repo-"));
+  temporaryRoots.push(stateRoot, repo);
+  await mkdir(join(repo, "packages"), { recursive: true });
+  await writeFile(join(repo, "packages", "apt.txt"), declaration.apt);
+  const linux: Record<string, unknown> = { apt: { manifest: "packages/apt.txt" } };
+  if (declaration.nix !== undefined) {
+    await mkdir(join(repo, declaration.nix.flake), { recursive: true });
+    await writeFile(join(repo, declaration.nix.flake, "flake.nix"), "{ outputs = {}; }\n");
+    linux.nix = declaration.nix;
+  }
+  await writeFile(
+    join(repo, "outfitting.json"),
+    `${JSON.stringify({ schema: 1, profiles: { [profile]: { linux } } }, null, 2)}\n`,
+  );
+  await writeRepoPath(repo, { stateRoot, profile });
+  return {
+    repo,
+    config: {
+      stateRoot,
+      machineId: "test:aarch64-linux",
+      machineIdOverridden: true,
+      linux: { profile },
+    },
+  };
+}
 
 test("update all forwards --no-push to Nix and Homebrew", async () => {
   await Effect.runPromise(updateAll({ config, noPush: true }));
@@ -43,12 +83,11 @@ test("update all forwards --no-push to Nix and Homebrew", async () => {
   expect(updateBrew).toHaveBeenCalledWith({ config, noPush: true });
 });
 
-test("Linux update all refreshes Home Manager before native packages", async () => {
-  const linuxConfig = {
-    ...config,
-    machineId: "test:aarch64-linux",
-    linux: { profile: "oci-agents" },
-  };
+test("Linux update all applies the selected BYOR Nix component before native packages", async () => {
+  const { config: linuxConfig, repo } = await makeLinuxConfig("hm-work", {
+    apt: "curl\n",
+    nix: { flake: "system/home", attribute: "homeConfigurations.work.activationPackage" },
+  });
 
   await Effect.runPromise(
     updateLinuxAll({
@@ -62,9 +101,9 @@ test("Linux update all refreshes Home Manager before native packages", async () 
   expect(updateNix).toHaveBeenCalledWith({
     action: "switch",
     config: linuxConfig,
+    repo: expect.objectContaining({ root: repo }),
+    profile: "hm-work",
     noPush: true,
-    noRefresh: true,
-    sourceFetcher: undefined,
   });
   expect(updateLinux).toHaveBeenCalledWith({
     config: linuxConfig,
@@ -75,12 +114,16 @@ test("Linux update all refreshes Home Manager before native packages", async () 
     osReleasePath: undefined,
     readOsRelease: undefined,
   });
+  expect((updateNix as ReturnType<typeof vi.fn>).mock.invocationCallOrder[0]).toBeLessThan(
+    (updateLinux as ReturnType<typeof vi.fn>).mock.invocationCallOrder[0]!,
+  );
 });
 
-test("Linux generic update all stays native-only", async () => {
+test("Linux native-only BYOR profile skips Nix", async () => {
+  const { config: linuxConfig } = await makeLinuxConfig("apt-work", { apt: "curl\n" });
   await Effect.runPromise(
     updateLinuxAll({
-      config: { ...config, machineId: "test:aarch64-linux" },
+      config: linuxConfig,
       packageManager: "apt",
     }),
   );
@@ -97,10 +140,15 @@ test("Linux update all continues with native packages after Home Manager fails",
     Effect.fail(new CliFailure({ message: "source unavailable" })),
   );
 
+  const { config: linuxConfig } = await makeLinuxConfig("hm-fails", {
+    apt: "curl\n",
+    nix: { flake: "system/home", attribute: "homeConfigurations.work.activationPackage" },
+  });
+
   await expect(
     Effect.runPromise(
       updateLinuxAll({
-        config: { ...config, machineId: "test:aarch64-linux", linux: { profile: "ubuntu-wsl" } },
+        config: linuxConfig,
         packageManager: "apt",
       }),
     ),

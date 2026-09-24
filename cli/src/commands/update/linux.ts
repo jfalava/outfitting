@@ -2,7 +2,9 @@ import { Command, Flag } from "effect/unstable/cli";
 
 import {
   linuxOfflineFlag,
+  linuxOptionalProfileFlag,
   linuxPackageManagerFlag,
+  optionalString,
   requestedLinuxPackageManager,
 } from "@/commands/linux-flags";
 import { foreignPackageManagerStub } from "@/commands/update/stubs";
@@ -41,7 +43,7 @@ function makeLinuxManagerCommand(manager: LinuxPackageManager) {
 
 const nixActionDescription = {
   build: "Build the Home Manager activation package without activating.",
-  switch: "Build and activate Home Manager (oci-agents / ubuntu-wsl).",
+  switch: "Build and activate the selected BYOR Home Manager profile.",
   test: "Test-build the Home Manager activation package without activating.",
   dry: "Dry-run the Home Manager build without activating.",
 } as const satisfies Record<NixAction, string>;
@@ -67,13 +69,15 @@ const makeNixCommand = () => {
 const allCommand = Command.make(
   "all",
   {
+    profile: linuxOptionalProfileFlag,
     packageManager: linuxPackageManagerFlag,
     offline: linuxOfflineFlag,
     noPush: noPushFlag,
     noRefresh: noRefreshFlag,
   },
-  ({ packageManager, offline, noPush, noRefresh }) =>
+  ({ profile, packageManager, offline, noPush, noRefresh }) =>
     updateLinuxAll({
+      profile: optionalString(profile),
       packageManager: requestedLinuxPackageManager(packageManager),
       offline,
       noPush,

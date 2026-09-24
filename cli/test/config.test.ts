@@ -1,30 +1,24 @@
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { afterEach, describe, expect, test } from "vitest";
+import { afterEach, describe, expect, test, vi } from "vitest";
 
-import { windowsConfigPatch } from "@/commands/windows-config";
 import {
   autoMachineId,
   defaultStateRoot,
   ensureStateRoot,
   hostSystemTriple,
   loadConfig,
-  resolveWindowsRoutes,
   saveConfigFile,
   stateRoot,
-  syncOutfittingRepo,
 } from "@/config";
 
 const temps: string[] = [];
 
 afterEach(async () => {
+  vi.unstubAllEnvs();
   await Promise.all(temps.splice(0).map((dir) => rm(dir, { force: true, recursive: true })));
-  delete process.env.OUTFITTING_MACHINE_ID;
-  delete process.env.OUTFITTING_MANIFEST_BASE_URL;
-  delete process.env.OUTFITTING_MANIFEST_REF;
-  delete process.env.OUTFITTING_STATE_ROOT;
 });
 
 async function tempRoot(): Promise<string> {
@@ -39,7 +33,7 @@ test("Windows defaults to Local AppData; Unix and explicit state roots are uncha
   expect(defaultStateRoot(home, "win32", localAppData)).toBe(join(localAppData, "outfitting"));
   expect(defaultStateRoot(home, "win32", "")).toBe(join(home, "AppData", "Local", "outfitting"));
   expect(defaultStateRoot(home, "linux")).toBe(join(home, ".config", "outfitting"));
-  process.env.OUTFITTING_STATE_ROOT = join(home, "custom");
+  vi.stubEnv("OUTFITTING_STATE_ROOT", join(home, "custom"));
   expect(stateRoot(home)).toBe(join(home, "custom"));
 });
 
@@ -57,48 +51,31 @@ describe("machine id", () => {
 });
 
 describe("loadConfig", () => {
-  test("defaults without config file", async () => {
+  test("defaults without config file and has no implicit source", async () => {
     const root = await tempRoot();
     const config = await loadConfig({ stateRoot: root });
     expect(config.stateRoot).toBe(root);
     expect(config.machineIdOverridden).toBe(false);
     expect(config.machineId).toMatch(/^.+:.+$/);
-    expect(config.manifest.baseUrl).toBe("https://raw.githubusercontent.com/jfalava/outfitting");
-    expect(config.manifest.ref).toBe("main");
+    expect(config.linux).toBeUndefined();
   });
 
-  test("reads config.json and env overrides machine id", async () => {
+  test("reads config.json and environment overrides machine id", async () => {
     const root = await tempRoot();
     await ensureStateRoot(root);
     await saveConfigFile(
-      {
-        machineId: "from-file:aarch64-darwin",
-        manifest: {
-          baseUrl: "https://raw.githubusercontent.com/acme/workstation-config",
-          ref: "develop",
-        },
-      },
+      { machineId: "from-file:aarch64-darwin", linux: { profile: "oci-agents" } },
       { stateRoot: root },
     );
 
     const fromFile = await loadConfig({ stateRoot: root });
     expect(fromFile.machineId).toBe("from-file:aarch64-darwin");
     expect(fromFile.machineIdOverridden).toBe(true);
-    expect(fromFile.manifest.baseUrl).toBe(
-      "https://raw.githubusercontent.com/acme/workstation-config",
-    );
-    expect(fromFile.manifest.ref).toBe("develop");
+    expect(fromFile.linux).toEqual({ profile: "oci-agents" });
 
-    process.env.OUTFITTING_MACHINE_ID = "from-env:x86_64-linux";
-    process.env.OUTFITTING_MANIFEST_BASE_URL =
-      "https://raw.githubusercontent.com/acme/other-workstation-config";
-    process.env.OUTFITTING_MANIFEST_REF = "v1";
+    vi.stubEnv("OUTFITTING_MACHINE_ID", "from-env:x86_64-linux");
     const fromEnv = await loadConfig({ stateRoot: root });
     expect(fromEnv.machineId).toBe("from-env:x86_64-linux");
-    expect(fromEnv.manifest.baseUrl).toBe(
-      "https://raw.githubusercontent.com/acme/other-workstation-config",
-    );
-    expect(fromEnv.manifest.ref).toBe("v1");
   });
 
   test("rejects invalid config.json", async () => {
@@ -108,107 +85,20 @@ describe("loadConfig", () => {
     await expect(loadConfig({ stateRoot: root })).rejects.toThrow(/not valid JSON/);
   });
 
-  test("saveConfigFile merges and pretty-prints", async () => {
+  test("saveConfigFile merges and pretty-prints supported settings", async () => {
     const root = await tempRoot();
     await saveConfigFile({ machineId: "a:b" }, { stateRoot: root });
-    await saveConfigFile({ manifest: { ref: "main" } }, { stateRoot: root });
+    await saveConfigFile({ linux: { profile: "oci-agents" } }, { stateRoot: root });
     const raw = await readFile(join(root, "config.json"), "utf8");
-    expect(JSON.parse(raw)).toEqual({
-      machineId: "a:b",
-      manifest: { ref: "main" },
-    });
+    expect(JSON.parse(raw)).toEqual({ machineId: "a:b", linux: { profile: "oci-agents" } });
   });
 
-  test("persists and loads the Linux profile", async () => {
+  test("validates Linux profile names before persisting", async () => {
     const root = await tempRoot();
     await saveConfigFile({ linux: { profile: "oci-agents" } }, { stateRoot: root });
-    const config = await loadConfig({ stateRoot: root });
-    expect(config.linux).toEqual({ profile: "oci-agents" });
-    await saveConfigFile({ linux: { profile: "ubuntu-wsl" } }, { stateRoot: root });
-    expect((await loadConfig({ stateRoot: root })).linux).toEqual({ profile: "ubuntu-wsl" });
+    expect((await loadConfig({ stateRoot: root })).linux).toEqual({ profile: "oci-agents" });
     await expect(
       saveConfigFile({ linux: { profile: "../escape" } }, { stateRoot: root }),
     ).rejects.toThrow(/invalid Linux profile/);
-  });
-
-  test("resolves custom Windows routes and defaults", async () => {
-    const root = await tempRoot();
-    await saveConfigFile(
-      {
-        windows: {
-          wingetProfilePath: "profiles/{profile}.list",
-          scoopPath: "packages/scoop.list",
-          powershellProfilePath: "dotfiles/powershell/profile.ps1",
-          fontListPath: "fonts/public.list",
-          registryPath: "windows/registry",
-          defaultProfiles: ["base", "work-laptop"],
-        },
-      },
-      { stateRoot: root },
-    );
-
-    const config = await loadConfig({ stateRoot: root });
-    expect(config.windows).toEqual({
-      wingetProfilePath: "profiles/{profile}.list",
-      scoopPath: "packages/scoop.list",
-      powershellProfilePath: "dotfiles/powershell/profile.ps1",
-      fontListPath: "fonts/public.list",
-      registryPath: "windows/registry",
-      defaultProfiles: ["base", "work-laptop"],
-    });
-    expect(resolveWindowsRoutes(undefined).scoopPath).toBe("packages/windows/scoop.txt");
-    await expect(
-      saveConfigFile(
-        { windows: { wingetProfilePath: "../escape/{profile}.txt" } },
-        { stateRoot: root },
-      ),
-    ).rejects.toThrow(/invalid Windows route/);
-  });
-
-  test("wizard answers map to every configurable Windows artifact", () => {
-    expect(
-      windowsConfigPatch({
-        baseUrl: "https://example.test/config",
-        ref: "work",
-        machineId: "work:x86_64-windows",
-        wingetProfilePath: "profiles/{profile}.txt",
-        scoopPath: "packages/scoop.txt",
-        powershellProfilePath: "dotfiles/profile.ps1",
-        fontListPath: "fonts/list.txt",
-        registryPath: "registry",
-        defaultProfiles: "base,work",
-      }),
-    ).toEqual({
-      machineId: "work:x86_64-windows",
-      manifest: { baseUrl: "https://example.test/config", ref: "work" },
-      windows: {
-        wingetProfilePath: "profiles/{profile}.txt",
-        scoopPath: "packages/scoop.txt",
-        powershellProfilePath: "dotfiles/profile.ps1",
-        fontListPath: "fonts/list.txt",
-        registryPath: "registry",
-        defaultProfiles: ["base", "work"],
-      },
-    });
-  });
-});
-
-describe("repository synchronization", () => {
-  test("refuses to pull a dirty checkout", async () => {
-    const root = await tempRoot();
-    await mkdir(join(root, "system", "macos"), { recursive: true });
-    await writeFile(join(root, "system", "macos", "flake.nix"), "{}\n");
-    const commands: string[][] = [];
-
-    await expect(
-      syncOutfittingRepo(root, {
-        ref: "main",
-        run: async (command, args) => {
-          commands.push([command, ...args]);
-          return { code: 0, stdout: " M local-change\n", stderr: "" };
-        },
-      }),
-    ).rejects.toThrow("uncommitted changes");
-    expect(commands).toEqual([["git", "-C", root, "status", "--porcelain"]]);
   });
 });

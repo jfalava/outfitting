@@ -1,6 +1,6 @@
 ---
 title: Linux
-description: Maintain Linux hosts with apt or pacman and optional Home Manager configuration.
+description: Maintain Linux hosts from local or explicitly mapped BYOR sources.
 audience: linux
 sidebar:
   order: 20
@@ -8,55 +8,32 @@ sidebar:
 
 Linux uses the compiled `outfitting-manager` binary. It detects `/etc/os-release` and the installed package-manager executable, selecting **apt** for Debian-family distributions and **pacman** for Arch-family distributions.
 
-Install with:
+Manager source configuration is explicit: use a local checkout containing root `outfitting.json`, or configure a remote Git repository in the state-root `byor.json`. The manager has no built-in profile or repository-layout defaults. See [BYOR for Linux](/docs/source-configuration/byor/linux/) for the contract and examples.
 
 ```bash
-curl -L linux.jfa.dev | bash
+# Validate and apply a local checkout
+outfitting-manager validate --repo ~/code/my-machine-config --platform linux
+outfitting-manager setup --repo ~/code/my-machine-config --profile workstation
+
+# Configure and use a remote BYOR source
+outfitting-manager byor
+outfitting-manager setup --profile workstation
 ```
 
-The bootstrap selects the Linux x64 or arm64 release, verifies its checksum, and runs the manager. State is stored under `~/.config/outfitting`.
+`setup` installs packages from the selected profile and applies Home Manager when the contract declares a Nix flake. Use `update` for upgrades.
 
-Initialize and apply the default profile separately when needed:
-
-```bash
-outfitting-manager init
-outfitting-manager setup --no-fetch
-```
-
-`init` materializes the sparse source and records `linux.profile` without changing the machine. `setup` installs missing declared packages and applies Home Manager for Nix-backed profiles. Use `update` for upgrades.
-
-## Profiles
-
-Linux activates one profile at a time. See [Profiles](/docs/source-configuration/#profiles) for selection rules.
-
-| Profile                   | Packages                           | Home Manager        |
-| ------------------------- | ---------------------------------- | ------------------- |
-| `generic-linux` (default) | `packages/linux/generic-linux.txt` | No                  |
-| `ubuntu-wsl`              | `packages/ubuntu-wsl/apt.txt`      | `system/ubuntu-wsl` |
-| `oci-agents`              | `packages/linux/oci-agents.txt`    | `system/oci-agents` |
-
-```bash
-outfitting-manager init --profile generic-linux
-outfitting-manager init --profile ubuntu-wsl
-outfitting-manager init --profile oci-agents --repo ~/code/outfitting
-outfitting-manager apply apt
-```
-
-Without `--repo`, the sparse source is `$HOME/.config/outfitting/source`. Set `OUTFITTING_REPO` or pass `--repo` for a full checkout.
-
-## BYOR
-
-Local checkouts may declare arbitrary Linux profiles in `outfitting.json`. See [BYOR for Linux](/docs/source-configuration/byor/linux/) and [validate](/docs/cli/validate/).
+> [!WARNING]
+> The existing Linux bootstrap still invokes the retired implicit-source flow. Its manager-driven package setup will not complete until that installer is migrated; installer scripts are outside this change.
 
 ## Commands
 
-- [Init](/docs/cli/init/) — materialize source and record the profile.
-- [Setup](/docs/cli/setup/) — initialize and install missing declarations.
+- [Init](/docs/cli/init/) — select and validate an explicitly configured source.
+- [Setup](/docs/cli/setup/) — initialize and install declared components.
 - [Validate](/docs/cli/validate/) — check a repository-owned `outfitting.json` without applying it.
-- [BYOR](/docs/cli/byor/) — set up a remote GitHub repository profile map.
-- [Apply](/docs/cli/apply/) — reconcile cached apt or pacman declarations.
+- [BYOR](/docs/cli/byor/) — configure and inspect remote Git source mappings.
+- [Apply](/docs/cli/apply/) — reconcile declared apt or pacman packages.
 - [Update](/docs/cli/update/) — upgrade installed packages.
 - [Sync](/docs/cli/sync/) — transport remote state.
 - [Status](/docs/cli/status/) — inspect effective local configuration.
-- [Install](/docs/cli/linux/install/) — hosted bootstrap.
+- [Install](/docs/cli/linux/install/) — hosted bootstrap status and requirements.
 - [Home Manager](/docs/cli/linux/home-manager/) — `update nix` and `hm-*` helpers.

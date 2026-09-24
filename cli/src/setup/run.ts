@@ -1,77 +1,51 @@
 import { Console, Effect } from "effect";
 
 import {
+  byorMapPath,
   configFilePath,
   ensureStateRoot,
   loadConfig,
-  repoPathFile,
   saveConfigFile,
-  resolveWindowsRoutes,
-  resolveOutfittingRepo,
-  tryResolveOutfittingRepo,
   writeRepoPath,
-  type ManagerConfig,
-  type ManagerConfigFile,
-  type ManifestSourceConfig,
+  type OutfittingRepo,
 } from "@/config";
 import { sparseSourceRoot } from "@/config/paths";
-import { physicalPath, readRepoPathFile, type OutfittingRepo } from "@/config/repo";
-import type { ManifestFetcher } from "@/fetch";
-import { remoteByorPlatform } from "@/fetch/github";
+import { physicalPath, readRepoPathFile } from "@/config/repo";
+import type { ManifestFetcher } from "@/fetch/github";
 import { tryPromise } from "@/lockfiles/effect";
 import type { HostPlatform } from "@/platform";
 import type { runCommand } from "@/process";
 import { envValue } from "@/secrets";
-import { prefetchSetupManifests, windowsSetupManifestPaths } from "@/setup/manifests";
-import { syncByorSparseSource, syncSparseSource, type SparseSourceResult } from "@/setup/source";
-import { validateMacosSource } from "@/setup/validate";
+import { syncByorSparseSource } from "@/setup/source";
+import { readByorMap } from "@/source/byor-map";
+import {
+  validateLinuxByorSource,
+  validateMacosByorSource,
+  validateWindowsByorSource,
+} from "@/source/contract";
 import { ui } from "@/ui";
 
 export interface SetupOptions {
   /** Explicit platform for platform-specific entrypoints, including cross-platform tests. */
   platform?: HostPlatform;
-  /** Optional machine id override written to config.json. */
   machineId?: string;
-  /** Optional manifest base URL. */
-  manifestBaseUrl?: string;
-  /** Optional manifest ref (branch/tag/SHA). */
-  manifestRef?: string;
-  /** Monorepo path to persist as repo-path (set_outfitting_repo replacement). */
+  /** Selected local checkout. It takes precedence over byor.json and is never fetched. */
   repo?: string;
-  /** Linux BYOR profile used when validating a repository-owned contract. */
+  /** Profile used to select and validate repository-owned configuration. */
   repoProfile?: string;
-  /** Fetch core manifests into state root (default true). */
-  fetchManifests?: boolean;
-  /** Manifest paths to prefetch; defaults to the macOS set. */
-  manifestPaths?: ReadonlyArray<string>;
-  /** Use configured Windows routes when no explicit manifest paths are supplied. */
-  useWindowsRoutes?: boolean;
-  /** Fetch and publish a sparse source tree instead of loose manifests. */
-  sourcePaths?: ReadonlyArray<string>;
-  /**
-   * Fetch a remote BYOR contract into the managed sparse tree.
-   * Ignored when `repo` is a local checkout.
-   */
-  remoteByor?: HostPlatform;
-  /** Override the sparse source root. */
+  /** Refresh the configured remote Git source; defaults to true. */
+  refreshSource?: boolean;
   sourceRoot?: string;
-  /** Skip nix-darwin / home-manager symlink ensure. */
   skipSymlinks?: boolean;
-  /** Platform-specific symlink setup, supplied only by the macOS entrypoint. */
   ensureSymlinks?: (repo: OutfittingRepo) => Promise<void>;
-  /** Validate the configured macOS repository before returning. */
-  validateSource?: boolean;
-  /** Command shown as the next step after setup. */
   nextCommand?: string;
-  /** Override state root (tests / OUTFITTING_STATE_ROOT already handled in load). */
   stateRoot?: string;
-  /** Injected fetcher for tests. */
   fetcher?: ManifestFetcher;
   run?: typeof runCommand;
   offline?: boolean;
 }
 
-/** Resolve persisted sources before selecting platform-specific fetch paths. */
+/** Resolve a selected local checkout or require a configured remote BYOR source. */
 export async function resolveSetupSource(options: SetupOptions): Promise<SetupOptions> {
   const config = await loadConfig({ stateRoot: options.stateRoot });
   const explicitRepo = options.repo ?? envValue("OUTFITTING_REPO");
@@ -79,193 +53,90 @@ export async function resolveSetupSource(options: SetupOptions): Promise<SetupOp
   const managed =
     saved === undefined ? undefined : sparseSourceRoot(await physicalPath(config.stateRoot));
   const repo = explicitRepo ?? (saved === managed ? undefined : saved);
-  const baseUrl =
-    envValue("OUTFITTING_MANIFEST_BASE_URL") ?? options.manifestBaseUrl ?? config.manifest.baseUrl;
   const platform =
     options.platform ??
-    options.remoteByor ??
     (process.platform === "darwin" ? "macos" : process.platform === "win32" ? "windows" : "linux");
-  return {
-    ...options,
-    repo,
-    remoteByor: remoteByorPlatform(platform, baseUrl, repo, config.manifest.kind),
-  };
-}
 
-function buildConfigPatch(options: SetupOptions): ManagerConfigFile | undefined {
-  const patch: ManagerConfigFile = {};
-  if (options.machineId !== undefined) {
-    patch.machineId = options.machineId;
+  if (repo !== undefined) {
+    return { ...options, repo, platform };
   }
-  if (options.manifestBaseUrl !== undefined || options.manifestRef !== undefined) {
-    const manifest: Partial<ManifestSourceConfig> = {};
-    if (options.manifestBaseUrl !== undefined) {
-      manifest.baseUrl = options.manifestBaseUrl;
-    }
-    if (options.manifestRef !== undefined) {
-      manifest.ref = options.manifestRef;
-    }
-    patch.manifest = manifest;
+  if ((await readByorMap(config.stateRoot)) === undefined) {
+    throw new Error(
+      `No local outfitting.json checkout or remote source is configured. Set OUTFITTING_REPO or run \`outfitting-manager byor\` (see ${byorMapPath(config.stateRoot)}).`,
+    );
   }
-  if (patch.machineId === undefined && patch.manifest === undefined) {
-    return undefined;
-  }
-  return patch;
+  return { ...options, repo: undefined, platform };
 }
 
-function logSparseSource(source: SparseSourceResult) {
-  return Effect.gen(function* () {
-    for (const item of source.files) {
-      yield* Console.log(ui.success(`${item.path} (${item.source}) → ${source.root}`));
-      if (item.warning) {
-        yield* Console.log(ui.muted(item.warning));
-      }
-    }
-  });
-}
-
-function setupRemoteByor(options: SetupOptions, config: ManagerConfig, root: string) {
-  return Effect.gen(function* () {
-    if (options.remoteByor === undefined) {
-      return;
-    }
-    yield* Console.log(ui.heading("Fetching remote BYOR source…"));
-    const source = yield* tryPromise(() =>
-      syncByorSparseSource({
-        config,
-        platform: options.remoteByor!,
-        profile: options.repoProfile,
-        sourceRoot: options.sourceRoot,
-        fetcher: options.fetcher,
-        run: options.run,
-        offline: options.offline,
-      }),
-    );
-    yield* logSparseSource(source);
-    const written = yield* tryPromise(() =>
-      writeRepoPath(source.root, { stateRoot: root, profile: options.repoProfile }),
-    );
-    yield* Console.log(ui.success(`Remote BYOR source set to: ${written.repo.root}`));
-    yield* Console.log(ui.muted(`repo-path: ${written.pathFile}`));
-  });
-}
-
-function fetchSetupSource(options: SetupOptions, config: ManagerConfig, root: string) {
-  return Effect.gen(function* () {
-    if (options.remoteByor !== undefined && options.repo === undefined) {
-      yield* setupRemoteByor(options, config, root);
-      return;
-    }
-    if (options.sourcePaths !== undefined && options.repo === undefined) {
-      yield* setupSparseSource(options, config, root);
-      return;
-    }
-    yield* prefetchCoreManifests(options, config);
-  });
-}
-
-function setupSparseSource(options: SetupOptions, config: ManagerConfig, root: string) {
-  return Effect.gen(function* () {
-    yield* Console.log(ui.heading("Fetching sparse source…"));
-    const source = yield* tryPromise(() =>
-      syncSparseSource({
-        config,
-        sourceRoot: options.sourceRoot,
-        paths: options.sourcePaths,
-        fetcher: options.fetcher,
-        offline: options.offline,
-      }),
-    );
-    yield* logSparseSource(source);
-    const written = yield* tryPromise(() => writeRepoPath(source.root, { stateRoot: root }));
-    yield* Console.log(ui.success(`Sparse source path set to: ${written.repo.root}`));
-    yield* Console.log(ui.muted(`repo-path: ${written.pathFile}`));
-  });
-}
-
-function prefetchCoreManifests(options: SetupOptions, config: ManagerConfig) {
-  return Effect.gen(function* () {
-    yield* Console.log(ui.heading("Prefetching core manifests…"));
-    const prefetched = yield* tryPromise(() =>
-      prefetchSetupManifests({
-        config,
-        paths:
-          options.manifestPaths ??
-          (options.useWindowsRoutes
-            ? windowsSetupManifestPaths(resolveWindowsRoutes(config.windows))
-            : undefined),
-        fetcher: options.fetcher,
-        offline: options.offline,
-      }),
-    );
-    for (const item of prefetched.ok) {
-      const where = item.materializedPath ?? item.path;
-      yield* Console.log(ui.success(`${item.path} (${item.source}) → ${where}`));
-      if (item.warning) {
-        yield* Console.log(ui.muted(item.warning));
-      }
-    }
-    for (const item of prefetched.failed) {
-      yield* Console.log(ui.muted(`manifest ${item.path}: ${item.error}`));
-    }
-  });
-}
-
-/**
- * Materialize state root: config, optional repo-path, source/manifests, nix symlinks.
- * Does not clone the monorepo.
- */
+/** Materialize the selected source, state root, config, and optional nix symlinks. */
 export const runSetup = (input: SetupOptions = {}) =>
   Effect.gen(function* () {
     const options = yield* tryPromise(() => resolveSetupSource(input));
     const root = yield* tryPromise(() =>
       options.stateRoot === undefined ? ensureStateRoot() : ensureStateRoot(options.stateRoot),
     );
-
-    const patch = buildConfigPatch(options);
-    if (patch !== undefined) {
-      yield* tryPromise(() => saveConfigFile(patch, { stateRoot: root }));
+    if (options.machineId !== undefined) {
+      yield* tryPromise(() =>
+        saveConfigFile({ machineId: options.machineId }, { stateRoot: root }),
+      );
     }
-
     const config = yield* tryPromise(() => loadConfig({ stateRoot: root }));
     yield* Console.log(ui.success(`State root ready: ${config.stateRoot}`));
     yield* Console.log(ui.muted(`machine id: ${config.machineId}`));
-    yield* Console.log(ui.muted(`manifests: ${config.manifest.baseUrl}/${config.manifest.ref}/…`));
     yield* Console.log(ui.muted(`config: ${configFilePath(config.stateRoot)}`));
 
-    const shouldFetch = options.fetchManifests !== false;
-    if (shouldFetch) {
-      yield* fetchSetupSource(options, config, root);
+    let selectedRepo = options.repo;
+    if (selectedRepo === undefined) {
+      yield* Console.log(
+        ui.heading(
+          options.refreshSource === false || options.offline === true
+            ? "Validating cached source…"
+            : "Refreshing remote source…",
+        ),
+      );
+      const source = yield* tryPromise(() =>
+        syncByorSparseSource({
+          config,
+          platform: options.platform!,
+          profile: options.repoProfile,
+          sourceRoot: options.sourceRoot,
+          fetcher: options.fetcher,
+          run: options.run,
+          offline: options.offline || options.refreshSource === false,
+        }),
+      );
+      selectedRepo = source.root;
+      for (const item of source.files) {
+        yield* Console.log(ui.success(`${item.path} (${item.source}) → ${source.root}`));
+      }
     }
 
-    if (options.repo !== undefined) {
-      const written = yield* tryPromise(() =>
-        writeRepoPath(options.repo!, { stateRoot: root, profile: options.repoProfile }),
-      );
-      yield* Console.log(ui.success(`Repository path set to: ${written.repo.root}`));
-      yield* Console.log(ui.muted(`repo-path: ${written.pathFile}`));
-    }
+    const platform = options.platform!;
+    yield* tryPromise(async () => {
+      if (platform === "macos") {
+        await validateMacosByorSource({ root: selectedRepo!, profile: options.repoProfile });
+      } else if (platform === "linux") {
+        await validateLinuxByorSource({ root: selectedRepo!, profile: options.repoProfile });
+      } else {
+        await validateWindowsByorSource({
+          root: selectedRepo!,
+          profiles: options.repoProfile?.split(","),
+        });
+      }
+    });
 
-    if (options.validateSource === true) {
-      const repo = yield* tryPromise(() =>
-        resolveOutfittingRepo({ config, profile: options.repoProfile }),
-      );
-      yield* tryPromise(() => validateMacosSource(repo, { profile: options.repoProfile }));
-      yield* Console.log(ui.success(`macOS repository contract valid: ${repo.root}`));
-    }
+    const written = yield* tryPromise(() =>
+      writeRepoPath(selectedRepo!, {
+        stateRoot: root,
+        profile: platform === "windows" ? undefined : options.repoProfile,
+      }),
+    );
+    yield* Console.log(ui.success(`Source path set to: ${written.repo.root}`));
+    yield* Console.log(ui.muted(`repo-path: ${written.pathFile}`));
 
     if (options.ensureSymlinks !== undefined && options.skipSymlinks !== true) {
-      const repo = yield* tryPromise(() => tryResolveOutfittingRepo({ config }));
-      if (repo !== undefined) {
-        yield* tryPromise(() => options.ensureSymlinks!(repo));
-        yield* Console.log(ui.success(`nix-darwin symlinks ensured for ${repo.root}`));
-      } else {
-        yield* Console.log(
-          ui.muted(
-            `No source configured yet. Re-run setup with fetching enabled (writes ${repoPathFile(root)}).`,
-          ),
-        );
-      }
+      yield* tryPromise(() => options.ensureSymlinks!(written.repo));
+      yield* Console.log(ui.success(`nix-darwin symlinks ensured for ${written.repo.root}`));
     }
 
     yield* Console.log("");

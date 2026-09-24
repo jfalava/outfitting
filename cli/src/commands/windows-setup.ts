@@ -4,7 +4,7 @@ import { Command, Flag } from "effect/unstable/cli";
 import { initializeWindows } from "@/commands/setup/windows";
 import { applyWindows } from "@/commands/windows-apply";
 
-/** Apply the configured Windows repository state after initializing its cache. */
+/** Apply the selected Windows BYOR state after refreshing or validating its source. */
 export const windowsSetupCommand = Command.make(
   "setup",
   {
@@ -12,40 +12,34 @@ export const windowsSetupCommand = Command.make(
       Flag.optional,
       Flag.withDescription("Override machine id (default: configured or auto user:arch-os)."),
     ),
-    manifestBaseUrl: Flag.String("manifest-base-url").pipe(
-      Flag.optional,
-      Flag.withDescription("Raw-compatible repository base URL without ref."),
-    ),
-    manifestRef: Flag.String("manifest-ref").pipe(
-      Flag.optional,
-      Flag.withDescription("Repository ref (branch, tag, or SHA)."),
+    noRefresh: Flag.Boolean("no-refresh").pipe(
+      Flag.withDefault(false),
+      Flag.withDescription("Use the previously validated remote source without fetching updates."),
     ),
     profile: Flag.String("profile").pipe(
       Flag.optional,
-      Flag.withDescription("Comma-separated profile names from the configured repository."),
+      Flag.withDescription("Comma-separated profiles from outfitting.json or byor.json."),
     ),
     repo: Flag.String("repo").pipe(
       Flag.optional,
-      Flag.withDescription("Local BYOR repository checkout to validate and use."),
+      Flag.withDescription("Local BYOR checkout; takes precedence over the remote BYOR map."),
     ),
     wingetOnly: Flag.Boolean("winget-only").pipe(
       Flag.withDefault(false),
       Flag.withDescription("Skip Scoop while bootstrapping WinGet."),
     ),
   },
-  ({ machineId, manifestBaseUrl, manifestRef, profile, repo, wingetOnly }) =>
+  ({ machineId, noRefresh, profile, repo, wingetOnly }) =>
     initializeWindows({
-      profiles: Option.isSome(profile) ? [profile.value] : undefined,
+      profiles: Option.isSome(profile) ? profile.value.split(",") : undefined,
       machineId: Option.getOrUndefined(machineId),
-      manifestBaseUrl: Option.getOrUndefined(manifestBaseUrl),
-      manifestRef: Option.getOrUndefined(manifestRef),
       repo: Option.getOrUndefined(repo),
-      useWindowsRoutes: true,
+      refreshSource: !noRefresh,
       nextCommand: "Applying Windows desired state…",
     }).pipe(
       Effect.flatMap(() =>
         applyWindows({
-          profiles: Option.isSome(profile) ? [profile.value] : undefined,
+          profiles: Option.isSome(profile) ? profile.value.split(",") : undefined,
           wingetOnly,
           yes: true,
         }),
@@ -53,6 +47,6 @@ export const windowsSetupCommand = Command.make(
     ),
 ).pipe(
   Command.withDescription(
-    "Initialize and apply the configured Windows profiles, packages, and PowerShell profile.",
+    "Refresh or validate the selected BYOR source, then apply its declared Windows package profiles.",
   ),
 );

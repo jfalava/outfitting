@@ -6,36 +6,36 @@ sidebar:
   order: 2
 ---
 
-The Linux manager stores its configuration, cached manifests, and managed source under `~/.config/outfitting`. Linux activates one profile at a time; see [Profiles](/docs/source-configuration/#profiles) for selection rules.
+The Linux manager stores its state root under `~/.config/outfitting` by default. Machine configuration comes from a local checkout with root `outfitting.json` or a remote source in `byor.json`. Linux activates one declared profile at a time; see [BYOR for Linux](/docs/source-configuration/byor/linux/) for profile selection.
 
 ## Apply profile packages (`apply`)
 
-Use [`apply`](/docs/cli/apply/) to install missing packages declared by the active profile:
+Use [`apply`](/docs/cli/apply/) to install missing packages declared by the selected profile:
 
 ```bash
 # Reconcile all declared packages
 outfitting-manager apply all
 
-# Use local files without pulling remote source changes
+# Reuse the previously validated remote snapshot
 outfitting-manager apply all --no-refresh
 
-# Apply with a specific profile
-outfitting-manager apply apt --profile ubuntu-wsl
+# Apply a named profile
+outfitting-manager apply apt --profile debian-minimal
 
 # Remove packages no longer declared in the active profile
 outfitting-manager apply all --prune
 ```
 
-By default, `apply` only adds missing software and never uninstalls anything. When passed `--prune`, Outfitting only removes packages that it previously installed for the active profile and that are no longer in the manifest. Manually installed packages or pre-existing system packages are never removed.
+By default, `apply` only adds missing software and never uninstalls anything. With `--prune`, Outfitting only removes packages it previously installed for the active profile and that are no longer declared. Manually installed or pre-existing system packages are protected.
 
-Use `--offline` to skip both repository refreshes and package-manager network calls.
+Use `--offline` to reuse only an existing validated source snapshot and skip package-manager network calls. It cannot create a missing snapshot.
 
 ## Upgrade installed packages (`update`)
 
-Use [`update`](/docs/cli/update/) to upgrade existing packages to their newest versions:
+Use [`update`](/docs/cli/update/) to upgrade existing packages:
 
 ```bash
-# Upgrade all packages (native and Nix if applicable)
+# Upgrade native packages and the selected profile's Nix configuration, if declared
 outfitting-manager update all
 
 # Upgrade only native packages
@@ -43,9 +43,9 @@ outfitting-manager update apt
 outfitting-manager update pacman
 ```
 
-## Nix and Home Manager profiles
+## Nix and Home Manager
 
-For Nix-backed profiles (`ubuntu-wsl` and `oci-agents`), `update all` rebuilds and switches Home Manager before upgrading native packages (`generic-linux` only manages native packages).
+Any Linux profile may declare a Nix flake. When present, `update all` switches Home Manager before upgrading native packages. A profile without a Nix declaration only updates native packages.
 
 To run targeted Home Manager actions:
 
@@ -55,7 +55,7 @@ outfitting-manager update nix switch
 outfitting-manager update nix switch --no-refresh
 ```
 
-Nix operations read the profile's `flake.lock` and refresh the managed source by default. Use `--no-refresh` to use the local checkout and `--no-push` to keep lockfile changes local.
+Nix operations read the selected profile's checked-in `flake.lock`. Remote refresh stages and validates the declared BYOR source before publishing it. `--no-refresh` reuses the validated snapshot; a local checkout is read directly and never fetched. `--no-push` keeps lockfile changes local.
 
 ## Additional tools
 

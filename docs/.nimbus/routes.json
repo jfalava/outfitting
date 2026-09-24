@@ -28,7 +28,6 @@
     "/docs/cli/upgrade",
     "/docs/cli/validate",
     "/docs/cli/windows",
-    "/docs/cli/windows/config",
     "/docs/cli/windows/packages",
     "/docs/cli/windows/scoop",
     "/docs/cli/windows/winget",

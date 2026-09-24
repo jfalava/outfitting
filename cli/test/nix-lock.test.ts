@@ -15,7 +15,6 @@ const config: ManagerConfig = {
   stateRoot: "/state",
   machineId: "test:aarch64-darwin",
   machineIdOverridden: true,
-  manifest: { baseUrl: "https://example.test/outfitting", ref: "main" },
 };
 
 describe("openNixLock", () => {

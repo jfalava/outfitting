@@ -7,7 +7,7 @@ import { Option, Schema } from "effect";
 import { stateRoot, type ManagerConfig } from "@/config";
 
 export const WINDOWS_LOCK_KIND = "windows";
-export const WINDOWS_LOCK_FORMAT = "outfitting-windows-lock-v1";
+export const WINDOWS_LOCK_FORMAT = "outfitting-windows-lock-v2";
 const MAX_OPERATION_HISTORY = 100;
 
 export function wingetSource(args: ReadonlyArray<string>): "winget" | "msstore" {
@@ -60,10 +60,6 @@ export interface WindowsOperationRecord {
 export interface WindowsLock {
   format: typeof WINDOWS_LOCK_FORMAT;
   machine: string;
-  source: {
-    baseUrl: string;
-    ref: string;
-  };
   profiles: string[];
   packages: Record<WindowsPackageManager, WindowsPackageRecord[]>;
   operations: WindowsOperationRecord[];
@@ -94,7 +90,6 @@ function newWindowsLock(config: ManagerConfig): WindowsLock {
   return {
     format: WINDOWS_LOCK_FORMAT,
     machine: config.machineId || hostname(),
-    source: { ...config.manifest },
     profiles: [],
     packages: { winget: [], scoop: [], bun: [] },
     operations: [],
@@ -122,10 +117,6 @@ const WindowsOperationSchema = Schema.Struct({
 const WindowsLockSchema = Schema.Struct({
   format: Schema.Literal(WINDOWS_LOCK_FORMAT),
   machine: Schema.String,
-  source: Schema.Struct({
-    baseUrl: Schema.String,
-    ref: Schema.String,
-  }),
   profiles: Schema.Array(Schema.String),
   packages: Schema.Struct({
     winget: Schema.Array(WindowsPackageRecordSchema),
@@ -170,7 +161,6 @@ async function readWindowsLockFile(path: string): Promise<WindowsLock | undefine
   return {
     format: WINDOWS_LOCK_FORMAT,
     machine: decoded.value.machine,
-    source: { ...decoded.value.source },
     profiles: [...decoded.value.profiles],
     packages: {
       winget: decoded.value.packages.winget.map(clonePackageRecord),
@@ -245,7 +235,6 @@ export async function recordWindowsOperation(
   const root = options.root ?? input.config.stateRoot;
   const lock = await readWindowsLock(input.config, { root });
   lock.machine = input.config.machineId;
-  lock.source = { ...input.config.manifest };
   const identity =
     input.manager === "scoop" ? (input.name.split("/").at(-1) ?? input.name) : input.name;
   const operation: WindowsOperationRecord = {

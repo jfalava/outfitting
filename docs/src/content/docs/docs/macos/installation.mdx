@@ -1,6 +1,6 @@
 ---
 title: Installation
-description: Install Outfitting on macOS with Homebrew, Nix, and nix-darwin configuration.
+description: Install Outfitting on macOS and configure a BYOR source.
 audience: macos
 sidebar:
   order: 1
@@ -10,7 +10,7 @@ sidebar:
 
 - **Hardware:** Apple Silicon Mac (M1/M2/M3/M4).
 - **Permissions:** An interactive terminal session with `sudo` access.
-- **Network:** Internet access to GitHub, Homebrew, Determinate Systems (Nix installer), and the Outfitting lockfile service.
+- **Network:** Internet access to GitHub, Homebrew, and Determinate Systems (Nix installer).
 
 ## Install
 
@@ -20,36 +20,27 @@ Run the hosted installer script:
 curl -L mac.jfa.dev | bash
 ```
 
-Once the installation finishes, open a new shell session to load updated environment variables.
+> [!WARNING]
+> The current bootstrap still invokes `init` and `setup` without an explicit BYOR source. Those manager steps cannot complete until the installer is migrated. Installer scripts are unchanged by this migration.
 
-## Bring Your Own Repo (BYOR)
+## Configure a source
 
-You can use your own dotfiles repository instead of Outfitting's built-in configuration.
+The manager accepts either a local checkout with a root `outfitting.json` or a remote Git source explicitly declared in the state-root `byor.json`. It does not infer a repository, profile layout, or default ref.
 
-### Custom repository (`outfitting.json`)
-
-If your repository has an `outfitting.json` file defining a macOS profile, point `outfitting-manager` to your local clone:
+For a local checkout:
 
 ```bash
-# Validate the configuration without making changes
 outfitting-manager validate --repo ~/src/my-machine-config --platform macos
-
-# Apply nix-darwin and Homebrew configuration
-outfitting-manager setup --repo ~/src/my-machine-config
+outfitting-manager setup --repo ~/src/my-machine-config --profile personal-mac
 ```
 
-See [BYOR for macOS](/docs/source-configuration/byor/macos/) for configuration options, Brewfile paths, and font manifests.
-
-### Hosted remote repository
-
-If you prefer to pull directly from a hosted Git repository without keeping a local clone, pass the raw URL and branch:
+For a remote Git source, use [`outfitting-manager byor`](/docs/cli/byor/) to select the repository, ref, profile, and paths:
 
 ```bash
-outfitting-manager setup \
-  --manifest-base-url https://raw.githubusercontent.com/example/my-machine-config \
-  --manifest-ref main
+outfitting-manager byor
+outfitting-manager setup --profile personal-mac
 ```
 
-Hosted sources expect Outfitting's default macOS directory structure (e.g., `system/macos/flake.nix`, `packages/macos/Brewfile`), and the Nix flake must expose `darwinConfigurations`.
+GitHub, GitHub Enterprise, HTTPS Git, and SSH remotes are supported. See [BYOR for macOS](/docs/source-configuration/byor/macos/) for the contract, Brewfile paths, and fonts.
 
-For the full list of macOS commands and shell helpers, see the [macOS CLI reference](/docs/cli/macos/).
+For macOS commands and shell helpers, see the [macOS CLI reference](/docs/cli/macos/).

@@ -25,10 +25,10 @@ outfitting-manager validate --repo ~/src/my-machine-config --profile workstation
 outfitting-manager validate --repo ~/src/my-machine-config --platform linux
 ```
 
-| Flag | Description |
-| ---- | ----------- |
-| `--repo` | Path to the local repository root (defaults to current directory). |
-| `--profile` | Target profile name. Required when multiple Linux or macOS profiles are defined. Comma-separated on Windows. |
+| Flag         | Description                                                                                                                |
+| ------------ | -------------------------------------------------------------------------------------------------------------------------- |
+| `--repo`     | Path to the local repository root (defaults to current directory).                                                         |
+| `--profile`  | Target profile name. Required when multiple Linux or macOS profiles are defined. Comma-separated on Windows.               |
 | `--platform` | Target platform (`linux`, `windows`, or `macos`). Required when `outfitting.json` defines profiles for multiple platforms. |
 
 ## What gets checked
@@ -44,6 +44,6 @@ If validation succeeds, `validate` prints the resolved repository root, platform
 
 - Supported across Linux, macOS, and Windows.
 - Automatically selects the target platform when `outfitting.json` only declares one platform; pass `--platform` when disambiguation is needed.
-- Requires a local repository checkout. Hosted sparse sources cannot be validated with this command.
+- Validates a local checkout. Remote BYOR files are validated as part of source refresh; this command does not fetch them.
 
 For schema references and platform examples, see [Source configuration](/docs/source-configuration/) and the BYOR guides for [Linux](/docs/source-configuration/byor/linux/), [macOS](/docs/source-configuration/byor/macos/), and [Windows](/docs/source-configuration/byor/windows/).

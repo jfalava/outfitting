@@ -1,131 +1,69 @@
 ---
 title: Linux
-description: Configure a Linux repository and profiles for Outfitting.
+description: Declare Linux package and Home Manager paths with BYOR.
 sidebar:
   order: 2
 ---
 
-Outfitting lets you configure Linux hosts using your own Git repository. You can define custom profiles in an `outfitting.json` file at the root of your repo, or follow Outfitting's built-in profile layout.
+Linux configuration comes only from a BYOR declaration. Use a local checkout with root `outfitting.json`, or configure a remote Git source with `outfitting-manager byor`. Profile names and repository paths are yours to choose.
 
-## Define custom profiles (`outfitting.json`)
+## Declare Linux profiles
 
-To use your own repository structure, add an `outfitting.json` file to the root of your repository. You can choose any profile names you like, and configure `apt`, `pacman`, `nix`, or any combination of them for each profile:
+Each Linux profile may declare an apt manifest, a pacman manifest, a Nix flake, or a combination:
 
 ```json
 {
   "schema": 1,
   "profiles": {
-    "nix-server": {
-      "linux": {
-        "nix": {
-          "flake": "system/server",
-          "attribute": "homeConfigurations.server.activationPackage"
-        }
-      }
-    },
     "debian-minimal": {
       "linux": {
-        "apt": { "manifest": "packages/debian/minimal.txt" }
+        "apt": { "manifest": "ops/linux/debian.txt" }
+      }
+    },
+    "workstation-hm": {
+      "linux": {
+        "pacman": { "manifest": "ops/linux/arch.txt" },
+        "nix": {
+          "flake": "hosts/workstation",
+          "attribute": "homeConfigurations.workstation.activationPackage"
+        },
+        "paths": ["modules/shared.nix"]
       }
     }
   }
 }
 ```
 
-### Configuration rules
+The flake directory is fetched as a complete tree. Add `linux.paths` for any other files the evaluation reads. Paths are relative to the repository root and cannot escape it.
 
-- **Profile exclusivity:** Linux activates one profile at a time (e.g. `--profile debian-minimal`). Selecting a profile replaces the active one rather than combining with it.
-- **Backend combinations:** A single profile can combine `apt` or `pacman` manifests with a `nix` flake, or use only one backend.
-- **Path safety:** Manifest and flake paths are relative to your repository root and cannot traverse outside it.
-- **Multi-platform:** The same `outfitting.json` can also define profiles for Windows and macOS. See [BYOR for Windows](/docs/source-configuration/byor/windows/) and [BYOR for macOS](/docs/source-configuration/byor/macos/).
+## Use a local checkout
 
-## Validate and apply
-
-### 1. Validate your configuration
-
-Test your repository structure without installing packages or touching machine state:
+Validate first, then select the same source and profile for setup:
 
 ```bash
-outfitting-manager validate \
-  --repo ~/src/my-machine-config \
-  --profile debian-minimal
+outfitting-manager validate --repo ~/src/machine-config --platform linux --profile debian-minimal
+outfitting-manager init --repo ~/src/machine-config --profile debian-minimal
+outfitting-manager setup --repo ~/src/machine-config --profile debian-minimal
 ```
 
-If `outfitting.json` defines profiles for multiple platforms, add `--platform linux`.
+The checkout must contain a valid `outfitting.json`. Outfitting reads it directly and does not fetch the checkout's Git remote.
 
-### 2. Initialize or apply
+## Use a remote Git source
 
-Once validated, point `init` or `setup` to your repository:
-
-```bash
-# Prepare state without modifying installed packages
-outfitting-manager init \
-  --repo ~/src/my-machine-config \
-  --profile debian-minimal
-
-# Install declared packages and apply Nix state
-outfitting-manager setup \
-  --repo ~/src/my-machine-config \
-  --profile debian-minimal
-```
-
-You can also set the `OUTFITTING_REPO` environment variable instead of passing `--repo` every time.
-
-## Remote repositories (`byor.json`)
-
-If your repository is hosted on GitHub or GitHub Enterprise and you do not want to commit an `outfitting.json` file into it, you can map your repository using the interactive BYOR wizard:
+Configure the repository, ref, and profile paths in the local `byor.json` map:
 
 ```bash
-outfitting-manager byor
-```
+outfitting-manager byor \
+  --platform linux \
+  --repo git@code.example.com:team/machine-config.git \
+  --ref main \
+  --profile debian-minimal \
+  --apt ops/linux/debian.txt
 
-The wizard prompts for:
-- Repository URL and git ref (branch, tag, or commit).
-- Profile name and platform (`linux`).
-- Manifest paths (`apt` or `pacman`) and/or Nix flake directory.
-- Any files outside your flake directory.
-
-This writes a local profile map to `~/.config/outfitting/byor.json`. Outfitting fetches manifests and complete Nix flake trees using raw HTTPS (for public GitHub) or `gh api` (for GitHub Enterprise).
-
-After running `byor`, initialize or apply your profile:
-
-```bash
 outfitting-manager init --profile debian-minimal
 outfitting-manager setup --profile debian-minimal
 ```
 
-See the [`byor` CLI reference](/docs/cli/byor/) for command flags.
+GitHub remotes use commit-pinned reads. Other HTTPS and SSH Git remotes use Git and your configured credentials. Refresh downloads only the profile's declared files. A failed refresh leaves the previous validated source in place; `--no-refresh` uses that local snapshot.
 
-## Built-in repository layout
-
-If your repository does not contain an `outfitting.json`, Outfitting looks for its built-in profiles: `generic-linux`, `ubuntu-wsl`, or `oci-agents`. This layout is also used when pulling from a remote hosted source via `--manifest-base-url`.
-
-Nix-backed built-in profiles expect these shared paths:
-
-```text
-system/common/zsh.nix
-system/common/zsh/outfitting.plugin.zsh
-system/common/zsh/hm-profile.inc.zsh
-system/common/dotfiles.nix
-dotfiles/ssh.config
-packages/common/programs.nix
-packages/common/packages.nix
-packages/common/opencode-mcp.nix
-```
-
-In addition, each built-in profile requires its specific manifests and files:
-
-| Profile | Package manifest | Nix configuration |
-| --- | --- | --- |
-| `generic-linux` | `packages/linux/generic-linux.txt` | None (native packages only). |
-| `oci-agents` | `packages/linux/oci-agents.txt` | `packages/oci-agents/packages.nix` and `system/oci-agents/{agent-guidance.md,agents.nix,bootstrap.sh,flake.lock,flake.nix,home.nix,zsh/oci-agents.plugin.zsh}`. Flake must export `homeConfigurations.oci-agents`. |
-| `ubuntu-wsl` | `packages/ubuntu-wsl/apt.txt` | `packages/ubuntu-wsl/packages.nix` and `system/ubuntu-wsl/{base.nix,bootstrap.sh,flake.lock,flake.nix,zsh/wsl.plugin.zsh}`. Flake must export `homeConfigurations.jfalava`. |
-
-To use a hosted repository without a local checkout:
-
-```bash
-outfitting-manager setup \
-  --profile generic-linux \
-  --manifest-base-url https://raw.githubusercontent.com/example/my-machine-config \
-  --manifest-ref main
-```
+Linux setup and Nix actions require the profile to be selected. There are no built-in profiles or implicit package paths. See [Source configuration](/docs/source-configuration/) and the [`byor` command](/docs/cli/byor/).

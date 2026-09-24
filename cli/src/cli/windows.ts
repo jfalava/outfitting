@@ -11,7 +11,6 @@ import { makeWindowsUpdateCommand } from "@/commands/update/windows";
 import { makeUpgradeCommand } from "@/commands/upgrade";
 import { validateCommand } from "@/commands/validate";
 import { windowsApplyCommand } from "@/commands/windows-apply";
-import { windowsConfigCommand } from "@/commands/windows-config";
 import { windowsPackageCommands } from "@/commands/windows-packages";
 import { windowsSetupCommand } from "@/commands/windows-setup";
 
@@ -20,7 +19,6 @@ export const makeWindowsRootCommand = (currentVersion: string) =>
   Command.make("outfitting-manager").pipe(
     Command.withDescription("Portable maintenance tools for Outfitting-managed machines."),
     Command.withSubcommands([
-      windowsConfigCommand,
       windowsInitCommand,
       byorCommand,
       windowsSetupCommand,

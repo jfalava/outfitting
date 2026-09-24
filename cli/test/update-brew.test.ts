@@ -65,7 +65,6 @@ test("setup applies the local Brewfile without upgrading or cleaning extras", as
       stateRoot: root,
       machineId: "test:aarch64-darwin",
       machineIdOverridden: true,
-      manifest: { baseUrl: "https://example.test/outfitting", ref: "main" },
     },
     brewfilePath: brewfile,
     which: async () => "/opt/homebrew/bin/brew",
@@ -89,13 +88,9 @@ test("update --no-push upgrades installed packages and still writes observed inv
         stateRoot: root,
         machineId: "test:aarch64-darwin",
         machineIdOverridden: true,
-        manifest: { baseUrl: "https://unused.invalid", ref: "main" },
       },
       noPush: true,
       which: async () => "brew",
-      fetcher: async () => {
-        throw new Error("update must not fetch a manifest");
-      },
       run: async (_command, args) => {
         calls.push(args.join(" "));
         return { code: 0, stderr: "", stdout: args[0] === "list" ? "manual-tool 2.0\n" : "" };

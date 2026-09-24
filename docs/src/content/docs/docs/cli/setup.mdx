@@ -1,37 +1,40 @@
 ---
 title: Setup
-description: Initialize Outfitting and install missing declared state.
+description: Apply the configuration declared by a BYOR source.
 sidebar:
   order: 1
 ---
 
-`setup` is the first-run workflow. It initializes local state, fetches declarations, and installs or activates what is missing. Native package steps never remove packages. Use [`init`](/docs/cli/init/) to prepare state without changing the machine, or [`apply`](/docs/cli/apply/) for repeatable reconciliation from the local cache.
+`setup` validates the selected BYOR source, then installs missing packages and applies its declarative configuration. A source must be a local checkout with root `outfitting.json` or a remote Git source configured in `byor.json`. There are no built-in manifests or raw URL routes.
 
 ## Usage
 
 ```bash
-outfitting-manager setup
+outfitting-manager setup --repo ~/src/machine-config --profile workstation
+outfitting-manager setup --profile workstation
+outfitting-manager setup --profile workstation --no-refresh
 ```
 
-Native package steps do not upgrade packages that are already installed. Use [`update`](/docs/cli/update/) for upgrades. Nix activation is declarative: macOS nix-darwin and Linux Home Manager may add, replace, or remove managed packages to match their configuration.
+Use `--repo <path>` or `OUTFITTING_REPO` to select a local checkout. Otherwise, configure a remote with [`outfitting-manager byor`](/docs/cli/byor/). `--no-refresh` uses the previously validated local snapshot; it does not fetch. Local checkouts are never refreshed from a Git remote.
 
-## Source options
+Native package setup installs missing entries but does not upgrade or remove installed packages. Nix activation is declarative and may change managed system state. Use [`init`](/docs/cli/init/) to validate/select a source without applying it, [`apply`](/docs/cli/apply/) for package reconciliation, and [`update`](/docs/cli/update/) to upgrade installed software.
 
-The exact flags depend on the compiled platform binary:
+## Common options
 
-| Option                      | Purpose                                                    |
-| --------------------------- | ---------------------------------------------------------- |
-| `--machine-id <id>`         | Override the [machine ID](/docs/source-configuration/#machine-id). |
-| `--manifest-base-url <url>` | Use a raw-compatible repository base URL.                  |
-| `--manifest-ref <ref>`      | Use a branch, tag, or commit instead of `main`.            |
-| `--no-fetch` (macOS/Linux)  | Use the source or manifest already cached locally.         |
+| Option                          | Purpose                                                               |
+| ------------------------------- | --------------------------------------------------------------------- |
+| `--repo <path>`                 | Select a local checkout; it takes precedence over `byor.json`.        |
+| `--profile <name>`              | Select a BYOR profile. Windows accepts comma-separated profile names. |
+| `--machine-id <id>`             | Override the machine identity used for remote state.                  |
+| `--no-refresh`                  | Use the existing validated remote snapshot.                           |
+| `--package-manager apt\|pacman` | Linux only: override package-manager detection.                       |
 
-## Platform differences
+## Platform behavior
 
-| Platform | What `setup` applies                                                                                                              | Platform-specific invocation                                                                       |
-| -------- | --------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| macOS    | Activates the declared nix-darwin configuration and installs missing Brewfile items. Existing unrelated Homebrew packages remain. | `outfitting-manager setup`; add `--repo <path>` to use a local checkout.                           |
-| Windows  | Installs missing packages from the selected WinGet and Scoop profiles and refreshes the cached PowerShell profile.                | `outfitting-manager setup --profile base,dev`; add `--winget-only` while bootstrapping WinGet.     |
-| Linux    | Installs missing apt or pacman packages. Nix-backed profiles also apply Home Manager.                                             | `outfitting-manager setup --profile generic-linux`; use `--package-manager` to override detection. |
+| Platform | Setup applies                                                                                                   |
+| -------- | --------------------------------------------------------------------------------------------------------------- |
+| macOS    | The declared nix-darwin configuration and optional Brewfile.                                                    |
+| Windows  | Selected WinGet profiles and only the shared Scoop, PowerShell, fonts, or registry components declared by BYOR. |
+| Linux    | The selected profile's declared apt/pacman packages and optional Home Manager flake.                            |
 
-Local checkouts can define custom profiles in an `outfitting.json` file instead of using the built-in layout. Validate your configuration first with [`validate`](/docs/cli/validate/); see [BYOR](/docs/source-configuration/#byor-outfittingjson).
+See [BYOR](/docs/source-configuration/) for the contract format, remote Git authentication, staged refresh, and migration from raw routes or implicit defaults.

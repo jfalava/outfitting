@@ -1,9 +1,9 @@
 import { Schema } from "effect";
 
-import { DEFAULT_MANIFEST_BASE_URL, type ManifestSourceConfig } from "@/config/types";
-import type { ManifestFetcher } from "@/fetch/manifest";
 import { runCommand, type RunCommandResult } from "@/process";
 import { relativeSourcePath } from "@/source/contract";
+
+export type ManifestFetcher = (input: string, init?: RequestInit) => Promise<Response>;
 
 export type GitHubBlobTransport = "raw" | "gh";
 
@@ -77,15 +77,6 @@ export function classifyGitHubRepository(value: string): GitHubRepository | unde
   return repositoryFromParts(host, owner, name);
 }
 
-/** Rewrite a public github.com URL to its raw base. Other URLs are unchanged. */
-export function normalizeRepositoryUrl(value: string): string {
-  const classified = classifyGitHubRepository(value);
-  if (classified?.transport === "raw") {
-    return classified.baseUrl;
-  }
-  return stripTrailingSlash(value.trim());
-}
-
 export function gitHubAuthHint(host: string): string {
   return `gh auth login --hostname ${host}`;
 }
@@ -124,6 +115,7 @@ export interface GitHubSourceFile {
   path: string;
   body: Uint8Array;
   mode: number;
+  revision: string;
 }
 
 async function ghApi(host: string, apiPath: string, run: typeof runCommand): Promise<string> {
@@ -228,7 +220,12 @@ async function readSourceFile(
     );
     body = new Uint8Array(await response.arrayBuffer());
   }
-  return { path: entry.path, body, mode: entry.mode === "100755" ? 0o755 : 0o644 };
+  return {
+    path: entry.path,
+    body,
+    mode: entry.mode === "100755" ? 0o755 : 0o644,
+    revision: commit,
+  };
 }
 
 /** Fetch the selected files/directories once, from one immutable repository revision. */
@@ -254,43 +251,4 @@ export async function readGitHubBlobs(options: GitHubReadOptions): Promise<GitHu
     files.push(await readSourceFile(options, entry, commit.sha));
   }
   return files;
-}
-
-/** Resolve the authenticated GitHub repository recorded in manifest config, if any. */
-export function repositoryFromManifest(
-  manifest: ManifestSourceConfig,
-): GitHubRepository | undefined {
-  return classifyGitHubRepository(manifest.baseUrl);
-}
-
-/**
- * Explicit layout wins. Without it, preserve legacy raw mirrors and recognize repository URLs.
- */
-export function isRemoteByorSource(baseUrl: string, kind?: ManifestSourceConfig["kind"]): boolean {
-  if (kind !== undefined) {
-    return kind === "byor";
-  }
-  const repository = classifyGitHubRepository(baseUrl);
-  if (repository === undefined || new URL(baseUrl).hostname === "raw.githubusercontent.com") {
-    return false;
-  }
-  const builtIn = classifyGitHubRepository(DEFAULT_MANIFEST_BASE_URL)!;
-  return (
-    repository.host !== builtIn.host ||
-    repository.owner.toLowerCase() !== builtIn.owner.toLowerCase() ||
-    repository.name.toLowerCase() !== builtIn.name.toLowerCase()
-  );
-}
-
-/** Remote BYOR applies only when no local checkout is selected and the URL is a GitHub repo. */
-export function remoteByorPlatform(
-  platform: "macos" | "linux" | "windows",
-  baseUrl: string | undefined,
-  localRepo: string | undefined,
-  kind?: ManifestSourceConfig["kind"],
-): "macos" | "linux" | "windows" | undefined {
-  if (localRepo !== undefined || baseUrl === undefined || !isRemoteByorSource(baseUrl, kind)) {
-    return undefined;
-  }
-  return platform;
 }

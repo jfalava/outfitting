@@ -1,17 +1,15 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import { Console, Effect } from "effect";
 
-import { loadConfig, type ManagerConfig } from "@/config";
+import { loadConfig, resolveOutfittingRepo, type ManagerConfig } from "@/config";
 import { CliFailure } from "@/errors";
-import { fetchManifest, type ManifestFetcher } from "@/fetch";
 import { tryPromise } from "@/lockfiles/effect";
 import { runCommand, which } from "@/process";
+import { readByorContract, selectMacosByorProfile } from "@/source/contract";
 import { ui } from "@/ui";
 import { pushHomebrewInventory } from "@/update/snapshot";
-
-export const BREWFILE_MANIFEST_PATH = "packages/macos/Brewfile";
 
 export interface BrewfileManifest {
   taps: string[];
@@ -61,58 +59,36 @@ async function trustTaps(taps: ReadonlyArray<string>, run: typeof runCommand): P
   }
 }
 
-async function writeBrewfile(config: ManagerConfig, contents: string): Promise<string> {
-  const dir = join(config.stateRoot, "manifests", "packages", "macos");
-  await mkdir(dir, { recursive: true });
-  const path = join(dir, "Brewfile");
-  await writeFile(path, contents, "utf8");
-  return path;
-}
-
-interface ResolvedBrewfile {
-  path: string;
-  text: string;
-  warning?: string;
-}
-
 async function resolveBrewfile(
-  options: Pick<UpdateBrewOptions, "brewfilePath" | "fetcher">,
+  options: Pick<UpdateBrewOptions, "brewfilePath" | "profile">,
   config: ManagerConfig,
-): Promise<ResolvedBrewfile> {
+): Promise<{ path: string; text: string }> {
   if (options.brewfilePath !== undefined) {
     return {
       path: options.brewfilePath,
       text: await readFile(options.brewfilePath, "utf8"),
     };
   }
-
-  const manifest = await fetchManifest({
-    path: BREWFILE_MANIFEST_PATH,
-    config,
-    materialize: true,
-    fetcher: options.fetcher,
-  });
-  const path = manifest.materializedPath ?? (await writeBrewfile(config, manifest.text));
-  const result: ResolvedBrewfile = {
-    path,
-    text: manifest.text,
-  };
-  if (manifest.warning !== undefined) {
-    result.warning = manifest.warning;
+  const repo = await resolveOutfittingRepo({ config, profile: options.profile });
+  const contract = await readByorContract(repo.root);
+  const selected = selectMacosByorProfile(contract, options.profile);
+  if (selected.macos.brewfile === undefined) {
+    throw new Error(`BYOR macOS profile \`${selected.name}\` does not declare a Brewfile.`);
   }
-  return result;
+  const path = join(repo.root, selected.macos.brewfile);
+  return { path, text: await readFile(path, "utf8") };
 }
 
 export interface UpdateBrewOptions {
   config?: ManagerConfig;
   /** Skip inventory push after success. */
   noPush?: boolean;
-  /** Use a repository-local Brewfile instead of fetching the configured URL. */
+  /** Override the Brewfile selected by the repository contract. */
   brewfilePath?: string;
+  profile?: string;
   /** Injected for tests. */
   run?: typeof runCommand;
   which?: typeof which;
-  fetcher?: ManifestFetcher;
 }
 
 /**
@@ -128,17 +104,8 @@ export const setupBrew = (options: UpdateBrewOptions = {}) =>
     }
 
     const config = options.config ?? (yield* tryPromise(() => loadConfig()));
-    yield* Console.log(
-      ui.heading(
-        options.brewfilePath === undefined
-          ? "Fetching Homebrew Brewfile…"
-          : "Reading repository Homebrew Brewfile…",
-      ),
-    );
+    yield* Console.log(ui.heading("Reading selected Homebrew Brewfile…"));
     const brewfile = yield* tryPromise(() => resolveBrewfile(options, config));
-    if (brewfile.warning !== undefined) {
-      yield* Console.log(ui.muted(brewfile.warning));
-    }
 
     const taps = parseBrewfileTaps(brewfile.text);
     if (taps.length > 0) {

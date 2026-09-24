@@ -14,26 +14,14 @@ const machineIdFlag = Flag.String("machine-id").pipe(
   Flag.withDescription("Override machine id (default: auto user:arch-os)."),
 );
 
-const manifestBaseUrlFlag = Flag.String("manifest-base-url").pipe(
-  Flag.optional,
-  Flag.withDescription("Raw-compatible repository base URL without ref."),
-);
-
-const manifestRefFlag = Flag.String("manifest-ref").pipe(
-  Flag.optional,
-  Flag.withDescription("Git ref for manifests (default: main)."),
-);
-
 const repoFlag = Flag.String("repo").pipe(
   Flag.optional,
-  Flag.withDescription(
-    "Optional full checkout path for a Nix-backed profile; omit to use the sparse source.",
-  ),
+  Flag.withDescription("Local BYOR checkout; takes precedence over the remote BYOR map."),
 );
 
-const noFetchFlag = Flag.Boolean("no-fetch").pipe(
+const noRefreshFlag = Flag.Boolean("no-refresh").pipe(
   Flag.withDefault(false),
-  Flag.withDescription("Use the selected Linux package manifest already in the cache."),
+  Flag.withDescription("Use the previously validated source without refreshing it."),
 );
 
 /** Prepare Linux state and source without applying packages or Home Manager. */
@@ -42,21 +30,16 @@ export const linuxInitCommand = Command.make(
   {
     profile: linuxProfileFlag,
     machineId: machineIdFlag,
-    manifestBaseUrl: manifestBaseUrlFlag,
-    manifestRef: manifestRefFlag,
     repo: repoFlag,
-    noFetch: noFetchFlag,
+    noRefresh: noRefreshFlag,
   },
-  ({ profile, machineId, manifestBaseUrl, manifestRef, repo, noFetch }) => {
-    const baseUrl = optionalString(manifestBaseUrl);
+  ({ profile, machineId, repo, noRefresh }) => {
     const repoPath = optionalString(repo);
     return runLinuxInit({
       profile: requireLinuxProfile(profile),
       machineId: optionalString(machineId),
-      manifestBaseUrl: baseUrl,
-      manifestRef: optionalString(manifestRef),
       repo: repoPath,
-      fetchManifests: !noFetch,
+      refreshSource: !noRefresh,
     });
   },
 ).pipe(
@@ -71,22 +54,17 @@ export const linuxSetupCommand = Command.make(
   {
     profile: linuxProfileFlag,
     machineId: machineIdFlag,
-    manifestBaseUrl: manifestBaseUrlFlag,
-    manifestRef: manifestRefFlag,
     repo: repoFlag,
-    noFetch: noFetchFlag,
+    noRefresh: noRefreshFlag,
     packageManager: linuxPackageManagerFlag,
   },
-  ({ profile, machineId, manifestBaseUrl, manifestRef, repo, noFetch, packageManager }) => {
-    const baseUrl = optionalString(manifestBaseUrl);
+  ({ profile, machineId, repo, noRefresh, packageManager }) => {
     const repoPath = optionalString(repo);
     return runLinuxSetup({
       profile: requireLinuxProfile(profile),
       machineId: optionalString(machineId),
-      manifestBaseUrl: baseUrl,
-      manifestRef: optionalString(manifestRef),
       repo: repoPath,
-      fetchManifests: !noFetch,
+      refreshSource: !noRefresh,
       packageManager: requestedLinuxPackageManager(packageManager),
     });
   },

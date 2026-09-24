@@ -18,7 +18,6 @@ import {
   validateMacosByorSource,
   validateWindowsByorSource,
   windowsPathsFromContract,
-  windowsRoutesFromContract,
 } from "@/source/contract";
 
 const temporaryRoots: string[] = [];
@@ -134,7 +133,7 @@ describe("BYOR contract", () => {
     );
   });
 
-  test("treats a missing contract as legacy and rejects an invalid contract file", async () => {
+  test("rejects a missing or invalid local source contract", async () => {
     const missing = await repository();
     await expect(tryReadByorContract(missing)).resolves.toBeUndefined();
     await expect(hasByorContract(missing)).resolves.toBe(false);
@@ -144,6 +143,8 @@ describe("BYOR contract", () => {
     await expect(tryReadByorContract(invalid)).rejects.toThrow(/not valid JSON/);
     await expect(hasByorContract(invalid)).rejects.toThrow(/not valid JSON/);
     await expect(validateOutfittingRepo(invalid)).rejects.toThrow(/not valid JSON/);
+
+    await expect(validateOutfittingRepo(missing)).rejects.toThrow(/outfitting.json/);
 
     const wrongSchema = await repository();
     await writeContract(wrongSchema, { schema: 99, profiles: {} });
@@ -339,28 +340,6 @@ describe("BYOR contract", () => {
     await expect(
       validateWindowsByorSource({ root, profiles: ["workstation"] }),
     ).resolves.toBeDefined();
-  });
-
-  test("windowsRoutesFromContract prefers a common template or uses the BYOR sentinel", () => {
-    const templated = parseByorContract({
-      schema: 1,
-      profiles: {
-        base: { windows: { winget: { manifest: "packages/windows/base.txt" } } },
-        dev: { windows: { winget: { manifest: "packages/windows/dev.txt" } } },
-      },
-    });
-    expect(windowsRoutesFromContract(templated).wingetProfilePath).toBe(
-      "packages/windows/{profile}.txt",
-    );
-
-    const custom = parseByorContract({
-      schema: 1,
-      profiles: {
-        base: { windows: { winget: { manifest: "custom/base-winget.txt" } } },
-        dev: { windows: { winget: { manifest: "elsewhere/dev.txt" } } },
-      },
-    });
-    expect(windowsRoutesFromContract(custom).wingetProfilePath).toBe("byor/{profile}");
   });
 });
 

@@ -94,7 +94,6 @@ describe("recoverNix", () => {
       stateRoot: join(parent, "state"),
       machineId: "test:aarch64-darwin",
       machineIdOverridden: true,
-      manifest: { baseUrl: "https://example.test/outfitting", ref: "main" },
     };
     const repo = {
       root: "/repo",
@@ -161,7 +160,6 @@ describe("recoverNix", () => {
       stateRoot: join(parent, "state"),
       machineId: "test:aarch64-darwin",
       machineIdOverridden: true,
-      manifest: { baseUrl: "https://example.test/outfitting", ref: "main" },
     };
     const repo = {
       root: "/repo",

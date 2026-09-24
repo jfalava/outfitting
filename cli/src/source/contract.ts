@@ -3,18 +3,9 @@ import { isAbsolute, join } from "node:path";
 
 import { Result, Schema } from "effect";
 
-import type { WindowsRoutesConfig } from "@/config/types";
 import { parseLinuxPackageManifest } from "@/source/linux-manifest";
 import { isLinuxProfile, type LinuxProfile } from "@/source/linux-profile";
 import { parseWindowsPackageList } from "@/source/windows-manifest";
-
-/** Defaults matching DEFAULT_WINDOWS_ROUTES without importing config runtime. */
-const FALLBACK_WINDOWS_ROUTES = {
-  scoopPath: "packages/windows/scoop.txt",
-  powershellProfilePath: "dotfiles/Microsoft.PowerShell_profile.ps1",
-  fontListPath: "fonts/fontget.txt",
-  registryPath: "system/windows/registry",
-} as const;
 
 export const BYOR_CONTRACT_PATH = "outfitting.json";
 export const BYOR_CONTRACT_SCHEMA = 1;
@@ -688,53 +679,6 @@ export function windowsPathsFromContract(
     pushUnique(paths, shared.registry.path);
   }
   return paths;
-}
-
-function inferWingetTemplate(selected: SelectedWindowsByorProfiles): string {
-  const firstName = selected.names[0];
-  const firstPath = firstName === undefined ? undefined : selected.wingetPaths[firstName];
-  if (firstName === undefined || firstPath === undefined || !firstPath.includes(firstName)) {
-    return BYOR_WINDOWS_WINGET_SENTINEL;
-  }
-  const template = firstPath.replaceAll(firstName, "{profile}");
-  if (!template.includes("{profile}")) {
-    return BYOR_WINDOWS_WINGET_SENTINEL;
-  }
-  const matchesAll = selected.names.every(
-    (name) => selected.wingetPaths[name] === template.replaceAll("{profile}", name),
-  );
-  return matchesAll ? template : BYOR_WINDOWS_WINGET_SENTINEL;
-}
-
-function sharedRouteOrFallback(declared: string | undefined, fallback: string): string {
-  return declared ?? fallback;
-}
-
-/**
- * Derive config-compatible Windows routes from a BYOR contract.
- * Winget paths for apply/diff must still be resolved via contract lookup —
- * the template is only a status/setup compatibility surface.
- */
-export function windowsRoutesFromContract(contract: ByorContract): WindowsRoutesConfig {
-  const selected = selectWindowsByorProfiles(contract, undefined);
-  const shared = contract.windows;
-  return {
-    wingetProfilePath: inferWingetTemplate(selected),
-    scoopPath: sharedRouteOrFallback(shared?.scoop?.manifest, FALLBACK_WINDOWS_ROUTES.scoopPath),
-    powershellProfilePath: sharedRouteOrFallback(
-      shared?.powershell?.path,
-      FALLBACK_WINDOWS_ROUTES.powershellProfilePath,
-    ),
-    fontListPath: sharedRouteOrFallback(
-      shared?.fonts?.manifest,
-      FALLBACK_WINDOWS_ROUTES.fontListPath,
-    ),
-    registryPath: sharedRouteOrFallback(
-      shared?.registry?.path,
-      FALLBACK_WINDOWS_ROUTES.registryPath,
-    ),
-    defaultProfiles: [...selected.names],
-  };
 }
 
 async function validatePackageBackend(options: {

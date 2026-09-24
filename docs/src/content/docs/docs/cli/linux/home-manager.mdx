@@ -6,7 +6,7 @@ sidebar:
   order: 2
 ---
 
-Nix-backed profiles (`ubuntu-wsl`, `oci-agents`) apply Home Manager during `setup` and `update nix`. `init` only prepares the local source. Pins match macOS: **Home Manager release-26.05** and **nixos-26.05**.
+Any Linux profile may declare a Nix flake in `outfitting.json`; `setup` and `update nix` apply its Home Manager configuration. `init` only selects and validates the configured source. Flake pins are owned by the BYOR checkout.
 
 ## Manager
 
@@ -19,14 +19,7 @@ outfitting-manager update nix switch            # refresh source, build and acti
 outfitting-manager update nix switch --no-refresh  # use the local source
 ```
 
-Bare `update nix` only lists subcommands. Actions resolve the flake from `linux.profile`:
-
-| Profile      | Flake                          |
-| ------------ | ------------------------------ |
-| `ubuntu-wsl` | `system/ubuntu-wsl#jfalava`    |
-| `oci-agents` | `system/oci-agents#oci-agents` |
-
-Linux uses the flake’s checked-in `flake.lock` (no remote lock pull). Actions refresh the configured source by default; `--no-refresh` uses the existing local source. Refresh fetches the checked-in flake and lock; it does not run `nix flake update`. `update all` runs `switch` before the native package-manager update for `oci-agents` and `ubuntu-wsl`.
+Bare `update nix` only lists subcommands. Actions resolve the flake declared by the selected profile's BYOR contract. Linux uses the flake's checked-in `flake.lock`; actions refresh the selected source by default, while `--no-refresh` uses the validated published source already on disk. Refresh does not run `nix flake update`. `update all` runs `switch` when the selected profile declares a flake, then updates native packages.
 
 ## Shell helpers
 
@@ -44,4 +37,4 @@ hm-clean     # remove old store paths
 
 When `outfitting-manager` is on `PATH`, helpers call `update nix <action>`. Otherwise they run native `nix build` / `home-manager switch` (or `nix run … home-manager`).
 
-Sparse source default: `$HOME/.config/outfitting/source`. Override with `OUTFITTING_REPO` or `--repo` at setup time.
+For source selection, use a local checkout with root `outfitting.json` or a remote source declared in the state-root `byor.json`. See [BYOR](/docs/cli/byor/).

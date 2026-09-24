@@ -3,15 +3,9 @@ import { dirname, join } from "node:path";
 
 import { Console, Effect, Schema } from "effect";
 
-import {
-  DEFAULT_LINUX_PROFILE,
-  loadConfig,
-  resolveOutfittingRepo,
-  saveConfigFile,
-  type ManagerConfig,
-} from "@/config";
+import { loadConfig, saveConfigFile, type ManagerConfig } from "@/config";
 import { CliFailure, toCliFailure } from "@/errors";
-import type { ManifestFetcher } from "@/fetch";
+import type { ManifestFetcher } from "@/fetch/github";
 import { tryPromise } from "@/lockfiles/effect";
 import {
   detectLinuxPackageManager,
@@ -22,23 +16,14 @@ import { runCommand, which } from "@/process";
 import { parseLinuxPackageManifest } from "@/source/linux-manifest";
 import { ui } from "@/ui";
 import {
-  isBuiltInLinuxProfile,
   isLinuxProfile,
-  LINUX_PROFILES,
   prepareLinuxSource,
   readLinuxManifest,
   type LinuxProfile,
   type LinuxSource,
 } from "@/update/linux-source";
 
-export {
-  isBuiltInLinuxProfile,
-  isLinuxProfile,
-  LINUX_PROFILES,
-  linuxManifestPath,
-  type BuiltInLinuxProfile,
-  type LinuxProfile,
-} from "@/update/linux-source";
+export { isLinuxProfile, type LinuxProfile } from "@/update/linux-source";
 
 const LINUX_OWNERSHIP_FILE = "linux-package-ownership.json";
 
@@ -228,10 +213,13 @@ export interface LinuxApplyOptions<ConfirmR = never> extends LinuxUpdateOptions 
 }
 
 function resolveProfile(value: string | undefined, config?: ManagerConfig): LinuxProfile {
-  const profile = value ?? config?.linux?.profile ?? DEFAULT_LINUX_PROFILE;
+  const profile = value ?? config?.linux?.profile;
+  if (profile === undefined) {
+    throw new Error("No Linux profile is selected. Pass --profile or run outfitting-manager byor.");
+  }
   if (!isLinuxProfile(profile)) {
     throw new Error(
-      `Invalid Linux profile \`${profile}\`. Use letters, numbers, ., _, and - only. Built-ins: ${LINUX_PROFILES.join(", ")}.`,
+      `Invalid Linux profile \`${profile}\`. Use letters, numbers, ., _, and - only.`,
     );
   }
   return profile;
@@ -242,18 +230,7 @@ async function resolveLinuxApplySource<ConfirmR>(
   config: ManagerConfig,
   profile: LinuxProfile,
 ): Promise<LinuxSource | undefined> {
-  const shouldRefresh = options.noRefresh !== true && options.offline !== true;
-  if (
-    shouldRefresh &&
-    options.profile !== undefined &&
-    profile !== (config.linux?.profile ?? DEFAULT_LINUX_PROFILE)
-  ) {
-    throw new CliFailure({
-      message:
-        "Automatic source refresh requires the configured Linux profile; run init or setup first when switching profiles, or pass --no-refresh.",
-    });
-  }
-  if (!shouldRefresh) {
+  if (options.noRefresh === true) {
     return undefined;
   }
   return prepareLinuxSource({
@@ -264,48 +241,6 @@ async function resolveLinuxApplySource<ConfirmR>(
     fetcher: options.sourceFetcher,
     run: options.run,
   });
-}
-
-export async function runLinuxOciBootstrap(
-  config: ManagerConfig,
-  run: typeof runCommand,
-): Promise<void> {
-  return runLinuxBootstrapScript(config, run, "system/oci-agents/bootstrap.sh", "OCI");
-}
-
-export async function runLinuxWslBootstrap(
-  config: ManagerConfig,
-  run: typeof runCommand,
-): Promise<void> {
-  return runLinuxBootstrapScript(config, run, "system/ubuntu-wsl/bootstrap.sh", "WSL");
-}
-
-export async function runLinuxProfileBootstrap(
-  profile: LinuxProfile,
-  config: ManagerConfig,
-  run: typeof runCommand,
-): Promise<void> {
-  if (!isBuiltInLinuxProfile(profile) || profile === "generic-linux") {
-    return;
-  }
-  if (profile === "oci-agents") {
-    return runLinuxOciBootstrap(config, run);
-  }
-  return runLinuxWslBootstrap(config, run);
-}
-
-async function runLinuxBootstrapScript(
-  config: ManagerConfig,
-  run: typeof runCommand,
-  relativeScript: string,
-  label: string,
-): Promise<void> {
-  const repo = await resolveOutfittingRepo({ config });
-  const script = join(repo.root, relativeScript);
-  const result = await run("bash", [script], { cwd: repo.root, inherit: true });
-  if (result.code !== 0) {
-    throw new Error(`${label} bootstrap failed (exit ${result.code}).`);
-  }
 }
 
 async function detectManager(options: LinuxUpdateOptions, config: ManagerConfig) {

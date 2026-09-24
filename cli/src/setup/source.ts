@@ -1,14 +1,29 @@
-import { cp, mkdtemp, mkdir, rename, rm, writeFile } from "node:fs/promises";
+import {
+  chmod,
+  copyFile,
+  lstat,
+  mkdtemp,
+  mkdir,
+  readFile,
+  rename,
+  rm,
+  writeFile,
+} from "node:fs/promises";
 import { dirname, join } from "node:path";
 
-import { manifestCacheDir, sparseSourceRoot } from "@/config/paths";
+import { Schema } from "effect";
+
+import { sparseSourceRoot } from "@/config/paths";
 import type { ManagerConfig } from "@/config/types";
-import { fetchManifest, type ManifestFetcher } from "@/fetch";
-import { classifyGitHubRepository, readGitHubBlobs } from "@/fetch/github";
+import { classifyGitHubRepository, readGitHubBlobs, type ManifestFetcher } from "@/fetch/github";
 import type { HostPlatform } from "@/platform";
 import { runCommand } from "@/process";
-import { LINUX_SOURCE_PATHS, MACOS_SOURCE_PATHS } from "@/setup/manifests";
-import { localMapAsSourceFile, readByorMap, byorMapMissingError } from "@/source/byor-map";
+import {
+  byorMapMissingError,
+  localMapAsSourceFile,
+  readByorMap,
+  type ByorMap,
+} from "@/source/byor-map";
 import {
   BYOR_CONTRACT_PATH,
   linuxPathsFromProfile,
@@ -22,20 +37,19 @@ import {
   validateMacosByorSource,
   validateWindowsByorSource,
   type ByorContract,
+  relativeSourcePath,
 } from "@/source/contract";
 
-export interface SparseSourceFile {
+export interface ByorSourceFile {
   path: string;
   source: "network" | "cache";
   warning?: string;
 }
 
-export interface SparseSourceResult {
+export interface ByorSourceResult {
   root: string;
-  files: SparseSourceFile[];
+  files: ByorSourceFile[];
 }
-
-const ALLOWED_SOURCE_PATHS = new Set<string>([...MACOS_SOURCE_PATHS, ...LINUX_SOURCE_PATHS]);
 
 function isNotFound(cause: unknown): boolean {
   return (
@@ -50,128 +64,36 @@ async function replaceSourceTree(staged: string, target: string): Promise<void> 
 
   let movedExisting = false;
   try {
-    try {
-      await rename(target, backup);
-      movedExisting = true;
-    } catch (cause) {
-      if (!isNotFound(cause)) {
-        throw cause;
-      }
-    }
-
-    await rename(staged, target);
-    if (movedExisting) {
-      await rm(backup, { recursive: true, force: true });
-    }
-  } catch (cause) {
-    if (movedExisting) {
-      try {
-        await rename(backup, target);
-      } catch {
-        // Preserve the original failure; the backup remains for manual recovery.
-      }
-    }
-    throw cause;
-  } finally {
-    await rm(staged, { recursive: true, force: true });
-    if (!movedExisting) {
-      await rm(backup, { recursive: true, force: true });
-    }
-  }
-}
-
-export interface SparseSourceOptions {
-  config: ManagerConfig;
-  sourceRoot?: string;
-  fetcher?: ManifestFetcher;
-  offline?: boolean;
-  paths?: ReadonlyArray<string>;
-  /** Reject stale-cache fallback and stage the refresh cache with the source. */
-  strict?: boolean;
-}
-
-async function stageCacheTree(cacheTarget: string, stagedCache: string | undefined): Promise<void> {
-  if (stagedCache === undefined) {
-    return;
-  }
-  await rm(stagedCache, { recursive: true, force: true });
-  try {
-    await cp(cacheTarget, stagedCache, { recursive: true });
+    await rename(target, backup);
+    movedExisting = true;
   } catch (cause) {
     if (!isNotFound(cause)) {
       throw cause;
     }
-    await mkdir(stagedCache, { recursive: true });
   }
-}
-
-async function fetchSparseFiles(
-  options: SparseSourceOptions,
-  staged: string,
-  stagedCache: string | undefined,
-): Promise<SparseSourceFile[]> {
-  const files: SparseSourceFile[] = [];
-  for (const path of options.paths ?? MACOS_SOURCE_PATHS) {
-    if (!ALLOWED_SOURCE_PATHS.has(path)) {
-      throw new Error(`Refusing to fetch non-allowlisted source path: ${path}`);
-    }
-    const fetched = await fetchManifest({
-      path,
-      config: options.config,
-      materialize: options.strict !== true,
-      fetcher: options.fetcher,
-      offline: options.offline,
-      strict: options.strict,
-      cacheRoot: stagedCache,
-    });
-    const destination = join(staged, path);
-    await mkdir(dirname(destination), { recursive: true });
-    await writeFile(destination, fetched.body);
-    const file: SparseSourceFile = { path: fetched.path, source: fetched.source };
-    if (fetched.warning !== undefined) {
-      file.warning = fetched.warning;
-    }
-    files.push(file);
-  }
-  return files;
-}
-
-/**
- * Fetch a fixed source closure and atomically publish a clean sparse tree.
- * Existing files are never used as a partially refreshed source.
- */
-export async function syncSparseSource(options: SparseSourceOptions): Promise<SparseSourceResult> {
-  const target = options.sourceRoot ?? sparseSourceRoot(options.config.stateRoot);
-  const cacheTarget = manifestCacheDir(options.config.stateRoot);
-  await mkdir(dirname(target), { recursive: true });
-  if (options.strict) {
-    await mkdir(dirname(cacheTarget), { recursive: true });
-  }
-  const staged = await mkdtemp(join(dirname(target), ".outfitting-source-"));
-  const stagedCache = options.strict
-    ? await mkdtemp(join(dirname(cacheTarget), ".outfitting-cache-"))
-    : undefined;
 
   try {
-    await stageCacheTree(cacheTarget, stagedCache);
-    const files = await fetchSparseFiles(options, staged, stagedCache);
-
-    await replaceSourceTree(staged, target);
-    if (stagedCache !== undefined) {
-      await replaceSourceTree(stagedCache, cacheTarget);
-    }
-    return { root: target, files };
+    await rename(staged, target);
   } catch (cause) {
-    await rm(staged, { recursive: true, force: true });
-    if (stagedCache !== undefined) {
-      await rm(stagedCache, { recursive: true, force: true });
+    if (movedExisting) {
+      try {
+        await rename(backup, target);
+      } catch (restoreCause) {
+        throw new Error(
+          `Could not publish the refreshed source and could not restore the previous source. Previous source remains at ${backup}. Publish error: ${cause instanceof Error ? cause.message : String(cause)}. Restore error: ${restoreCause instanceof Error ? restoreCause.message : String(restoreCause)}.`,
+          { cause: restoreCause },
+        );
+      }
     }
     throw cause;
   }
-}
 
-/** Backwards-compatible macOS name for the shared sparse-source synchronizer. */
-export const syncMacosSource = syncSparseSource;
+  if (movedExisting) {
+    // Publication has committed. Cleanup failure must not report a failed refresh
+    // while leaving the new source active; keep the backup for manual recovery.
+    await rm(backup, { recursive: true, force: true }).catch(() => undefined);
+  }
+}
 
 export interface ByorSparseSourceOptions {
   config: ManagerConfig;
@@ -183,6 +105,32 @@ export interface ByorSparseSourceOptions {
   run?: typeof runCommand;
   offline?: boolean;
 }
+
+interface GitTreeEntry {
+  mode: string;
+  type: string;
+  path: string;
+}
+
+interface GitSourceFile {
+  path: string;
+  mode: number;
+  revision: string;
+}
+
+interface ByorSourceMetadata {
+  repository: string;
+  ref: string;
+  revision: string;
+}
+
+const SOURCE_METADATA_PATH = ".outfitting-source.json";
+const ByorSourceMetadataSchema = Schema.Struct({
+  repository: Schema.String,
+  ref: Schema.String,
+  revision: Schema.String,
+});
+const decodeByorSourceMetadata = Schema.decodeUnknownSync(ByorSourceMetadataSchema);
 
 function byorClosure(
   contract: ByorContract,
@@ -206,12 +154,125 @@ function byorClosure(
   }
 }
 
-async function readLocalContract(stateRoot: string): Promise<ByorContract> {
-  const contract = await readByorMap(stateRoot);
-  if (contract === undefined) {
+async function readLocalByorMap(stateRoot: string): Promise<ByorMap> {
+  const map = await readByorMap(stateRoot);
+  if (map === undefined) {
     throw new Error(byorMapMissingError());
   }
-  return contract;
+  return map;
+}
+
+function byorMapContract(map: ByorMap): ByorContract {
+  return map.windows === undefined
+    ? { schema: map.schema, profiles: map.profiles }
+    : { schema: map.schema, windows: map.windows, profiles: map.profiles };
+}
+
+function withinPath(path: string, root: string): boolean {
+  return root === "." || path === root || path.startsWith(`${root}/`);
+}
+
+async function runGit(
+  run: typeof runCommand,
+  cwd: string,
+  args: ReadonlyArray<string>,
+): Promise<string> {
+  const result = await run("git", args, { cwd, inherit: false });
+  if (result.code !== 0) {
+    const detail = (result.stderr || result.stdout).trim();
+    throw new Error(
+      `git ${args.join(" ")} failed (exit ${result.code})${detail.length > 0 ? `: ${detail}` : "."}`,
+    );
+  }
+  return result.stdout;
+}
+
+function parseGitTree(output: string): GitTreeEntry[] {
+  return output
+    .split("\0")
+    .filter(Boolean)
+    .map((record) => {
+      const tab = record.indexOf("\t");
+      if (tab < 0) {
+        throw new Error("Git returned a malformed tree entry.");
+      }
+      const [mode, type, object] = record.slice(0, tab).split(" ");
+      if (mode === undefined || type === undefined || object === undefined) {
+        throw new Error("Git returned a malformed tree entry.");
+      }
+      return { mode, type, path: record.slice(tab + 1) };
+    });
+}
+
+function selectGitTreeEntries(
+  entries: readonly GitTreeEntry[],
+  paths: ReadonlyArray<string>,
+): GitTreeEntry[] {
+  const roots = paths.map((path) => relativeSourcePath(path, "BYOR path"));
+  for (const root of roots) {
+    if (!entries.some((entry) => withinPath(entry.path, root))) {
+      throw new Error(`Git path \`${root}\` is missing or empty.`);
+    }
+  }
+  const selected = entries.filter((entry) => roots.some((root) => withinPath(entry.path, root)));
+  for (const entry of selected) {
+    relativeSourcePath(entry.path, "Git tree path");
+    if (entry.path === SOURCE_METADATA_PATH) {
+      throw new Error(`Git path \`${SOURCE_METADATA_PATH}\` is reserved for source metadata.`);
+    }
+    if (entry.type !== "blob" || !["100644", "100755"].includes(entry.mode)) {
+      throw new Error(
+        `Unsupported Git entry ${entry.path} (${entry.mode}). Remote BYOR sources cannot contain symlinks or submodules in selected paths.`,
+      );
+    }
+  }
+  return selected;
+}
+
+async function copyGitSourceFiles(options: {
+  repository: string;
+  ref: string;
+  paths: ReadonlyArray<string>;
+  run: typeof runCommand;
+  staged: string;
+}): Promise<GitSourceFile[]> {
+  const checkout = await mkdtemp(join(dirname(options.staged), ".outfitting-git-"));
+  try {
+    await runGit(options.run, checkout, ["init", "--quiet"]);
+    await runGit(options.run, checkout, ["remote", "add", "origin", options.repository]);
+    await runGit(options.run, checkout, ["fetch", "--depth=1", "--no-tags", "origin", options.ref]);
+    const revision = (
+      await runGit(options.run, checkout, ["rev-parse", "--verify", "FETCH_HEAD^{commit}"])
+    ).trim();
+    if (!/^[0-9a-f]{40,64}$/i.test(revision)) {
+      throw new Error("Git returned an invalid fetched revision.");
+    }
+    const tree = parseGitTree(
+      await runGit(options.run, checkout, ["ls-tree", "--full-tree", "-rz", "-r", revision]),
+    );
+    const selected = selectGitTreeEntries(tree, options.paths);
+    const roots = [...new Set(options.paths.map((path) => relativeSourcePath(path, "BYOR path")))];
+    await runGit(options.run, checkout, ["checkout", revision, "--", ...roots]);
+
+    for (const entry of selected) {
+      const sourcePath = join(checkout, entry.path);
+      const info = await lstat(sourcePath);
+      if (!info.isFile() || info.isSymbolicLink()) {
+        throw new Error(`Git checkout produced an unsupported file at ${entry.path}.`);
+      }
+      const destination = join(options.staged, entry.path);
+      await mkdir(dirname(destination), { recursive: true });
+      await copyFile(sourcePath, destination);
+      await chmod(destination, entry.mode === "100755" ? 0o755 : 0o644);
+    }
+    return selected.map((entry) => ({
+      path: entry.path,
+      mode: entry.mode === "100755" ? 0o755 : 0o644,
+      revision,
+    }));
+  } finally {
+    await rm(checkout, { force: true, recursive: true });
+  }
 }
 
 function selectedContract(contract: ByorContract, options: ByorSparseSourceOptions): ByorContract {
@@ -240,39 +301,73 @@ function selectedContract(contract: ByorContract, options: ByorSparseSourceOptio
   }
 }
 
-async function stageByorFiles(
-  staged: string,
-  options: ByorSparseSourceOptions,
-  contract: ByorContract,
-  paths: ReadonlyArray<string>,
-): Promise<SparseSourceFile[]> {
-  const repository = classifyGitHubRepository(options.config.manifest.baseUrl);
-  if (repository === undefined) {
-    throw new Error(
-      `Remote BYOR requires a GitHub repository URL: ${options.config.manifest.baseUrl}.`,
-    );
-  }
-  const files = await readGitHubBlobs({
-    repository,
-    ref: options.config.manifest.ref,
-    paths,
-    run: options.run,
-    fetcher: options.fetcher,
-  });
-  for (const file of files) {
-    if (file.path === BYOR_CONTRACT_PATH) {
-      continue;
+async function stageByorFiles(args: {
+  staged: string;
+  options: ByorSparseSourceOptions;
+  map: ByorMap;
+  contract: ByorContract;
+  paths: ReadonlyArray<string>;
+}): Promise<ByorSourceFile[]> {
+  const { staged, options, map, contract, paths } = args;
+  const run = options.run ?? runCommand;
+  const repository = classifyGitHubRepository(map.repository);
+  let files: GitSourceFile[];
+  if (repository !== undefined) {
+    const githubFiles = await readGitHubBlobs({
+      repository,
+      ref: map.ref,
+      paths,
+      run,
+      fetcher: options.fetcher,
+    });
+    for (const file of githubFiles) {
+      if (file.path === BYOR_CONTRACT_PATH) {
+        continue;
+      }
+      const destination = join(staged, file.path);
+      await mkdir(dirname(destination), { recursive: true });
+      await writeFile(destination, file.body, { mode: file.mode });
     }
-    const destination = join(staged, file.path);
-    await mkdir(dirname(destination), { recursive: true });
-    await writeFile(destination, file.body, { mode: file.mode });
+    files = githubFiles.map((file) => ({
+      path: file.path,
+      mode: file.mode,
+      revision: file.revision,
+    }));
+  } else {
+    files = await copyGitSourceFiles({
+      repository: map.repository,
+      ref: map.ref,
+      paths,
+      run,
+      staged,
+    });
+  }
+  const revision = files[0]?.revision;
+  if (revision === undefined) {
+    throw new Error("The selected BYOR contract does not resolve to any repository files.");
   }
   // The local map owns profile selection, even when fetching a root flake.
   const mapFile = localMapAsSourceFile(contract);
   await writeFile(join(staged, mapFile.path), mapFile.body);
+  const metadata: ByorSourceMetadata = { repository: map.repository, ref: map.ref, revision };
+  await writeFile(join(staged, SOURCE_METADATA_PATH), `${JSON.stringify(metadata, null, 2)}\n`);
   return files
     .filter((file) => file.path !== BYOR_CONTRACT_PATH)
     .map((file) => ({ path: file.path, source: "network" }));
+}
+
+async function readSourceMetadata(root: string): Promise<ByorSourceMetadata> {
+  let value: unknown;
+  try {
+    value = JSON.parse(await readFile(join(root, SOURCE_METADATA_PATH), "utf8"));
+  } catch (cause) {
+    throw new Error(`No validated remote BYOR source metadata exists at ${root}.`, { cause });
+  }
+  try {
+    return decodeByorSourceMetadata(value);
+  } catch (cause) {
+    throw new Error(`Remote BYOR source metadata is invalid at ${root}.`, { cause });
+  }
 }
 
 async function validateByorSource(root: string, options: ByorSparseSourceOptions): Promise<void> {
@@ -291,23 +386,30 @@ async function validateByorSource(root: string, options: ByorSparseSourceOptions
 
 /**
  * Fetch and validate the local map's selected remote closure before replacing the managed tree.
- * Offline mode validates and reuses the existing tree without contacting GitHub.
+ * Offline mode validates and reuses the existing snapshot only for the selected Git repository/ref.
  */
 export async function syncByorSparseSource(
   options: ByorSparseSourceOptions,
-): Promise<SparseSourceResult> {
+): Promise<ByorSourceResult> {
   const target = options.sourceRoot ?? sparseSourceRoot(options.config.stateRoot);
+  const map = await readLocalByorMap(options.config.stateRoot);
   if (options.offline) {
+    const metadata = await readSourceMetadata(target);
+    if (metadata.repository !== map.repository || metadata.ref !== map.ref) {
+      throw new Error(
+        `The cached BYOR source belongs to ${metadata.repository}@${metadata.ref}, not ${map.repository}@${map.ref}.`,
+      );
+    }
     await validateByorSource(target, options);
     const paths = byorClosure(await readByorContract(target), options.platform, options.profile);
     return { root: target, files: paths.map((path) => ({ path, source: "cache" })) };
   }
-  const contract = selectedContract(await readLocalContract(options.config.stateRoot), options);
+  const contract = selectedContract(byorMapContract(map), options);
   const paths = byorClosure(contract, options.platform, options.profile);
   await mkdir(dirname(target), { recursive: true });
   const staged = await mkdtemp(join(dirname(target), ".outfitting-source-"));
   try {
-    const files = await stageByorFiles(staged, options, contract, paths);
+    const files = await stageByorFiles({ staged, options, map, contract, paths });
     await validateByorSource(staged, options);
     await replaceSourceTree(staged, target);
     return { root: target, files };

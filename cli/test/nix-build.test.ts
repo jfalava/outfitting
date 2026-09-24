@@ -13,11 +13,11 @@ const fakeRepo = {
 
 const fakeHomeManagerRepo = {
   root: "/repo",
-  flakePath: "/repo/system/oci-agents",
+  flakePath: "/repo/system/custom-linux",
   darwinNixPath: "",
   flakeKind: "home-manager" as const,
-  systemAttr: "homeConfigurations.oci-agents.activationPackage",
-  homeManagerName: "oci-agents",
+  systemAttr: "homeConfigurations.workstation.activationPackage",
+  homeManagerName: "workstation",
 };
 
 describe("buildNixSystem", () => {
@@ -72,11 +72,11 @@ describe("buildNixSystem", () => {
     );
   });
 
-  test("builds Home Manager activationPackage attr", async () => {
+  test("builds the activation attribute declared by an arbitrary BYOR profile", async () => {
     const run = async (command: string, args: ReadonlyArray<string>): Promise<RunCommandResult> => {
       expect(command).toBe("nix");
       expect(args.at(-1)).toBe(
-        "path:/repo/system/oci-agents#homeConfigurations.oci-agents.activationPackage",
+        "path:/repo/system/custom-linux#homeConfigurations.workstation.activationPackage",
       );
       return { code: 0, stdout: "/nix/store/hm-activation\n", stderr: "" };
     };

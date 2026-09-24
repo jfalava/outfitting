@@ -3,11 +3,10 @@ import { stat } from "node:fs/promises";
 import { Console, Effect } from "effect";
 import { Command } from "effect/unstable/cli";
 
-import { resolveWindowsSource } from "@/commands/windows-apply";
 import {
   autoMachineId,
+  byorMapPath,
   configFilePath,
-  DEFAULT_LINUX_PROFILE,
   loadConfig,
   readRepoPathFile,
   type ManagerConfig,
@@ -16,7 +15,13 @@ import { tryPromise } from "@/lockfiles/effect";
 import { type HostPlatform } from "@/platform";
 import { runCommand } from "@/process";
 import { envValue } from "@/secrets";
-import { readWindowsLock } from "@/update/windows-lock";
+import { readByorMap } from "@/source/byor-map";
+import {
+  readByorContract,
+  selectByorProfile,
+  selectMacosByorProfile,
+  selectWindowsByorProfiles,
+} from "@/source/contract";
 
 async function sourcePathStatus(source: string): Promise<string | undefined> {
   try {
@@ -65,33 +70,54 @@ async function sourceStatus(source: string | undefined, run: typeof runCommand):
   ];
 }
 
+function selectedProfile(
+  contract: Awaited<ReturnType<typeof readByorContract>>,
+  platform: HostPlatform,
+  config: ManagerConfig,
+): string {
+  switch (platform) {
+    case "linux":
+      return selectByorProfile(contract, config.linux?.profile).name;
+    case "macos":
+      return selectMacosByorProfile(contract, undefined).name;
+    case "windows":
+      return selectWindowsByorProfiles(contract, undefined).names.join(",");
+  }
+}
+
+async function readSelectedProfile(
+  source: string | undefined,
+  platform: HostPlatform,
+  config: ManagerConfig,
+): Promise<string> {
+  try {
+    const contract =
+      source === undefined ? await readByorMap(config.stateRoot) : await readByorContract(source);
+    return contract === undefined ? "not selected" : selectedProfile(contract, platform, config);
+  } catch {
+    // Status reports missing or ambiguous profile selection without fetching.
+    return "not selected";
+  }
+}
+
 /** Inspect paths and Git without initializing state, fetching, or reading credentials. */
 export async function readStatus(
   platform: HostPlatform,
   options: { config?: ManagerConfig; run?: typeof runCommand; envRepo?: string } = {},
 ): Promise<string> {
   const config = options.config ?? (await loadConfig());
-  let profile = "macos";
-  if (platform === "linux") {
-    profile = config.linux?.profile ?? DEFAULT_LINUX_PROFILE;
-  } else if (platform === "windows") {
-    const lock = await readWindowsLock(config);
-    if (lock.profiles.length > 0) {
-      profile = lock.profiles.join(",");
-    } else {
-      const source = await resolveWindowsSource(config);
-      profile = source.routes.defaultProfiles.join(",");
-    }
-  }
+  const source = options.envRepo ?? envValue("OUTFITTING_REPO") ?? (await readRepoPathFile(config));
+  const profile = await readSelectedProfile(source, platform, config);
+  const remote = await readByorMap(config.stateRoot);
   const lines = [
     `Platform: ${platform} (${process.arch})`,
     `Profile: ${profile}`,
     `Config: ${configFilePath(config.stateRoot)}`,
     `Machine ID: ${config.machineId} (${config.machineIdOverridden ? "configured" : "inferred"})`,
     `Inferred machine ID: ${autoMachineId()}`,
-    `Remote: ${config.manifest.baseUrl}/${config.manifest.ref}`,
+    `BYOR map: ${remote === undefined ? "not configured" : byorMapPath(config.stateRoot)}`,
+    ...(remote === undefined ? [] : [`BYOR remote: ${remote.repository}@${remote.ref}`]),
   ];
-  const source = options.envRepo ?? envValue("OUTFITTING_REPO") ?? (await readRepoPathFile(config));
   return [...lines, ...(await sourceStatus(source, options.run ?? runCommand))].join("\n");
 }
 

@@ -1,20 +1,16 @@
 export { updateAll, type UpdateAllOptions, type UpdateStepResult } from "@/update/all";
 export { updateLinuxAll, type LinuxUpdateAllOptions } from "@/update/linux-all";
 export { parseBunGlobalList } from "@/update/bun";
-export { updateBrew, parseBrewfileTaps, BREWFILE_MANIFEST_PATH } from "@/update/brew";
+export { updateBrew, parseBrewfileTaps } from "@/update/brew";
 export {
-  isBuiltInLinuxProfile,
   isLinuxProfile,
   applyLinux,
-  linuxManifestPath,
   linuxPackageManagerArgs,
-  LINUX_PROFILES,
   listInstalledLinuxPackages,
   linuxPackageIdentity,
   missingLinuxPackages,
   parseLinuxPackageManifest,
   updateLinux,
-  type BuiltInLinuxProfile,
   type LinuxPackageAction,
   type LinuxPackageInventoryOptions,
   type LinuxProfile,
@@ -34,7 +30,6 @@ export {
   activateNixSystem,
   prepareNixRecovery,
   nextRecoveryAction,
-  NIX_SYSTEM_ATTR,
 } from "@/update/nix";
 export { updateScoop, parseScoopManifest, SCOOP_MANIFEST_PATH } from "@/update/scoop";
 export { updateWinget } from "@/update/winget";

@@ -6,24 +6,24 @@ import { Console, Effect, Option, Schema } from "effect";
 
 import {
   parseWindowsPackageList,
-  resolveWindowsProfiles,
   resolveWindowsSource,
   windowsWingetProfilePath,
 } from "@/commands/windows-apply";
 import {
-  DEFAULT_LINUX_PROFILE,
   loadConfig,
+  readRepoPathFile,
   resolveOutfittingRepo,
   type ManagerConfig,
   type OutfittingRepo,
 } from "@/config";
 import type { DiffManager, DiffPlatform, DiffSection, PlatformDiff } from "@/diff/types";
-import { fetchManifest, type ManifestFetcher } from "@/fetch";
+import type { ManifestFetcher } from "@/fetch/github";
 import { pullLockfile } from "@/lockfiles";
 import type { LinuxPackageManager } from "@/platform/linux";
 import { runCommand, which } from "@/process";
-import { selectWindowsByorProfiles } from "@/source/contract";
-import { parseBrewfileManifest, BREWFILE_MANIFEST_PATH } from "@/update/brew";
+import { envValue } from "@/secrets";
+import { readByorContract, selectMacosByorProfile } from "@/source/contract";
+import { parseBrewfileManifest } from "@/update/brew";
 import {
   isLinuxProfile,
   listInstalledLinuxPackages,
@@ -33,10 +33,8 @@ import {
 } from "@/update/linux";
 import { prepareLinuxSource, readLinuxManifest, type LinuxSource } from "@/update/linux-source";
 import { closeNixLock, openNixLock } from "@/update/nix/lock";
-import { NIX_SYSTEM_ATTR } from "@/update/nix/types";
 import { parseScoopManifest, type ScoopManifest } from "@/update/scoop";
 import { runScoopCommand } from "@/update/scoop-command";
-import { readWindowsLock } from "@/update/windows-lock";
 import { parseScoopExport, type ScoopExportState } from "@/update/windows-snapshot";
 
 const MACOS_MANAGERS = ["brew", "nix"] as const satisfies ReadonlyArray<DiffManager>;
@@ -323,30 +321,32 @@ function lines(content: string): string[] {
   ].toSorted((left, right) => left.localeCompare(right, "en"));
 }
 
-async function fetchDiffManifest(path: string, context: DiffContext): Promise<string> {
-  const manifest = await fetchManifest({
-    path,
-    config: context.config,
-    fetcher: context.fetcher,
-    offline: context.offline,
-  });
-  if (manifest.source === "cache" && !context.offline) {
-    throw new Error(
-      `${manifest.warning} Fresh repository state could not be verified. Use --offline to compare cached manifests explicitly.`,
-    );
+async function compareBrewSection(
+  profiles: ReadonlyArray<string> | undefined,
+  context: DiffContext,
+): Promise<DiffSection> {
+  if (profiles !== undefined && profiles.length !== 1) {
+    throw new Error("macOS diff accepts one profile at a time.");
   }
-  if (manifest.warning !== undefined) {
-    context.warnings.push(manifest.warning);
+  const repo = await resolveOutfittingRepo({ config: context.config, profile: profiles?.[0] });
+  const contract = await readByorContract(repo.root);
+  const selected = selectMacosByorProfile(contract, profiles?.[0]);
+  if (selected.macos.brewfile === undefined) {
+    return {
+      manager: "brew",
+      status: "same",
+      missing: [],
+      extra: [],
+      changed: [],
+      message: `BYOR profile \`${selected.name}\` declares no Brewfile; skipping Homebrew comparison.`,
+    };
   }
-  return manifest.text;
-}
-
-async function compareBrewSection(context: DiffContext): Promise<DiffSection> {
   const executable = await context.which("brew");
   if (executable === undefined) {
     return unavailableSection("brew", "Homebrew is not installed or not in PATH.");
   }
-  const desired = parseBrewfileManifest(await fetchDiffManifest(BREWFILE_MANIFEST_PATH, context));
+  const brewfilePath = join(repo.root, selected.macos.brewfile);
+  const desired = parseBrewfileManifest(await readFile(brewfilePath, "utf8"));
   const actual = await captureBrew(executable, context.run, desired.formulae);
   return compareBrew(desired, actual, context.reportItem);
 }
@@ -356,19 +356,7 @@ async function compareWindowsSection(
   context: DiffContext,
 ): Promise<DiffSection> {
   const source = await resolveWindowsSource(context.config, options.profiles);
-  const currentLock = await readWindowsLock(context.config);
-  const selectedProfiles = resolveWindowsProfiles(
-    options.profiles,
-    currentLock.profiles,
-    source.routes.defaultProfiles,
-  );
-  const resolved =
-    source.contract === undefined
-      ? source
-      : {
-          ...source,
-          byor: selectWindowsByorProfiles(source.contract, selectedProfiles),
-        };
+  const selectedProfiles = source.byor.names;
 
   if (options.manager === "winget") {
     const executable = await context.which("winget");
@@ -377,9 +365,9 @@ async function compareWindowsSection(
     }
     const desired: string[] = [];
     for (const profile of selectedProfiles) {
-      const path = windowsWingetProfilePath(context.config, profile, resolved);
+      const path = windowsWingetProfilePath(profile, source);
       desired.push(
-        ...parseWindowsPackageList(await fetchDiffManifest(path, context), path).map(
+        ...parseWindowsPackageList(await readFile(join(source.root, path), "utf8"), path).map(
           (packageInfo) =>
             packageInfo.source === "msstore" ? `msstore:${packageInfo.name}` : packageInfo.name,
         ),
@@ -395,13 +383,22 @@ async function compareWindowsSection(
   }
 
   if (options.manager === "scoop") {
+    const scoopPath = source.byor.shared?.scoop?.manifest;
+    if (scoopPath === undefined) {
+      return {
+        manager: "scoop",
+        status: "same",
+        missing: [],
+        extra: [],
+        changed: [],
+        message: "No Scoop manifest declared by BYOR; skipping Scoop comparison.",
+      };
+    }
     const executable = await context.which("scoop");
     if (executable === undefined) {
       return unavailableSection("scoop", "Scoop is not installed or not in PATH.");
     }
-    const desired = parseScoopManifest(
-      await fetchDiffManifest(resolved.routes.scoopPath, context),
-    );
+    const desired = parseScoopManifest(await readFile(join(source.root, scoopPath), "utf8"));
     const actualResult = await runScoopCommand(context.run, executable, ["export"], {
       inherit: false,
     });
@@ -423,7 +420,12 @@ function resolveLinuxDiffProfile(
   if (profiles !== undefined && profiles.length !== 1) {
     throw new Error("Linux diff accepts one profile at a time.");
   }
-  const profile = profiles?.[0] ?? config.linux?.profile ?? DEFAULT_LINUX_PROFILE;
+  const profile = profiles?.[0] ?? config.linux?.profile;
+  if (profile === undefined) {
+    throw new Error(
+      "No Linux BYOR profile is selected. Run init --profile <name> or pass --profile.",
+    );
+  }
   if (!isLinuxProfile(profile)) {
     throw new Error(`Invalid Linux profile \`${profile}\`.`);
   }
@@ -468,7 +470,10 @@ const quietConsole = Object.assign(Object.create(console), {
   log: () => undefined,
 }) as Console.Console;
 
-async function compareNixSection(context: DiffContext): Promise<DiffSection> {
+async function compareNixSection(
+  profile: string | undefined,
+  context: DiffContext,
+): Promise<DiffSection> {
   if (context.offline) {
     return unavailableSection(
       "nix",
@@ -482,7 +487,7 @@ async function compareNixSection(context: DiffContext): Promise<DiffSection> {
 
   let repo: OutfittingRepo;
   try {
-    repo = await resolveOutfittingRepo({ config: context.config });
+    repo = await resolveOutfittingRepo({ config: context.config, profile });
   } catch (cause) {
     return unavailableSection("nix", errorMessage(cause));
   }
@@ -504,7 +509,7 @@ async function compareNixSection(context: DiffContext): Promise<DiffSection> {
         "--reference-lock-file",
         lock.lockPath,
         "--no-write-lock-file",
-        `path:${repo.flakePath}#${repo.systemAttr.length > 0 ? repo.systemAttr : NIX_SYSTEM_ATTR}.outPath`,
+        `path:${repo.flakePath}#${repo.systemAttr}.outPath`,
       ],
       { inherit: false, env },
     );
@@ -555,10 +560,10 @@ async function compareSection(
   context: DiffContext,
 ): Promise<DiffSection> {
   if (manager === "brew") {
-    return compareBrewSection(context);
+    return compareBrewSection(profiles, context);
   }
   if (manager === "nix") {
-    return compareNixSection(context);
+    return compareNixSection(profiles?.[0], context);
   }
   if (manager === "winget" || manager === "scoop") {
     return compareWindowsSection({ manager, profiles }, context);
@@ -572,6 +577,9 @@ async function resolveLinuxDiffSource(
 ): Promise<LinuxSource | undefined> {
   if (options.platform !== "linux" || options.refresh !== true) {
     return undefined;
+  }
+  if (options.offline === true) {
+    throw new Error("--refresh and --offline cannot be used together.");
   }
   const profile = resolveLinuxDiffProfile(options.profiles, config);
   return prepareLinuxSource({
@@ -596,6 +604,25 @@ export async function collectDiff(options: CollectDiffOptions): Promise<Platform
     reportItem: () => undefined,
     linuxSource,
   };
+  const sections = await collectSections(options, context);
+
+  return {
+    platform: options.platform,
+    source:
+      linuxSource?.root ??
+      envValue("OUTFITTING_REPO") ??
+      (await readRepoPathFile(config)) ??
+      "BYOR source (not initialized)",
+    sections,
+    differences: sections.some((section) => section.status === "different"),
+    unavailable: sections.some((section) => section.status === "unavailable"),
+  };
+}
+
+async function collectSections(
+  options: CollectDiffOptions,
+  context: DiffContext,
+): Promise<DiffSection[]> {
   const sections: DiffSection[] = [];
   const managers = selectedManagers(options.platform, options.manager);
 
@@ -634,12 +661,5 @@ export async function collectDiff(options: CollectDiffOptions): Promise<Platform
       phase: "completed",
     });
   }
-
-  return {
-    platform: options.platform,
-    source: linuxSource?.root ?? `${config.manifest.baseUrl}/${config.manifest.ref}`,
-    sections,
-    differences: sections.some((section) => section.status === "different"),
-    unavailable: sections.some((section) => section.status === "unavailable"),
-  };
+  return sections;
 }

@@ -2,20 +2,15 @@ import { Option } from "effect";
 import { Flag } from "effect/unstable/cli";
 
 import { type LinuxPackageManager } from "@/platform/linux";
-import { isLinuxProfile, LINUX_PROFILES, type LinuxProfile } from "@/update/linux";
+import { isLinuxProfile, type LinuxProfile } from "@/update/linux";
 
 export const linuxProfileFlag = Flag.String("profile").pipe(
-  Flag.withDefault("generic-linux"),
-  Flag.withDescription(
-    `Linux package profile (built-ins: ${LINUX_PROFILES.join(", ")}; BYOR names are allowed).`,
-  ),
+  Flag.withDescription("Profile declared by the selected BYOR source."),
 );
 
 export const linuxOptionalProfileFlag = Flag.String("profile").pipe(
   Flag.optional,
-  Flag.withDescription(
-    `Linux profile (default: ${LINUX_PROFILES[0]} or config.json linux.profile; BYOR names are allowed).`,
-  ),
+  Flag.withDescription("BYOR profile; defaults to the profile selected during init."),
 );
 
 export const linuxPackageManagerFlag = Flag.String("package-manager").pipe(

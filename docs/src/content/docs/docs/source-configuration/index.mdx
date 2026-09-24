@@ -1,151 +1,89 @@
 ---
 title: Local source
-description: Understand profiles, machine identity, and the source state Outfitting keeps on each machine.
+description: Configure the BYOR source and machine-local state used by Outfitting.
 sidebar:
   order: 1
 ---
 
-Outfitting keeps machine-local state separate from the repository source it consumes. The state root contains configuration, cached declarations, and the managed source used by later commands.
+`outfitting-manager` reads machine configuration only from BYOR. Choose either a local checkout with a root `outfitting.json`, or a remote Git repository and profile map stored locally as `byor.json`. The manager does not infer a repository, branch, profile, or file path.
 
 ## State root
 
-The default state root is:
+The default state root is `~/.config/outfitting` on macOS and Linux, and `%LOCALAPPDATA%\outfitting` on Windows. Set `OUTFITTING_STATE_ROOT` to use another directory.
 
-| Platform        | State root                  |
-| --------------- | --------------------------- |
-| macOS and Linux | `~/.config/outfitting`      |
-| Windows         | `%LOCALAPPDATA%\outfitting` |
+| Entry               | Purpose                                                              |
+| ------------------- | -------------------------------------------------------------------- |
+| `config.json`       | Machine ID and selected Linux profile.                               |
+| `byor.json`         | Local remote repository, Git ref, and profile/path map.              |
+| `source/`           | Validated managed snapshot of the selected remote BYOR files.        |
+| `repo-path`         | Path to the selected local checkout or managed snapshot.             |
+| `windows.lock.json` | Windows profile selection, package ownership, and operation history. |
 
-Set `OUTFITTING_STATE_ROOT` to use another location. The important entries below live under that root:
+`OUTFITTING_REPO` or an explicit `--repo <path>` selects a local checkout and takes precedence over the remote map. A local checkout must contain a valid root `outfitting.json`. Without a local checkout, commands require a configured `byor.json`; otherwise they stop with setup guidance before fetching or applying anything.
 
-| Entry               | Purpose                                                                             |
-| ------------------- | ----------------------------------------------------------------------------------- |
-| `config.json`       | Manifest source, machine ID override, Windows routes, and the active Linux profile. |
-| `manifests/`        | Materialized copies of fetched package lists and other declarations.                |
-| `source/`           | Managed sparse source when no full checkout is selected.                            |
-| `repo-path`         | Saved path to the source selected with `--repo` or to the managed sparse source.    |
-| `byor.json`         | Local editable remote BYOR profile map.                                             |
-| `windows.lock.json` | Windows profile selection, package ownership, and operation history.                |
+## BYOR configuration
 
-For macOS and Linux, `OUTFITTING_REPO` takes precedence over the saved `repo-path`. When neither is configured, setup uses the managed sparse source for the selected platform or profile. Windows reads cached manifests from the configured manifest source, or from a local BYOR checkout when `outfitting.json` declares Windows profiles.
+### Local checkout: `outfitting.json`
 
-## Profiles
+Declare repository-relative files and arbitrary profile names at the repository root. For example:
 
-| Platform | Profile model                                   | Typical selection                                                 |
-| -------- | ----------------------------------------------- | ----------------------------------------------------------------- |
-| macOS    | One exclusive profile (built-in layout or BYOR) | Optional `--profile` when a BYOR contract declares several names. |
-| Windows  | Multiple comma-composable bundles               | `--profile base,dev`                                              |
-| Linux    | One exclusive profile (built-in or BYOR)        | `--profile generic-linux`, `--profile ubuntu-wsl`, or a BYOR name |
-
-Windows profiles are comma-composable. Linux and macOS profiles are exclusive: selecting one replaces the active profile rather than composing with it.
-
-Windows commands and Linux `apply` reuse the saved active selection when `--profile` is omitted. New Windows state uses configured default profiles (or BYOR `windows.defaultProfiles`); new Linux state defaults to `generic-linux`. Linux `init` and `setup` default explicitly to `generic-linux`, so pass `--profile` when preparing a different Linux profile. Package upgrades do not select a profile; Linux Nix actions use the saved profile.
-
-## Bring Your Own Repo (BYOR)
-
-Bring Your Own Repo (BYOR) lets you manage your machines using your own Git repository instead of Outfitting's built-in layout. You can configure BYOR in two ways:
-
-### 1. In-repository configuration (`outfitting.json`)
-
-If you maintain a local repository or clone, add an `outfitting.json` file at its root. A single configuration (using schema `1`) can define profiles for `linux`, `windows`, and `macos`.
-
-Before applying changes, test your configuration without altering system state:
-
-```bash
-outfitting-manager validate --repo ~/src/my-machine-config --platform linux
+```json
+{
+  "schema": 1,
+  "profiles": {
+    "debian-work": {
+      "linux": {
+        "apt": { "manifest": "ops/linux/debian.txt" }
+      }
+    },
+    "workstation": {
+      "macos": {
+        "nix": {
+          "flake": "hosts/mac",
+          "attribute": "darwinConfigurations.workstation.system"
+        },
+        "brewfile": "ops/mac/Brewfile"
+      }
+    },
+    "base": {
+      "windows": {
+        "winget": { "manifest": "ops/windows/base.txt" }
+      }
+    }
+  }
+}
 ```
 
-Pass `--platform` whenever `outfitting.json` defines profiles for multiple platforms. See the [`validate`](/docs/cli/validate/) command reference.
-
-### 2. Remote repository mapping (`byor.json`)
-
-If your repository is hosted on GitHub or GitHub Enterprise and you do not want to add an `outfitting.json` to the repo itself, you can create a local profile map instead.
-
-Run the interactive setup wizard:
+Validate a checkout without fetching or changing machine state:
 
 ```bash
-outfitting-manager byor
+outfitting-manager validate --repo ~/src/machine-config --platform linux --profile debian-work
 ```
 
-The wizard prompts for your repository URL, branch, platform, and package/flake paths, saving the profile map to `~/.config/outfitting/byor.json`. Afterwards, run `outfitting-manager init` or `outfitting-manager setup` to fetch your files:
+### Remote repository: `byor.json`
 
-- **Public GitHub (`github.com`):** Fetched directly over HTTPS using raw content URLs.
-- **GitHub Enterprise (`*.ghe.com` or custom hosts):** Fetched via the GitHub CLI (`gh api`). Authenticate beforehand with:
-  ```bash
-  gh auth login --hostname <your-enterprise-host>
-  ```
-- **Nix flakes:** The flake directory is fetched as a complete tree, along with any extra file paths you specify.
+Run `outfitting-manager byor` to record a Git repository, ref, profile, and selected paths under the state root. This local map can describe a repository that does not contain `outfitting.json`; it does not modify the remote repository.
 
-See the [`byor`](/docs/cli/byor/) command reference for scriptable flags.
+The remote can use GitHub, another Git host, HTTPS, or SSH. GitHub sources use commit-pinned reads. Other remotes use Git and the credentials configured for the current user. Select profiles and paths in the map; only their declared closure is fetched.
 
-### Platform guides
+## Profiles and optional components
 
-| Platform | Profile configuration                                      | Guide                                                        |
-| -------- | ---------------------------------------------------------- | ------------------------------------------------------------ |
-| Linux    | `profiles.*.linux` (apt / pacman / nix)                    | [BYOR for Linux](/docs/source-configuration/byor/linux/)     |
-| Windows  | `profiles.*.windows.winget` + optional top-level `windows` | [BYOR for Windows](/docs/source-configuration/byor/windows/) |
-| macOS    | `profiles.*.macos` (nix + optional brewfile/fonts/paths)   | [BYOR for macOS](/docs/source-configuration/byor/macos/)     |
+- **Linux and macOS:** Select one profile at a time. Linux commands require `--profile` for initialization and setup; later commands can use the saved profile where supported. macOS can omit `--profile` only when its source uniquely identifies a profile.
+- **Windows:** Profiles can be composed with `--profile base,dev`. A contract may set `windows.defaultProfiles`; when omitted, all declared Windows profiles are selected. Shared Scoop, PowerShell, fonts, and registry components are skipped unless declared.
+- **Paths:** Every declaration is relative to the repository root and must remain inside it. Nix flake directories are fetched as complete trees.
+
+## Refresh and offline behavior
+
+Remote refresh fetches the selected BYOR closure into a staging directory, validates it, and publishes it only after the complete source passes validation. A failed refresh leaves the prior published snapshot intact. Local checkouts are read directly and are never silently fetched from `origin/main`.
+
+`--no-refresh` uses the existing validated source snapshot. Offline source use requires a previously validated snapshot for the configured repository and ref; it never falls back to raw URLs, loose manifests, or another cache. Package-manager offline behavior is separate and varies by platform.
+
+## Migrating from raw routes or defaults
+
+Remove raw manifest URL/ref and Windows route settings. Either add a root `outfitting.json` to your checkout or run `outfitting-manager byor` to declare the remote Git source and every needed path. Choose your own profile names, then run `init` or `setup` with the selected profile. There is no built-in profile, default repository, or legacy route fallback.
+
+See the platform guides for [Linux](/docs/source-configuration/byor/linux/), [macOS](/docs/source-configuration/byor/macos/), and [Windows](/docs/source-configuration/byor/windows/), and the [`byor` command](/docs/cli/byor/).
 
 ## Machine ID
 
-The machine ID resolves from `OUTFITTING_MACHINE_ID`, then `config.json` `machineId`, then the automatic `<username>:<architecture>-<platform>` value. For example, `jfalava:aarch64-darwin`. The username resolves from `USER`, then `USERNAME`, then the operating-system account. Supported CPU names normalize to `aarch64`, `x86_64`, or `i686`.
-
-The ID scopes remote state. Set it deliberately when multiple installations should share an identity; otherwise let Outfitting derive it.
-
-## Platform source layouts
-
-Each platform consumes a different local source layout. macOS and Linux fetch only the files required by their selected source bundle when no full checkout is selected. Windows caches the repository-relative manifests and profile files it needs.
-
-### Windows
-
-Windows can use traditional `config.json` routes or a repository-owned `outfitting.json` file. See [BYOR for Windows](/docs/source-configuration/byor/windows/).
-
-Windows stores configuration and fetched manifests under:
-
-```text
-%LOCALAPPDATA%\outfitting
-```
-
-`config.json` records the manifest source and repository-relative Windows routes. `manifests` contains the selected WinGet files, the configured Scoop manifest, and the cached PowerShell profile. When using hosted routes, Windows does not require a full repository checkout. When using BYOR, Outfitting reads manifests directly from your local repository.
-
-The installer links these PowerShell profile entry points to the cached profile:
-
-```text
-%USERPROFILE%\Documents\PowerShell\Microsoft.PowerShell_profile.ps1
-%USERPROFILE%\Documents\PowerShell\Microsoft.VSCode_profile.ps1
-%USERPROFILE%\Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1
-    -> %LOCALAPPDATA%\outfitting\manifests\<configured PowerShell route>
-```
-
-The installer backs up an existing profile before linking it to the configured manifest; a profile already linked to that manifest stays in place. Windows symbolic links require Developer Mode or an elevated installer session.
-
-Windows does not read or copy state from older default locations. Configure the new root directly, or set `OUTFITTING_STATE_ROOT` to use a different directory explicitly.
-
-### macOS
-
-```text
-~/.config/outfitting/repo-path -> ~/.config/outfitting/source
-~/.config/home-manager -> ~/.config/outfitting/source/system/macos
-~/.nixpkgs/darwin-configuration.nix -> ~/.config/outfitting/source/system/macos/darwin.nix
-```
-
-Without a local BYOR configuration, the macOS manager fetches only Outfitting's required paths into `~/.config/outfitting/source` without cloning the entire repository or creating a repository `flake.lock`. `outfitting-manager init` validates this sparse source before `outfitting-manager setup` applies it. With a local `outfitting.json` macOS profile, flake and Brewfile paths are resolved directly from your repository. See [BYOR for macOS](/docs/source-configuration/byor/macos/).
-
-### Linux
-
-Linux keeps a profile-scoped sparse source at:
-
-```text
-~/.config/outfitting/source
-```
-
-For built-in profiles, the bundle contains the selected profile's package manifest and, for Nix-backed profiles, the shared modules, dotfiles, flake, lockfile, bootstrap, and Zsh plugin.
-
-Home Manager links for built-in Nix-backed profiles point to the selected source:
-
-```text
-~/.config/home-manager -> ~/.config/outfitting/source/system/ubuntu-wsl
-~/.config/home-manager -> ~/.config/outfitting/source/system/oci-agents
-```
-
-Use [BYOR for Linux](/docs/source-configuration/byor/linux/) if you want Outfitting to read directly from your own repository checkout and `outfitting.json` configuration instead of the default sparse source.
+The machine ID resolves from `OUTFITTING_MACHINE_ID`, then `config.json` `machineId`, then the automatic `<username>:<architecture>-<platform>` value. For example, `jfalava:aarch64-darwin`. The ID scopes remote lock and inventory state.

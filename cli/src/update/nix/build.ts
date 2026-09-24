@@ -1,6 +1,5 @@
 import type { OutfittingRepo } from "@/config/repo";
 import { runCommand, type RunCommandResult } from "@/process";
-import { NIX_SYSTEM_ATTR } from "@/update/nix/types";
 
 export type NixBuildMode = "build" | "test" | "dry";
 
@@ -13,8 +12,7 @@ export interface NixBuildOptions {
 }
 
 function flakeRef(repo: OutfittingRepo): string {
-  const attr = repo.systemAttr.length > 0 ? repo.systemAttr : NIX_SYSTEM_ATTR;
-  return `path:${repo.flakePath}#${attr}`;
+  return `path:${repo.flakePath}#${repo.systemAttr}`;
 }
 
 function baseArgs(mode: NixBuildMode, lockPath: string | undefined): string[] {
@@ -38,9 +36,7 @@ function baseArgs(mode: NixBuildMode, lockPath: string | undefined): string[] {
 export async function buildNixSystem(options: NixBuildOptions): Promise<string> {
   const run = options.run ?? runCommand;
   if (options.repo.flakePath.length === 0 || options.repo.flakeKind === "none") {
-    throw new Error(
-      "No Nix flake is configured for this Outfitting source (generic-linux has no Home Manager profile).",
-    );
+    throw new Error("No Nix flake is declared for the selected BYOR profile.");
   }
   const args = [...baseArgs(options.mode, options.lockPath), flakeRef(options.repo)];
 

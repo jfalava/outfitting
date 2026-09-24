@@ -6,19 +6,18 @@ sidebar:
   order: 22
 ---
 
-The Windows installer provides the compiled `outfitting-manager.exe`; the PowerShell profile puts it on `PATH`.
+The Windows installer provides the compiled `outfitting-manager.exe`; the PowerShell profile puts it on `PATH`. Its manager setup still uses the retired raw-route source flow and needs a separate installer migration.
 
 ## BYOR
 
-Local checkouts may declare arbitrary Windows profiles in `outfitting.json`. Hosted sources still use [config](/docs/cli/windows/config/) routes. See [BYOR for Windows](/docs/source-configuration/byor/windows/) and [validate](/docs/cli/validate/).
+Local checkouts may declare arbitrary Windows profiles in `outfitting.json`. Remote Git repositories must be explicitly mapped in `byor.json`; only declared contract paths are fetched. See [BYOR for Windows](/docs/source-configuration/byor/windows/) and [validate](/docs/cli/validate/).
 
 ## Commands
 
-- [Config](/docs/cli/windows/config/) - configure the compatible repository and Windows routes.
-- [Init](/docs/cli/init/) - initialize state and cache manifests.
-- [Setup](/docs/cli/setup/) - initialize state and install missing packages.
+- [Init](/docs/cli/init/) - select and validate an explicit source.
+- [Setup](/docs/cli/setup/) - initialize and install declared components.
 - [Validate](/docs/cli/validate/) - check a repository-owned `outfitting.json` without applying it.
-- [BYOR](/docs/cli/byor/) — set up a remote GitHub repository profile map.
+- [BYOR](/docs/cli/byor/) — configure a remote Git repository profile map.
 - [Apply](/docs/cli/apply/) - reconcile selected local profiles, optionally pruning Outfitting-owned packages.
 - [Diff](/docs/cli/diff/) - compare live WinGet and Scoop state with the repository.
 - [Sync](/docs/cli/sync/) - push, pull, and inspect remote state.
@@ -30,4 +29,4 @@ Local checkouts may declare arbitrary Windows profiles in `outfitting.json`. Hos
 - [Provision](/docs/cli/provision/) — deploy Outfitting infrastructure.
 - [Upgrade](/docs/cli/upgrade/) — update the installed manager.
 
-Windows combines comma-separated profile bundles. See [Profiles](/docs/source-configuration/#profiles) for selection and [local source](/docs/source-configuration/) rules.
+Windows combines comma-separated profile names declared by the selected BYOR source. Undeclared shared components are skipped. See [Profiles](/docs/source-configuration/#profiles) for selection and [source configuration](/docs/source-configuration/) rules.

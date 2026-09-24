@@ -1,29 +1,30 @@
 ---
 title: Init
-description: Initialize local Outfitting state without changing the machine.
+description: Validate and select a BYOR source without changing the machine.
 sidebar:
   order: 9
 ---
 
-`init` creates the local state root, saves configuration, and fetches the declarations needed by later commands. It does not install, upgrade, remove, or activate anything.
+`init` prepares the state root and validates the selected BYOR source. It does not install, upgrade, remove, or activate anything. The source must be either a local checkout with root `outfitting.json` or a remote Git source configured in the state-root `byor.json` map.
 
 ## Usage
 
 ```bash
-outfitting-manager init
-outfitting-manager init --no-fetch
+outfitting-manager init --repo ~/src/machine-config --profile workstation
+outfitting-manager init --profile workstation
+outfitting-manager init --profile workstation --no-refresh
 ```
 
-Common source options are [`--machine-id`](/docs/source-configuration/#machine-id), `--manifest-base-url`, `--manifest-ref`, and `--no-fetch`. macOS and Linux also accept `--repo`; all platforms accept `--profile` when the selected source uses profiles (Windows always; Linux always; macOS when an `outfitting.json` defines multiple profiles). See [Profiles](/docs/source-configuration/#profiles) and [BYOR](/docs/source-configuration/#byor-outfittingjson).
+Use `--repo <path>` or `OUTFITTING_REPO` for a local checkout. Otherwise, configure a remote with [`outfitting-manager byor`](/docs/cli/byor/). `--profile` selects a declaration from `outfitting.json` or `byor.json`; Linux requires an explicit profile during initialization.
 
-`--no-fetch` creates or refreshes configuration while using declarations already cached in the state root. Source overrides are saved for later commands.
+`--no-refresh` validates and reuses the existing remote snapshot instead of fetching. It cannot create a missing snapshot. Local checkouts are always read directly and are never fetched from their Git remote.
 
-To verify an `outfitting.json` file without modifying local state, use [validate](/docs/cli/validate/).
+Use [`validate`](/docs/cli/validate/) to check a local contract before selecting it. See [Source configuration](/docs/source-configuration/) for precedence, migration, and offline behavior.
 
 ## Platform differences
 
-| Platform | What `init` prepares                                                                                                      | Platform-specific invocation                                            |
-| -------- | ------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| macOS    | A sparse macOS source or a saved local checkout (built-in layout or custom BYOR profile).                                 | `outfitting-manager init --repo ~/src/my-machine-config`                |
-| Windows  | Configured manifests and the cached PowerShell profile, or a local BYOR Windows checkout.                                 | `outfitting-manager init --profile base,dev`                            |
-| Linux    | The selected profile-scoped source and persisted `linux.profile` (built-in or BYOR).                                      | `outfitting-manager init --profile ubuntu-wsl --repo ~/code/outfitting` |
+| Platform | What `init` prepares                                                                |
+| -------- | ----------------------------------------------------------------------------------- |
+| macOS    | The selected macOS BYOR profile and its declared Nix, Brewfile, and optional paths. |
+| Windows  | The selected composable WinGet profiles and any declared shared Windows components. |
+| Linux    | The explicitly selected Linux profile and its apt, pacman, and/or Nix declarations. |

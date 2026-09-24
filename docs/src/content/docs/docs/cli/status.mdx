@@ -13,12 +13,12 @@ outfitting-manager status
 
 Run `status` before `apply` to verify your active profile, machine ID, and source configuration.
 
-`status` checks your local source directory (configured via `OUTFITTING_REPO` or the saved checkout path). If git metadata is present, it reports the current branch and whether the working tree is clean or dirty. When using a remote or sparse source, it displays the configured repository URL and git ref, making it easy to see whether you are tracking a custom repository or Outfitting's built-in source.
+`status` checks the selected local checkout or validated remote snapshot. For a local checkout with Git metadata, it reports the current branch and whether the working tree is clean or dirty. For a remote source, it reports the BYOR map and its explicit repository/ref selection. The manager does not infer or display a built-in source.
 
 ## Platform differences
 
-| Platform | Profile field                  | Source checkout state                                                                      |
-| -------- | ------------------------------ | ------------------------------------------------------------------------------------------ |
-| macOS    | macOS configuration            | Saved checkout or managed sparse source, including whether it is available locally.        |
-| Windows  | Comma-composed profile bundles | Configured local checkout, or "not configured" when using cached manifests.                |
-| Linux    | One active Linux profile       | Saved checkout or profile-scoped sparse source, including whether it is available locally. |
+| Platform | Profile field                  | Source state                                         |
+| -------- | ------------------------------ | ---------------------------------------------------- |
+| macOS    | Selected macOS profile         | Local checkout or explicitly mapped remote snapshot. |
+| Windows  | Comma-composed profile bundles | Local checkout or explicitly mapped remote snapshot. |
+| Linux    | One active Linux profile       | Local checkout or explicitly mapped remote snapshot. |

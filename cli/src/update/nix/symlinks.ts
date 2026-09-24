@@ -31,8 +31,8 @@ async function ensureSymlink(linkPath: string, target: string): Promise<void> {
 
 /**
  * Ensure profile symlinks for the active flake.
- * macOS: ~/.nixpkgs/darwin-configuration.nix + ~/.config/home-manager → system/macos
- * Home Manager (oci-agents / ubuntu-wsl): ~/.config/home-manager → flake root only
+ * macOS: ~/.nixpkgs/darwin-configuration.nix + ~/.config/home-manager → declared flake root
+ * Home Manager: ~/.config/home-manager → declared flake root only
  */
 export async function ensureNixSymlinks(repo: OutfittingRepo, home = homedir()): Promise<void> {
   if (repo.flakeKind === "none" || repo.flakePath.length === 0) {

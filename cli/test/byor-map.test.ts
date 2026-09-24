@@ -132,6 +132,8 @@ describe("BYOR wizard", () => {
     await writeByorProfile({
       stateRoot,
       name: "desk",
+      repository: "https://github.com/org/repo",
+      ref: "main",
       profile: { linux: { apt: { manifest: "apt.txt" } } },
     });
     await writeByorProfile({
@@ -179,13 +181,13 @@ describe("BYOR wizard", () => {
     const saved = await saveByorWizardAnswers(answers, stateRoot);
     const map = JSON.parse(await readFile(byorMapPath(stateRoot), "utf8")) as {
       profiles: { desk: { linux: { paths: string[] } } };
-    };
-    const config = JSON.parse(await readFile(join(stateRoot, "config.json"), "utf8")) as {
-      manifest: { baseUrl: string };
+      repository: string;
+      ref: string;
     };
 
     expect(map.profiles.desk.linux.paths).toEqual([]);
-    expect(config.manifest.baseUrl).toBe("https://pepito.ghe.com/jalava/machine-config");
+    expect(map.repository).toBe("https://pepito.ghe.com/jalava/machine-config");
+    expect(map.ref).toBe("main");
     expect(saved.diff).toEqual(["+ packages/apt.txt", "+ nix/linux"]);
   });
 

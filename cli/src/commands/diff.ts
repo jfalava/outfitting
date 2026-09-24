@@ -27,12 +27,12 @@ const profileFlag = Flag.String("profile").pipe(
 
 const offlineFlag = Flag.Boolean("offline").pipe(
   Flag.withDefault(false),
-  Flag.withDescription("Use cached repository manifests and skip the remote Nix comparison."),
+  Flag.withDescription("Use the validated local BYOR snapshot and skip the remote Nix comparison."),
 );
 
 const refreshFlag = Flag.Boolean("refresh").pipe(
   Flag.withDefault(false),
-  Flag.withDescription("Refresh the Linux source before comparing it."),
+  Flag.withDescription("Refresh the selected Linux BYOR source before comparing it."),
 );
 
 const jsonFlag = Flag.Boolean("json").pipe(

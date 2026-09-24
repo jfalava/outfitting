@@ -36,14 +36,6 @@ export function repoPathFile(root = stateRoot()): string {
   return join(root, "repo-path");
 }
 
-export function manifestCacheDir(root = stateRoot()): string {
-  return join(root, "cache", "manifests");
-}
-
-export function manifestsDir(root = stateRoot()): string {
-  return join(root, "manifests");
-}
-
 /** Sparse Nix/package/Zsh source tree managed by outfitting-manager. */
 export function sparseSourceRoot(root = stateRoot()): string {
   return join(root, "source");
