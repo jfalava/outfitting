@@ -2,6 +2,7 @@
 with pkgs;
 [
   nixd
+  nixfmt
   nil
   powershell
   python3

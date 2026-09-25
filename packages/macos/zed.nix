@@ -83,6 +83,7 @@ in
 {
   programs.zed-editor = {
     enable = true;
+    enableMcpIntegration = true;
 
     # The macOS application remains owned by the Homebrew cask.
     package = null;
@@ -120,6 +121,7 @@ in
     ];
 
     userSettings = {
+      "disable_ai"= true;
       "cli_default_open_behavior" = "existing_window";
       "git" = {
         "inline_blame" = {
@@ -127,56 +129,6 @@ in
         };
       };
       "diff_view_style" = "unified";
-
-      "agent_servers" = {
-        "github-copilot-cli" = {
-          "default_config_options" = {
-            "allow_all" = "on";
-            "model" = "claude-sonnet-5";
-          };
-          "type" = "registry";
-        };
-        "codex-acp" = {
-          "default_config_options" = {
-            "reasoning_effort" = "high";
-            "model" = "gpt-5.6-sol";
-          };
-          "type" = "registry";
-        };
-        "opencode" = {
-          "default_config_options" = {
-            "effort" = "medium";
-          };
-          "type" = "registry";
-        };
-      };
-
-      "context_servers" = {
-        "Chrome DevTools" = {
-          "enabled" = true;
-          "remote" = false;
-          "command" = "bunx chrome-devtools-mcp@latest";
-          "args" = [
-            "-y"
-          ];
-        };
-        "Cloudflare Builds" = {
-          "enabled" = true;
-          "url" = "https://builds.mcp.cloudflare.com/mcp";
-        };
-        "Cloudflare Bindings" = {
-          "enabled" = true;
-          "url" = "https://bindings.mcp.cloudflare.com/mcp";
-        };
-        "Cloudflare Docs" = {
-          "enabled" = true;
-          "url" = "https://docs.mcp.cloudflare.com/mcp";
-        };
-        "Cloudflare" = {
-          "enabled" = true;
-          "url" = "https://mcp.cloudflare.com/mcp";
-        };
-      };
 
       "show_edit_predictions" = false;
       "restore_on_startup" = "last_workspace";
@@ -197,18 +149,6 @@ in
 
       "linked_edits" = true;
       "icon_theme" = "Catppuccin Latte";
-
-      "edit_predictions" = {
-        "provider" = "copilot";
-        "codestral" = {
-          "api_url" = "https://codestral.mistral.ai/v1/fim/completions";
-        };
-        "mode" = "subtle";
-        "copilot" = {
-          "proxy" = null;
-          "proxy_no_verify" = null;
-        };
-      };
 
       "collaboration_panel" = {
         "button" = false;
@@ -244,27 +184,6 @@ in
       "git_panel" = {
         "tree_view" = true;
         "dock" = "right";
-      };
-
-      "agent" = {
-        "tool_permissions" = {
-          "default" = "allow";
-        };
-        "default_model" = {
-          "effort" = "medium";
-          "enable_thinking" = true;
-          "provider" = "copilot_chat";
-          "model" = "gpt-5-mini";
-        };
-        "play_sound_when_agent_done" = "always";
-        "enable_feedback" = true;
-        "default_profile" = "write";
-        "single_file_review" = false;
-        "dock" = "left";
-        "commit_message_model" = {
-          "model" = "gpt-5-mini";
-          "provider" = "copilot_chat";
-        };
       };
 
       "project_panel" = {
@@ -325,7 +244,7 @@ in
             };
           };
         };
-        "Bearded Theme Arc" = {
+        "Tokyo Night Dark" = {
           "syntax" = {
             "comment" = {
               "font_style" = "italic";
@@ -432,6 +351,36 @@ in
             };
           };
         };
+    };
+  };
+
+  programs.mcp = {
+    enable = true;
+    servers = {
+      "Chrome DevTools" = {
+        command = "bunx";
+        args = [
+          "-y"
+          "chrome-devtools-mcp@latest"
+        ];
+        enabled = true;
+      };
+      "Cloudflare Builds" = {
+        url = "https://builds.mcp.cloudflare.com/mcp";
+        enabled = true;
+      };
+      "Cloudflare Bindings" = {
+        url = "https://bindings.mcp.cloudflare.com/mcp";
+        enabled = true;
+      };
+      "Cloudflare Docs" = {
+        url = "https://docs.mcp.cloudflare.com/mcp";
+        enabled = true;
+      };
+      "Cloudflare" = {
+        url = "https://mcp.cloudflare.com/mcp";
+        enabled = true;
+      };
     };
   };
 
