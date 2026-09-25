@@ -1,8 +1,13 @@
 import { Effect } from "effect";
 import { Command, Flag, Prompt } from "effect/unstable/cli";
 
-import { linuxOfflineFlag, linuxOptionalProfileFlag, optionalString } from "@/commands/linux-flags";
-import { type LinuxPackageManager } from "@/platform/linux";
+import {
+  linuxOfflineFlag,
+  linuxOptionalProfileFlag,
+  linuxPackageManagerFlag,
+  optionalString,
+  requestedLinuxPackageManager,
+} from "@/commands/linux-flags";
 import { applyLinux } from "@/update/linux";
 
 const pruneFlag = Flag.Boolean("prune").pipe(
@@ -22,24 +27,32 @@ const noRefreshFlag = Flag.Boolean("no-refresh").pipe(
   Flag.withDescription("Use the local Linux source without fetching remote changes."),
 );
 
-function makeLinuxApplySubcommand(manager?: LinuxPackageManager) {
-  return Command.make(
-    manager ?? "all",
+const ifConfiguredFlag = Flag.Boolean("if-configured").pipe(
+  Flag.withDefault(false),
+  Flag.withDescription("Skip when the selected profile declares no apt or pacman packages."),
+);
+
+export const makeLinuxApplyCommand = () =>
+  Command.make(
+    "apply",
     {
       profile: linuxOptionalProfileFlag,
+      packageManager: linuxPackageManagerFlag,
       prune: pruneFlag,
       offline: linuxOfflineFlag,
       yes: yesFlag,
       noRefresh: noRefreshFlag,
+      ifConfigured: ifConfiguredFlag,
     },
     (flags) =>
       applyLinux({
         profile: optionalString(flags.profile),
-        packageManager: manager,
+        packageManager: requestedLinuxPackageManager(flags.packageManager),
         prune: flags.prune,
         offline: flags.offline,
         yes: flags.yes,
         noRefresh: flags.noRefresh,
+        ifConfigured: flags.ifConfigured,
         confirm: Prompt.Confirm({
           message: "Apply this plan?",
           initial: false,
@@ -47,21 +60,6 @@ function makeLinuxApplySubcommand(manager?: LinuxPackageManager) {
       }),
   ).pipe(
     Command.withDescription(
-      manager === undefined
-        ? "Refresh and apply the Linux profile with the detected package manager."
-        : `Refresh and apply the Linux profile with ${manager}.`,
+      "Reconcile declared Linux packages; select apt or pacman with --package-manager.",
     ),
-  );
-}
-
-export const makeLinuxApplyCommand = () =>
-  Command.make("apply").pipe(
-    Command.withDescription(
-      "Install missing locally declared Linux packages; prune only proven ownership.",
-    ),
-    Command.withSubcommands([
-      makeLinuxApplySubcommand(),
-      makeLinuxApplySubcommand("apt"),
-      makeLinuxApplySubcommand("pacman"),
-    ]),
   );

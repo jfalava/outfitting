@@ -25,4 +25,4 @@ darwin = true
 manifest = "ops/mac/fonts.txt"
 ```
 
-The flake directory is fetched as a tree; `paths` covers additional files. Paths are source-root-relative. For a local checkout, replace `repository` and `ref` with `path` (resolved relative to the config file). Run `outfitting-manager validate` before `outfitting-manager setup`.
+The flake directory is fetched as a tree; `paths` covers additional files. Paths are source-root-relative. For a local checkout, replace `repository` and `ref` with `path` (resolved relative to the config file). Run `outfitting-manager init` first to prepare state and fetch/validate the source; optionally run `outfitting-manager validate` to check it without refreshing. Use `outfitting-manager nix switch` for nix-darwin and `outfitting-manager apply` for the Brewfile.

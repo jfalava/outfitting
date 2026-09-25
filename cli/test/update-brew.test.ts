@@ -7,7 +7,7 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 
 import { pushLockfile } from "@/lockfiles";
 import type { RunCommandResult } from "@/process";
-import { parseBrewfileTaps, setupBrew, updateBrew } from "@/update/brew";
+import { applyBrew, parseBrewfileTaps, updateBrew } from "@/update/brew";
 import { captureHomebrewInventory } from "@/update/snapshot";
 
 const temps: string[] = [];
@@ -53,14 +53,14 @@ describe("captureHomebrewInventory", () => {
   });
 });
 
-test("setup applies the local Brewfile without upgrading or cleaning extras", async () => {
-  const root = await mkdtemp(join(tmpdir(), "outfitting-brew-setup-"));
+test("apply reconciles the local Brewfile without upgrading or cleaning extras", async () => {
+  const root = await mkdtemp(join(tmpdir(), "outfitting-brew-apply-"));
   temps.push(root);
   const brewfile = join(root, "Brewfile");
   await writeFile(brewfile, 'brew "jq"\n', "utf8");
   const recorded: Array<ReadonlyArray<string>> = [];
 
-  const setupEffect = setupBrew({
+  const applyEffect = applyBrew({
     config: {
       configPath: join(root, "config.toml"),
       stateRoot: root,
@@ -74,7 +74,7 @@ test("setup applies the local Brewfile without upgrading or cleaning extras", as
       return { code: 0, stdout: "", stderr: "" } satisfies RunCommandResult;
     },
   }) as unknown as Effect.Effect<void, unknown, never>;
-  await Effect.runPromise(setupEffect);
+  await Effect.runPromise(applyEffect);
 
   expect(recorded).toEqual([["brew", "bundle", "--no-upgrade", `--file=${brewfile}`]]);
 });

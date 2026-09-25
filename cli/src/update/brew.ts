@@ -94,7 +94,7 @@ export interface UpdateBrewOptions {
 /**
  * First-run Homebrew apply: install missing declarations without upgrading or removing.
  */
-export const setupBrew = (options: UpdateBrewOptions = {}) =>
+export const applyBrew = (options: UpdateBrewOptions = {}) =>
   Effect.gen(function* () {
     const whichFn = options.which ?? which;
     const run = options.run ?? runCommand;
@@ -121,7 +121,7 @@ export const setupBrew = (options: UpdateBrewOptions = {}) =>
       return yield* new CliFailure({ message: `brew bundle failed (exit ${bundle.code}).` });
     }
 
-    yield* Console.log(ui.success("Homebrew setup complete."));
+    yield* Console.log(ui.success("Homebrew apply complete."));
   });
 
 /** Upgrade installed Homebrew packages without applying or pruning declarations. */

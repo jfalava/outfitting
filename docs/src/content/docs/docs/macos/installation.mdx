@@ -21,17 +21,19 @@ curl -L mac.jfa.dev | bash
 ```
 
 > [!WARNING]
-> The current bootstrap may still invoke an older source flow. Configure `config.toml` before running manager setup manually.
+> The bootstrap runs `init`, `nix switch`, and `apply` directly. Configure `config.toml` with the selected profile and source before running the installer.
 
 ## Configure a source
 
 Configure `[source] path` or remote `repository` and `ref`, plus `[macos] profile`, in the machine-local [config.toml](/docs/source-configuration/).
 
 ```bash
-outfitting-manager validate
-outfitting-manager setup
+outfitting-manager init
+outfitting-manager validate # optional check of the fetched source
+outfitting-manager nix switch
+outfitting-manager apply
 ```
 
-GitHub, GitHub Enterprise, HTTPS Git, and SSH remotes are supported. See [macOS configuration](/docs/source-configuration/byor/macos/) for Nix, Brewfile, and font declarations.
+GitHub, GitHub Enterprise, HTTPS Git, and SSH remotes are supported. `apply` reconciles the Brewfile; Nix activation is separate. See [macOS configuration](/docs/source-configuration/byor/macos/) for Nix, Brewfile, and font declarations.
 
 For macOS commands and shell helpers, see the [macOS CLI reference](/docs/cli/macos/).

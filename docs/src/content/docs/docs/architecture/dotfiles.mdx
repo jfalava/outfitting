@@ -17,7 +17,7 @@ Installers symlink the profile entry points (Windows backs up existing profiles 
 
 ## System definitions
 
-- `system/macos/` (`darwin.nix`, `home.nix`, `flake.nix`, `zsh/macos.plugin.zsh`) — canonical `outfitting-manager update nix|brew|all` and `outfitting-manager snapshot brew`/`outfitting-manager recover nix` commands, `hm-build|switch|test|dry` compatibility helpers, Nix actions, Homebrew reconcile, remote Nix lock pull/push, and recovery checkpoints under XDG state. Global Bun updates use `bun update -g`.
+- `system/macos/` (`darwin.nix`, `home.nix`, `flake.nix`, `zsh/macos.plugin.zsh`) — `outfitting-manager nix` actions, native Homebrew `update`, Brewfile `apply`, `snapshot brew`, and `recover nix`; `hm-build|switch|test|dry` compatibility helpers; remote Nix lock pull/push; and recovery checkpoints under XDG state. Global Bun updates use `bun update -g`.
 - `system/ubuntu-wsl/` (`base.nix`, `flake.nix`, `zsh/wsl.plugin.zsh`) — Linux Home Manager profile; `hm-*` via shared `hm-profile.inc.zsh`.
 - `system/oci-agents/` (`home.nix`, `flake.nix`, `bootstrap.sh`, `zsh/oci-agents.plugin.zsh`) — headless Linux Home Manager profile and services.
 - `system/nixos/` (`configuration.nix`, `desktop.nix`, `server.nix`, `home.nix`, `flake.nix`) — host roles.
@@ -34,6 +34,6 @@ This repository contains desired-state examples under `packages/` and `system/`,
 
 ## Install and reconcile
 
-Root `*-install-script.{sh,ps1}` files are served live from the installer hosts. Their manager invocations may still use implicit or raw-route source behavior and require a separate installer update. Registry/OpenSSH setup remains PowerShell; post-install adds Scoop and fonts (with package installs delegated to the CLI).
+Root `*-install-script.{sh,ps1}` files are served live from the installer hosts. Linux and macOS bootstraps and the Windows post-install script invoke separate `init`, `apply`, and (where configured) `nix switch` operations. Configure TOML before running them. The Windows font-download portion still accepts legacy raw-route inputs. Registry/OpenSSH setup remains PowerShell; post-install adds Scoop and fonts.
 
-Day-to-day Windows and Linux reconciliation uses `outfitting-manager apply`. Remote transport is explicit under `outfitting-manager sync`; see [Machine ID](/docs/source-configuration/#machine-id) for how remote state is scoped. macOS continues to use `nix` plus `homebrew-inventory`.
+The CLI uses `init` to prepare and validate a source, `apply` to reconcile declared packages, `update` to upgrade native package managers, `nix` for Nix builds and activation, and `self-update` to replace the manager binary. Remote transport is explicit under `outfitting-manager sync`; see [Machine ID](/docs/source-configuration/#machine-id) for how remote state is scoped.

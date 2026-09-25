@@ -5,7 +5,7 @@ sidebar:
   order: 8
 ---
 
-`validate` checks the single machine-local [config.toml](/docs/source-configuration/) and the selected profile's declared manifests and paths without applying changes.
+`validate` checks the single machine-local [config.toml](/docs/source-configuration/) and the selected profile's declared manifests and paths without applying packages or refreshing the source. For a remote source, it checks the existing cached snapshot; run [`init`](/docs/cli/init/) first on a new machine to fetch and validate that source.
 
 ```bash
 outfitting-manager validate

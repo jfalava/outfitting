@@ -15,10 +15,11 @@ Select `[macos] profile` and a local or remote `[source]` in `config.toml`. See 
 ## Commands
 
 - [Init](/docs/cli/init/) - prepare the state and repository source without applying it.
-- [Setup](/docs/cli/setup/) - activate Nix and install missing Homebrew declarations.
+- [Apply](/docs/cli/apply/) - reconcile missing Homebrew declarations.
+- [Nix](/docs/cli/nix/) - build or activate the nix-darwin profile.
 - [Validate](/docs/cli/validate/) - check `config.toml` without applying it.
 - [Source configuration](/docs/source-configuration/) — configure a local or remote source.
-- [Update](/docs/cli/update/) - upgrade installed Nix and Homebrew state.
+- [Update](/docs/cli/update/) - upgrade installed Homebrew packages.
 - [Diff](/docs/cli/diff/) - compare live Homebrew and Nix state with the repository.
 - [Snapshot](/docs/cli/macos/snapshot/) - capture observed Homebrew state.
 - [Recover](/docs/cli/macos/recover/) - resume interrupted Nix operations.
@@ -27,6 +28,6 @@ Select `[macos] profile` and a local or remote `[source]` in `config.toml`. See 
 - [Shell helpers](/docs/cli/macos/shell/) - maintain the `hm-*` compatibility commands.
 - [Fonts](/docs/cli/fonts/) — manage the shared private-font archive.
 - [Provision](/docs/cli/provision/) — deploy Outfitting infrastructure.
-- [Upgrade](/docs/cli/upgrade/) — update the installed manager.
+- [Self-update](/docs/cli/self-update/) — update the installed manager binary.
 
 These pages use `outfitting-manager` in every command example. Run it without arguments to print manager help.

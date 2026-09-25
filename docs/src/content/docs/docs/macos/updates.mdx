@@ -8,44 +8,36 @@ sidebar:
 
 The macOS manager stores its configuration, cached declarations, and managed source under `~/.config/outfitting`. You can set `OUTFITTING_STATE_ROOT` to choose a different directory.
 
-## Update Nix and Homebrew (`update`)
+## Activate nix-darwin (`nix`)
 
-Use `update all` to rebuild and switch your nix-darwin configuration and upgrade installed Homebrew packages in one command:
+Nix actions are separate from native package updates. Use [`nix`](/docs/cli/nix/) to build or activate the configured nix-darwin profile:
 
 ```bash
-# Update nix-darwin and Homebrew packages
-outfitting-manager update all
-
-# Update without pulling remote source changes
-outfitting-manager update all --no-refresh
-
-# Update without pushing lockfile state
-outfitting-manager update all --no-push
+outfitting-manager nix build
+outfitting-manager nix switch
+outfitting-manager nix switch --no-refresh
+outfitting-manager nix switch --no-push
 ```
 
-`update all` continues through individual step failures and exits with a non-zero code if any step fails.
+`switch` builds and activates nix-darwin. `--no-refresh` uses the validated local source; `--no-push` keeps lock changes local.
 
-### Targeted updates
+## Reconcile or upgrade Homebrew packages
 
-To update only nix-darwin or Homebrew:
+Use [`apply`](/docs/cli/apply/) to install missing Brewfile entries and [`update`](/docs/cli/update/) to upgrade installed formulas and casks:
 
 ```bash
-# Nix-darwin actions: build, test, dry, or switch
-outfitting-manager update nix switch
-outfitting-manager update nix switch --no-refresh
-
-# Upgrade Homebrew packages
-outfitting-manager update brew
-outfitting-manager update brew --no-push
+outfitting-manager apply
+outfitting-manager update
+outfitting-manager update --no-push
 ```
 
 > [!NOTE]
-> `update brew` upgrades installed Homebrew formulas and casks and records the observed inventory. It does not install newly declared packages from your Brewfile (use [`setup`](/docs/cli/setup/) to install missing declarations).
+> `update` upgrades installed Homebrew formulas and casks and records the observed inventory. It does not install newly declared packages from your Brewfile; use `apply` for that. There is no combined command: run the Nix and Homebrew actions you intend explicitly.
 
 ## Additional tools
 
 - **Capture Homebrew inventory:** Run [snapshot](/docs/cli/macos/snapshot/) to record installed Homebrew packages to the lockfile without running upgrades.
 - **Recover Nix:** Run [recover](/docs/cli/macos/recover/) if a previous nix-darwin build or switch operation was interrupted.
-- **Update Outfitting CLI:** Run `outfitting-manager upgrade` to update the manager binary itself.
+- **Update Outfitting CLI:** Run [`self-update`](/docs/cli/self-update/) to update the manager binary itself.
 
 For the full command list, see the [macOS CLI reference](/docs/cli/macos/).

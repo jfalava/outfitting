@@ -126,6 +126,29 @@ test("Linux switch activates the selected BYOR Home Manager profile without push
   expect(pushLockfile).not.toHaveBeenCalled();
 });
 
+test("Linux Nix action skips profiles without a Nix declaration when requested", async () => {
+  const stateRoot = await mkdtemp(join(tmpdir(), "outfitting-nix-skip-state-"));
+  temporaryRoots.push(stateRoot);
+  await writeFile(
+    join(stateRoot, "config.toml"),
+    [
+      "schema = 1",
+      "[linux]",
+      'profile = "native-only"',
+      "[profiles.native-only.linux.apt]",
+      'manifest = "packages/linux.txt"',
+      "",
+    ].join("\n"),
+  );
+  const config = await loadConfig({ stateRoot, machineId: "test:aarch64-linux" });
+
+  await Effect.runPromise(updateNix({ action: "switch", config, ifConfigured: true }));
+
+  expect(buildNixSystem).not.toHaveBeenCalled();
+  expect(activateHomeManager).not.toHaveBeenCalled();
+  expect(pushLockfile).not.toHaveBeenCalled();
+});
+
 test("Linux Nix actions use the selected local BYOR flake without fetching", async () => {
   const { config, repo } = await makeLinuxSource("hm-dev");
   const fetcher = vi.fn(async () => new Response("unexpected remote refresh"));

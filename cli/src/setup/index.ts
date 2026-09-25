@@ -1,6 +1,5 @@
 export { runSetup, type SetupOptions } from "@/setup/run";
-export { runLinuxSetup, type LinuxSetupOptions } from "@/setup/linux";
-export { runMacosSetup, type MacosSetupOptions } from "@/setup/macos";
+export { runLinuxInit, type LinuxInitOptions } from "@/setup/linux";
 export {
   syncByorSparseSource,
   type ByorSparseSourceOptions,

@@ -28,8 +28,8 @@ Both subcommands accept `--no-push` to update the local lock without uploading i
 
 ## Platform differences
 
-| Platform | Availability  | Difference                                                                        |
-| -------- | ------------- | --------------------------------------------------------------------------------- |
-| macOS    | Not available | Use `update brew` or `update nix`.                                                |
-| Windows  | Available     | Operations are recorded in `windows.lock.json` and normally pushed to the Worker. |
-| Linux    | Not available | Use `update apt` or `update pacman`.                                              |
+| Platform | Availability  | Difference                                                                                          |
+| -------- | ------------- | --------------------------------------------------------------------------------------------------- |
+| macOS    | Not available | `update` upgrades Homebrew packages; use `nix` for nix-darwin.                                      |
+| Windows  | Available     | Operations are recorded in `windows.lock.json` and normally pushed to the Worker.                   |
+| Linux    | Not available | `update --package-manager apt|pacman` upgrades installed native packages.                           |

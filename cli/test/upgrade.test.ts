@@ -65,10 +65,10 @@ function makeZip(fileName: string, contents: string): Uint8Array {
   return appendBytes([local, central, end]);
 }
 
-describe("upgrade command helpers", () => {
-  test("silently normalizes the misspelled command alias", () => {
-    expect(normalizeCommandAlias(["ugprade"])).toEqual(["upgrade"]);
-    expect(normalizeCommandAlias(["ugprade", "--help"])).toEqual(["upgrade", "--help"]);
+describe("self-update command helpers", () => {
+  test("does not normalize retired CLI command names", () => {
+    expect(normalizeCommandAlias(["ugprade"])).toEqual(["ugprade"]);
+    expect(normalizeCommandAlias(["upgrade", "--help"])).toEqual(["upgrade", "--help"]);
   });
 
   test("compares stable CLI versions", () => {

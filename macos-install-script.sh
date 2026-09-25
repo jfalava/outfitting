@@ -254,7 +254,8 @@ main() {
     install_nix || exit 1
 
     run_outfitting_manager init || exit 1
-    run_outfitting_manager setup || exit 1
+    run_outfitting_manager nix switch --no-refresh || exit 1
+    run_outfitting_manager apply --no-refresh || exit 1
 
     install_astral_uv
 

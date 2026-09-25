@@ -11,24 +11,25 @@ Linux uses the compiled `outfitting-manager` binary. It detects `/etc/os-release
 Configure a local `[source] path` or remote `repository` and `ref` in `config.toml`, with `[linux] profile`. See [Linux configuration](/docs/source-configuration/byor/linux/) for examples.
 
 ```bash
-outfitting-manager validate
-outfitting-manager setup
+outfitting-manager init
+outfitting-manager validate # optional check of the fetched source
+outfitting-manager apply
 ```
 
-`setup` installs packages from the selected profile and applies Home Manager when the contract declares a Nix flake. Use `update` for upgrades.
+`init` prepares state and fetches/validates the configured source. `validate` checks config and the existing source snapshot without refreshing it. `apply` reconciles apt or pacman declarations; use [`nix switch`](/docs/cli/nix/) separately for a declared Home Manager profile and [`update`](/docs/cli/update/) for native package upgrades.
 
 > [!WARNING]
-> The existing Linux bootstrap may still invoke an older implicit-source flow; configure `config.toml` before manual setup.
+> The hosted Linux installer runs `init`, `apply`, and `nix switch` directly, so configure `config.toml` before running it.
 
 ## Commands
 
 - [Init](/docs/cli/init/) — select and validate an explicitly configured source.
-- [Setup](/docs/cli/setup/) — initialize and install declared components.
 - [Validate](/docs/cli/validate/) — check `config.toml` without applying it.
 - [Source configuration](/docs/source-configuration/) — select a checkout or Git source.
 - [Apply](/docs/cli/apply/) — reconcile declared apt or pacman packages.
-- [Update](/docs/cli/update/) — upgrade installed packages.
+- [Nix](/docs/cli/nix/) — build or activate a Home Manager profile.
+- [Update](/docs/cli/update/) — upgrade installed apt or pacman packages.
 - [Sync](/docs/cli/sync/) — transport remote state.
 - [Status](/docs/cli/status/) — inspect effective local configuration.
 - [Install](/docs/cli/linux/install/) — hosted bootstrap status and requirements.
-- [Home Manager](/docs/cli/linux/home-manager/) — `update nix` and `hm-*` helpers.
+- [Home Manager](/docs/cli/linux/home-manager/) — Linux Nix details and `hm-*` helpers.

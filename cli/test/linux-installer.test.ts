@@ -11,10 +11,17 @@ describe("Linux installer delegation", () => {
 
     expect(script).toContain('PROFILE_ARGS=(--profile "$PROFILE")');
     expect(script).toContain('outfitting-manager init "${PROFILE_ARGS[@]}"');
-    expect(script).toContain('outfitting-manager setup "${PROFILE_ARGS[@]}" --no-fetch');
-    expect(script).toContain('"$PROFILE" == "ubuntu-wsl"');
+    expect(script).toContain(
+      'outfitting-manager apply "${PROFILE_ARGS[@]}" --no-refresh --yes --if-configured',
+    );
+    expect(script).toContain(
+      'outfitting-manager nix switch "${PROFILE_ARGS[@]}" --no-refresh --no-push --if-configured',
+    );
+    expect(script).toContain("bash -s -- --profile ubuntu-wsl");
+    expect(script).not.toContain('PROFILE_ARGS+=(--repo "$OUTFITTING_REPO")');
+    expect(script).not.toContain("outfitting-manager setup");
     expect(script).not.toContain("outfitting-manager update all");
-    expect(script.indexOf("outfitting-manager setup")).toBeGreaterThan(
+    expect(script.indexOf("outfitting-manager apply")).toBeGreaterThan(
       script.indexOf("outfitting-manager init"),
     );
   });

@@ -1,6 +1,6 @@
 ---
 title: Install
-description: Install the Linux manager and understand the bootstrap limitation.
+description: Install the Linux manager and run its configured bootstrap operations.
 audience: linux
 sidebar:
   order: 1
@@ -10,9 +10,10 @@ sidebar:
 curl -L linux.jfa.dev | bash
 ```
 
-The hosted script supports Linux x64 and arm64 and installs `outfitting-manager`.
+The hosted script supports Linux x64 and arm64 and installs `outfitting-manager`. Its default profile is `generic-linux`; choose another configured profile with `--profile`:
 
-> [!WARNING]
-> The current bootstrap may still run `init` with an implicit built-in profile. Configure `config.toml` before manual manager setup; the installer needs a separate update.
+```bash
+curl -L linux.jfa.dev | bash -s -- --profile oci-agents
+```
 
-Configure a local checkout or remote Git source in `config.toml`. See [Linux configuration](/docs/source-configuration/byor/linux/) and the [source configuration overview](/docs/source-configuration/).
+Configure `config.toml` with the selected profile and a local or remote source before running the installer. It runs `init`, then `apply` and `nix switch`; `--if-configured` lets those operations skip undeclared native or Nix backends. See [Linux configuration](/docs/source-configuration/byor/linux/) and the [source configuration overview](/docs/source-configuration/).

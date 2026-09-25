@@ -31,13 +31,18 @@ const runCliWithEnv = async (args: string[], env: Record<string, string | undefi
 
 const runCli = async (args: string[]) => runCliWithEnv(args);
 
-describe("macos CLI scaffold (process)", () => {
-  test("root help lists shared verbs without the removed lockfiles alias", async () => {
+describe("macOS CLI command boundaries", () => {
+  test("root help exposes distinct preparation, reconciliation, native update, Nix, and self-update commands", async () => {
     const { code, stdout, stderr } = await runCli(["--help"]);
     const text = `${stdout}\n${stderr}`;
     expect(code).toBe(0);
-    expect(text).toMatch(/\bsetup\b/);
+    expect(text).toMatch(/\binit\b/);
+    expect(text).toMatch(/\bapply\b/);
+    expect(text).toMatch(/\bnix\b/);
     expect(text).toMatch(/\bupdate\b/);
+    expect(text).toMatch(/\bself-update\b/);
+    expect(text).not.toMatch(/^\s+setup\s/m);
+    expect(text).not.toMatch(/^\s+upgrade\s/m);
     expect(text).toMatch(/\bdiff\b/);
     expect(text).toMatch(/\bsync\b/);
     expect(text).not.toMatch(/^\s+lockfiles\s/m);
@@ -46,33 +51,23 @@ describe("macos CLI scaffold (process)", () => {
     expect(text).toMatch(/\brecover\b/);
   });
 
-  test("bare update exits nonzero and shows usage", async () => {
-    const { code, stdout, stderr } = await runCli(["update"]);
-    const text = `${stdout}\n${stderr}`;
-    expect(code).not.toBe(0);
-    expect(text).toMatch(/update/i);
-  });
-
-  test("update exposes one subcommand per package origin", async () => {
+  test("update help describes native Homebrew upgrades, not an aggregate command", async () => {
     const { code, stdout, stderr } = await runCli(["update", "--help"]);
     const text = `${stdout}\n${stderr}`;
     expect(code).toBe(0);
-    for (const manager of ["nix", "brew", "all"]) {
-      expect(text).toMatch(new RegExp(`\\b${manager}\\b`));
-    }
-    expect(text).not.toMatch(/update[-_]all/i);
+    expect(text).toMatch(/Homebrew/i);
+    expect(text).not.toMatch(/\bnix\b|subcommands/i);
   });
 
-  test("update bun is removed without a migration handler", async () => {
-    const { code, stdout, stderr } = await runCli(["update", "bun"]);
+  test("update rejects a foreign package-manager selection", async () => {
+    const { code, stdout, stderr } = await runCli(["update", "--package-manager", "scoop"]);
     const text = `${stdout}\n${stderr}`;
     expect(code).not.toBe(0);
-    expect(text).not.toMatch(/deprecated/i);
-    expect(text).not.toMatch(/^\s+bun\s/m);
+    expect(text).toMatch(/apt|pacman|brew|invalid|unexpected/i);
   });
 
-  test("update nix dry is registered (fails fast without repo rather than stub)", async () => {
-    const { code, stdout, stderr } = await runCliWithEnv(["update", "nix", "dry"], {
+  test("Nix dry-run is a top-level action and fails fast without a configured repo", async () => {
+    const { code, stdout, stderr } = await runCliWithEnv(["nix", "dry-run"], {
       OUTFITTING_REPO: "/tmp/definitely-not-an-outfitting-repo",
     });
     const text = `${stdout}\n${stderr}`;
@@ -83,8 +78,8 @@ describe("macos CLI scaffold (process)", () => {
     );
   });
 
-  test("update nix without an action lists subcommands and does not switch", async () => {
-    const { stdout, stderr } = await runCliWithEnv(["update", "nix"], {
+  test("Nix without an action lists actions and does not switch", async () => {
+    const { stdout, stderr } = await runCliWithEnv(["nix"], {
       OUTFITTING_REPO: "/tmp/definitely-not-an-outfitting-repo",
     });
     const text = `${stdout}\n${stderr}`;
@@ -93,18 +88,17 @@ describe("macos CLI scaffold (process)", () => {
     expect(text).not.toMatch(
       /missing system\/macos\/flake\.nix|Building nix-darwin|Activating nix-darwin/i,
     );
-    expect(text).toMatch(/build|switch|test|dry/i);
+    expect(text).toMatch(/build|switch|test|dry-run/i);
 
-    const help = await runCli(["update", "nix", "--help"]);
+    const help = await runCli(["nix", "--help"]);
     expect(help.code).toBe(0);
-    expect(`${help.stdout}\n${help.stderr}`).toMatch(/build|switch|test|dry/);
+    expect(`${help.stdout}\n${help.stderr}`).toMatch(/build|switch|test|dry-run/);
   });
 
-  test("update scoop is a foreign hint stub", async () => {
-    const { code, stdout, stderr } = await runCli(["update", "scoop"]);
+  test("update requires an explicit package manager on Linux and rejects removed Nix routing", async () => {
+    const { code, stdout, stderr } = await runCli(["update", "nix"]);
     expect(code).not.toBe(0);
-    expect(`${stdout}\n${stderr}`).toContain("Windows");
-    expect(`${stdout}\n${stderr}`).toMatch(/scoop/i);
+    expect(`${stdout}\n${stderr}`).not.toMatch(/Building nix-darwin|Activating nix-darwin/i);
   });
 
   test("init is the non-applying macOS preparation command", async () => {
@@ -115,12 +109,21 @@ describe("macos CLI scaffold (process)", () => {
     expect(text).toMatch(/without applying/i);
   });
 
-  test("setup is the applying macOS command", async () => {
-    const { code, stdout, stderr } = await runCli(["setup", "--help"]);
+  test("apply reconciles the macOS Brewfile and leaves Nix to its own command", async () => {
+    const { code, stdout, stderr } = await runCli(["apply", "--help"]);
     const text = `${stdout}\n${stderr}`;
     expect(code).toBe(0);
-    expect(text).toMatch(/apply/i);
-    expect(text).toMatch(/Nix and Homebrew/i);
+    expect(text).toMatch(/Brewfile|Homebrew/i);
+    expect(text).toMatch(/profile/i);
+    expect(text).not.toMatch(/Nix and Homebrew/i);
+  });
+
+  test("the removed composite setup command is not registered", async () => {
+    const { code, stdout, stderr } = await runCli(["setup", "--help"]);
+    const text = `${stdout}\n${stderr}`;
+    expect(text).not.toMatch(/^\s+setup\s/m);
+    expect(text).not.toMatch(/Nix and Homebrew/i);
+    expect(code).toBe(0);
   });
 
   test("sync exposes remote transport and lockfiles is rejected", async () => {

@@ -35,7 +35,7 @@ export const macosInitCommand = Command.make(
       repoProfile: Option.getOrUndefined(profile),
       refreshSource: !noRefresh,
       skipSymlinks: true,
-      nextCommand: "Next: outfit setup",
+      nextCommand: "Next: outfitting-manager nix switch, then outfitting-manager apply",
     }),
 ).pipe(
   Command.withDescription(

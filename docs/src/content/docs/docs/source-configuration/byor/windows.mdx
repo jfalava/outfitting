@@ -27,4 +27,4 @@ manifest = "ops/windows/base.txt"
 manifest = "ops/windows/dev.txt"
 ```
 
-Each selected profile declares its WinGet manifest. Shared declarations are optional and skipped when absent. All declaration paths are source-root-relative. For a remote Git source use `[source] repository` plus `ref` instead of `path`. Run `outfitting-manager validate` before `outfitting-manager setup`.
+Each selected profile declares its WinGet manifest. Shared declarations are optional and skipped when absent. All declaration paths are source-root-relative. For a remote Git source use `[source] repository` plus `ref` instead of `path`. Run `outfitting-manager init` first to prepare state and fetch/validate the source; optionally run `outfitting-manager validate` to check it without refreshing. Use `outfitting-manager apply` to reconcile the selected package declarations.

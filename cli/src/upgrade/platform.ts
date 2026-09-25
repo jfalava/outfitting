@@ -43,7 +43,7 @@ export function executablePath(main = Bun.main, execPath = process.execPath): st
   const isCompiledBinary = isCompiledBinaryPath(normalizedMain);
   if (!isCompiledBinary && normalizedMain !== normalizePath(execPath)) {
     throw new Error(
-      "upgrade must be run from the compiled outfitting-manager binary, not from Bun source.",
+      "self-update must be run from the compiled outfitting-manager binary, not from Bun source.",
     );
   }
   return execPath;

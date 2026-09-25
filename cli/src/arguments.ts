@@ -27,8 +27,5 @@ export function normalizeCommandAlias(args: ReadonlyArray<string>): string[] {
   if (configPath !== undefined) {
     process.env.OUTFITTING_CONFIG = configPath;
   }
-  if (normalized[0] === "ugprade") {
-    normalized[0] = "upgrade";
-  }
   return normalized;
 }

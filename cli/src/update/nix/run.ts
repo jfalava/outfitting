@@ -34,6 +34,8 @@ export interface UpdateNixOptions {
   profile?: string;
   /** Use the selected local source without fetching remote changes. */
   noRefresh?: boolean;
+  /** Skip Linux Nix actions when the selected profile has no Nix declaration. */
+  ifConfigured?: boolean;
   /** Skip publishing the related Nix lock after a successful action. */
   noPush?: boolean;
 }
@@ -228,7 +230,7 @@ function runNixAction(
         yield* Console.log(ui.success("Build successful — ready to switch."));
         return;
       }
-      case "dry": {
+      case "dry-run": {
         yield* Console.log(ui.heading(`Dry-run ${label} build…`));
         yield* tryPromise(() => buildNixSystem({ repo, lockPath, mode: "dry" }));
         yield* Console.log(ui.success("Dry-run complete."));
@@ -284,7 +286,7 @@ function validateLinuxNixProfile(
 }
 
 /**
- * `update nix build|switch|test|dry` — no flake-input upgrade in v1.
+ * `nix build|switch|test|dry-run` — no flake-input upgrade in v1.
  * switch builds then activates in-process.
  * macOS prefers the remote canonical lock and bootstraps from the local/generated lock when needed;
  * Home Manager uses the flake's local lock.
@@ -295,6 +297,16 @@ export const updateNix = (options: UpdateNixOptions) =>
 
     // Validate the selected BYOR profile before probing Nix.
     yield* validateLinuxNixProfile(options, config);
+
+    if (options.ifConfigured === true) {
+      const profile = configuredProfile(config, "linux", options.profile);
+      const declaration =
+        profile === undefined ? undefined : config.declarations?.profiles[profile]?.linux;
+      if (declaration !== undefined && declaration.nix === undefined) {
+        yield* Console.log(ui.muted(`No Nix flake is declared for ${profile}; skipping.`));
+        return;
+      }
+    }
 
     const nixPath = yield* tryPromise(() => which("nix"));
     if (nixPath === undefined) {

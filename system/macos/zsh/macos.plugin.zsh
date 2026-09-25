@@ -109,7 +109,7 @@ hm-fallback-update-nix() {
                 --no-link --impure \
                 "path:$flake_path#darwinConfigurations.macos.system"
             ;;
-        dry)
+        dry-run)
             OUTFITTING_REPO="$repo_path" env -u NIX_PATH nix build \
                 --dry-run --no-link --impure \
                 "path:$flake_path#darwinConfigurations.macos.system"
@@ -125,7 +125,7 @@ hm-fallback-update-nix() {
 hm-nix() {
     local action="${1:-switch}"
     case "$action" in
-        build|switch|test|dry)
+        build|switch|test|dry-run)
             ;;
         *)
             echo "Usage: hm-build | hm-switch | hm-test | hm-dry"
@@ -134,7 +134,7 @@ hm-nix() {
     esac
 
     if command -v outfitting-manager >/dev/null 2>&1; then
-        command outfitting-manager update nix "$action"
+        command outfitting-manager nix "$action"
     else
         hm-fallback-update-nix "$action"
     fi
@@ -153,7 +153,7 @@ hm-test() {
 }
 
 hm-dry() {
-    hm-nix dry
+    hm-nix dry-run
 }
 
 hm-recover() {

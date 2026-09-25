@@ -1,16 +1,16 @@
 ---
-title: Upgrade
+title: Self-update
 description: Install the latest compiled outfitting-manager release.
 sidebar:
   order: 13
 ---
 
-`upgrade` checks the latest GitHub release for the current platform, verifies its checksum, and replaces the installed compiled binary.
+`self-update` checks the latest GitHub release for the current platform, verifies its checksum, and replaces the installed compiled binary. It updates the manager itself, not packages managed by Outfitting.
 
-## `upgrade`
+## `self-update`
 
 ```bash
-outfitting-manager upgrade
+outfitting-manager self-update
 ```
 
 Run this from the installed release binary, not from Bun source. Verify the new version afterward:

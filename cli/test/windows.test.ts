@@ -51,29 +51,37 @@ async function runWindowsCli(args: string[]): Promise<{ code: number; text: stri
 }
 
 describe("Windows CLI entrypoint", () => {
-  test("registers config, source, init, setup, and update", async () => {
+  test("registers distinct init, apply, native update, and self-update commands", async () => {
     const root = await runWindowsCli(["--help"]);
     const config = await runWindowsCli(["config", "--help"]);
     const source = await runWindowsCli(["source", "--help"]);
     const init = await runWindowsCli(["init", "--help"]);
-    const setup = await runWindowsCli(["setup", "--help"]);
+    const apply = await runWindowsCli(["apply", "--help"]);
     const update = await runWindowsCli(["update", "--help"]);
     const foreign = await runWindowsCli(["update", "brew"]);
+    const setup = await runWindowsCli(["setup", "--help"]);
 
     expect(root.code).toBe(0);
     expect(root.text).toMatch(/\bconfig\b/);
     expect(root.text).toMatch(/\bsource\b/);
     expect(root.text).toMatch(/\binit\b/);
+    expect(root.text).toMatch(/\bapply\b/);
+    expect(root.text).toMatch(/\bself-update\b/);
+    expect(root.text).not.toMatch(/^\s+setup\s/m);
+    expect(root.text).not.toMatch(/^\s+upgrade\s/m);
     expect(config.text).toMatch(/migrate|show/i);
     expect(source.text).toMatch(/path/i);
     expect(init.text).toMatch(/source/i);
     expect(init.text).toMatch(/--no-refresh/);
-    expect(setup.text).toMatch(/profile|apply/i);
+    expect(apply.text).toMatch(/profile/i);
+    expect(apply.text).toMatch(/package/i);
     expect(update.text).toMatch(/\bwinget\b/);
     expect(update.text).toMatch(/\bscoop\b/);
-    expect(update.text).toMatch(/\ball\b/);
+    expect(update.text).toMatch(/--package-manager/);
+    expect(update.text).not.toMatch(/outfitting-manager update <subcommand>|^\s+all\s/m);
     expect(update.text).not.toMatch(/--manifest|--route/);
     expect(foreign.code).not.toBe(0);
+    expect(setup.text).not.toMatch(/^\s+setup\s/m);
   }, 15_000);
 });
 

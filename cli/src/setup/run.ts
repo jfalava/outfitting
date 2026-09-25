@@ -169,8 +169,6 @@ export const runSetup = (input: SetupOptions = {}) =>
     }
 
     yield* Console.log("");
-    yield* Console.log(
-      ui.muted(options.nextCommand ?? "Next: outfitting-manager update brew|nix|all"),
-    );
+    yield* Console.log(ui.muted(options.nextCommand ?? "Next: outfitting-manager apply"));
     return selected;
   });

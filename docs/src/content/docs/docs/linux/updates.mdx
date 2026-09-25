@@ -13,17 +13,17 @@ The Linux manager stores its state root under `~/.config/outfitting` by default,
 Use [`apply`](/docs/cli/apply/) to install missing packages declared by the selected profile:
 
 ```bash
-# Reconcile all declared packages
-outfitting-manager apply all
+# Reconcile packages with the detected package manager
+outfitting-manager apply
 
 # Reuse the previously validated remote snapshot
-outfitting-manager apply all --no-refresh
+outfitting-manager apply --no-refresh
 
 # Apply a named profile
-outfitting-manager apply apt --profile debian-minimal
+outfitting-manager apply --package-manager apt --profile debian-minimal
 
 # Remove packages no longer declared in the active profile
-outfitting-manager apply all --prune
+outfitting-manager apply --prune
 ```
 
 By default, `apply` only adds missing software and never uninstalls anything. With `--prune`, Outfitting only removes packages it previously installed for the active profile and that are no longer declared. Manually installed or pre-existing system packages are protected.
@@ -35,31 +35,31 @@ Use `--offline` to reuse only an existing validated source snapshot and skip pac
 Use [`update`](/docs/cli/update/) to upgrade existing packages:
 
 ```bash
-# Upgrade native packages and the selected profile's Nix configuration, if declared
-outfitting-manager update all
+# Upgrade packages using the detected native manager
+outfitting-manager update
 
-# Upgrade only native packages
-outfitting-manager update apt
-outfitting-manager update pacman
+# Select the manager explicitly
+outfitting-manager update --package-manager apt
+outfitting-manager update --package-manager pacman
 ```
 
 ## Nix and Home Manager
 
-Any Linux profile may declare a Nix flake. When present, `update all` switches Home Manager before upgrading native packages. A profile without a Nix declaration only updates native packages.
+Any Linux profile may declare a Nix flake. Build or activate it separately from native package updates:
 
 To run targeted Home Manager actions:
 
 ```bash
-outfitting-manager update nix build
-outfitting-manager update nix switch
-outfitting-manager update nix switch --no-refresh
+outfitting-manager nix build
+outfitting-manager nix switch
+outfitting-manager nix switch --no-refresh
 ```
 
-Nix operations read the selected profile's checked-in `flake.lock`. Remote refresh stages and validates the declared source before publishing it. `--no-refresh` reuses the validated snapshot; a local checkout is read directly and never fetched. `--no-push` keeps lockfile changes local.
+Nix operations read the selected profile's checked-in `flake.lock`. Remote refresh stages and validates the declared source before publishing it. `--no-refresh` reuses the validated snapshot; a local checkout is read directly and never fetched. `--no-push` keeps lockfile changes local. There is no aggregate operation: run `nix switch` and native `update` as separate commands when both are needed.
 
 ## Additional tools
 
-- **Manager CLI:** Run `outfitting-manager upgrade` to update the manager binary.
+- **Manager CLI:** Run [`self-update`](/docs/cli/self-update/) to update the manager binary.
 - **Bun packages:** Run `bun update -g` to update global Bun packages.
 - **Shell helpers:** See [Home Manager](/docs/cli/linux/home-manager/) for `hm-*` aliases.
 

@@ -52,9 +52,7 @@ install -m 755 "$TEMP_DIR/outfitting-manager" "$INSTALL_DIR/outfitting-manager"
 export PATH="$INSTALL_DIR:$PATH"
 
 PROFILE_ARGS=(--profile "$PROFILE")
-if [[ ("$PROFILE" == "oci-agents" || "$PROFILE" == "ubuntu-wsl") && -n "${OUTFITTING_REPO:-}" ]]; then
-    PROFILE_ARGS+=(--repo "$OUTFITTING_REPO")
-fi
 
 outfitting-manager init "${PROFILE_ARGS[@]}"
-outfitting-manager setup "${PROFILE_ARGS[@]}" --no-fetch
+outfitting-manager apply "${PROFILE_ARGS[@]}" --no-refresh --yes --if-configured
+outfitting-manager nix switch "${PROFILE_ARGS[@]}" --no-refresh --no-push --if-configured

@@ -1,7 +1,5 @@
-export { updateAll, type UpdateAllOptions, type UpdateStepResult } from "@/update/all";
-export { updateLinuxAll, type LinuxUpdateAllOptions } from "@/update/linux-all";
 export { parseBunGlobalList } from "@/update/bun";
-export { updateBrew, parseBrewfileTaps } from "@/update/brew";
+export { applyBrew, updateBrew, parseBrewfileTaps } from "@/update/brew";
 export {
   isLinuxProfile,
   applyLinux,
@@ -33,7 +31,6 @@ export {
 } from "@/update/nix";
 export { updateScoop, parseScoopManifest, SCOOP_MANIFEST_PATH } from "@/update/scoop";
 export { updateWinget } from "@/update/winget";
-export { updateWindowsAll } from "@/update/windows-all";
 export {
   captureBunGlobalInventory,
   captureScoopInventory,

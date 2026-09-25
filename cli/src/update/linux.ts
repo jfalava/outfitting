@@ -208,12 +208,33 @@ export interface LinuxApplyOptions<ConfirmR = never> extends LinuxUpdateOptions 
   profile?: string;
   prune?: boolean;
   yes?: boolean;
+  /** Skip when the selected profile declares no native package manifests. */
+  ifConfigured?: boolean;
   /** Use the selected local source without fetching remote changes. */
   noRefresh?: boolean;
   /** Already validated source root to use for this apply, including --repo overrides. */
   sourceRoot?: string;
   sourceFetcher?: ManifestFetcher;
   confirm?: Effect.Effect<boolean, never, ConfirmR>;
+}
+
+function skipUnconfiguredLinuxApply<ConfirmR>(
+  options: LinuxApplyOptions<ConfirmR>,
+  config: ManagerConfig,
+  profile: LinuxProfile,
+): Effect.Effect<boolean> {
+  const declaration = config.declarations?.profiles[profile]?.linux;
+  if (
+    options.ifConfigured !== true ||
+    declaration === undefined ||
+    declaration.apt !== undefined ||
+    declaration.pacman !== undefined
+  ) {
+    return Effect.succeed(false);
+  }
+  return Console.log(ui.muted(`No apt or pacman manifest is declared for ${profile}; skipping.`)).pipe(
+    Effect.as(true),
+  );
 }
 
 function resolveProfile(value: string | undefined, config?: ManagerConfig): LinuxProfile {
@@ -542,6 +563,9 @@ export const applyLinux = <ConfirmR = never>(options: LinuxApplyOptions<ConfirmR
       try: () => resolveProfile(options.profile, config),
       catch: toCliFailure,
     });
+    if (yield* skipUnconfiguredLinuxApply(options, config, profile)) {
+      return;
+    }
     const source = yield* tryPromise(() => resolveLinuxApplySource(options, config, profile));
     const command = yield* tryPromise(() => detectManager(options, config));
     const declared = yield* Effect.tryPromise({

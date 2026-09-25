@@ -115,17 +115,16 @@ if (Test-Path -LiteralPath $wingetLinks -PathType Container) {
 }
 
 if (Test-Path -LiteralPath $outfittingManagerInstallPath -PathType Leaf) {
-    $setupArguments = @("setup")
-    if (-not [string]::IsNullOrWhiteSpace($OutfittingManifestBaseUrl)) {
-        $setupArguments += @("--manifest-base-url", $OutfittingManifestBaseUrl)
-    }
-    if (-not [string]::IsNullOrWhiteSpace($OutfittingManifestRef)) {
-        $setupArguments += @("--manifest-ref", $OutfittingManifestRef)
-    }
-    & $outfittingManagerInstallPath @setupArguments
+    & $outfittingManagerInstallPath init
     if ($LASTEXITCODE -ne 0) {
         $failedPackageCommands++
-        Write-Host "❖ outfitting-manager setup failed (exit $LASTEXITCODE)." -ForegroundColor Red
+        Write-Host "❖ outfitting-manager init failed (exit $LASTEXITCODE)." -ForegroundColor Red
+    } else {
+        & $outfittingManagerInstallPath apply --yes
+        if ($LASTEXITCODE -ne 0) {
+            $failedPackageCommands++
+            Write-Host "❖ outfitting-manager apply failed (exit $LASTEXITCODE)." -ForegroundColor Red
+        }
     }
 } else {
     $failedPackageCommands++

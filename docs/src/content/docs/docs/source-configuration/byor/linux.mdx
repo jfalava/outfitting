@@ -24,4 +24,4 @@ flake = "hosts/workstation"
 attribute = "homeConfigurations.workstation.activationPackage"
 ```
 
-Declare only the backends the machine needs. The Nix flake directory is fetched as a tree; `paths` adds other source files. Paths are relative to the source root. For a remote, replace `[source] path` with `repository` and `ref`. `outfitting-manager validate` checks the configuration before setup; `outfitting-manager setup` applies it. The config file can be selected globally with `--config` or `OUTFITTING_CONFIG`.
+Declare only the backends the machine needs. The Nix flake directory is fetched as a tree; `paths` adds other source files. Paths are relative to the source root. For a remote, replace `[source] path` with `repository` and `ref`. Run `outfitting-manager init` first to prepare state and fetch/validate the source; optionally run `outfitting-manager validate` to check it without refreshing. Use `outfitting-manager apply` for apt or pacman packages and `outfitting-manager nix switch` separately for a declared flake. The config file can be selected globally with `--config` or `OUTFITTING_CONFIG`.

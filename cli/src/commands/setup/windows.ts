@@ -5,11 +5,11 @@ import { configuredProfile, loadConfig } from "@/config";
 import { tryPromise } from "@/lockfiles/effect";
 import { resolveSetupSource, runSetup, type SetupOptions } from "@/setup/run";
 
-export interface WindowsSetupOptions extends SetupOptions {
+export interface WindowsInitOptions extends SetupOptions {
   profiles?: string[];
 }
 
-export const initializeWindows = (options: WindowsSetupOptions = {}) =>
+export const initializeWindows = (options: WindowsInitOptions = {}) =>
   Effect.gen(function* () {
     const initialConfig = yield* tryPromise(() =>
       loadConfig({
@@ -25,7 +25,7 @@ export const initializeWindows = (options: WindowsSetupOptions = {}) =>
       ...source,
       repoProfile: profiles?.join(","),
       refreshSource: options.refreshSource,
-      nextCommand: options.nextCommand ?? "Next: outfitting-manager setup",
+      nextCommand: options.nextCommand ?? "Next: outfitting-manager apply",
     });
     return { config: source.config!, repo: validatedRepo };
   });
@@ -59,6 +59,6 @@ export const windowsInitCommand = Command.make(
       machineId: Option.getOrUndefined(machineId),
       repo: Option.getOrUndefined(repo),
       refreshSource: !noRefresh,
-      nextCommand: "Next: outfitting-manager setup",
+      nextCommand: "Next: outfitting-manager apply",
     }),
 ).pipe(Command.withDescription("Initialize the Windows state root from the configured source."));

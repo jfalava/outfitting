@@ -8,12 +8,13 @@ import { promisify } from "node:util";
 import { Effect } from "effect";
 import { describe, expect, test } from "vitest";
 
+import { loadConfig } from "@/config";
 import {
   detectLinuxPackageManager,
   linuxDistributionFamily,
   parseOsRelease,
 } from "@/platform/linux";
-import { runLinuxInit, runLinuxSetup } from "@/setup/linux";
+import { runLinuxInit } from "@/setup/linux";
 import {
   applyLinux,
   linuxPackageIdentity,
@@ -85,7 +86,15 @@ function managerTools(calls: Array<{ command: string; args: ReadonlyArray<string
   };
 }
 
-test("Linux commands expose BYOR source options instead of manifest URL/ref defaults", async () => {
+test("Linux commands expose init, apply, Nix, and native update as distinct operations", async () => {
+  const root = await execFileAsync("bun", [linuxEntry, "--help"], { encoding: "utf8" });
+  const rootHelp = `${root.stdout}\n${root.stderr}`;
+  expect(rootHelp).toMatch(/^\s+init\s/m);
+  expect(rootHelp).toMatch(/^\s+apply\s/m);
+  expect(rootHelp).toMatch(/^\s+nix\s/m);
+  expect(rootHelp).toMatch(/^\s+update\s/m);
+  expect(rootHelp).not.toMatch(/^\s+setup\s/m);
+
   const init = await execFileAsync("bun", [linuxEntry, "init", "--help"], {
     encoding: "utf8",
   });
@@ -95,13 +104,19 @@ test("Linux commands expose BYOR source options instead of manifest URL/ref defa
   expect(initHelp).not.toContain("manifest-base-url");
   expect(initHelp).not.toContain("manifest-ref");
 
-  const setup = await execFileAsync("bun", [linuxEntry, "setup", "--help"], {
+  const apply = await execFileAsync("bun", [linuxEntry, "apply", "--help"], {
     encoding: "utf8",
   });
-  const setupHelp = `${setup.stdout}\n${setup.stderr}`;
-  expect(setupHelp).toContain("--profile");
-  expect(setupHelp).toContain("--repo");
-  expect(setupHelp).toContain("--package-manager");
+  const applyHelp = `${apply.stdout}\n${apply.stderr}`;
+  expect(applyHelp).toContain("--profile");
+  expect(applyHelp).toContain("--package-manager");
+  expect(applyHelp).toContain("--if-configured");
+  expect(applyHelp).not.toMatch(/\bapply (all|apt|pacman)\b/i);
+
+  const nix = await execFileAsync("bun", [linuxEntry, "nix", "switch", "--help"], {
+    encoding: "utf8",
+  });
+  expect(`${nix.stdout}\n${nix.stderr}`).toContain("--if-configured");
 });
 
 test("Linux init requires a selected source and does not invent a default profile", async () => {
@@ -230,25 +245,21 @@ describe("Linux package adapter", () => {
     ]);
   });
 
-  test("Linux setup installs only the selected BYOR profile's apt declaration", async () => {
-    const stateRoot = await mkdtemp(join(tmpdir(), "outfitting-linux-setup-"));
+  test("Linux apply reconciles only the selected BYOR profile declaration", async () => {
+    const stateRoot = await mkdtemp(join(tmpdir(), "outfitting-linux-apply-"));
     const repo = await createLinuxRepo(stateRoot, {
       "workstation-v2": { apt: "curl\ngit\n" },
       "other-profile": { apt: "vim\n" },
     });
     const calls: Array<{ command: string; args: ReadonlyArray<string> }> = [];
-    let fetchCount = 0;
     const configBefore = await readFile(join(stateRoot, "config.toml"), "utf8");
     try {
       await Effect.runPromise(
-        runLinuxSetup({
-          stateRoot,
-          repo,
+        applyLinux({
+          config: await loadConfig({ stateRoot }),
+          noRefresh: true,
+          yes: true,
           ...managerTools(calls),
-          fetcher: async () => {
-            fetchCount += 1;
-            throw new Error("local BYOR checkout must not be fetched");
-          },
         }),
       );
       expect(await readFile(join(stateRoot, "config.toml"), "utf8")).toBe(configBefore);
@@ -257,7 +268,6 @@ describe("Linux package adapter", () => {
       await rm(repo, { force: true, recursive: true });
     }
 
-    expect(fetchCount).toBe(0);
     expect(calls).toContainEqual({
       command: "/usr/bin/sudo",
       args: ["/usr/bin/apt", "install", "-y", "curl"],
@@ -269,7 +279,7 @@ describe("Linux package adapter", () => {
     expect(calls.some(({ args }) => args.includes("vim"))).toBe(false);
   });
 
-  test("a profile override applies only for the invocation and leaves TOML unchanged", async () => {
+  test("apply profile override is invocation-local and leaves TOML unchanged", async () => {
     const stateRoot = await mkdtemp(join(tmpdir(), "outfitting-linux-profile-override-"));
     const repo = await createLinuxRepo(stateRoot, {
       "workstation-v2": { apt: "curl\n" },
@@ -279,10 +289,11 @@ describe("Linux package adapter", () => {
     const configBefore = await readFile(join(stateRoot, "config.toml"), "utf8");
     try {
       await Effect.runPromise(
-        runLinuxSetup({
-          stateRoot,
-          repo,
+        applyLinux({
+          config: await loadConfig({ stateRoot }),
           profile: "other-profile",
+          noRefresh: true,
+          yes: true,
           ...managerTools(calls),
         }),
       );
@@ -297,6 +308,41 @@ describe("Linux package adapter", () => {
       args: ["/usr/bin/apt", "install", "-y", "vim"],
     });
     expect(calls.some(({ args }) => args.includes("curl"))).toBe(false);
+  });
+
+  test("apply can skip a selected profile with no native package declaration", async () => {
+    const stateRoot = await mkdtemp(join(tmpdir(), "outfitting-linux-apply-nix-only-"));
+    const repo = await mkdtemp(join(tmpdir(), "outfitting-linux-apply-nix-repo-"));
+    const calls: Array<{ command: string; args: ReadonlyArray<string> }> = [];
+    await mkdir(repo, { recursive: true });
+    await writeFile(
+      join(stateRoot, "config.toml"),
+      [
+        "schema = 1",
+        "[source]",
+        `path = ${JSON.stringify(repo)}`,
+        "[linux]",
+        'profile = "nix-only"',
+        "[profiles.nix-only.linux.nix]",
+        'flake = "system/linux"',
+        'attribute = "homeConfigurations.work.activationPackage"',
+        "",
+      ].join("\n"),
+    );
+    try {
+      await Effect.runPromise(
+        applyLinux({
+          config: await loadConfig({ stateRoot }),
+          ifConfigured: true,
+          ...managerTools(calls),
+        }),
+      );
+    } finally {
+      await rm(stateRoot, { force: true, recursive: true });
+      await rm(repo, { force: true, recursive: true });
+    }
+
+    expect(calls).toEqual([]);
   });
 
   test("Linux prune removes only previously owned, unshared packages", async () => {

@@ -15,7 +15,8 @@ describe("macOS installer delegation", () => {
     expect(script).toContain("outfitting-manager-darwin-arm64.zip");
     expect(script).toContain("$release_base/$asset.sha256");
     expect(script).toContain("run_outfitting_manager init");
-    expect(script).toContain("run_outfitting_manager setup");
+    expect(script).toContain("run_outfitting_manager nix switch --no-refresh");
+    expect(script).toContain("run_outfitting_manager apply --no-refresh");
     expect(script).not.toContain(["/usr/local", "bin/brew"].join("/"));
     expect(script).not.toContain("x86_64");
 
@@ -42,18 +43,20 @@ describe("macOS installer delegation", () => {
     expect(script).not.toContain('REPO_PATH="$HOME/.config/outfitting/repo"');
   });
 
-  test("bootstraps prerequisites before manager setup and updates", async () => {
+  test("bootstraps prerequisites before separate Nix activation and Brewfile apply", async () => {
     const script = await readFile(installerPath, "utf8");
     const manager = script.indexOf("install_outfitting_manager || exit 1");
     const brew = script.indexOf("install_homebrew || exit 1");
     const nix = script.indexOf("install_nix || exit 1");
     const init = script.indexOf("run_outfitting_manager init || exit 1");
-    const setup = script.indexOf("run_outfitting_manager setup || exit 1");
+    const nixSwitch = script.indexOf("run_outfitting_manager nix switch --no-refresh || exit 1");
+    const apply = script.indexOf("run_outfitting_manager apply --no-refresh || exit 1");
 
     expect(manager).toBeGreaterThanOrEqual(0);
     expect(brew).toBeGreaterThan(manager);
     expect(nix).toBeGreaterThan(brew);
     expect(init).toBeGreaterThan(nix);
-    expect(setup).toBeGreaterThan(init);
+    expect(nixSwitch).toBeGreaterThan(init);
+    expect(apply).toBeGreaterThan(nixSwitch);
   });
 });

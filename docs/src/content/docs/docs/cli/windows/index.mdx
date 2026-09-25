@@ -6,7 +6,7 @@ sidebar:
   order: 22
 ---
 
-The Windows installer provides the compiled `outfitting-manager.exe`; the PowerShell profile puts it on `PATH`. Its manager setup still uses the retired raw-route source flow and needs a separate installer migration.
+The Windows installer provides the compiled `outfitting-manager.exe`; the PowerShell profile puts it on `PATH`. The post-install script runs `init` and `apply` against the configured TOML source. Its separate font downloads still accept legacy raw-route inputs.
 
 ## Configuration
 
@@ -15,18 +15,17 @@ Select `[windows] profiles` and a local or remote `[source]` in `config.toml`. S
 ## Commands
 
 - [Init](/docs/cli/init/) - select and validate an explicit source.
-- [Setup](/docs/cli/setup/) - initialize and install declared components.
 - [Validate](/docs/cli/validate/) - check `config.toml` without applying it.
 - [Source configuration](/docs/source-configuration/) — configure a local or remote source.
 - [Apply](/docs/cli/apply/) - reconcile selected local profiles, optionally pruning Outfitting-owned packages.
+- [Update](/docs/cli/update/) - upgrade installed packages through one selected manager.
 - [Diff](/docs/cli/diff/) - compare live WinGet and Scoop state with the repository.
 - [Sync](/docs/cli/sync/) - push, pull, and inspect remote state.
 - [Status](/docs/cli/status/) - show effective configuration without changing it.
 - [Packages](/docs/cli/windows/packages/) - track manual WinGet and Scoop operations.
 - [WinGet](/docs/cli/windows/winget/) and [Scoop](/docs/cli/windows/scoop/) - manager-specific package operations.
-- [Update](/docs/cli/update/) - upgrade installed packages.
 - [Fonts](/docs/cli/fonts/) — manage the shared private-font archive.
 - [Provision](/docs/cli/provision/) — deploy Outfitting infrastructure.
-- [Upgrade](/docs/cli/upgrade/) — update the installed manager.
+- [Self-update](/docs/cli/self-update/) — update the installed manager binary.
 
 Windows combines the names in `[windows] profiles`. Undeclared shared components are skipped. See [source configuration](/docs/source-configuration/) for selection rules.

@@ -1,11 +1,11 @@
 ---
 title: Init
-description: Validate and select the configured source without changing the machine.
+description: Prepare local state and refresh the configured source.
 sidebar:
   order: 9
 ---
 
-`init` prepares runtime state and validates the source declared in [config.toml](/docs/source-configuration/). It does not install, upgrade, remove, or activate packages.
+`init` prepares runtime state, refreshes a configured remote source by default, and validates the selected source declared in [config.toml](/docs/source-configuration/). It does not install, upgrade, remove, or activate packages. Use [`validate`](/docs/cli/validate/) later to check config and the cached source without refreshing it.
 
 ```bash
 outfitting-manager init

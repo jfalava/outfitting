@@ -27,7 +27,7 @@ irm win.jfa.dev | iex
 ```
 
 > [!WARNING]
-> The existing installer may still use an older source flow. Configure `config.toml` before running manager setup manually.
+> The post-install script runs `init` and `apply` against the configured TOML source. Configure `config.toml` before running that script.
 
 Once complete, open a regular (non-elevated) PowerShell session and run the [post-install script](/docs/windows/post-install/) to install Scoop and developer fonts.
 
@@ -36,8 +36,9 @@ Once complete, open a regular (non-elevated) PowerShell session and run the [pos
 Declare `[source] path` or remote `repository` and `ref`, plus `[windows] profiles`, in the machine-local [config.toml](/docs/source-configuration/).
 
 ```powershell
-outfitting-manager validate
-outfitting-manager setup
+outfitting-manager init
+outfitting-manager validate # optional check of the fetched source
+outfitting-manager apply --yes
 ```
 
-See [Windows configuration](/docs/source-configuration/byor/windows/) for composable profiles and optional Scoop, PowerShell, fonts, and registry declarations. For command-level workflows, see the [Windows CLI reference](/docs/cli/windows/).
+See [Windows configuration](/docs/source-configuration/byor/windows/) for composable profiles and optional Scoop, PowerShell, fonts, and registry declarations. For command-level workflows, see [init](/docs/cli/init/), [apply](/docs/cli/apply/), and the [Windows CLI reference](/docs/cli/windows/).

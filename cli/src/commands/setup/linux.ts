@@ -1,12 +1,7 @@
 import { Command, Flag } from "effect/unstable/cli";
 
-import {
-  linuxPackageManagerFlag,
-  linuxProfileFlag,
-  optionalString,
-  requestedLinuxPackageManager,
-} from "@/commands/linux-flags";
-import { runLinuxInit, runLinuxSetup } from "@/setup/linux";
+import { linuxProfileFlag, optionalString } from "@/commands/linux-flags";
+import { runLinuxInit } from "@/setup/linux";
 
 const machineIdFlag = Flag.String("machine-id").pipe(
   Flag.optional,
@@ -44,31 +39,5 @@ export const linuxInitCommand = Command.make(
 ).pipe(
   Command.withDescription(
     "Prepare Linux state and validate the selected source without changing the system.",
-  ),
-);
-
-/** Prepare and apply the selected Linux package profile. */
-export const linuxSetupCommand = Command.make(
-  "setup",
-  {
-    profile: linuxProfileFlag,
-    machineId: machineIdFlag,
-    repo: repoFlag,
-    noRefresh: noRefreshFlag,
-    packageManager: linuxPackageManagerFlag,
-  },
-  ({ profile, machineId, repo, noRefresh, packageManager }) => {
-    const repoPath = optionalString(repo);
-    return runLinuxSetup({
-      profile: optionalString(profile),
-      machineId: optionalString(machineId),
-      repo: repoPath,
-      refreshSource: !noRefresh,
-      packageManager: requestedLinuxPackageManager(packageManager),
-    });
-  },
-).pipe(
-  Command.withDescription(
-    "Prepare and apply the selected Linux package profile with apt or pacman.",
   ),
 );

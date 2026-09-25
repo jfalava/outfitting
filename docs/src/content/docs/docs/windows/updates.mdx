@@ -10,20 +10,17 @@ The Windows manager stores configuration, fetched manifests, and `windows.lock.j
 
 ## Upgrade installed packages (`update`)
 
-Use `update` to upgrade existing software to the latest versions. Note that `update` only upgrades packages you already have; to install newly added profile packages, use [`apply`](#apply-profile-changes-apply).
+Use `update` to upgrade existing software through one selected package manager. It only upgrades packages you already have; to install newly declared profile packages, use [`apply`](#apply-profile-changes-apply).
 
 ```powershell
-# Upgrade all packages (WinGet and Scoop)
-outfitting-manager update all
-
-# Upgrade only WinGet packages
-outfitting-manager update winget
+# Upgrade WinGet packages
+outfitting-manager update --package-manager winget
 
 # Upgrade Scoop packages without pushing lockfile changes
-outfitting-manager update scoop --no-push
+outfitting-manager update --package-manager scoop --no-push
 ```
 
-`update all` updates WinGet first, then Scoop, and finally synchronizes `windows.lock.json`. It will continue through errors and exit with a non-zero code if any step fails. Lockfile changes are pushed to remote state by default; pass `--no-push` to keep them local.
+Windows requires `--package-manager winget|scoop`. Each command upgrades only the selected manager and records its own state. To upgrade both, run both commands separately. State is pushed by default; pass `--no-push` to keep it local.
 
 ## Apply profile changes (`apply`)
 
@@ -39,7 +36,7 @@ outfitting-manager apply --profile base,dev --winget-only
 
 ## Update Outfitting and dependencies
 
-- **Outfitting CLI:** Update the compiled manager binary by running `outfitting-manager upgrade`.
+- **Outfitting CLI:** Update the compiled manager binary with [`self-update`](/docs/cli/self-update/).
 - **Bun packages:** Update global Bun packages with `bun update -g`.
 
 For the complete command reference, see the [Windows CLI reference](/docs/cli/windows/).

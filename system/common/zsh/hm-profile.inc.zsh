@@ -18,12 +18,12 @@ _ensure_home_manager_link() {
     fi
 }
 
-# Prefer outfitting-manager (same surface as macOS: update nix build|switch|test|dry).
+# Prefer outfitting-manager (build|switch|test|dry-run).
 # Fall back to native Home Manager when the binary is missing.
 hm-nix() {
     local action="${1:-switch}"
     case "$action" in
-        build|switch|test|dry)
+        build|switch|test|dry-run)
             ;;
         *)
             echo "Usage: hm-build | hm-switch | hm-test | hm-dry"
@@ -32,7 +32,7 @@ hm-nix() {
     esac
 
     if command -v outfitting-manager >/dev/null 2>&1; then
-        command outfitting-manager update nix "$action"
+        command outfitting-manager nix "$action"
         return $?
     fi
 
@@ -46,7 +46,7 @@ hm-nix() {
             nix build --no-link --impure \
                 "$repo_path/${OUTFITTING_HM_DIR}#homeConfigurations.${OUTFITTING_HM_ATTR}.activationPackage"
             ;;
-        dry)
+        dry-run)
             nix build --dry-run --no-link --impure \
                 "$repo_path/${OUTFITTING_HM_DIR}#homeConfigurations.${OUTFITTING_HM_ATTR}.activationPackage"
             ;;
@@ -70,7 +70,7 @@ hm-test() {
 }
 
 hm-dry() {
-    hm-nix dry
+    hm-nix dry-run
 }
 
 hm-sync() {
