@@ -7,12 +7,20 @@ sidebar:
 
 `config` operates on the machine-local `config.toml`, selected by the global `--config` option or `OUTFITTING_CONFIG` when set.
 
+## `wizard`
+
+**Syntax:** `outfitting-manager config wizard`
+
+Guides first-time setup for the current platform. It asks where to save the config (pre-filled with the resolved default), selects a local checkout or remote Git source, reads its root `outfitting.json`, and lets you choose the profile or profiles for this machine. It previews and validates the generated `config.toml` without overwriting an existing file, then runs the equivalent of `init` to prepare state and validate or refresh the selected source.
+
+After initialization, the wizard offers to apply declared packages and activate a declared Nix profile. Each operation requires its own confirmation; Nix lock publishing is disabled during the wizard. Declining an operation prints the command to run later. If source initialization fails, the generated config remains so it can be corrected and retried.
+
 ## `migrate`
 
 **Syntax:** `outfitting-manager config migrate [--repo <path>]`
 
 Converts legacy `config.json`, `byor.json`, `repo-path`, or a local `outfitting.json` into `config.toml`. Existing legacy files are not deleted.
 
-| Option | Description |
-| --- | --- |
+| Option          | Description                                                             |
+| --------------- | ----------------------------------------------------------------------- |
 | `--repo <path>` | Select the legacy local checkout containing the root `outfitting.json`. |

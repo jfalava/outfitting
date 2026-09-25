@@ -1,11 +1,11 @@
-import { link, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
-import { dirname, join, resolve } from "node:path";
+import { readFile } from "node:fs/promises";
+import { join, resolve } from "node:path";
 
 import { Option, Schema } from "effect";
 import { stringify as stringifyToml } from "smol-toml";
 
-import { loadConfig } from "@/config/load";
 import { configFilePath, sparseSourceRoot, stateRoot as resolveStateRoot } from "@/config/paths";
+import { publishValidatedConfig } from "@/config/write";
 import { envValue } from "@/secrets";
 import { readByorMap } from "@/source/byor-map";
 import {
@@ -239,26 +239,6 @@ function migratedToml(state: LegacyManagerConfig, source: ResolvedLegacySource):
     }
   }
   return toml;
-}
-
-async function publishValidatedConfig(
-  root: string,
-  target: string,
-  serialized: string,
-): Promise<void> {
-  await mkdir(dirname(target), { recursive: true });
-  const temporaryDir = await mkdtemp(join(dirname(target), ".outfitting-config-migrate-"));
-  const temporary = join(temporaryDir, "config.toml");
-  try {
-    await writeFile(temporary, serialized, { encoding: "utf8", mode: 0o600 });
-    const verified = await loadConfig({ stateRoot: root, configPath: temporary });
-    if (verified.declarations === undefined || verified.source === undefined) {
-      throw new Error("Generated config.toml failed validation before publication.");
-    }
-    await link(temporary, target);
-  } finally {
-    await rm(temporaryDir, { force: true, recursive: true });
-  }
 }
 
 /** Convert legacy machine/source configuration to a new TOML file without changing legacy files. */

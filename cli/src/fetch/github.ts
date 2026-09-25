@@ -111,6 +111,10 @@ interface GitHubReadOptions {
   fetcher?: ManifestFetcher;
 }
 
+interface GitHubFileReadOptions extends Omit<GitHubReadOptions, "paths"> {
+  path: string;
+}
+
 export interface GitHubSourceFile {
   /** Always repository-relative, for both file and directory requests. */
   path: string;
@@ -237,8 +241,10 @@ async function readSourceFile(
   };
 }
 
-/** Fetch the selected files/directories once, from one immutable repository revision. */
-export async function readGitHubBlobs(options: GitHubReadOptions): Promise<GitHubSourceFile[]> {
+async function readGitHubTree(options: GitHubReadOptions): Promise<{
+  commit: string;
+  entries: readonly GitHubTreeEntry[];
+}> {
   const endpoint = repositoryEndpoint(options.repository);
   const commit = decodeCommit(
     await repositoryJson(options, `${endpoint}/commits/${encodeURIComponent(options.ref)}`),
@@ -254,10 +260,32 @@ export async function readGitHubBlobs(options: GitHubReadOptions): Promise<GitHu
       "GitHub returned a truncated repository tree. Use a local checkout rather than publishing an incomplete source.",
     );
   }
-  const entries = selectSourceEntries(tree.tree, options.paths);
+  return { commit: commit.sha, entries: tree.tree };
+}
+
+/** Read one repository file for setup metadata without adding it to the managed source snapshot. */
+export async function readGitHubFile(options: GitHubFileReadOptions): Promise<GitHubSourceFile> {
+  const path = relativeSourcePath(options.path, "GitHub path");
+  const { commit, entries } = await readGitHubTree({ ...options, paths: [path] });
+  const entry = entries.find((candidate) => candidate.path === path && candidate.type === "blob");
+  if (entry === undefined) {
+    throw new Error(`GitHub file \`${path}\` is missing.`);
+  }
+  if (!["100644", "100755"].includes(entry.mode)) {
+    throw new Error(
+      `Unsupported GitHub entry ${entry.path} (${entry.mode}). Use a local checkout for symlinks or submodules.`,
+    );
+  }
+  return readSourceFile({ ...options, paths: [path] }, entry, commit);
+}
+
+/** Fetch the selected files/directories once, from one immutable repository revision. */
+export async function readGitHubBlobs(options: GitHubReadOptions): Promise<GitHubSourceFile[]> {
+  const { commit, entries } = await readGitHubTree(options);
+  const selected = selectSourceEntries(entries, options.paths);
   const files: GitHubSourceFile[] = [];
-  for (const entry of entries) {
-    files.push(await readSourceFile(options, entry, commit.sha));
+  for (const entry of selected) {
+    files.push(await readSourceFile(options, entry, commit));
   }
   return files;
 }

@@ -2,6 +2,7 @@ import { Console, Effect, Option } from "effect";
 import { Command, Flag } from "effect/unstable/cli";
 
 import { migrateLegacyConfig } from "@/config/migrate";
+import { configWizardCommand } from "@/config/wizard";
 import { tryPromise } from "@/lockfiles/effect";
 import { ui } from "@/ui";
 
@@ -26,6 +27,6 @@ const migrateCommand = Command.make(
 );
 
 export const configCommand = Command.make("config").pipe(
-  Command.withDescription("Manage the authoritative config.toml."),
-  Command.withSubcommands([migrateCommand]),
+  Command.withDescription("Set up and manage the authoritative config.toml."),
+  Command.withSubcommands([configWizardCommand, migrateCommand]),
 );

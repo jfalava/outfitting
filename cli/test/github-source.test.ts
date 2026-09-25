@@ -10,7 +10,7 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 import { initializeWindows } from "@/commands/setup/windows";
 import { configFilePath, loadConfig, normalizeGitRepository, sparseSourceRoot } from "@/config";
 import type { ManifestFetcher } from "@/fetch";
-import { classifyGitHubRepository, readGitHubBlobs } from "@/fetch/github";
+import { classifyGitHubRepository, readGitHubBlobs, readGitHubFile } from "@/fetch/github";
 import { runCommand as executeCommand } from "@/process";
 import type { runCommand } from "@/process";
 import { runLinuxInit } from "@/setup/linux";
@@ -85,6 +85,10 @@ function remoteFixture(host: string) {
     ["nix/modules/host.nix", "{ programs.zsh.enable = true; }\n"],
     ["nix/run.sh", "#!/bin/sh\nexit 0\n"],
     ["nix-extra/ignored.nix", "not selected\n"],
+    [
+      "outfitting.json",
+      '{"schema":1,"profiles":{"desk":{"linux":{"apt":{"manifest":"packages/apt.txt"}}}}}\n',
+    ],
   ]);
   const tree = {
     truncated: false,
@@ -138,6 +142,27 @@ function remoteFixture(host: string) {
 }
 
 describe.each(["github.com", "pepito.ghe.com"])("remote BYOR on %s", (host) => {
+  test("reads the reserved root contract without materializing it as a source file", async () => {
+    const remote = remoteFixture(host);
+    const file = await readGitHubFile({
+      ...remote,
+      repository: classifyGitHubRepository(`https://${host}/org/machine-config`)!,
+      ref: "feature/desk",
+      path: "outfitting.json",
+    });
+
+    expect(file.path).toBe("outfitting.json");
+    expect(new TextDecoder().decode(file.body)).toBe(remote.bodies.get("outfitting.json"));
+    await expect(
+      readGitHubBlobs({
+        ...remote,
+        repository: classifyGitHubRepository(`https://${host}/org/machine-config`)!,
+        ref: "feature/desk",
+        paths: ["outfitting.json"],
+      }),
+    ).rejects.toThrow(/reserved for machine configuration/);
+  });
+
   test("downloads files and nested directories once with stable repository paths and revision", async () => {
     const remote = remoteFixture(host);
     const files = await readGitHubBlobs({

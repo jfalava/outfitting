@@ -9,33 +9,33 @@ sidebar:
 
 ## Global options
 
-| Option | Description |
-| --- | --- |
-| `--config <path>` | Select a configuration file instead of the default. Equivalent to `OUTFITTING_CONFIG`; may appear before or after the command and may be specified once. |
-| `--help`, `-h` | Display help for the command. |
-| `--version`, `-v` | Display the manager version. |
-| `--wizard` | Start wizard mode for the selected command. |
-| `--completions <shell>` | Print completions for `bash`, `zsh`, `fish`, or `sh`. |
-| `--log-level <level>` | Set the minimum log level: `all`, `trace`, `debug`, `info`, `warn`, `warning`, `error`, `fatal`, or `none`. |
+| Option                  | Description                                                                                                                                              |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--config <path>`       | Select a configuration file instead of the default. Equivalent to `OUTFITTING_CONFIG`; may appear before or after the command and may be specified once. |
+| `--help`, `-h`          | Display help for the command.                                                                                                                            |
+| `--version`, `-v`       | Display the manager version.                                                                                                                             |
+| `--wizard`              | Start wizard mode for the selected command.                                                                                                              |
+| `--completions <shell>` | Print completions for `bash`, `zsh`, `fish`, or `sh`.                                                                                                    |
+| `--log-level <level>`   | Set the minimum log level: `all`, `trace`, `debug`, `info`, `warn`, `warning`, `error`, `fatal`, or `none`.                                              |
 
 ## Commands
 
-| Command | Availability | Description |
-| --- | --- | --- |
-| [`init`](/docs/cli/init/) | All platforms | Prepare local state and validate the configured source. |
-| [`apply`](/docs/cli/apply/) | All platforms | Reconcile declared platform packages. |
-| [`validate`](/docs/cli/validate/) | All platforms | Validate configuration and selected source declarations. |
-| [`config`](/docs/cli/config/) | All platforms | Migrate legacy configuration to `config.toml`. |
-| [`source`](/docs/cli/source/) | All platforms | Inspect the resolved source path. |
-| [`status`](/docs/cli/status/) | All platforms | Inspect effective local configuration and source state. |
-| [`diff`](/docs/cli/diff/) | All platforms | Compare live package state with declarations. |
-| [`update`](/docs/cli/update/) | All platforms | Upgrade installed native packages through one package manager. |
-| [`nix`](/docs/cli/nix/) | macOS, Linux | Build, test, dry-run, or activate the configured Nix profile. |
-| [`sync`](/docs/cli/sync/) | All platforms | Push, pull, and inspect remote lock snapshots. |
-| [`fonts`](/docs/cli/fonts/) | All platforms | Manage the private font archive and its inventory. |
-| [`provision`](/docs/cli/provision/) | All platforms | Deploy the Outfitting infrastructure stack. |
-| [`self-update`](/docs/cli/self-update/) | All platforms | Replace the manager binary with the latest release. |
-| [`snapshot`](/docs/cli/snapshot/) | macOS | Capture observed Homebrew inventory. |
-| [`recover`](/docs/cli/recover/) | macOS | Resume an interrupted Nix operation. |
-| [`winget`](/docs/cli/winget/) | Windows | Install or remove tracked WinGet packages. |
-| [`scoop`](/docs/cli/scoop/) | Windows | Install or remove tracked Scoop packages. |
+| Command                                 | Availability  | Description                                                    |
+| --------------------------------------- | ------------- | -------------------------------------------------------------- |
+| [`init`](/docs/cli/init/)               | All platforms | Prepare local state and validate the configured source.        |
+| [`apply`](/docs/cli/apply/)             | All platforms | Reconcile declared platform packages.                          |
+| [`validate`](/docs/cli/validate/)       | All platforms | Validate configuration and selected source declarations.       |
+| [`config`](/docs/cli/config/)           | All platforms | Set up, generate, or migrate machine configuration.            |
+| [`source`](/docs/cli/source/)           | All platforms | Inspect the resolved source path.                              |
+| [`status`](/docs/cli/status/)           | All platforms | Inspect effective local configuration and source state.        |
+| [`diff`](/docs/cli/diff/)               | All platforms | Compare live package state with declarations.                  |
+| [`update`](/docs/cli/update/)           | All platforms | Upgrade installed native packages through one package manager. |
+| [`nix`](/docs/cli/nix/)                 | macOS, Linux  | Build, test, dry-run, or activate the configured Nix profile.  |
+| [`sync`](/docs/cli/sync/)               | All platforms | Push, pull, and inspect remote lock snapshots.                 |
+| [`fonts`](/docs/cli/fonts/)             | All platforms | Manage the private font archive and its inventory.             |
+| [`provision`](/docs/cli/provision/)     | All platforms | Deploy the Outfitting infrastructure stack.                    |
+| [`self-update`](/docs/cli/self-update/) | All platforms | Replace the manager binary with the latest release.            |
+| [`snapshot`](/docs/cli/snapshot/)       | macOS         | Capture observed Homebrew inventory.                           |
+| [`recover`](/docs/cli/recover/)         | macOS         | Resume an interrupted Nix operation.                           |
+| [`winget`](/docs/cli/winget/)           | Windows       | Install or remove tracked WinGet packages.                     |
+| [`scoop`](/docs/cli/scoop/)             | Windows       | Install or remove tracked Scoop packages.                      |
