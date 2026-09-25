@@ -1,0 +1,44 @@
+---
+title: Example flow
+description: Example flow for preparing a Linux source, reconciling packages, and activating Home Manager.
+sidebar:
+  order: 20
+---
+
+This flow assumes the `workstation` profile declares an `apt` manifest and may declare a Nix flake. Replace `workstation` with the profile selected in `config.toml` or the BYOR source. For a pacman profile, select `pacman` instead of `apt`.
+
+## Provision a Linux profile
+
+### Prepare and refresh the source
+
+```sh
+outfitting-manager init --profile workstation
+```
+
+`init` prepares local state, refreshes a configured remote source by default, and validates the selected profile. It does not change installed packages or activate Home Manager.
+
+### Inspect the declared native packages
+
+```sh
+outfitting-manager diff --profile workstation --manager apt
+```
+
+`diff` is read-only. It reports differences with a nonzero exit status, so review its output before continuing. The Linux command guide explains how to compare a pacman profile instead.
+
+### Reconcile native packages
+
+```sh
+outfitting-manager apply --profile workstation --package-manager apt --no-refresh
+```
+
+`apply` reuses the source snapshot refreshed by `init`, installs missing packages from the selected profile's apt manifest, and prompts before making changes. Package-manager downloads can still use the network; `--no-refresh` only avoids fetching a newer BYOR source.
+
+### Activate Home Manager when configured
+
+```sh
+outfitting-manager nix switch --profile workstation --no-refresh --if-configured
+```
+
+If the profile has a Nix flake, `switch` builds and activates its Home Manager configuration as the current user. `--if-configured` skips the action when that profile has no Nix declaration. Successful Nix actions publish the flake lock unless `--no-push` is supplied.
+
+For later maintenance, [`update`](/docs/cli/update/) upgrades installed native packages, while `nix switch` separately activates Home Manager. Linux has no combined `update all` command. See [Linux commands](/docs/platforms/linux/commands/) for the behavior and options of each Linux operation.

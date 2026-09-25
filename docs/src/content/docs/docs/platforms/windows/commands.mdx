@@ -1,0 +1,36 @@
+---
+title: Command guide
+description: Windows-specific behavior for profile setup, package reconciliation, updates, and tracked package operations.
+sidebar:
+  order: 30
+---
+
+This page explains Windows-specific command behavior. The [CLI reference](/docs/cli/) documents shared syntax and flags; [Local sources](/docs/source/local-sources/) and [Sparse artifact lifecycle](/docs/source/sparse-artifacts/) explain source selection and refresh behavior.
+
+## Profiles and source
+
+Profile-aware Windows commands accept comma-separated profiles. `--profile` selects the profiles for a command; otherwise the configured selection is used. `init` prepares local state and validates the selected source. It refreshes a configured remote source by default and does not change installed packages.
+
+## `apply`
+
+Reconciles the selected profiles' WinGet and optional Scoop declarations. It installs missing declared packages but does not upgrade unrelated installed software. Applied state remains local.
+
+`--winget-only` applies WinGet declarations and skips Scoop. `--prune` removes only stale packages that Outfitting can prove it installed for the active profiles. `--yes` applies the displayed plan without prompting. See [`apply`](/docs/cli/apply/) for the full option reference.
+
+## `diff`
+
+Read-only comparison of the selected profiles' WinGet and Scoop declarations with installed package state. Differences or an unavailable comparison produce a nonzero exit status. See [`diff`](/docs/cli/diff/) for manager selection and output options.
+
+## `update`
+
+Upgrades already-installed packages through exactly one package manager. Select `winget` or `scoop` with `--package-manager`; Windows requires this selection. Successful updates are recorded locally and pushed to `windows.lock.json` unless `--no-push` is supplied. `update` does not reconcile package declarations; use `apply` for that.
+
+## `winget`
+
+`winget install` installs and tracks package IDs; `winget uninstall` removes and tracks them. These explicit operations update `windows.lock.json` and push by default. Use `--no-push` to keep the updated lock local. See [`winget`](/docs/cli/winget/) for syntax.
+
+## `scoop`
+
+`scoop install` installs and tracks package names; `scoop uninstall` removes and tracks them. These explicit operations update `windows.lock.json` and push by default. Use `--no-push` to keep the updated lock local. See [`scoop`](/docs/cli/scoop/) for syntax.
+
+Windows has no `nix` command. The shared [`config`](/docs/cli/config/), [`source`](/docs/cli/source/), [`validate`](/docs/cli/validate/), [`status`](/docs/cli/status/), [`sync`](/docs/cli/sync/), [`fonts`](/docs/cli/fonts/), [`provision`](/docs/cli/provision/), and [`self-update`](/docs/cli/self-update/) pages cover the other available commands and subcommands.

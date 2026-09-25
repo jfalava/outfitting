@@ -1,0 +1,42 @@
+---
+title: Example flow
+description: Example flow for refreshing a macOS source, reconciling Homebrew packages, and activating nix-darwin.
+sidebar:
+  order: 41
+---
+
+This flow assumes the `workstation` profile declares a Brewfile and may declare a nix-darwin flake. Replace `workstation` with the selected macOS profile.
+
+## Prepare and validate the source
+
+```sh
+outfitting-manager init --profile workstation
+```
+
+`init` refreshes a configured remote source by default and validates the selected profile. It does not install Homebrew packages or activate Nix.
+
+## Inspect package and Nix state
+
+```sh
+outfitting-manager diff --profile workstation
+```
+
+`diff` compares Homebrew and Nix system state with the selected profile's declarations. It is read-only; differences or an unavailable comparison produce a nonzero exit status.
+
+## Reconcile Homebrew packages
+
+```sh
+outfitting-manager apply --profile workstation --no-refresh
+```
+
+`apply` reuses the source snapshot validated by `init` and installs missing packages from the profile's Brewfile. It does not upgrade installed packages or activate nix-darwin. Homebrew may still access the network to install packages.
+
+## Activate nix-darwin when configured
+
+```sh
+outfitting-manager nix switch --profile workstation --no-refresh
+```
+
+Run this step when the selected profile declares a nix-darwin flake. `switch` builds and activates that system; successful Nix actions publish related lock state unless `--no-push` is supplied. See [macOS commands](/docs/platforms/macos/commands/) for the other Nix actions, inventory capture, and recovery behavior.
+
+For later maintenance, [`update`](/docs/cli/update/) upgrades installed Homebrew packages, while `apply` remains the operation for installing missing Brewfile declarations.

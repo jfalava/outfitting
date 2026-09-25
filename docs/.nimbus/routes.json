@@ -22,7 +22,14 @@
     "/docs/cli/update",
     "/docs/cli/validate",
     "/docs/cli/winget",
-    "/docs/source"
+    "/docs/platforms/linux/commands",
+    "/docs/platforms/linux/example-flow",
+    "/docs/platforms/macos/commands",
+    "/docs/platforms/macos/example-flow",
+    "/docs/platforms/windows/commands",
+    "/docs/platforms/windows/example-flow",
+    "/docs/source/local-sources",
+    "/docs/source/sparse-artifacts"
   ],
   "opaqueNamespaces": []
 }

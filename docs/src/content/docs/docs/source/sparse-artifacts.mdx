@@ -1,0 +1,45 @@
+---
+title: Sparse artifact lifecycle
+description: Which remote source files are selected, when snapshots refresh, and how cached artifacts are replaced.
+sidebar:
+  order: 20
+---
+
+For a remote source, Outfitting materializes only the selected platform and profile files under `<stateRoot>/source`. This is separate from `sync pull`, which restores machine lockfiles.
+
+## Selected files
+
+Selections include declared files, recursively included directories, and configured `paths`.
+
+| Platform | Selected artifacts |
+| --- | --- |
+| Linux | Declared apt and pacman manifests, the Nix flake directory when present, and configured paths. |
+| macOS | nix-darwin configuration and flake, optional Brewfile and fonts, and configured paths. |
+| Windows | WinGet manifests for selected profiles and declared shared Scoop, PowerShell, fonts, and registry files. |
+
+The configured ref resolves to one immutable revision per pull. Remote selections accept regular files; symlinks and submodules are rejected.
+
+## Create, refresh, and replace
+
+A refresh stages selected files beside the current snapshot, records repository, ref, revision, and declaration hash in `.outfitting-source.json`, then validates and publishes the result.
+
+- The first successful refresh creates `<stateRoot>/source`.
+- Each later successful refresh replaces the whole snapshot, removing files no longer selected.
+- Fetch or validation failure leaves the current snapshot untouched.
+- A publish failure triggers rollback; a backup can remain if rollback or cleanup fails.
+- Temporary checkouts are removed after materialization.
+
+## Refresh rules
+
+| Operation | Remote source behavior |
+| --- | --- |
+| `init` | Refreshes by default; `--no-refresh` reuses the validated snapshot. |
+| Linux/macOS `apply` and `nix` | Refresh by default; `--no-refresh` reuses the snapshot. |
+| Windows `apply`; non-Linux `diff`; `validate`, `status`, and `source path` | Reuse the current source without refreshing. |
+| Linux `diff` | Uses the cache by default; `--refresh` fetches. `--offline` cannot be combined with `--refresh`. |
+
+## Cache and cleanup
+
+Offline reuse checks the snapshot's repository, ref, platform, declaration hash, and declared files. It cannot detect that a moving ref has advanced while offline. Local checkouts and `OUTFITTING_REPO` overrides bypass sparse pulls.
+
+Switching from a remote source to a local checkout leaves the remote snapshot untouched. A later successful remote refresh replaces it; otherwise remove `<stateRoot>/source` manually. There is no cache-prune command.

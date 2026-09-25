@@ -1,0 +1,90 @@
+---
+title: Command guide
+description: Linux-specific behavior for source setup, package reconciliation, comparison, updates, and Home Manager actions.
+sidebar:
+  order: 10
+---
+
+This page explains Linux-specific behavior for `init`, `apply`, `diff`, `update`, and each `nix` action. The [CLI reference](/docs/cli/) documents shared syntax and flags; [Local sources](/docs/source/local-sources/) and [Sparse artifact lifecycle](/docs/source/sparse-artifacts/) cover source selection and cached snapshots.
+
+## Profile and source selection
+
+`--profile` takes precedence over `OUTFITTING_PROFILE`, which takes precedence over `linux.profile` in `config.toml`. `init`, `apply`, and `diff` can select the only Linux profile in the source when no profile is configured; multiple profiles require an explicit selection. Nix actions require a selected Linux profile. `update` does not read a profile or package manifest.
+
+`init` refreshes a configured remote source by default. `apply` and `nix` also refresh it by default, while `diff` reads the existing snapshot unless `--refresh` is supplied. `--no-refresh` reuses the validated snapshot. A configured local checkout is validated and used in place. These source flags do not determine whether apt, pacman, or Nix may download packages or build inputs.
+
+## `init`
+
+**Syntax:** `outfitting-manager init [--profile <profile>] [--no-refresh]`
+
+Prepares the local state root, selects and validates the Linux source, and makes its profile declarations available to later operations. Remote sources refresh by default; `--no-refresh` validates and uses the current snapshot. Local checkouts are validated directly. `init` does not reconcile packages, upgrade them, or activate Home Manager.
+
+## `diff`
+
+**Syntax:** `outfitting-manager diff [--profile <profile>] [--manager <apt|pacman>] [--refresh] [--offline] [--json]`
+
+Compares declared native packages with the selected manager's installed-package inventory. It is read-only, reports missing declarations, and ignores unrelated installed packages. Differences or an unavailable comparison produce a nonzero exit status.
+
+Linux `diff` defaults to apt even when the host is an Arch-family distribution. Pass `--manager pacman` to compare the pacman manifest and inventory. It reads the validated source snapshot by default; `--refresh` refreshes a remote source before comparison. `--refresh` and `--offline` cannot be combined. `--offline` does not enable or disable apt/pacman downloads: native comparison is read-only, and Linux does not run the remote Nix comparison that this flag suppresses on other platforms.
+
+## `apply`
+
+**Syntax:** `outfitting-manager apply [--profile <profile>] [--package-manager <apt|pacman>] [--prune] [--offline] [--yes] [--no-refresh] [--if-configured]`
+
+Reconciles one native package manager against the selected profile's matching manifest. It installs missing declared packages; it does not upgrade unrelated installed packages.
+
+### Package-manager selection
+
+Without `--package-manager`, Outfitting maps Debian-family distributions to apt and Arch-family distributions to pacman using `/etc/os-release`, then verifies that the selected executable is available. For an unrecognized distribution it tries apt, then pacman. `--package-manager` selects one manager explicitly, but its executable and corresponding manifest must still be available.
+
+### Installation plan
+
+Outfitting lists the missing packages before applying changes and asks for confirmation when the plan changes the system. `--yes` applies the plan without prompting. Package operations use `sudo` when needed and available. For apt, Outfitting refreshes the apt package index before installing missing packages. Pacman installs the declared packages without performing a system-wide upgrade.
+
+### Offline operation
+
+`--no-refresh` controls BYOR source refresh; it does not make package installation offline. `--offline` uses the cached manifest and constrains package operations: apt installs use cached packages only, while a pacman install is refused. For a remote source, combine `--offline` with `--no-refresh`; requesting a source refresh and offline mode together is invalid.
+
+### `--prune`
+
+Pruning is opt-in. Outfitting records package ownership per profile and manager in `linux-package-ownership.json` under the state root. It considers only stale packages recorded as installed by Outfitting, preserves packages owned by another profile, and does not claim packages that were already installed. Before removal, it simulates the package-manager plan and refuses to proceed if the simulated removals differ from the owned candidates.
+
+### `--if-configured`
+
+Skips reconciliation when the selected profile declares neither an apt nor a pacman manifest. It does not skip when either native manifest is present.
+
+## `nix`
+
+**Syntax:** `outfitting-manager nix <build|switch|test|dry-run> [--profile <profile>] [--no-refresh] [--no-push] [--if-configured]`
+
+Linux `nix` operates on the selected profile's Home Manager flake, not a nix-darwin system. Remote source refresh is enabled by default; `--no-refresh` uses the validated snapshot. The actions do not upgrade flake inputs as a separate step.
+
+Before an action, Outfitting ensures `~/.config/home-manager` points to the selected flake directory. It refuses to replace an existing non-symlink at that path. Successful actions publish the flake's `flake.lock` as this machine's Nix lock state unless `--no-push` is supplied. `--if-configured` skips when the selected profile declares no Nix flake.
+
+### `build`
+
+Builds the Home Manager activation package without activating it.
+
+### `switch`
+
+Builds the activation package and runs its activation script as the current user. It does not use `sudo` to activate Home Manager.
+
+### `test`
+
+Test-builds the Home Manager activation package without activating it.
+
+### `dry-run`
+
+Runs the Home Manager dry-run build without activating the profile.
+
+## `update`
+
+**Syntax:** `outfitting-manager update [--package-manager <apt|pacman>] [--offline]`
+
+Upgrades already-installed native packages system-wide, independently of BYOR declarations and profiles. Manager detection follows the same distribution mapping as `apply`; `--package-manager` overrides it. Apt updates its package index and upgrades installed packages. Pacman performs a synchronized full upgrade.
+
+`--offline` is refused because network-free package resolution cannot be guaranteed. `update` does not install missing declared packages or prune packages; use `apply` for declaration reconciliation. It does not update or activate Home Manager; use `nix switch` for that operation. Linux has no combined `update all` command.
+
+## Other commands on Linux
+
+Linux-specific package and Home Manager behavior is covered above. The [config](/docs/cli/config/) (`migrate`), [source](/docs/cli/source/) (`path`), [validate](/docs/cli/validate/), [status](/docs/cli/status/), [sync](/docs/cli/sync/), [fonts](/docs/cli/fonts/), [provision](/docs/cli/provision/), and [self-update](/docs/cli/self-update/) pages document the other Linux-accessible commands, including their subcommands and options.

@@ -1,0 +1,22 @@
+---
+title: Local sources
+description: How Outfitting resolves configured local checkouts and per-command source overrides.
+sidebar:
+  order: 10
+---
+
+`config.toml` selects a local `path` or a remote `repository` and `ref`. This page covers local checkouts; see [Sparse artifact lifecycle](/docs/source/sparse-artifacts/) for remote sources.
+
+## Configured checkout
+
+A configured `path` resolves relative to the directory containing `config.toml`. The checkout must already exist. Outfitting validates the selected profile declarations and reads files in place; it does not clone, copy, fetch, refresh, or delete the checkout. Local edits are visible to the next command that reads the source.
+
+Local checkouts can contain Git symlinks or submodules that remote sparse selections reject. `init` may create the state-root directory, but it does not create a checkout or write `config.toml`.
+
+## State and overrides
+
+The default config is `<stateRoot>/config.toml`. The default state root is `~/.config/outfitting` on Unix and `%LOCALAPPDATA%/outfitting` on Windows. `OUTFITTING_STATE_ROOT` changes the state root; `OUTFITTING_CONFIG` selects a config file.
+
+`OUTFITTING_REPO` selects a local checkout for the current process. Commands that accept `--repo` use it as a single-invocation override. Neither changes the config or refreshes a remote snapshot. [`config migrate`](/docs/cli/config/) writes TOML from supported legacy configuration.
+
+Changing a remote configuration to a local checkout leaves any existing sparse snapshot in place; see [Sparse artifact lifecycle](/docs/source/sparse-artifacts/) for its cleanup rules.
