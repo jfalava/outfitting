@@ -205,7 +205,7 @@ in
 
       "terminal" = {
         "dock" = "left";
-        "font_family" = "VictorMono Nerd Font Propo";
+        "font_family" = "ZedMono Nerd Font Propo";
         "font_size" = 17;
         "font_weight" = 500;
       };
@@ -226,7 +226,7 @@ in
 
       "theme" = {
         "mode" = "system";
-        "light" = "One Light";
+        "light" = "Tokyo Night Light";
         "dark" = "Tokyo Night Dark";
       };
 
@@ -234,7 +234,7 @@ in
       # "comment.doc", not "comment_doc" (the underscore key silently matches
       # nothing and the override is a no-op).
       "theme_overrides" = {
-        "One Light" = {
+        "Tokyo Night Light" = {
           "syntax" = {
             "comment" = {
               "font_style" = "italic";
