@@ -1,6 +1,6 @@
 import { Command } from "effect/unstable/cli";
 
-import { byorCommand } from "@/commands/byor";
+import { configCommand } from "@/commands/config";
 import { makeMacosDiffCommand } from "@/commands/diff";
 import { fontsCommand } from "@/commands/fonts";
 import { provisionCommand } from "@/commands/provision";
@@ -8,6 +8,7 @@ import { recoverCommand } from "@/commands/recover";
 import { setupCommand } from "@/commands/setup";
 import { macosInitCommand } from "@/commands/setup/macos";
 import { snapshotCommand } from "@/commands/snapshot";
+import { sourceCommand } from "@/commands/source";
 import { makeStatusCommand } from "@/commands/status";
 import { syncCommand } from "@/commands/sync";
 import { makeMacosUpdateCommand } from "@/commands/update";
@@ -24,7 +25,8 @@ export const makeMacosRootCommand = (currentVersion: string) =>
     Command.withSubcommands([
       macosInitCommand,
       setupCommand,
-      byorCommand,
+      configCommand,
+      sourceCommand,
       validateCommand,
       makeMacosUpdateCommand(),
       makeMacosDiffCommand(),

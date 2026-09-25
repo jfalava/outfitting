@@ -23,17 +23,7 @@ export function stateRoot(home = homedir()): string {
 }
 
 export function configFilePath(root = stateRoot()): string {
-  return join(root, "config.json");
-}
-
-/** Local BYOR profile map. The remote repository does not contain this file. */
-export function byorMapPath(root = stateRoot()): string {
-  return join(root, "byor.json");
-}
-
-/** Legacy shell path file written by `set_outfitting_repo`. */
-export function repoPathFile(root = stateRoot()): string {
-  return join(root, "repo-path");
+  return join(root, "config.toml");
 }
 
 /** Sparse Nix/package/Zsh source tree managed by outfitting-manager. */

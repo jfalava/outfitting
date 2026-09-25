@@ -91,12 +91,14 @@ describe("recoverNix", () => {
     });
 
     const config: ManagerConfig = {
+      configPath: join(parent, "state", "config.toml"),
       stateRoot: join(parent, "state"),
       machineId: "test:aarch64-darwin",
       machineIdOverridden: true,
     };
     const repo = {
       root: "/repo",
+      contract: { schema: 1 as const, profiles: {} },
       flakePath: "/repo/system/macos",
       darwinNixPath: "/repo/system/macos/darwin.nix",
       flakeKind: "macos" as const,
@@ -157,12 +159,14 @@ describe("recoverNix", () => {
     await setNixRecoveryPhase("activated", recoveryDir);
 
     const config: ManagerConfig = {
+      configPath: join(parent, "state", "config.toml"),
       stateRoot: join(parent, "state"),
       machineId: "test:aarch64-darwin",
       machineIdOverridden: true,
     };
     const repo = {
       root: "/repo",
+      contract: { schema: 1 as const, profiles: {} },
       flakePath: "/repo/system/macos",
       darwinNixPath: "/repo/system/macos/darwin.nix",
       flakeKind: "macos" as const,

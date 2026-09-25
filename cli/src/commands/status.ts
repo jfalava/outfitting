@@ -5,22 +5,21 @@ import { Command } from "effect/unstable/cli";
 
 import {
   autoMachineId,
-  byorMapPath,
-  configFilePath,
+  configuredProfile,
   loadConfig,
-  readRepoPathFile,
+  sparseSourceRoot,
   type ManagerConfig,
 } from "@/config";
 import { tryPromise } from "@/lockfiles/effect";
 import { type HostPlatform } from "@/platform";
 import { runCommand } from "@/process";
 import { envValue } from "@/secrets";
-import { readByorMap } from "@/source/byor-map";
+import { syncByorSparseSource } from "@/setup/source";
 import {
-  readByorContract,
   selectByorProfile,
   selectMacosByorProfile,
   selectWindowsByorProfiles,
+  type ByorContract,
 } from "@/source/contract";
 
 async function sourcePathStatus(source: string): Promise<string | undefined> {
@@ -45,7 +44,11 @@ async function sourcePathStatus(source: string): Promise<string | undefined> {
   }
 }
 
-async function sourceStatus(source: string | undefined, run: typeof runCommand): Promise<string[]> {
+async function sourceStatus(
+  source: string | undefined,
+  run: typeof runCommand,
+  remote = false,
+): Promise<string[]> {
   if (source === undefined) {
     return ["Source checkout: not configured"];
   }
@@ -53,6 +56,9 @@ async function sourceStatus(source: string | undefined, run: typeof runCommand):
   const pathStatus = await sourcePathStatus(source);
   if (pathStatus !== undefined) {
     return [...lines, `Source checkout: ${pathStatus}`];
+  }
+  if (remote) {
+    return [...lines, "Source checkout: cached snapshot (no Git metadata)"];
   }
   const result = await run(
     "git",
@@ -71,32 +77,85 @@ async function sourceStatus(source: string | undefined, run: typeof runCommand):
 }
 
 function selectedProfile(
-  contract: Awaited<ReturnType<typeof readByorContract>>,
+  contract: ByorContract,
   platform: HostPlatform,
   config: ManagerConfig,
 ): string {
+  const configured = configuredProfile(config, platform);
   switch (platform) {
     case "linux":
-      return selectByorProfile(contract, config.linux?.profile).name;
+      return selectByorProfile(contract, configured).name;
     case "macos":
-      return selectMacosByorProfile(contract, undefined).name;
+      return selectMacosByorProfile(contract, configured).name;
     case "windows":
-      return selectWindowsByorProfiles(contract, undefined).names.join(",");
+      return selectWindowsByorProfiles(contract, configured?.split(",")).names.join(",");
   }
 }
 
-async function readSelectedProfile(
-  source: string | undefined,
-  platform: HostPlatform,
-  config: ManagerConfig,
-): Promise<string> {
+function readSelectedProfile(platform: HostPlatform, config: ManagerConfig): string {
   try {
-    const contract =
-      source === undefined ? await readByorMap(config.stateRoot) : await readByorContract(source);
-    return contract === undefined ? "not selected" : selectedProfile(contract, platform, config);
+    return config.declarations === undefined
+      ? "not selected"
+      : selectedProfile(config.declarations, platform, config);
   } catch {
-    // Status reports missing or ambiguous profile selection without fetching.
     return "not selected";
+  }
+}
+
+function statusSource(config: ManagerConfig, override: string | undefined): string | undefined {
+  if (override !== undefined) {
+    return override;
+  }
+  if (config.source?.kind === "local") {
+    return config.source.path;
+  }
+  if (config.source?.kind === "remote") {
+    return sparseSourceRoot(config.stateRoot);
+  }
+  return undefined;
+}
+
+function configurationLines(platform: HostPlatform, config: ManagerConfig): string[] {
+  const lines = [
+    `Platform: ${platform} (${process.arch})`,
+    `Profile: ${readSelectedProfile(platform, config)}`,
+    `Config: ${config.configPath}`,
+    `Machine ID: ${config.machineId} (${config.machineIdOverridden ? "configured" : "inferred"})`,
+    `Inferred machine ID: ${autoMachineId()}`,
+  ];
+  if (config.source?.kind === "remote") {
+    lines.push(
+      "Source mode: remote",
+      `Repository: ${config.source.repository}@${config.source.ref}`,
+      `Cache: ${sparseSourceRoot(config.stateRoot)}`,
+    );
+  } else if (config.source?.kind === "local") {
+    lines.push("Source mode: local");
+  } else {
+    lines.push("Source mode: not configured");
+  }
+  return lines;
+}
+
+async function cacheFreshnessLines(
+  config: ManagerConfig,
+  platform: HostPlatform,
+  override: string | undefined,
+): Promise<string[]> {
+  if (override !== undefined || config.source?.kind !== "remote") {
+    return [];
+  }
+  try {
+    await syncByorSparseSource({
+      config,
+      platform,
+      profile: configuredProfile(config, platform),
+      offline: true,
+    });
+    return ["Cache validation: current"];
+  } catch (cause) {
+    const reason = cause instanceof Error ? cause.message : String(cause);
+    return [`Cache validation: stale or missing (${reason})`];
   }
 }
 
@@ -106,19 +165,16 @@ export async function readStatus(
   options: { config?: ManagerConfig; run?: typeof runCommand; envRepo?: string } = {},
 ): Promise<string> {
   const config = options.config ?? (await loadConfig());
-  const source = options.envRepo ?? envValue("OUTFITTING_REPO") ?? (await readRepoPathFile(config));
-  const profile = await readSelectedProfile(source, platform, config);
-  const remote = await readByorMap(config.stateRoot);
-  const lines = [
-    `Platform: ${platform} (${process.arch})`,
-    `Profile: ${profile}`,
-    `Config: ${configFilePath(config.stateRoot)}`,
-    `Machine ID: ${config.machineId} (${config.machineIdOverridden ? "configured" : "inferred"})`,
-    `Inferred machine ID: ${autoMachineId()}`,
-    `BYOR map: ${remote === undefined ? "not configured" : byorMapPath(config.stateRoot)}`,
-    ...(remote === undefined ? [] : [`BYOR remote: ${remote.repository}@${remote.ref}`]),
-  ];
-  return [...lines, ...(await sourceStatus(source, options.run ?? runCommand))].join("\n");
+  const override = options.envRepo ?? envValue("OUTFITTING_REPO");
+  return [
+    ...configurationLines(platform, config),
+    ...(await cacheFreshnessLines(config, platform, override)),
+    ...(await sourceStatus(
+      statusSource(config, override),
+      options.run ?? runCommand,
+      config.source?.kind === "remote",
+    )),
+  ].join("\n");
 }
 
 export const makeStatusCommand = (platform: HostPlatform) =>

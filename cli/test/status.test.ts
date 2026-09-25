@@ -19,10 +19,9 @@ test("status reports defaults without creating any state", async () => {
     for (const platform of ["macos", "windows", "linux"] as const) {
       const output = await readStatus(platform, { config });
       expect(output).toContain(`Platform: ${platform}`);
-      expect(output).toContain(`Config: ${join(absent, "config.json")}`);
+      expect(output).toContain(`Config: ${join(absent, "config.toml")}`);
       expect(output).toContain("Source checkout: not configured");
-      expect(output).toContain("BYOR map: not configured");
-      expect(output).not.toContain("Remote:");
+      expect(output).toContain("Source mode: not configured");
       expect(output).toContain(`Machine ID: ${config.machineId}`);
     }
     expect(await readdir(root)).toEqual([]);
@@ -34,19 +33,11 @@ test("status reports defaults without creating any state", async () => {
 test("status preserves saved profiles and distinguishes sparse, missing and dirty sources", async () => {
   const root = await mkdtemp(join(tmpdir(), "outfitting-status-source-"));
   try {
-    const config = await loadConfig({ stateRoot: root });
-    config.linux = { profile: "linux-work" };
     await writeFile(
-      join(root, "outfitting.json"),
-      `${JSON.stringify({
-        schema: 1,
-        profiles: {
-          work: { windows: { winget: { manifest: "packages/work.txt" } } },
-          dev: { windows: { winget: { manifest: "packages/dev.txt" } } },
-          "linux-work": { linux: { apt: { manifest: "packages/linux.txt" } } },
-        },
-      })}\n`,
+      join(root, "config.toml"),
+      `schema = 1\n[source]\npath = ${JSON.stringify(root)}\n[linux]\nprofile = "linux-work"\n[profiles.work.windows.winget]\nmanifest = "packages/work.txt"\n[profiles.dev.windows.winget]\nmanifest = "packages/dev.txt"\n[profiles.linux-work.linux.apt]\nmanifest = "packages/linux.txt"\n`,
     );
+    const config = await loadConfig({ stateRoot: root });
     const lock = await readWindowsLock(config);
     lock.profiles = ["work", "dev"];
     await writeWindowsLock(lock, { root });

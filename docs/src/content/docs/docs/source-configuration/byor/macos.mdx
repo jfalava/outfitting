@@ -1,71 +1,28 @@
 ---
 title: macOS
-description: Declare macOS nix-darwin and Homebrew paths with BYOR.
+description: Declare macOS Nix, Homebrew, and font paths in config.toml.
 sidebar:
   order: 1
 ---
 
-macOS configuration comes only from BYOR. Use a local checkout containing root `outfitting.json`, or configure a remote Git source with `outfitting-manager byor`. Outfitting does not infer its own repository layout or Brewfile path.
+Select one macOS profile in the machine-local [configuration](/docs/source-configuration/):
 
-## Declare a macOS profile
-
-```json
-{
-  "schema": 1,
-  "profiles": {
-    "workstation": {
-      "macos": {
-        "nix": {
-          "flake": "hosts/workstation",
-          "attribute": "darwinConfigurations.workstation.system",
-          "darwin": "hosts/workstation/darwin.nix"
-        },
-        "brewfile": "ops/mac/Brewfile",
-        "fonts": { "manifest": "ops/mac/fonts.txt" },
-        "paths": ["modules/shared.nix"]
-      }
-    }
-  }
-}
+```toml
+schema = 1
+[source]
+repository = "https://git.example.com/team/machine-config.git"
+ref = "main"
+[macos]
+profile = "workstation"
+[profiles.workstation.macos]
+brewfile = "ops/mac/Brewfile"
+paths = ["modules/shared.nix"]
+[profiles.workstation.macos.nix]
+flake = "hosts/workstation"
+attribute = "darwinConfigurations.workstation.system"
+darwin = true
+[profiles.workstation.macos.fonts]
+manifest = "ops/mac/fonts.txt"
 ```
 
-- `nix.flake` is the directory containing `flake.nix`; the flake must expose `darwinConfigurations`.
-- `nix.attribute` selects the system to activate.
-- `nix.darwin` optionally selects the Darwin module; it defaults to `<flake>/darwin.nix`.
-- `brewfile`, `fonts`, and `paths` are optional. If no Brewfile is declared, Homebrew bundle activation is skipped.
-- The complete flake directory is fetched. `paths` lists other files read by the evaluation.
-
-All paths are relative to the repository root and cannot escape it. macOS selects one profile at a time; pass `--profile` when the source has multiple macOS profiles.
-
-## Use a local checkout
-
-```bash
-outfitting-manager validate --repo ~/src/machine-config --platform macos --profile workstation
-outfitting-manager init --repo ~/src/machine-config --profile workstation
-outfitting-manager setup --repo ~/src/machine-config --profile workstation
-```
-
-The checkout must contain a valid root `outfitting.json`. Commands read it directly and do not fetch its Git remote.
-
-## Use a remote Git source
-
-Configure the repository, ref, and selected paths in the local `byor.json` map:
-
-```bash
-outfitting-manager byor \
-  --platform macos \
-  --repo https://git.example.com/team/machine-config.git \
-  --ref main \
-  --profile workstation \
-  --flake hosts/workstation \
-  --attribute darwinConfigurations.workstation.system \
-  --brewfile ops/mac/Brewfile \
-  --paths modules/shared.nix
-
-outfitting-manager init
-outfitting-manager setup
-```
-
-GitHub remotes use commit-pinned reads; other HTTPS and SSH Git remotes use Git and the current user's configured credentials. Refresh fetches the declared flake, Brewfile, and additional paths. A failed refresh preserves the last validated snapshot. Use `--no-refresh` to reuse the existing local source.
-
-See the [BYOR command](/docs/cli/byor/) and [source configuration](/docs/source-configuration/) for map storage and refresh behavior.
+The flake directory is fetched as a tree; `paths` covers additional files. Paths are source-root-relative. For a local checkout, replace `repository` and `ref` with `path` (resolved relative to the config file). Run `outfitting-manager validate` before `outfitting-manager setup`.

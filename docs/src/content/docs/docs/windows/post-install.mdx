@@ -16,7 +16,7 @@ irm win.jfa.dev/post-install | iex
 > Do not run this script as Administrator. Scoop intentionally aborts if run with elevated privileges.
 
 > [!WARNING]
-> The unchanged post-install script still runs manager setup using the retired implicit/raw-route source flow. Its package reconciliation will not complete with the BYOR-only manager until the script is migrated; the independent Scoop and font steps remain available.
+> The post-install script may still use the older implicit/raw-route source flow. Configure `config.toml` before manual manager setup; independent Scoop and font steps remain available.
 
 ### What gets configured
 

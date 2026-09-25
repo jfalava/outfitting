@@ -3,7 +3,8 @@ import { dirname, join } from "node:path";
 
 import { Console, Effect, Schema } from "effect";
 
-import { loadConfig, saveConfigFile, type ManagerConfig } from "@/config";
+import { configuredProfile, loadConfig, type ManagerConfig } from "@/config";
+import { validateOutfittingRepo } from "@/config/repo";
 import { CliFailure, toCliFailure } from "@/errors";
 import type { ManifestFetcher } from "@/fetch/github";
 import { tryPromise } from "@/lockfiles/effect";
@@ -13,6 +14,7 @@ import {
   type LinuxPackageManager,
 } from "@/platform/linux";
 import { runCommand, which } from "@/process";
+import { selectByorProfile, validateLinuxByorSource } from "@/source/contract";
 import { parseLinuxPackageManifest } from "@/source/linux-manifest";
 import { ui } from "@/ui";
 import {
@@ -208,14 +210,24 @@ export interface LinuxApplyOptions<ConfirmR = never> extends LinuxUpdateOptions 
   yes?: boolean;
   /** Use the selected local source without fetching remote changes. */
   noRefresh?: boolean;
+  /** Already validated source root to use for this apply, including --repo overrides. */
+  sourceRoot?: string;
   sourceFetcher?: ManifestFetcher;
   confirm?: Effect.Effect<boolean, never, ConfirmR>;
 }
 
 function resolveProfile(value: string | undefined, config?: ManagerConfig): LinuxProfile {
-  const profile = value ?? config?.linux?.profile;
+  const profile =
+    config === undefined
+      ? value
+      : (configuredProfile(config, "linux", value) ??
+        (config.declarations === undefined
+          ? undefined
+          : selectByorProfile(config.declarations, undefined).name));
   if (profile === undefined) {
-    throw new Error("No Linux profile is selected. Pass --profile or run outfitting-manager byor.");
+    throw new Error(
+      "No Linux profile is selected. Set linux.profile in config.toml or pass --profile.",
+    );
   }
   if (!isLinuxProfile(profile)) {
     throw new Error(
@@ -230,6 +242,17 @@ async function resolveLinuxApplySource<ConfirmR>(
   config: ManagerConfig,
   profile: LinuxProfile,
 ): Promise<LinuxSource | undefined> {
+  if (options.sourceRoot !== undefined) {
+    if (config.declarations === undefined) {
+      throw new Error(`No profile declarations are configured in ${config.configPath}.`);
+    }
+    const repo = await validateOutfittingRepo(options.sourceRoot, {
+      profile,
+      contract: config.declarations,
+    });
+    await validateLinuxByorSource({ root: repo.root, profile, contract: config.declarations });
+    return { root: repo.root, mode: "checkout", repo };
+  }
   if (options.noRefresh === true) {
     return undefined;
   }
@@ -543,11 +566,6 @@ export const applyLinux = <ConfirmR = never>(options: LinuxApplyOptions<ConfirmR
         yield* Console.log(ui.muted("Aborted. No package changes were made."));
         return;
       }
-    }
-    if (options.profile !== undefined && config.linux?.profile !== profile) {
-      yield* tryPromise(() =>
-        saveConfigFile({ linux: { profile } }, { stateRoot: config.stateRoot }),
-      );
     }
     yield* executeLinuxApply(context, missing, removals, options.offline === true);
     yield* Console.log(ui.success(`Linux ${command.manager} profile applied (${profile}).`));

@@ -2,6 +2,7 @@ import { Schema } from "effect";
 
 import { runCommand, type RunCommandResult } from "@/process";
 import { relativeSourcePath } from "@/source/contract";
+import { isReservedSourcePath } from "@/source/reserved";
 
 export type ManifestFetcher = (input: string, init?: RequestInit) => Promise<Response>;
 
@@ -183,9 +184,17 @@ function selectSourceEntries(
     if (!entries.some((entry) => entry.type !== "tree" && withinPath(entry.path, root))) {
       throw new Error(`GitHub path \`${root}\` is missing or empty.`);
     }
+    if (isReservedSourcePath(root)) {
+      throw new Error(
+        `GitHub path \`${root}\` is reserved for machine configuration and runtime state.`,
+      );
+    }
   }
   const selected = entries.filter(
-    (entry) => entry.type !== "tree" && roots.some((root) => withinPath(entry.path, root)),
+    (entry) =>
+      entry.type !== "tree" &&
+      roots.some((root) => withinPath(entry.path, root)) &&
+      !isReservedSourcePath(entry.path),
   );
   for (const entry of selected) {
     relativeSourcePath(entry.path, "GitHub tree path");

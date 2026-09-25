@@ -1,7 +1,6 @@
 import { Console, Effect } from "effect";
 
-import { loadConfig, saveConfigFile, type ManagerConfig } from "@/config";
-import { resolveOutfittingRepo, validateOutfittingRepo } from "@/config/repo";
+import type { ManagerConfig, OutfittingRepo } from "@/config";
 import { tryPromise } from "@/lockfiles/effect";
 import { runCommand } from "@/process";
 import { resolveSetupSource, runSetup, type SetupOptions } from "@/setup/run";
@@ -12,7 +11,7 @@ import { applyLinux, type LinuxApplyOptions } from "@/update/linux";
 import { updateNix } from "@/update/nix";
 
 export interface LinuxSetupOptions extends SetupOptions {
-  profile: LinuxProfile;
+  profile?: LinuxProfile;
   packageManager?: LinuxApplyOptions["packageManager"];
   run?: LinuxApplyOptions["run"];
   which?: LinuxApplyOptions["which"];
@@ -21,36 +20,21 @@ export interface LinuxSetupOptions extends SetupOptions {
 }
 
 export interface LinuxInitOptions extends SetupOptions {
-  profile: LinuxProfile;
+  profile?: LinuxProfile;
 }
 
-function persistLinuxProfile(profile: LinuxProfile, stateRoot: string | undefined) {
-  return tryPromise(() =>
-    saveConfigFile({ linux: { profile } }, stateRoot === undefined ? undefined : { stateRoot }),
-  );
-}
-
-async function validateLocalSource(
-  repo: string | undefined,
-  profile: LinuxProfile,
-): Promise<ValidatedLinuxByorProfile | undefined> {
-  return repo === undefined ? undefined : validateLinuxByorSource({ root: repo, profile });
-}
-
-/** Prepare Linux state and validate/persist its selected BYOR source. */
+/** Prepare Linux state and validate its configured source. */
 export const runLinuxInit = (options: LinuxInitOptions) =>
   Effect.gen(function* () {
     const { profile, ...input } = options;
     const source = yield* tryPromise(() =>
       resolveSetupSource({ ...input, platform: "linux", repoProfile: profile }),
     );
-    yield* tryPromise(() => validateLocalSource(source.repo, profile));
     yield* runSetup({
       ...source,
       repoProfile: profile,
       nextCommand: "Next: outfitting-manager setup",
     });
-    yield* persistLinuxProfile(profile, options.stateRoot);
   });
 
 /** Prepare and apply the selected Linux BYOR package profile. */
@@ -64,24 +48,24 @@ export const runLinuxSetup = (options: LinuxSetupOptions) =>
       run,
     };
     const source = yield* tryPromise(() => resolveSetupSource(sourceOptions));
-    yield* tryPromise(() => validateLocalSource(source.repo, profile));
-    yield* runSetup({
+    const repo = yield* runSetup({
       ...sourceOptions,
       ...source,
       nextCommand: "Applying Linux package configuration…",
     });
-    yield* persistLinuxProfile(profile, options.stateRoot);
-
-    const config = yield* tryPromise(() =>
-      loadConfig(options.stateRoot === undefined ? undefined : { stateRoot: options.stateRoot }),
+    const config = source.config!;
+    const selected = yield* tryPromise(() =>
+      validateLinuxByorSource({
+        root: repo.root,
+        profile: source.repoProfile,
+        contract: config.declarations!,
+      }),
     );
-    const repo = yield* tryPromise(() => resolveOutfittingRepo({ config, profile }));
-    const selected = yield* tryPromise(() => validateLinuxByorSource({ root: repo.root, profile }));
     yield* applySelectedLinuxProfile({
       config,
-      profile,
+      profile: selected.profile,
       selected,
-      repo: yield* tryPromise(() => validateOutfittingRepo(repo.root, { profile })),
+      repo,
       packageManager,
       run: run ?? runCommand,
       which,
@@ -95,7 +79,7 @@ function applySelectedLinuxProfile(options: {
   config: ManagerConfig;
   profile: LinuxProfile;
   selected: ValidatedLinuxByorProfile;
-  repo: Awaited<ReturnType<typeof validateOutfittingRepo>>;
+  repo: OutfittingRepo;
   packageManager: LinuxSetupOptions["packageManager"];
   run: typeof runCommand;
   which: LinuxSetupOptions["which"];
@@ -117,6 +101,7 @@ function applySelectedLinuxProfile(options: {
         readOsRelease: options.readOsRelease,
         offline: options.offline,
         noRefresh: true,
+        sourceRoot: options.repo.root,
         yes: true,
       });
     }

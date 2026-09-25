@@ -1,6 +1,6 @@
 import { Console, Effect } from "effect";
 
-import { loadConfig, type ManagerConfig } from "@/config";
+import { configuredProfile, loadConfig, type ManagerConfig } from "@/config";
 import { resolveOutfittingRepo, type OutfittingRepo } from "@/config/repo";
 import { CliFailure } from "@/errors";
 import { pushLockfile } from "@/lockfiles";
@@ -14,6 +14,7 @@ import {
   defaultNixRecoveryDir,
   readNixRecovery,
   setNixRecoveryPhase,
+  type NixRecoveryState,
 } from "@/update/nix/recovery";
 import { ensureNixSymlinks } from "@/update/nix/symlinks";
 import { NIX_LOCK_KIND } from "@/update/nix/types";
@@ -33,6 +34,48 @@ function recoveryIfMatch(baseHash: string): string | undefined {
   return /^[0-9a-f]{64}$/i.test(baseHash) ? baseHash : undefined;
 }
 
+function activatePreparedNix(
+  options: RecoverNixOptions,
+  config: ManagerConfig,
+  state: NixRecoveryState,
+  recoveryDir: string,
+) {
+  return Effect.gen(function* () {
+    const whichFn = options.which ?? which;
+    const nixPath = yield* tryPromise(() => whichFn("nix"));
+    if (nixPath === undefined) {
+      return yield* new CliFailure({ message: "nix is not installed or not in PATH." });
+    }
+
+    const platform = process.platform === "darwin" ? "macos" : "linux";
+    const repo =
+      options.repo ??
+      (yield* tryPromise(() =>
+        resolveOutfittingRepo({
+          config,
+          profile: configuredProfile(config, platform),
+          platform,
+        }),
+      ));
+    const ensureSymlinks = options.ensureSymlinks ?? ensureNixSymlinks;
+    yield* tryPromise(() => ensureSymlinks(repo));
+
+    const build = options.build ?? buildNixSystem;
+    const activate = options.activate ?? activateNixSystem;
+    yield* Console.log(ui.heading("Building the Nix recovery checkpoint…"));
+    const systemConfig = yield* tryPromise(() =>
+      build({
+        repo,
+        lockPath: state.lockPath,
+        mode: "build",
+      }),
+    );
+    yield* Console.log(ui.heading("Activating the recovered nix-darwin system…"));
+    yield* tryPromise(() => activate({ systemConfig }));
+    yield* tryPromise(() => setNixRecoveryPhase("activated", recoveryDir));
+  });
+}
+
 /** Resume a prepared nix-darwin checkpoint, then publish its lock atomically. */
 export const recoverNix = (options: RecoverNixOptions = {}) =>
   Effect.gen(function* () {
@@ -48,29 +91,7 @@ export const recoverNix = (options: RecoverNixOptions = {}) =>
     const push = options.push ?? pushLockfile;
 
     if (state.phase === "prepared") {
-      const whichFn = options.which ?? which;
-      const nixPath = yield* tryPromise(() => whichFn("nix"));
-      if (nixPath === undefined) {
-        return yield* new CliFailure({ message: "nix is not installed or not in PATH." });
-      }
-
-      const repo = options.repo ?? (yield* tryPromise(() => resolveOutfittingRepo({ config })));
-      const ensureSymlinks = options.ensureSymlinks ?? ensureNixSymlinks;
-      yield* tryPromise(() => ensureSymlinks(repo));
-
-      const build = options.build ?? buildNixSystem;
-      const activate = options.activate ?? activateNixSystem;
-      yield* Console.log(ui.heading("Building the Nix recovery checkpoint…"));
-      const systemConfig = yield* tryPromise(() =>
-        build({
-          repo,
-          lockPath: state.lockPath,
-          mode: "build",
-        }),
-      );
-      yield* Console.log(ui.heading("Activating the recovered nix-darwin system…"));
-      yield* tryPromise(() => activate({ systemConfig }));
-      yield* tryPromise(() => setNixRecoveryPhase("activated", recoveryDir));
+      yield* activatePreparedNix(options, config, state, recoveryDir);
     }
 
     yield* Console.log(ui.heading("Publishing the recovered Nix lock…"));

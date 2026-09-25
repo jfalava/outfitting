@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, test, vi } from "vitest";
 import { resolveOutfittingRepo } from "@/config";
 import { collectDiff } from "@/diff/compare";
 import type { runCommand } from "@/process";
+import { parseByorContract } from "@/source/contract";
 import { closeNixLock, openNixLock } from "@/update/nix/lock";
 
 vi.mock("node:fs/promises", async (importOriginal) => ({
@@ -23,15 +24,27 @@ vi.mock("@/update/nix/lock", () => ({
 }));
 
 const config = {
+  configPath: "/state/config.toml",
   stateRoot: "/state",
   machineId: "test:arm64-darwin",
   machineIdOverridden: true,
+  source: { kind: "local" as const, path: "/repo" },
+  macos: { profile: "macos" },
+  declarations: parseByorContract({
+    schema: 1,
+    profiles: {
+      macos: {
+        macos: { nix: { flake: "system/macos", attribute: "darwinConfigurations.macos.system" } },
+      },
+    },
+  }),
 };
 
 beforeEach(() => {
   vi.resetAllMocks();
   vi.mocked(resolveOutfittingRepo).mockResolvedValue({
     root: "/repo",
+    contract: config.declarations,
     flakePath: "/repo/system/macos",
     darwinNixPath: "/repo/system/macos/darwin.nix",
     flakeKind: "macos",

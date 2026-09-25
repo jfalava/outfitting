@@ -1,11 +1,12 @@
-import { mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { mkdtemp, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { Effect } from "effect";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
-import { writeRepoPath, validateOutfittingRepo } from "@/config/repo";
+import { loadConfig } from "@/config";
+import { validateOutfittingRepo } from "@/config/repo";
 import { resolveSetupSource, runSetup } from "@/setup/run";
 
 const temps: string[] = [];
@@ -23,27 +24,39 @@ async function tempDir(prefix: string): Promise<string> {
 
 async function localByorRepo(): Promise<string> {
   const root = await tempDir("outfitting-local-byor-");
-  await writeFile(
-    join(root, "outfitting.json"),
-    `${JSON.stringify({ schema: 1, profiles: { desk: { linux: { apt: { manifest: "packages.txt" } } } } })}\n`,
-  );
   await writeFile(join(root, "packages.txt"), "curl\njq\n");
   return root;
 }
 
-describe("writeRepoPath / validateOutfittingRepo", () => {
-  test("persists an absolute BYOR checkout path with a private file mode", async () => {
+async function localConfig(state: string, repo: string) {
+  await writeFile(
+    join(state, "config.toml"),
+    `schema = 1\n[source]\npath = ${JSON.stringify(repo)}\n[linux]\nprofile = "desk"\n[profiles.desk.linux.apt]\nmanifest = "packages.txt"\n`,
+  );
+  return loadConfig({ stateRoot: state });
+}
+
+describe("validateOutfittingRepo", () => {
+  test("resolves a local checkout using declarations from config.toml", async () => {
     const state = await tempDir("outfitting-state-");
     const repo = await localByorRepo();
-    const written = await writeRepoPath(repo, { stateRoot: state, profile: "desk" });
-    expect(written.repo.root).toBe(repo);
-    expect((await readFile(join(state, "repo-path"), "utf8")).trim()).toBe(repo);
-    expect((await stat(join(state, "repo-path"))).mode & 0o777).toBe(0o600);
+    const config = await localConfig(state, repo);
+    const resolved = await validateOutfittingRepo(repo, {
+      contract: config.declarations!,
+      profile: "desk",
+    });
+    expect(resolved).toMatchObject({ root: repo, flakeKind: "none" });
+    expect(await readdir(state)).toEqual(["config.toml"]);
   });
 
-  test("rejects paths without a root outfitting.json contract", async () => {
+  test("rejects missing local source paths", async () => {
     const empty = await tempDir("outfitting-empty-");
-    await expect(validateOutfittingRepo(empty)).rejects.toThrow(/outfitting.json/);
+    const config = await localConfig(empty, join(empty, "missing"));
+    await expect(
+      validateOutfittingRepo(config.source!.kind === "local" ? config.source!.path : "", {
+        contract: config.declarations!,
+      }),
+    ).rejects.toThrow(/does not exist/);
   });
 });
 
@@ -51,6 +64,7 @@ describe("runSetup", () => {
   test("uses a local BYOR checkout without fetching or requiring remote configuration", async () => {
     const stateRoot = await tempDir("outfitting-setup-");
     const repo = await localByorRepo();
+    const config = await localConfig(stateRoot, repo);
     const fetcher = vi.fn(async () => new Response("must not fetch"));
 
     await Effect.runPromise(
@@ -61,22 +75,19 @@ describe("runSetup", () => {
         repoProfile: "desk",
         machineId: "test:x86_64-linux",
         fetcher,
+        config,
         skipSymlinks: true,
       }),
     );
 
-    const config = JSON.parse(await readFile(join(stateRoot, "config.json"), "utf8")) as {
-      machineId: string;
-    };
-    expect(config.machineId).toBe("test:x86_64-linux");
-    expect((await readFile(join(stateRoot, "repo-path"), "utf8")).trim()).toBe(repo);
+    expect(await readdir(stateRoot)).toEqual(["config.toml"]);
     expect(fetcher).not.toHaveBeenCalled();
   });
 
-  test("fails before setup when neither a local checkout nor byor.json is configured", async () => {
+  test("fails before setup when profile declarations are absent", async () => {
     const stateRoot = await tempDir("outfitting-unconfigured-");
     await expect(resolveSetupSource({ stateRoot, platform: "linux" })).rejects.toThrow(
-      /No local outfitting.json checkout or remote source is configured/,
+      /No profile declarations are configured/,
     );
   });
 });

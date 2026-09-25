@@ -15,13 +15,11 @@ export const setupCommand = Command.make(
     ),
     repo: Flag.String("repo").pipe(
       Flag.optional,
-      Flag.withDescription("Local BYOR checkout; takes precedence over the remote BYOR map."),
+      Flag.withDescription("Local source path override for this invocation."),
     ),
     profile: Flag.String("profile").pipe(
       Flag.optional,
-      Flag.withDescription(
-        "BYOR macOS profile when outfitting.json defines more than one macOS profile.",
-      ),
+      Flag.withDescription("macOS profile declared in config.toml (defaults to its selection)."),
     ),
     noRefresh: Flag.Boolean("no-refresh").pipe(
       Flag.withDefault(false),

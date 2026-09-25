@@ -38,8 +38,6 @@ describe("macOS installer delegation", () => {
   test("post-install reads the font list from the configured sparse source", async () => {
     const script = await readFile(postInstallPath, "utf8");
 
-    expect(script).toContain('STATE_ROOT="${OUTFITTING_STATE_ROOT:-$HOME/.config/outfitting}"');
-    expect(script).toContain('REPO_PATH_FILE="$STATE_ROOT/repo-path"');
     expect(script).toContain('FONTGET_LIST="$REPO_PATH/fonts/fontget.txt"');
     expect(script).not.toContain('REPO_PATH="$HOME/.config/outfitting/repo"');
   });

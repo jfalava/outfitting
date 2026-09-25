@@ -1,49 +1,15 @@
 ---
 title: Validate
-description: Validate an outfitting.json configuration without applying changes.
+description: Validate config.toml and its declared source paths without applying changes.
 sidebar:
   order: 8
 ---
 
-`validate` inspects your repository's `outfitting.json` to verify that profiles, declared package manifests, Nix flakes, and file paths exist and are valid. It runs locally and makes no changes to your system.
-
-## Usage
-
-Run `validate` inside your repository root, or point it to a checkout with `--repo`:
+`validate` checks the single machine-local [config.toml](/docs/source-configuration/) and the selected profile's declared manifests and paths without applying changes.
 
 ```bash
-# Validate the current directory
 outfitting-manager validate
-
-# Specify a repository path
-outfitting-manager validate --repo ~/src/my-machine-config
-
-# Validate a specific profile
-outfitting-manager validate --repo ~/src/my-machine-config --profile workstation
-
-# Specify the platform when outfitting.json defines multiple platforms
-outfitting-manager validate --repo ~/src/my-machine-config --platform linux
+outfitting-manager --config ~/machine/config.toml validate
 ```
 
-| Flag         | Description                                                                                                                |
-| ------------ | -------------------------------------------------------------------------------------------------------------------------- |
-| `--repo`     | Path to the local repository root (defaults to current directory).                                                         |
-| `--profile`  | Target profile name. Required when multiple Linux or macOS profiles are defined. Comma-separated on Windows.               |
-| `--platform` | Target platform (`linux`, `windows`, or `macos`). Required when `outfitting.json` defines profiles for multiple platforms. |
-
-## What gets checked
-
-- **Schema & path safety:** Verifies schema `1` formatting and ensures all file paths remain within the repository (no directory traversal).
-- **Linux:** Validates declared backends (`apt`, `pacman`, `nix`), ensures package manifests are non-empty, and checks that declared Nix flakes exist.
-- **Windows:** Validates declared WinGet manifests and checks optional Scoop, PowerShell profile, font, and registry paths.
-- **macOS:** Ensures Nix flakes define a `darwinConfigurations` attribute, checks the nix-darwin entrypoint, and validates optional Brewfile, font, and custom path references.
-
-If validation succeeds, `validate` prints the resolved repository root, platform, and selected profile(s). If validation fails, it outputs the exact missing path or configuration error.
-
-## Platform notes
-
-- Supported across Linux, macOS, and Windows.
-- Automatically selects the target platform when `outfitting.json` only declares one platform; pass `--platform` when disambiguation is needed.
-- Validates a local checkout. Remote BYOR files are validated as part of source refresh; this command does not fetch them.
-
-For schema references and platform examples, see [Source configuration](/docs/source-configuration/) and the BYOR guides for [Linux](/docs/source-configuration/byor/linux/), [macOS](/docs/source-configuration/byor/macos/), and [Windows](/docs/source-configuration/byor/windows/).
+The configuration selects `[source] path` or remote `repository` plus `ref`, and `[linux] profile`, `[macos] profile`, or `[windows] profiles`. Declaration paths must remain inside the source root. Linux supports apt, pacman, and Nix; macOS supports Nix, Brewfile, and fonts; Windows supports WinGet and optional shared components. For details see [Linux](/docs/source-configuration/byor/linux/), [macOS](/docs/source-configuration/byor/macos/), and [Windows](/docs/source-configuration/byor/windows/).

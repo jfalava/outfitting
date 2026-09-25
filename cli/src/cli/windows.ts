@@ -1,10 +1,11 @@
 import { Command } from "effect/unstable/cli";
 
-import { byorCommand } from "@/commands/byor";
+import { configCommand } from "@/commands/config";
 import { makeWindowsDiffCommand } from "@/commands/diff";
 import { fontsCommand } from "@/commands/fonts";
 import { provisionCommand } from "@/commands/provision";
 import { windowsInitCommand } from "@/commands/setup/windows";
+import { sourceCommand } from "@/commands/source";
 import { makeStatusCommand } from "@/commands/status";
 import { syncCommand } from "@/commands/sync";
 import { makeWindowsUpdateCommand } from "@/commands/update/windows";
@@ -20,7 +21,8 @@ export const makeWindowsRootCommand = (currentVersion: string) =>
     Command.withDescription("Portable maintenance tools for Outfitting-managed machines."),
     Command.withSubcommands([
       windowsInitCommand,
-      byorCommand,
+      configCommand,
+      sourceCommand,
       windowsSetupCommand,
       validateCommand,
       makeWindowsUpdateCommand(),

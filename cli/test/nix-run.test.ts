@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { Effect } from "effect";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
-import { writeRepoPath } from "@/config/repo";
+import { loadConfig } from "@/config";
 import { CliFailure } from "@/errors";
 import { pushLockfile } from "@/lockfiles";
 import { runSetup } from "@/setup/run";
@@ -54,28 +54,23 @@ async function makeLinuxSource(profile: string, withLock = false) {
     await writeFile(join(repo, flake, "flake.lock"), '{ "version": 7 }\n');
   }
   await writeFile(
-    join(repo, "outfitting.json"),
-    `${JSON.stringify({
-      schema: 1,
-      profiles: {
-        [profile]: {
-          linux: {
-            nix: { flake, attribute: "homeConfigurations.work.activationPackage" },
-          },
-        },
-      },
-    })}\n`,
+    join(stateRoot, "config.toml"),
+    [
+      "schema = 1",
+      "[source]",
+      `path = ${JSON.stringify(repo)}`,
+      "[linux]",
+      `profile = ${JSON.stringify(profile)}`,
+      `[profiles.${JSON.stringify(profile)}.linux.nix]`,
+      `flake = ${JSON.stringify(flake)}`,
+      'attribute = "homeConfigurations.work.activationPackage"',
+      "",
+    ].join("\n"),
   );
-  await writeRepoPath(repo, { stateRoot, profile });
   return {
     stateRoot,
     repo,
-    config: {
-      stateRoot,
-      machineId: "test:aarch64-linux",
-      machineIdOverridden: true,
-      linux: { profile },
-    },
+    config: await loadConfig({ stateRoot, machineId: "test:aarch64-linux" }),
   };
 }
 
@@ -88,13 +83,18 @@ test("setup persists and validates a selected local macOS BYOR checkout", async 
   await writeFile(join(repo, flake, "flake.nix"), "{ darwinConfigurations = {}; }\n");
   await writeFile(join(repo, flake, "darwin.nix"), "local macOS config\n");
   await writeFile(
-    join(repo, "outfitting.json"),
-    `${JSON.stringify({
-      schema: 1,
-      profiles: {
-        workstation: { macos: { nix: { flake, attribute: "darwinConfigurations.work.system" } } },
-      },
-    })}\n`,
+    join(stateRoot, "config.toml"),
+    [
+      "schema = 1",
+      "[source]",
+      `path = ${JSON.stringify(repo)}`,
+      "[macos]",
+      'profile = "workstation"',
+      "[profiles.workstation.macos.nix]",
+      `flake = ${JSON.stringify(flake)}`,
+      'attribute = "darwinConfigurations.work.system"',
+      "",
+    ].join("\n"),
   );
   const fetcher = vi.fn(async () => new Response("unexpected network source"));
 
@@ -109,7 +109,9 @@ test("setup persists and validates a selected local macOS BYOR checkout", async 
     }),
   );
 
-  expect(await readFile(join(stateRoot, "repo-path"), "utf8")).toBe(`${repo}\n`);
+  expect(await readFile(join(stateRoot, "config.toml"), "utf8")).toContain(
+    `path = ${JSON.stringify(repo)}`,
+  );
   expect(fetcher).not.toHaveBeenCalled();
 });
 
@@ -146,25 +148,21 @@ test.skipIf(process.platform !== "darwin")(
     await mkdir(flake, { recursive: true });
     await writeFile(join(flake, "flake.nix"), "flake\n");
     await writeFile(join(flake, "darwin.nix"), "darwin\n");
-    await writeFile(
-      join(root, "outfitting.json"),
-      `${JSON.stringify({
-        schema: 1,
-        profiles: {
-          macos: {
-            macos: {
-              nix: { flake: "system/macos", attribute: "darwinConfigurations.macos.system" },
-            },
-          },
+    const contract = {
+      schema: 1 as const,
+      profiles: {
+        macos: {
+          macos: { nix: { flake: "system/macos", attribute: "darwinConfigurations.macos.system" } },
         },
-      })}\n`,
-    );
+      },
+    };
     const lockPath = join(flake, "flake.lock");
     vi.mocked(buildNixSystem).mockImplementation(async ({ repo }) => {
       await writeFile(join(repo.flakePath, "flake.lock"), '{ "version": 7 }\n');
       return "/nix/store/system";
     });
     const config = {
+      configPath: join(root, "state", "config.toml"),
       stateRoot: join(root, "state"),
       machineId: "test:aarch64-darwin",
       machineIdOverridden: true,
@@ -176,6 +174,7 @@ test.skipIf(process.platform !== "darwin")(
         config,
         repo: {
           root,
+          contract,
           flakePath: flake,
           darwinNixPath: join(flake, "darwin.nix"),
           flakeKind: "macos",

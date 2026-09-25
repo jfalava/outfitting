@@ -1,11 +1,9 @@
 import { Effect, Option } from "effect";
 import { Command, Flag } from "effect/unstable/cli";
 
-import { loadConfig, readRepoPathFile } from "@/config";
+import { configuredProfile, loadConfig } from "@/config";
 import { tryPromise } from "@/lockfiles/effect";
 import { resolveSetupSource, runSetup, type SetupOptions } from "@/setup/run";
-import { validateWindowsByorSource } from "@/source/contract";
-import { readWindowsLock, writeWindowsLock } from "@/update/windows-lock";
 
 export interface WindowsSetupOptions extends SetupOptions {
   profiles?: string[];
@@ -13,36 +11,27 @@ export interface WindowsSetupOptions extends SetupOptions {
 
 export const initializeWindows = (options: WindowsSetupOptions = {}) =>
   Effect.gen(function* () {
+    const initialConfig = yield* tryPromise(() =>
+      loadConfig({
+        stateRoot: options.stateRoot,
+        configPath: options.configPath,
+        machineId: options.machineId,
+      }),
+    );
+    const profiles = options.profiles ?? configuredProfile(initialConfig, "windows")?.split(",");
     const source = yield* tryPromise(() => resolveSetupSource({ ...options, platform: "windows" }));
-    const localProfiles =
-      source.repo === undefined
-        ? undefined
-        : yield* tryPromise(() =>
-            validateWindowsByorSource({ root: source.repo!, profiles: options.profiles }),
-          );
-    const profiles = localProfiles?.names ?? options.profiles;
 
-    yield* runSetup({
+    const validatedRepo = yield* runSetup({
       ...source,
       repoProfile: profiles?.join(","),
       refreshSource: options.refreshSource,
       nextCommand: options.nextCommand ?? "Next: outfitting-manager setup",
     });
-
-    const updatedConfig = yield* tryPromise(() => loadConfig({ stateRoot: options.stateRoot }));
-    const updatedLock = yield* tryPromise(() => readWindowsLock(updatedConfig));
-    const selectedRoot = yield* tryPromise(() => readRepoPathFile(updatedConfig));
-    const selected = yield* tryPromise(() =>
-      selectedRoot === undefined
-        ? Promise.reject(new Error("Windows BYOR source was not saved during initialization."))
-        : validateWindowsByorSource({ root: selectedRoot, profiles }),
-    );
-    updatedLock.profiles = selected.names;
-    yield* tryPromise(() => writeWindowsLock(updatedLock, { root: updatedConfig.stateRoot }));
+    return { config: source.config!, repo: validatedRepo };
   });
 
 /**
- * Initialize the Windows state root from a local or remote BYOR source.
+ * Initialize the Windows state root from the configured source.
  */
 export const windowsInitCommand = Command.make(
   "init",
@@ -53,15 +42,15 @@ export const windowsInitCommand = Command.make(
     ),
     repo: Flag.String("repo").pipe(
       Flag.optional,
-      Flag.withDescription("Local BYOR repository checkout or remote Git repository."),
+      Flag.withDescription("Local source path override for this invocation."),
     ),
     profile: Flag.String("profile").pipe(
       Flag.optional,
-      Flag.withDescription("Comma-separated BYOR profiles to prepare."),
+      Flag.withDescription("Comma-separated Windows profiles (defaults to config.toml)."),
     ),
     noRefresh: Flag.Boolean("no-refresh").pipe(
       Flag.withDefault(false),
-      Flag.withDescription("Use the existing remote BYOR checkout without fetching updates."),
+      Flag.withDescription("Validate and use the existing remote source cache without fetching."),
     ),
   },
   ({ machineId, noRefresh, profile, repo }) =>
@@ -72,6 +61,4 @@ export const windowsInitCommand = Command.make(
       refreshSource: !noRefresh,
       nextCommand: "Next: outfitting-manager setup",
     }),
-).pipe(
-  Command.withDescription("Initialize the Windows state root from the configured BYOR source."),
-);
+).pipe(Command.withDescription("Initialize the Windows state root from the configured source."));

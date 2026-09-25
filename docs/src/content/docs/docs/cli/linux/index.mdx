@@ -1,6 +1,6 @@
 ---
 title: Linux
-description: Maintain Linux hosts from local or explicitly mapped BYOR sources.
+description: Maintain Linux hosts from configured local or remote sources.
 audience: linux
 sidebar:
   order: 20
@@ -8,29 +8,24 @@ sidebar:
 
 Linux uses the compiled `outfitting-manager` binary. It detects `/etc/os-release` and the installed package-manager executable, selecting **apt** for Debian-family distributions and **pacman** for Arch-family distributions.
 
-Manager source configuration is explicit: use a local checkout containing root `outfitting.json`, or configure a remote Git repository in the state-root `byor.json`. The manager has no built-in profile or repository-layout defaults. See [BYOR for Linux](/docs/source-configuration/byor/linux/) for the contract and examples.
+Configure a local `[source] path` or remote `repository` and `ref` in `config.toml`, with `[linux] profile`. See [Linux configuration](/docs/source-configuration/byor/linux/) for examples.
 
 ```bash
-# Validate and apply a local checkout
-outfitting-manager validate --repo ~/code/my-machine-config --platform linux
-outfitting-manager setup --repo ~/code/my-machine-config --profile workstation
-
-# Configure and use a remote BYOR source
-outfitting-manager byor
-outfitting-manager setup --profile workstation
+outfitting-manager validate
+outfitting-manager setup
 ```
 
 `setup` installs packages from the selected profile and applies Home Manager when the contract declares a Nix flake. Use `update` for upgrades.
 
 > [!WARNING]
-> The existing Linux bootstrap still invokes the retired implicit-source flow. Its manager-driven package setup will not complete until that installer is migrated; installer scripts are outside this change.
+> The existing Linux bootstrap may still invoke an older implicit-source flow; configure `config.toml` before manual setup.
 
 ## Commands
 
 - [Init](/docs/cli/init/) — select and validate an explicitly configured source.
 - [Setup](/docs/cli/setup/) — initialize and install declared components.
-- [Validate](/docs/cli/validate/) — check a repository-owned `outfitting.json` without applying it.
-- [BYOR](/docs/cli/byor/) — configure and inspect remote Git source mappings.
+- [Validate](/docs/cli/validate/) — check `config.toml` without applying it.
+- [Source configuration](/docs/source-configuration/) — select a checkout or Git source.
 - [Apply](/docs/cli/apply/) — reconcile declared apt or pacman packages.
 - [Update](/docs/cli/update/) — upgrade installed packages.
 - [Sync](/docs/cli/sync/) — transport remote state.

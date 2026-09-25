@@ -24,6 +24,7 @@ test.each([
     const root = await mkdtemp(join(tmpdir(), "outfitting-update-all-"));
     try {
       const config: ManagerConfig = {
+        configPath: join(root, "config.toml"),
         stateRoot: root,
         machineId: "test:x64-windows",
         machineIdOverridden: true,

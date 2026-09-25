@@ -5,7 +5,7 @@ sidebar:
   order: 2
 ---
 
-`apply` reconciles package presence from the selected BYOR profile. It is available on Windows and Linux; macOS uses `setup` for declarative activation. Linux refreshes the selected source before planning changes.
+`apply` reconciles package presence from the profile selected in `config.toml`. It is available on Windows and Linux; macOS uses `setup` for declarative activation. Linux refreshes the selected source before planning changes.
 
 On Linux, pass `--no-refresh` to use the previously validated published snapshot without refreshing it. `--offline` also skips source refresh and prohibits network-backed package-manager work; it does not make a missing or invalid snapshot usable.
 
@@ -21,7 +21,7 @@ outfitting-manager apply --profile base,dev --winget-only
 outfitting-manager apply --prune --yes
 ```
 
-Windows options are `--profile <profiles>`, `--winget-only`, `--prune`, and `--yes`. `--yes` accepts the displayed installation and removal plan without prompting. See [Profiles](/docs/source-configuration/#profiles) for bundle composition. Apply changes local machine state only; it does not upload state. Run [`sync push`](/docs/cli/sync/#sync-push) explicitly when you want to publish it.
+Windows options are `--profile <profiles>`, `--winget-only`, `--prune`, and `--yes`. `--yes` accepts the displayed installation and removal plan without prompting. See [source configuration](/docs/source-configuration/) for bundle composition. Apply changes local machine state only; it does not upload state. Run [`sync push`](/docs/cli/sync/#sync-push) explicitly when you want to publish it.
 
 ## Linux
 
@@ -33,7 +33,7 @@ outfitting-manager apply pacman --prune --yes
 outfitting-manager apply all --offline
 ```
 
-Choose `all`, `apt`, or `pacman`. Linux options are `--profile <profile>`, `--prune`, `--offline`, `--yes`, and `--no-refresh`. Linux refreshes the configured source by default. `--no-refresh` and `--offline` require a previously validated local snapshot for the selected BYOR profile; use `init` or `setup` to select and populate a different profile before running them.
+Choose `all`, `apt`, or `pacman`. Linux options are `--profile <profile>`, `--prune`, `--offline`, `--yes`, and `--no-refresh`. Linux refreshes the configured source by default. `--no-refresh` and `--offline` require a previously validated remote snapshot; use `init` or `setup` to populate one before running them.
 
 Offline apt installs require cached package payloads. Offline pacman refuses missing-package installs; it can inspect already-satisfied declarations and perform a safe prune without downloads.
 

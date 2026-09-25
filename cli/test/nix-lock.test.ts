@@ -12,6 +12,7 @@ import type { PullLockfileOptions } from "@/lockfiles";
 import { closeNixLock, openNixLock } from "@/update/nix/lock";
 
 const config: ManagerConfig = {
+  configPath: "/state/config.toml",
   stateRoot: "/state",
   machineId: "test:aarch64-darwin",
   machineIdOverridden: true,

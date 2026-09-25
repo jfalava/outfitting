@@ -1,14 +1,16 @@
 import { constants } from "node:fs";
-import { access, chmod, mkdir, readFile, realpath, writeFile } from "node:fs/promises";
-import { dirname, isAbsolute, join, resolve } from "node:path";
+import { access, realpath } from "node:fs/promises";
+import { isAbsolute, join, resolve } from "node:path";
 
 import { loadConfig } from "@/config/load";
-import { repoPathFile } from "@/config/paths";
+import { sparseSourceRoot } from "@/config/paths";
+import { configuredProfile } from "@/config/profile";
 import type { ManagerConfig } from "@/config/types";
+import type { HostPlatform } from "@/platform";
 import { envValue } from "@/secrets";
+import { syncByorSparseSource } from "@/setup/source";
 import {
   macosDarwinRelativePath,
-  readByorContract,
   selectByorProfile,
   selectMacosByorProfile,
   type ByorContract,
@@ -21,6 +23,8 @@ export type NixFlakeKind = "macos" | "home-manager" | "none";
 export interface OutfittingRepo {
   /** Absolute path to the full repository or published source root. */
   root: string;
+  /** Declarations loaded from the machine's authoritative config.toml. */
+  contract: ByorContract;
   /** Absolute path to the flake root declared by the selected BYOR profile. */
   flakePath: string;
   /** Absolute path to the declared Darwin configuration file when present; otherwise empty. */
@@ -171,9 +175,9 @@ function resolveByorPlatformKind(
 
 async function resolveByorFlakeSelection(
   absolute: string,
+  contract: ByorContract,
   profile: string | undefined,
 ): Promise<FlakeSelection> {
-  const contract = await readByorContract(absolute);
   const kind = resolveByorPlatformKind(contract, profile);
   if (kind === "none") {
     return {
@@ -226,27 +230,10 @@ async function resolveByorFlakeSelection(
   };
 }
 
-export async function readRepoPathFile(config: ManagerConfig): Promise<string | undefined> {
-  const path = repoPathFile(config.stateRoot);
-  try {
-    const raw = (await readFile(path, "utf8")).trim();
-    return raw.length > 0 ? raw : undefined;
-  } catch (cause) {
-    if (
-      cause instanceof Error &&
-      "code" in cause &&
-      (cause as NodeJS.ErrnoException).code === "ENOENT"
-    ) {
-      return undefined;
-    }
-    throw cause;
-  }
-}
-
-/** Validate a repository source root. A valid source always has outfitting.json. */
+/** Validate a source root against declarations loaded from config.toml. */
 export async function validateOutfittingRepo(
   candidate: string,
-  options?: { profile?: string },
+  options: { contract: ByorContract; profile?: string; platform?: HostPlatform },
 ): Promise<OutfittingRepo> {
   let absolute: string;
   try {
@@ -256,51 +243,70 @@ export async function validateOutfittingRepo(
     throw new Error(`Outfitting repository path does not exist: ${candidate}`);
   }
 
-  const selection = await resolveByorFlakeSelection(absolute, options?.profile);
-  return { root: absolute, ...selection };
+  const selection =
+    options.platform === "windows"
+      ? { flakePath: "", darwinNixPath: "", flakeKind: "none" as const, systemAttr: "" }
+      : await resolveByorFlakeSelection(absolute, options.contract, options.profile);
+  return { root: absolute, contract: options.contract, ...selection };
 }
 
-/**
- * Persist a selected local or published source path (mode 600).
- */
-export async function writeRepoPath(
-  repoRoot: string,
-  options?: { stateRoot?: string; profile?: string },
-): Promise<{ repo: OutfittingRepo; pathFile: string }> {
-  const config = await loadConfig(
-    options?.stateRoot === undefined ? undefined : { stateRoot: options.stateRoot },
-  );
-  const profile = options?.profile ?? config.linux?.profile;
-  const repo = await validateOutfittingRepo(repoRoot, { profile });
-  const pathFile = repoPathFile(config.stateRoot);
-  await mkdir(dirname(pathFile), { recursive: true });
-  await writeFile(pathFile, `${repo.root}\n`, { mode: 0o600, encoding: "utf8" });
-  await chmod(pathFile, 0o600);
-  return { repo, pathFile };
+function requireDeclarations(config: ManagerConfig): ByorContract {
+  if (config.declarations === undefined) {
+    throw new Error(`No profile declarations are configured in ${config.configPath}.`);
+  }
+  return config.declarations;
 }
 
-/**
- * Resolve the selected source.
- * Precedence: `OUTFITTING_REPO` → saved source path → fail.
- */
+async function resolveRepositoryRoot(options: {
+  config: ManagerConfig;
+  override?: string;
+  platform?: HostPlatform;
+  profile?: string;
+}): Promise<string> {
+  const configured = options.config.source;
+  if (options.override === undefined && configured === undefined) {
+    throw new Error(
+      `Machine source is not configured. Set [source] in ${options.config.configPath} or OUTFITTING_REPO for a local checkout.`,
+    );
+  }
+  if (options.override === undefined && configured?.kind === "remote") {
+    if (options.platform === undefined) {
+      throw new Error("A platform is required to validate the configured remote source cache.");
+    }
+    const profile = configuredProfile(options.config, options.platform, options.profile);
+    await syncByorSparseSource({
+      config: options.config,
+      platform: options.platform,
+      profile,
+      offline: true,
+    });
+  }
+  if (options.override !== undefined) {
+    return options.override;
+  }
+  if (configured?.kind === "local") {
+    return configured.path;
+  }
+  return sparseSourceRoot(options.config.stateRoot);
+}
+
+/** Resolve source with command/env path overrides ahead of the TOML declaration. */
 export async function resolveOutfittingRepo(options?: {
   config?: ManagerConfig;
   envRepo?: string;
   profile?: string;
+  platform?: HostPlatform;
 }): Promise<OutfittingRepo> {
   const config = options?.config ?? (await loadConfig());
-  const fromEnv = options?.envRepo ?? envValue("OUTFITTING_REPO");
-  const fromFile = fromEnv === undefined ? await readRepoPathFile(config) : undefined;
-  const candidate = fromEnv ?? fromFile;
-
-  if (candidate === undefined) {
-    throw new Error(
-      "Machine source is not configured. Set OUTFITTING_REPO to a checkout containing outfitting.json or run outfitting-manager byor.",
-    );
-  }
-
-  const profile = options?.profile ?? config.linux?.profile;
-  return validateOutfittingRepo(candidate, { profile });
+  const contract = requireDeclarations(config);
+  const override = options?.envRepo ?? envValue("OUTFITTING_REPO");
+  const platform = options?.platform;
+  const profile =
+    platform === undefined
+      ? options?.profile
+      : configuredProfile(config, platform, options?.profile);
+  const candidate = await resolveRepositoryRoot({ config, override, platform, profile });
+  return validateOutfittingRepo(candidate, { contract, profile, platform });
 }
 
 /** Soft resolve: returns undefined when unset / invalid (setup reporting). */

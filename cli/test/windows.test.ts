@@ -51,21 +51,22 @@ async function runWindowsCli(args: string[]): Promise<{ code: number; text: stri
 }
 
 describe("Windows CLI entrypoint", () => {
-  test("registers BYOR, init, setup, and update without raw-route configuration", async () => {
+  test("registers config, source, init, setup, and update", async () => {
     const root = await runWindowsCli(["--help"]);
-    const byor = await runWindowsCli(["byor", "--help"]);
+    const config = await runWindowsCli(["config", "--help"]);
+    const source = await runWindowsCli(["source", "--help"]);
     const init = await runWindowsCli(["init", "--help"]);
     const setup = await runWindowsCli(["setup", "--help"]);
     const update = await runWindowsCli(["update", "--help"]);
     const foreign = await runWindowsCli(["update", "brew"]);
 
     expect(root.code).toBe(0);
-    expect(root.text).toMatch(/\bbyor\b/);
+    expect(root.text).toMatch(/\bconfig\b/);
+    expect(root.text).toMatch(/\bsource\b/);
     expect(root.text).toMatch(/\binit\b/);
-    expect(root.text).not.toMatch(/\bconfig\b/);
-    expect(byor.text).toMatch(/repository|profile/i);
-    expect(byor.text).toMatch(/--repo/);
-    expect(init.text).toMatch(/BYOR source/i);
+    expect(config.text).toMatch(/migrate|show/i);
+    expect(source.text).toMatch(/path/i);
+    expect(init.text).toMatch(/source/i);
     expect(init.text).toMatch(/--no-refresh/);
     expect(setup.text).toMatch(/profile|apply/i);
     expect(update.text).toMatch(/\bwinget\b/);
@@ -109,6 +110,7 @@ describe("WinGet declarations and commands", () => {
 test("records Windows operations in the local lock", async () => {
   const root = await tempRoot("outfitting-windows-lock-");
   const config: ManagerConfig = {
+    configPath: join(root, "config.toml"),
     stateRoot: root,
     machineId: "test:x64-windows",
     machineIdOverridden: true,
@@ -189,6 +191,7 @@ describe("Scoop", () => {
     const calls: string[] = [];
     const stateRoot = await tempRoot("outfitting-scoop-update-");
     const config: ManagerConfig = {
+      configPath: join(stateRoot, "config.toml"),
       stateRoot,
       machineId: "test:x64-windows",
       machineIdOverridden: true,
@@ -258,7 +261,12 @@ describe("Windows inventories and upgrades", () => {
     const calls: string[][] = [];
     await Effect.runPromise(
       updateWinget({
-        config: { stateRoot, machineId: "test:x86_64-windows", machineIdOverridden: true },
+        config: {
+          configPath: join(stateRoot, "config.toml"),
+          stateRoot,
+          machineId: "test:x86_64-windows",
+          machineIdOverridden: true,
+        },
         which: async () => "C:\\Windows\\winget.exe",
         run: async (command, args) => {
           calls.push([command, ...args]);

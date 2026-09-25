@@ -1,89 +1,70 @@
 ---
-title: Local source
-description: Configure the BYOR source and machine-local state used by Outfitting.
+title: Source configuration
+description: Configure a machine with one local TOML file.
 sidebar:
   order: 1
 ---
 
-`outfitting-manager` reads machine configuration only from BYOR. Choose either a local checkout with a root `outfitting.json`, or a remote Git repository and profile map stored locally as `byor.json`. The manager does not infer a repository, branch, profile, or file path.
+Outfitting reads a single machine-local `config.toml`. By default it lives at `~/.config/outfitting/config.toml` on Linux and macOS, or `%LOCALAPPDATA%\outfitting\config.toml` on Windows. `OUTFITTING_STATE_ROOT` changes the state root. Global `--config <path>` or `OUTFITTING_CONFIG` selects another config file; a relative `[source].path` resolves relative to that config file, not the current working directory. Command arguments override environment variables, which override TOML values where an override is supported.
 
-## State root
+```toml
+schema = 1
+machine_id = "workstation"
 
-The default state root is `~/.config/outfitting` on macOS and Linux, and `%LOCALAPPDATA%\outfitting` on Windows. Set `OUTFITTING_STATE_ROOT` to use another directory.
+[source]
+path = "../machine-config"
 
-| Entry               | Purpose                                                              |
-| ------------------- | -------------------------------------------------------------------- |
-| `config.json`       | Machine ID and selected Linux profile.                               |
-| `byor.json`         | Local remote repository, Git ref, and profile/path map.              |
-| `source/`           | Validated managed snapshot of the selected remote BYOR files.        |
-| `repo-path`         | Path to the selected local checkout or managed snapshot.             |
-| `windows.lock.json` | Windows profile selection, package ownership, and operation history. |
+[linux]
+profile = "debian-work"
 
-`OUTFITTING_REPO` or an explicit `--repo <path>` selects a local checkout and takes precedence over the remote map. A local checkout must contain a valid root `outfitting.json`. Without a local checkout, commands require a configured `byor.json`; otherwise they stop with setup guidance before fetching or applying anything.
+[macos]
+profile = "workstation"
 
-## BYOR configuration
+[windows]
+profiles = ["base", "dev"]
 
-### Local checkout: `outfitting.json`
+[windows.shared.scoop]
+manifest = "ops/windows/scoop.txt"
 
-Declare repository-relative files and arbitrary profile names at the repository root. For example:
+[windows.shared.powershell]
+path = "shell/Microsoft.PowerShell_profile.ps1"
 
-```json
-{
-  "schema": 1,
-  "profiles": {
-    "debian-work": {
-      "linux": {
-        "apt": { "manifest": "ops/linux/debian.txt" }
-      }
-    },
-    "workstation": {
-      "macos": {
-        "nix": {
-          "flake": "hosts/mac",
-          "attribute": "darwinConfigurations.workstation.system"
-        },
-        "brewfile": "ops/mac/Brewfile"
-      }
-    },
-    "base": {
-      "windows": {
-        "winget": { "manifest": "ops/windows/base.txt" }
-      }
-    }
-  }
-}
+[windows.shared.fonts]
+manifest = "ops/windows/fonts.txt"
+
+[windows.shared.registry]
+path = "ops/windows/registry.reg"
+
+[profiles.debian-work.linux.apt]
+manifest = "ops/linux/debian.txt"
+
+[profiles.workstation.macos]
+brewfile = "ops/mac/Brewfile"
+
+[profiles.workstation.macos.nix]
+flake = "hosts/mac"
+attribute = "darwinConfigurations.workstation.system"
+darwin = "hosts/mac/darwin.nix"
+
+[profiles.base.windows.winget]
+manifest = "ops/windows/base.txt"
+
+[profiles.dev.windows.winget]
+manifest = "ops/windows/dev.txt"
 ```
 
-Validate a checkout without fetching or changing machine state:
+Choose **either** local `path` **or** remote `repository` and `ref` in `[source]` (for example `repository = "git@code.example.com:team/machine-config.git"` and `ref = "main"`). Declaration paths are relative to the source root and must stay inside it. Linux supports `apt.manifest`, `pacman.manifest`, `nix.flake`/`nix.attribute`, and `paths`; macOS supports `nix.flake`/`nix.attribute`/`nix.darwin`, `brewfile`, `fonts.manifest`, and `paths`. Windows profiles declare `winget.manifest`; optional `[windows.shared]` supports `scoop.manifest`, `powershell.path`, `fonts.manifest`, and `registry.path`. Linux and macOS select one profile; Windows composes the names in `profiles`.
 
-```bash
-outfitting-manager validate --repo ~/src/machine-config --platform linux --profile debian-work
-```
+## Runtime state and migration
 
-### Remote repository: `byor.json`
+Remote refresh stages and validates selected declarations before publishing the `source/` runtime cache under the state root. A failed refresh keeps the previous validated snapshot; offline use requires an existing snapshot. Local sources are read directly, not fetched from their Git remote. Lock files and operation history remain runtime state outside the source checkout. `outfitting-manager source path` prints the resolved source path in a machine-readable form for scripts.
 
-Run `outfitting-manager byor` to record a Git repository, ref, profile, and selected paths under the state root. This local map can describe a repository that does not contain `outfitting.json`; it does not modify the remote repository.
+For first use of a remote source, create a local `config.toml` containing its repository, ref, and profile declarations before running `init`. The `--repo` flag and `OUTFITTING_REPO` environment variable override only a local checkout path; they do not accept a remote URL or ref.
 
-The remote can use GitHub, another Git host, HTTPS, or SSH. GitHub sources use commit-pinned reads. Other remotes use Git and the credentials configured for the current user. Select profiles and paths in the map; only their declared closure is fetched.
+Normal commands do **not** read legacy `config.json`, `byor.json`, `repo-path`, or repository `outfitting.json`. To convert old local configuration once, run `outfitting-manager config migrate`, then inspect the generated TOML before applying changes. Do not use the retired `byor` command.
 
-## Profiles and optional components
-
-- **Linux and macOS:** Select one profile at a time. Linux commands require `--profile` for initialization and setup; later commands can use the saved profile where supported. macOS can omit `--profile` only when its source uniquely identifies a profile.
-- **Windows:** Profiles can be composed with `--profile base,dev`. A contract may set `windows.defaultProfiles`; when omitted, all declared Windows profiles are selected. Shared Scoop, PowerShell, fonts, and registry components are skipped unless declared.
-- **Paths:** Every declaration is relative to the repository root and must remain inside it. Nix flake directories are fetched as complete trees.
-
-## Refresh and offline behavior
-
-Remote refresh fetches the selected BYOR closure into a staging directory, validates it, and publishes it only after the complete source passes validation. A failed refresh leaves the prior published snapshot intact. Local checkouts are read directly and are never silently fetched from `origin/main`.
-
-`--no-refresh` uses the existing validated source snapshot. Offline source use requires a previously validated snapshot for the configured repository and ref; it never falls back to raw URLs, loose manifests, or another cache. Package-manager offline behavior is separate and varies by platform.
-
-## Migrating from raw routes or defaults
-
-Remove raw manifest URL/ref and Windows route settings. Either add a root `outfitting.json` to your checkout or run `outfitting-manager byor` to declare the remote Git source and every needed path. Choose your own profile names, then run `init` or `setup` with the selected profile. There is no built-in profile, default repository, or legacy route fallback.
-
-See the platform guides for [Linux](/docs/source-configuration/byor/linux/), [macOS](/docs/source-configuration/byor/macos/), and [Windows](/docs/source-configuration/byor/windows/), and the [`byor` command](/docs/cli/byor/).
+See the platform examples for [Linux](/docs/source-configuration/byor/linux/), [macOS](/docs/source-configuration/byor/macos/), and [Windows](/docs/source-configuration/byor/windows/).
 
 ## Machine ID
 
-The machine ID resolves from `OUTFITTING_MACHINE_ID`, then `config.json` `machineId`, then the automatic `<username>:<architecture>-<platform>` value. For example, `jfalava:aarch64-darwin`. The ID scopes remote lock and inventory state.
+Set optional `machine_id` in TOML, or override it with `OUTFITTING_MACHINE_ID`. Otherwise Outfitting derives an ID from the username, architecture, and platform. It scopes remote lock and inventory state.

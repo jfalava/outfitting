@@ -4,11 +4,12 @@ import { join } from "node:path";
 import { Console, Effect, Option } from "effect";
 import { Command, Flag, Prompt } from "effect/unstable/cli";
 
-import { loadConfig, readRepoPathFile, type ManagerConfig } from "@/config";
+import { configuredProfile, loadConfig, type ManagerConfig } from "@/config";
 import { CliFailure } from "@/errors";
 import { tryPromise } from "@/lockfiles/effect";
 import { runCommand, which } from "@/process";
 import { envValue } from "@/secrets";
+import { syncByorSparseSource } from "@/setup/source";
 import { validateWindowsByorSource, type SelectedWindowsByorProfiles } from "@/source/contract";
 import { parseWindowsPackageList, type WindowsWingetPackage } from "@/source/windows-manifest";
 import { ui } from "@/ui";
@@ -37,18 +38,44 @@ export interface WindowsSourceResolution {
   byor: SelectedWindowsByorProfiles;
 }
 
+async function windowsSourceRoot(
+  config: ManagerConfig,
+  profiles: ReadonlyArray<string> | undefined,
+  localOverride: string | undefined,
+): Promise<string> {
+  const localRoot =
+    localOverride ?? (config.source?.kind === "local" ? config.source.path : undefined);
+  if (localRoot !== undefined) {
+    return localRoot;
+  }
+  if (config.source?.kind === "remote") {
+    const source = await syncByorSparseSource({
+      config,
+      platform: "windows",
+      profile: profiles?.join(","),
+      offline: true,
+    });
+    return source.root;
+  }
+  throw new Error(`Windows source is not configured in ${config.configPath}.`);
+}
+
 /** Resolve the selected Windows BYOR profile from the published/local source. */
 export async function resolveWindowsSource(
   config: ManagerConfig,
   profiles?: ReadonlyArray<string>,
+  repoOverride?: string,
 ): Promise<WindowsSourceResolution> {
-  const repo = envValue("OUTFITTING_REPO") ?? (await readRepoPathFile(config));
-  if (repo === undefined) {
-    throw new Error("Windows source is not initialized. Run outfitting-manager init first.");
+  const localOverride = repoOverride ?? envValue("OUTFITTING_REPO");
+  if (config.declarations === undefined) {
+    throw new Error(`No profile declarations are configured in ${config.configPath}.`);
   }
+  const selectedProfiles = configuredProfile(config, "windows", profiles?.join(","))?.split(",");
+  const repo = await windowsSourceRoot(config, selectedProfiles, localOverride);
   const validated = await validateWindowsByorSource({
     root: repo,
-    profiles: profiles === undefined ? undefined : [...profiles],
+    profiles: selectedProfiles,
+    contract: config.declarations,
   });
   return {
     root: validated.root,
@@ -80,6 +107,8 @@ export function windowsScoopPath(source: WindowsSourceResolution): string | unde
 
 export interface WindowsApplyOptions<ConfirmR = never> {
   config?: ManagerConfig;
+  /** Invocation-local checkout override. */
+  repo?: string;
   profiles?: ReadonlyArray<string>;
   wingetOnly?: boolean;
   prune?: boolean;
@@ -404,7 +433,9 @@ function prepareApply<ConfirmR>(options: WindowsApplyOptions<ConfirmR>) {
   return Effect.gen(function* () {
     const config = options.config ?? (yield* tryPromise(() => loadConfig()));
     const current = yield* tryPromise(() => readWindowsLock(config));
-    const source = yield* tryPromise(() => resolveWindowsSource(config, options.profiles));
+    const source = yield* tryPromise(() =>
+      resolveWindowsSource(config, options.profiles, options.repo),
+    );
     const profiles = source.byor.names;
     const declarations = yield* loadDeclarations(profiles, source, options);
     const run = options.run ?? runCommand;
@@ -574,8 +605,15 @@ const persistApply = Effect.fn("persistWindowsApply")(function* (context: ApplyC
     (entry) => !missingScoop.has(entry.name.toLowerCase()),
   );
   reconcileOwners(updated, context);
-  updated.profiles = [...context.profiles];
   updated.machine = context.config.machineId;
+  yield* tryPromise(() => writeWindowsLock(updated, { root: context.config.stateRoot }));
+});
+
+const persistAppliedProfiles = Effect.fn("persistWindowsAppliedProfiles")(function* (
+  context: ApplyContext,
+) {
+  const updated = yield* tryPromise(() => readWindowsLock(context.config));
+  updated.profiles = [...context.profiles];
   yield* tryPromise(() => writeWindowsLock(updated, { root: context.config.stateRoot }));
 });
 
@@ -589,6 +627,7 @@ export const applyWindows = <ConfirmR = never>(options: WindowsApplyOptions<Conf
     yield* installWinget(context);
     yield* installScoop(context);
     yield* executeRemovals(context);
+    yield* persistAppliedProfiles(context);
     yield* Console.log(ui.success("Windows declarations applied locally."));
   });
 
@@ -601,6 +640,10 @@ export const windowsApplyCommand = Command.make(
   "apply",
   {
     profile: profileFlag,
+    repo: Flag.String("repo").pipe(
+      Flag.optional,
+      Flag.withDescription("Local source path override for this invocation."),
+    ),
     wingetOnly: Flag.Boolean("winget-only").pipe(
       Flag.withDefault(false),
       Flag.withDescription("Apply only WinGet declarations; skip Scoop even when installed."),
@@ -616,8 +659,9 @@ export const windowsApplyCommand = Command.make(
       Flag.withDescription("Apply the displayed plan without prompting."),
     ),
   },
-  ({ profile, wingetOnly, prune, yes }) =>
+  ({ profile, repo, wingetOnly, prune, yes }) =>
     applyWindows({
+      repo: Option.getOrUndefined(repo),
       profiles: Option.isSome(profile) ? [profile.value] : undefined,
       wingetOnly,
       prune,

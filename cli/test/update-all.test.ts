@@ -6,7 +6,7 @@ import { Effect } from "effect";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import type { ManagerConfig } from "@/config";
-import { writeRepoPath } from "@/config/repo";
+import { loadConfig } from "@/config";
 import { CliFailure } from "@/errors";
 import { updateAll } from "@/update/all";
 import { updateBrew } from "@/update/brew";
@@ -26,6 +26,7 @@ vi.mock("@/update/nix", () => ({
 }));
 
 const config: ManagerConfig = {
+  configPath: "/state/config.toml",
   stateRoot: "/state",
   machineId: "test:aarch64-darwin",
   machineIdOverridden: true,
@@ -55,19 +56,26 @@ async function makeLinuxConfig(
     await writeFile(join(repo, declaration.nix.flake, "flake.nix"), "{ outputs = {}; }\n");
     linux.nix = declaration.nix;
   }
-  await writeFile(
-    join(repo, "outfitting.json"),
-    `${JSON.stringify({ schema: 1, profiles: { [profile]: { linux } } }, null, 2)}\n`,
-  );
-  await writeRepoPath(repo, { stateRoot, profile });
+  const toml = [
+    "schema = 1",
+    "[source]",
+    `path = ${JSON.stringify(repo)}`,
+    "[linux]",
+    `profile = ${JSON.stringify(profile)}`,
+    `[profiles.${JSON.stringify(profile)}.linux.apt]`,
+    'manifest = "packages/apt.txt"',
+  ];
+  if (declaration.nix !== undefined) {
+    toml.push(
+      `[profiles.${JSON.stringify(profile)}.linux.nix]`,
+      `flake = ${JSON.stringify(declaration.nix.flake)}`,
+      `attribute = ${JSON.stringify(declaration.nix.attribute)}`,
+    );
+  }
+  await writeFile(join(stateRoot, "config.toml"), `${toml.join("\n")}\n`);
   return {
     repo,
-    config: {
-      stateRoot,
-      machineId: "test:aarch64-linux",
-      machineIdOverridden: true,
-      linux: { profile },
-    },
+    config: await loadConfig({ stateRoot, machineId: "test:aarch64-linux" }),
   };
 }
 

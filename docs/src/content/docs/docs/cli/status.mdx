@@ -5,7 +5,7 @@ sidebar:
   order: 4
 ---
 
-`status` is read-only. It reports the platform, active [profile selection](/docs/source-configuration/#profiles), config path, [machine ID](/docs/source-configuration/#machine-id), and source checkout state. It does not fetch declarations, inspect for package upgrades, write configuration, or contact the lockfile Worker.
+`status` is read-only. It reports the platform, active [profile selection](/docs/source-configuration/), config path, [machine ID](/docs/source-configuration/#machine-id), and source checkout state. It does not fetch declarations, inspect for package upgrades, write configuration, or contact the lockfile Worker.
 
 ```bash
 outfitting-manager status
@@ -13,7 +13,7 @@ outfitting-manager status
 
 Run `status` before `apply` to verify your active profile, machine ID, and source configuration.
 
-`status` checks the selected local checkout or validated remote snapshot. For a local checkout with Git metadata, it reports the current branch and whether the working tree is clean or dirty. For a remote source, it reports the BYOR map and its explicit repository/ref selection. The manager does not infer or display a built-in source.
+`status` checks the configured local checkout or validated remote snapshot. For a local checkout with Git metadata, it reports the current branch and whether the working tree is clean or dirty. For a remote source, it reports the configured repository/ref selection. The manager does not infer a built-in source.
 
 ## Platform differences
 

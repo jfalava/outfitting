@@ -1,10 +1,10 @@
 import { Console, Effect } from "effect";
 
-import { loadConfig } from "@/config";
+import { configuredProfile, loadConfig } from "@/config";
 import { CliFailure } from "@/errors";
 import type { ManifestFetcher } from "@/fetch/github";
 import { tryPromise } from "@/lockfiles/effect";
-import { validateLinuxByorSource } from "@/source/contract";
+import { selectByorProfile, validateLinuxByorSource } from "@/source/contract";
 import { ui } from "@/ui";
 import { isLinuxProfile, updateLinux, type LinuxUpdateOptions } from "@/update/linux";
 import { prepareLinuxSource } from "@/update/linux-source";
@@ -69,10 +69,13 @@ function printLinuxUpdateSummary(
 export const updateLinuxAll = (options: LinuxUpdateAllOptions = {}) =>
   Effect.gen(function* () {
     const config = options.config ?? (yield* tryPromise(() => loadConfig()));
-    const validation = validateLinuxUpdateAll(
-      options.profile ?? config.linux?.profile,
-      options.offline === true,
-    );
+    const requestedProfile = configuredProfile(config, "linux", options.profile);
+    const selectedProfile =
+      requestedProfile ??
+      (config.declarations === undefined
+        ? undefined
+        : selectByorProfile(config.declarations, undefined).name);
+    const validation = validateLinuxUpdateAll(selectedProfile, options.offline === true);
     if (validation instanceof CliFailure) {
       return yield* validation;
     }
@@ -88,7 +91,7 @@ export const updateLinuxAll = (options: LinuxUpdateAllOptions = {}) =>
       }),
     );
     const selected = yield* tryPromise(() =>
-      validateLinuxByorSource({ root: source.root, profile }),
+      validateLinuxByorSource({ root: source.root, profile, contract: config.declarations! }),
     );
 
     const results: Array<{ name: string; ok: boolean; error?: string }> = [];

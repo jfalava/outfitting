@@ -1,69 +1,27 @@
 ---
 title: Linux
-description: Declare Linux package and Home Manager paths with BYOR.
+description: Declare Linux profiles in config.toml.
 sidebar:
   order: 2
 ---
 
-Linux configuration comes only from a BYOR declaration. Use a local checkout with root `outfitting.json`, or configure a remote Git source with `outfitting-manager byor`. Profile names and repository paths are yours to choose.
+Select one Linux profile in the machine-local [configuration](/docs/source-configuration/). For a local checkout:
 
-## Declare Linux profiles
-
-Each Linux profile may declare an apt manifest, a pacman manifest, a Nix flake, or a combination:
-
-```json
-{
-  "schema": 1,
-  "profiles": {
-    "debian-minimal": {
-      "linux": {
-        "apt": { "manifest": "ops/linux/debian.txt" }
-      }
-    },
-    "workstation-hm": {
-      "linux": {
-        "pacman": { "manifest": "ops/linux/arch.txt" },
-        "nix": {
-          "flake": "hosts/workstation",
-          "attribute": "homeConfigurations.workstation.activationPackage"
-        },
-        "paths": ["modules/shared.nix"]
-      }
-    }
-  }
-}
+```toml
+schema = 1
+[source]
+path = "../machine-config"
+[linux]
+profile = "workstation"
+[profiles.workstation.linux]
+paths = ["modules/shared.nix"]
+[profiles.workstation.linux.apt]
+manifest = "ops/linux/debian.txt"
+[profiles.workstation.linux.pacman]
+manifest = "ops/linux/arch.txt"
+[profiles.workstation.linux.nix]
+flake = "hosts/workstation"
+attribute = "homeConfigurations.workstation.activationPackage"
 ```
 
-The flake directory is fetched as a complete tree. Add `linux.paths` for any other files the evaluation reads. Paths are relative to the repository root and cannot escape it.
-
-## Use a local checkout
-
-Validate first, then select the same source and profile for setup:
-
-```bash
-outfitting-manager validate --repo ~/src/machine-config --platform linux --profile debian-minimal
-outfitting-manager init --repo ~/src/machine-config --profile debian-minimal
-outfitting-manager setup --repo ~/src/machine-config --profile debian-minimal
-```
-
-The checkout must contain a valid `outfitting.json`. Outfitting reads it directly and does not fetch the checkout's Git remote.
-
-## Use a remote Git source
-
-Configure the repository, ref, and profile paths in the local `byor.json` map:
-
-```bash
-outfitting-manager byor \
-  --platform linux \
-  --repo git@code.example.com:team/machine-config.git \
-  --ref main \
-  --profile debian-minimal \
-  --apt ops/linux/debian.txt
-
-outfitting-manager init --profile debian-minimal
-outfitting-manager setup --profile debian-minimal
-```
-
-GitHub remotes use commit-pinned reads. Other HTTPS and SSH Git remotes use Git and your configured credentials. Refresh downloads only the profile's declared files. A failed refresh leaves the previous validated source in place; `--no-refresh` uses that local snapshot.
-
-Linux setup and Nix actions require the profile to be selected. There are no built-in profiles or implicit package paths. See [Source configuration](/docs/source-configuration/) and the [`byor` command](/docs/cli/byor/).
+Declare only the backends the machine needs. The Nix flake directory is fetched as a tree; `paths` adds other source files. Paths are relative to the source root. For a remote, replace `[source] path` with `repository` and `ref`. `outfitting-manager validate` checks the configuration before setup; `outfitting-manager setup` applies it. The config file can be selected globally with `--config` or `OUTFITTING_CONFIG`.

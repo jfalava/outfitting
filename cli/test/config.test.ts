@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -6,11 +6,11 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 
 import {
   autoMachineId,
+  configFilePath,
   defaultStateRoot,
   ensureStateRoot,
   hostSystemTriple,
   loadConfig,
-  saveConfigFile,
   stateRoot,
 } from "@/config";
 
@@ -55,50 +55,80 @@ describe("loadConfig", () => {
     const root = await tempRoot();
     const config = await loadConfig({ stateRoot: root });
     expect(config.stateRoot).toBe(root);
+    expect(config.configPath).toBe(configFilePath(root));
     expect(config.machineIdOverridden).toBe(false);
     expect(config.machineId).toMatch(/^.+:.+$/);
-    expect(config.linux).toBeUndefined();
+    expect(config.source).toBeUndefined();
+    expect(config.declarations).toBeUndefined();
   });
 
-  test("reads config.json and environment overrides machine id", async () => {
+  test("reads one TOML document, resolves local source relative to it, and honors overrides", async () => {
     const root = await tempRoot();
-    await ensureStateRoot(root);
-    await saveConfigFile(
-      { machineId: "from-file:aarch64-darwin", linux: { profile: "oci-agents" } },
-      { stateRoot: root },
+    const configPath = join(root, "machine", "config.toml");
+    await ensureStateRoot(join(root, "state"));
+    await mkdir(join(root, "machine"));
+    await writeFile(
+      configPath,
+      [
+        "schema = 1",
+        'machine_id = "from-file:aarch64-linux"',
+        "",
+        "[source]",
+        'path = "../checkout"',
+        "",
+        "[linux]",
+        'profile = "work"',
+        "",
+        "[profiles.work.linux.apt]",
+        'manifest = "packages/apt.txt"',
+      ].join("\n"),
+      "utf8",
     );
 
-    const fromFile = await loadConfig({ stateRoot: root });
-    expect(fromFile.machineId).toBe("from-file:aarch64-darwin");
+    const fromFile = await loadConfig({ stateRoot: join(root, "state"), configPath });
+    expect(fromFile.configPath).toBe(configPath);
+    expect(fromFile.source).toEqual({ kind: "local", path: join(root, "checkout") });
+    expect(fromFile.machineId).toBe("from-file:aarch64-linux");
     expect(fromFile.machineIdOverridden).toBe(true);
-    expect(fromFile.linux).toEqual({ profile: "oci-agents" });
+    expect(fromFile.linux).toEqual({ profile: "work" });
+    expect(fromFile.declarations?.profiles.work?.linux?.apt).toEqual({
+      manifest: "packages/apt.txt",
+    });
 
     vi.stubEnv("OUTFITTING_MACHINE_ID", "from-env:x86_64-linux");
-    const fromEnv = await loadConfig({ stateRoot: root });
+    const fromEnv = await loadConfig({ stateRoot: join(root, "state"), configPath });
     expect(fromEnv.machineId).toBe("from-env:x86_64-linux");
   });
 
-  test("rejects invalid config.json", async () => {
+  test("ignores legacy config.json and rejects malformed TOML", async () => {
     const root = await tempRoot();
-    await ensureStateRoot(root);
-    await writeFile(join(root, "config.json"), "not-json", "utf8");
-    await expect(loadConfig({ stateRoot: root })).rejects.toThrow(/not valid JSON/);
+    await writeFile(
+      join(root, "config.json"),
+      JSON.stringify({ machineId: "legacy:aarch64-linux", linux: { profile: "legacy" } }),
+    );
+    const config = await loadConfig({ stateRoot: root });
+    expect(config.machineId).not.toBe("legacy:aarch64-linux");
+    expect(config.linux).toBeUndefined();
+
+    await writeFile(join(root, "config.toml"), "schema = [not TOML");
+    await expect(loadConfig({ stateRoot: root })).rejects.toThrow(/not valid TOML/);
   });
 
-  test("saveConfigFile merges and pretty-prints supported settings", async () => {
+  test("rejects unsupported keys and reserved source-root declarations", async () => {
     const root = await tempRoot();
-    await saveConfigFile({ machineId: "a:b" }, { stateRoot: root });
-    await saveConfigFile({ linux: { profile: "oci-agents" } }, { stateRoot: root });
-    const raw = await readFile(join(root, "config.json"), "utf8");
-    expect(JSON.parse(raw)).toEqual({ machineId: "a:b", linux: { profile: "oci-agents" } });
-  });
+    await writeFile(join(root, "config.toml"), "schema = 1\nextra = true\n");
+    await expect(loadConfig({ stateRoot: root })).rejects.toThrow(/unsupported key/);
 
-  test("validates Linux profile names before persisting", async () => {
-    const root = await tempRoot();
-    await saveConfigFile({ linux: { profile: "oci-agents" } }, { stateRoot: root });
-    expect((await loadConfig({ stateRoot: root })).linux).toEqual({ profile: "oci-agents" });
-    await expect(
-      saveConfigFile({ linux: { profile: "../escape" } }, { stateRoot: root }),
-    ).rejects.toThrow(/invalid Linux profile/);
+    await writeFile(
+      join(root, "config.toml"),
+      [
+        "schema = 1",
+        "[source]",
+        'path = "."',
+        "[profiles.work.linux.apt]",
+        'manifest = "config.toml"',
+      ].join("\n"),
+    );
+    await expect(loadConfig({ stateRoot: root })).rejects.toThrow(/reserved root file/);
   });
 });

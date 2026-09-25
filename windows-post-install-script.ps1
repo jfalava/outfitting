@@ -25,20 +25,6 @@ $outfittingStateRoot = if ([string]::IsNullOrWhiteSpace($env:OUTFITTING_STATE_RO
 function Get-OutfittingManifestSource {
     $resolvedBaseUrl = $OutfittingManifestBaseUrl
     $resolvedRef = $OutfittingManifestRef
-    $configPath = Join-Path $outfittingStateRoot "config.json"
-    if (([string]::IsNullOrWhiteSpace($resolvedBaseUrl) -or [string]::IsNullOrWhiteSpace($resolvedRef)) -and (Test-Path -LiteralPath $configPath -PathType Leaf)) {
-        try {
-            $config = Get-Content -LiteralPath $configPath -Raw | ConvertFrom-Json
-            if ([string]::IsNullOrWhiteSpace($resolvedBaseUrl)) {
-                $resolvedBaseUrl = [string]$config.manifest.baseUrl
-            }
-            if ([string]::IsNullOrWhiteSpace($resolvedRef)) {
-                $resolvedRef = [string]$config.manifest.ref
-            }
-        } catch {
-            # The manager reports invalid config files during init.
-        }
-    }
 
     if ([string]::IsNullOrWhiteSpace($resolvedBaseUrl)) {
         $resolvedBaseUrl = "https://raw.githubusercontent.com/jfalava/outfitting"
@@ -59,20 +45,7 @@ function Get-OutfittingWindowsRoute {
         [Parameter(Mandatory)][string]$Default
     )
 
-    $route = $Default
-    $configPath = Join-Path $outfittingStateRoot "config.json"
-    if (Test-Path -LiteralPath $configPath -PathType Leaf) {
-        try {
-            $config = Get-Content -LiteralPath $configPath -Raw | ConvertFrom-Json
-            $property = $config.windows.PSObject.Properties[$Name]
-            if ($null -ne $property -and -not [string]::IsNullOrWhiteSpace([string]$property.Value)) {
-                $route = [string]$property.Value
-            }
-        } catch {
-            # The manager reports invalid config files during init.
-        }
-    }
-    return $route.Trim().Trim("/")
+    return $Default.Trim().Trim("/")
 }
 
 function Install-OutfittingManagerQuietly {

@@ -2,10 +2,10 @@ import { join } from "node:path";
 
 import { Console, Effect } from "effect";
 
-import { loadConfig, resolveOutfittingRepo, type ManagerConfig } from "@/config";
+import { configuredProfile, loadConfig, type ManagerConfig } from "@/config";
 import { tryPromise } from "@/lockfiles/effect";
 import { runSetup, type SetupOptions } from "@/setup/run";
-import { readByorContract, selectMacosByorProfile } from "@/source/contract";
+import { selectMacosByorProfile } from "@/source/contract";
 import { ui } from "@/ui";
 import { setupBrew } from "@/update/brew";
 import { updateNix } from "@/update/nix";
@@ -22,9 +22,12 @@ export interface MacosSetupOptions extends SetupOptions {
 async function resolveMacosBrewfile(
   repoRoot: string,
   profile: string | undefined,
+  config: ManagerConfig,
 ): Promise<string | undefined> {
-  const contract = await readByorContract(repoRoot);
-  const selected = selectMacosByorProfile(contract, profile);
+  if (config.declarations === undefined) {
+    throw new Error(`No profile declarations are configured in ${config.configPath}.`);
+  }
+  const selected = selectMacosByorProfile(config.declarations, profile);
   return selected.macos.brewfile === undefined
     ? undefined
     : join(repoRoot, selected.macos.brewfile);
@@ -34,31 +37,33 @@ async function resolveMacosBrewfile(
 export const runMacosSetup = (options: MacosSetupOptions = {}) =>
   Effect.gen(function* () {
     const { config: injectedConfig, profile, ...setupOptions } = options;
-    yield* runSetup({
-      ...setupOptions,
-      repoProfile: profile ?? setupOptions.repoProfile,
-      ensureSymlinks: options.ensureSymlinks ?? ensureNixSymlinks,
-    });
-
     const config =
       injectedConfig ??
       (yield* tryPromise(() =>
-        loadConfig(options.stateRoot === undefined ? undefined : { stateRoot: options.stateRoot }),
+        loadConfig({
+          stateRoot: setupOptions.stateRoot,
+          configPath: setupOptions.configPath,
+          machineId: setupOptions.machineId,
+        }),
       ));
-    const repo = yield* tryPromise(() =>
-      resolveOutfittingRepo({ config, profile: profile ?? setupOptions.repoProfile }),
-    );
+    const selectedProfile = configuredProfile(config, "macos", profile ?? setupOptions.repoProfile);
+    const repo = yield* runSetup({
+      ...setupOptions,
+      repoProfile: selectedProfile,
+      config,
+      ensureSymlinks: options.ensureSymlinks ?? ensureNixSymlinks,
+    });
 
     yield* Console.log(ui.heading("Applying macOS repository configuration…"));
     yield* updateNix({
       action: "switch",
       config,
       repo,
-      profile: profile ?? setupOptions.repoProfile,
+      profile: selectedProfile,
     });
 
     const brewfilePath = yield* tryPromise(() =>
-      resolveMacosBrewfile(repo.root, profile ?? setupOptions.repoProfile),
+      resolveMacosBrewfile(repo.root, selectedProfile, config),
     );
     if (brewfilePath === undefined) {
       yield* Console.log(ui.muted("No Brewfile declared; skipping Homebrew bundle."));

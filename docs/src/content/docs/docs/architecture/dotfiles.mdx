@@ -26,7 +26,7 @@ Installers symlink the profile entry points (Windows backs up existing profiles 
 
 ## Package manifests
 
-This repository contains desired-state examples under `packages/` and `system/`, but the BYOR-only manager does not infer these profiles or paths. A local checkout must declare its configuration in root `outfitting.json`; a remote Git source must be explicitly mapped in the machine's state-root `byor.json`. Windows profile manifests may use `msstore:<id>` for Microsoft Store entries, which the CLI installs from the Store source. Remote source files are selected by the BYOR contract; the unified `windows.lock.json` remains outside the checkout.
+This repository contains desired-state examples under `packages/` and `system/`, but the manager does not infer these profiles or paths. Select a local checkout with `[source] path` or a remote Git repository with `[source] repository` and `ref` in machine-local `config.toml`. Windows profile manifests may use `msstore:<id>` for Microsoft Store entries. Remote source files are selected by the TOML declarations; the unified `windows.lock.json` remains outside the checkout.
 
 ## Fonts
 
@@ -34,6 +34,6 @@ This repository contains desired-state examples under `packages/` and `system/`,
 
 ## Install and reconcile
 
-Root `*-install-script.{sh,ps1}` files are served live from the installer hosts and remain unchanged by the BYOR migration. Their manager invocations still use implicit or raw-route source behavior and require a separate installer update before they can complete manager-driven setup. Registry/OpenSSH setup remains PowerShell; post-install adds Scoop and fonts (with package installs delegated to the CLI).
+Root `*-install-script.{sh,ps1}` files are served live from the installer hosts. Their manager invocations may still use implicit or raw-route source behavior and require a separate installer update. Registry/OpenSSH setup remains PowerShell; post-install adds Scoop and fonts (with package installs delegated to the CLI).
 
 Day-to-day Windows and Linux reconciliation uses `outfitting-manager apply`. Remote transport is explicit under `outfitting-manager sync`; see [Machine ID](/docs/source-configuration/#machine-id) for how remote state is scoped. macOS continues to use `nix` plus `homebrew-inventory`.

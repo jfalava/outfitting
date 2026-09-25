@@ -13,6 +13,6 @@ curl -L linux.jfa.dev | bash
 The hosted script supports Linux x64 and arm64 and installs `outfitting-manager`.
 
 > [!WARNING]
-> The current bootstrap still runs `init` with an implicit built-in profile. BYOR-only source selection removes that behavior, so the manager's package setup does not complete through this script until the installer is updated. Installer scripts remain unchanged and are outside this migration.
+> The current bootstrap may still run `init` with an implicit built-in profile. Configure `config.toml` before manual manager setup; the installer needs a separate update.
 
-After the installer integration is updated, configure either a local checkout containing root `outfitting.json` or a remote Git source in the state-root `byor.json`. See [BYOR for Linux](/docs/source-configuration/byor/linux/) and the [source configuration overview](/docs/source-configuration/).
+Configure a local checkout or remote Git source in `config.toml`. See [Linux configuration](/docs/source-configuration/byor/linux/) and the [source configuration overview](/docs/source-configuration/).

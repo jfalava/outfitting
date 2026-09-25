@@ -10,16 +10,12 @@ set -euo pipefail
 export FONTGET_ACCEPT_DEFAULTS=1
 export FONTGET_ACCEPT_AGREEMENTS=1
 
-STATE_ROOT="${OUTFITTING_STATE_ROOT:-$HOME/.config/outfitting}"
-REPO_PATH_FILE="$STATE_ROOT/repo-path"
-if [ ! -f "$REPO_PATH_FILE" ]; then
-  echo "Outfitting source path not found: $REPO_PATH_FILE"
-  exit 1
+REPO_PATH="${OUTFITTING_REPO:-}"
+if [ -z "$REPO_PATH" ] && command -v outfitting-manager >/dev/null 2>&1; then
+  REPO_PATH=$(outfitting-manager source path)
 fi
-
-REPO_PATH=$(cat "$REPO_PATH_FILE")
 if [ -z "$REPO_PATH" ]; then
-  echo "Outfitting source path is empty: $REPO_PATH_FILE"
+  echo "Outfitting source path unavailable; set OUTFITTING_REPO or run 'outfitting-manager source path' after configuring the source." >&2
   exit 1
 fi
 

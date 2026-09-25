@@ -7,9 +7,8 @@ import { promisify } from "node:util";
 import { Console, Effect } from "effect";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
-import { saveByorWizardAnswers } from "@/commands/byor";
 import { initializeWindows } from "@/commands/setup/windows";
-import { loadConfig, sparseSourceRoot } from "@/config";
+import { configFilePath, loadConfig, normalizeGitRepository, sparseSourceRoot } from "@/config";
 import type { ManifestFetcher } from "@/fetch";
 import { classifyGitHubRepository, readGitHubBlobs } from "@/fetch/github";
 import { runCommand as executeCommand } from "@/process";
@@ -17,8 +16,6 @@ import type { runCommand } from "@/process";
 import { runLinuxInit } from "@/setup/linux";
 import { runSetup } from "@/setup/run";
 import { syncByorSparseSource } from "@/setup/source";
-import { normalizeGitRepository, readByorMap, writeByorProfile } from "@/source/byor-map";
-import { readByorContract } from "@/source/contract";
 import { readWindowsLock } from "@/update/windows-lock";
 
 const temps: string[] = [];
@@ -163,40 +160,17 @@ describe.each(["github.com", "pepito.ghe.com"])("remote BYOR on %s", (host) => {
   });
 
   test.each(["linux", "macos", "windows"] as const)(
-    "wizard → %s init uses saved config and materializes valid files",
+    "%s init uses TOML declarations and materializes selected files",
     async (platform) => {
       for (const key of ["OUTFITTING_REPO"]) {
         vi.stubEnv(key, "");
       }
       const stateRoot = await tempRoot();
       const remote = remoteFixture(host);
-      await saveByorWizardAnswers(
-        {
-          repoUrl: `https://${host}/org/machine-config`,
-          ref: "feature/desk",
-          profile: "desk",
-          platform,
-          apt: "packages/apt.txt",
-          flake: "nix",
-          attribute:
-            platform === "macos"
-              ? "darwinConfigurations.desk.system"
-              : "homeConfigurations.desk.activationPackage",
-          winget: "packages/windows.txt",
-          paths: [],
-        },
-        stateRoot,
+      await writeFile(
+        configFilePath(stateRoot),
+        `schema = 1\n[source]\nrepository = "https://${host}/org/machine-config"\nref = "feature/desk"\n[${platform}]\n${platform === "windows" ? 'profiles = ["desk"]' : 'profile = "desk"'}\n[profiles.desk.${platform}.${platform === "windows" ? "winget" : platform === "macos" ? "nix" : "apt"}]\n${platform === "windows" ? 'manifest = "packages/windows.txt"' : platform === "macos" ? 'flake = "nix"\nattribute = "darwinConfigurations.desk.system"' : 'manifest = "packages/apt.txt"'}\n[profiles.unselected.linux.nix]\nflake = "absent"\nattribute = "homeConfigurations.other.activationPackage"\n`,
       );
-      // Unfetched profiles must not participate in validation or flake selection.
-      await writeByorProfile({
-        stateRoot,
-        name: "unselected",
-        profile: {
-          linux: {
-            nix: { flake: "absent", attribute: "homeConfigurations.other.activationPackage" },
-          },
-        },
-      });
       const options = { stateRoot, ...remote };
       const init =
         platform === "linux"
@@ -219,9 +193,14 @@ describe.each(["github.com", "pepito.ghe.com"])("remote BYOR on %s", (host) => {
             ? "packages/apt.txt"
             : "nix/flake.nix";
       expect(await readFile(join(source, manifest), "utf8")).toBe(remote.bodies.get(manifest));
-      expect(Object.keys((await readByorContract(source)).profiles)).toEqual(["desk"]);
-      expect(Object.keys((await readByorMap(stateRoot))!.profiles)).toEqual(["desk", "unselected"]);
-      if (platform !== "windows") {
+      await expect(readFile(join(source, "outfitting.json"), "utf8")).rejects.toMatchObject({
+        code: "ENOENT",
+      });
+      expect(Object.keys((await loadConfig({ stateRoot })).declarations!.profiles)).toEqual([
+        "desk",
+        "unselected",
+      ]);
+      if (platform === "macos") {
         expect(await readFile(join(source, "nix/modules/host.nix"), "utf8")).toBe(
           "{ programs.zsh.enable = true; }\n",
         );
@@ -229,8 +208,12 @@ describe.each(["github.com", "pepito.ghe.com"])("remote BYOR on %s", (host) => {
           '{"version":7,"nodes":{}}\n',
         );
         expect((await stat(join(source, "nix/run.sh"))).mode & 0o111).not.toBe(0);
+      } else if (platform === "windows") {
+        expect((await readWindowsLock(await loadConfig({ stateRoot }))).profiles).toEqual([]);
       } else {
-        expect((await readWindowsLock(await loadConfig({ stateRoot }))).profiles).toEqual(["desk"]);
+        await expect(readFile(join(source, "nix/modules/host.nix"), "utf8")).rejects.toMatchObject({
+          code: "ENOENT",
+        });
       }
       // A saved managed repo-path must not turn the next init into a stale local checkout.
       remote.bodies.set(manifest, `${remote.bodies.get(manifest)!}\n`);
@@ -278,13 +261,11 @@ test.each([
     await execFileAsync("git", ["-C", remoteRoot, "rev-parse", "HEAD"], { encoding: "utf8" })
   ).stdout.trim();
 
-  await writeByorProfile({
-    stateRoot,
-    name: "custom-linux",
-    repository,
-    ref: "main",
-    profile: { linux: { apt: { manifest: "packages/custom/apt.txt" } } },
-  });
+  await mkdir(stateRoot);
+  await writeFile(
+    configFilePath(stateRoot),
+    `schema = 1\n[source]\nrepository = "${repository}"\nref = "main"\n[linux]\nprofile = "custom-linux"\n[profiles.custom-linux.linux.apt]\nmanifest = "packages/custom/apt.txt"\n`,
+  );
   const gitCalls: string[][] = [];
   const run: typeof runCommand = async (command, args, options) => {
     expect(command).toBe("git");
@@ -329,7 +310,13 @@ test.each([
   const metadata = JSON.parse(
     await readFile(join(sparseSourceRoot(stateRoot), ".outfitting-source.json"), "utf8"),
   );
-  expect(metadata).toEqual({ repository, ref: "main", revision });
+  expect(metadata).toMatchObject({
+    format: "outfitting-source-v1",
+    repository,
+    ref: "main",
+    revision,
+    declarationHash: expect.stringMatching(/^[a-f0-9]{64}$/),
+  });
 });
 
 test.each(["missing", "download", "invalid", "truncated", "symlink", "submodule", "traversal"])(
@@ -337,13 +324,10 @@ test.each(["missing", "download", "invalid", "truncated", "symlink", "submodule"
   async (failure) => {
     const stateRoot = await tempRoot();
     const remote = remoteFixture("github.com");
-    await writeByorProfile({
-      stateRoot,
-      name: "desk",
-      repository: "https://github.com/org/machine-config",
-      ref: "feature/desk",
-      profile: { linux: { apt: { manifest: "packages/apt.txt" }, paths: ["nix"] } },
-    });
+    await writeFile(
+      configFilePath(stateRoot),
+      'schema = 1\n[source]\nrepository = "https://github.com/org/machine-config"\nref = "feature/desk"\n[linux]\nprofile = "desk"\n[profiles.desk.linux]\npaths = ["nix"]\n[profiles.desk.linux.apt]\nmanifest = "packages/apt.txt"\n',
+    );
     const source = sparseSourceRoot(stateRoot);
     await mkdir(source);
     await writeFile(join(source, "keep.txt"), "previous\n");
@@ -385,27 +369,41 @@ test.each(["missing", "download", "invalid", "truncated", "symlink", "submodule"
   },
 );
 
-test("offline reuses the validated source without GitHub or the edited local map", async () => {
+test("offline hashes selected declarations, reuses the source, and rejects changed declarations", async () => {
   const stateRoot = await tempRoot();
   const remote = remoteFixture("github.com");
-  await writeByorProfile({
-    stateRoot,
-    name: "desk",
-    repository: "https://github.com/org/machine-config",
-    ref: "feature/desk",
-    profile: { linux: { apt: { manifest: "packages/apt.txt" } } },
-  });
+  await writeFile(
+    configFilePath(stateRoot),
+    'schema = 1\n[source]\nrepository = "https://github.com/org/machine-config"\nref = "feature/desk"\n[linux]\nprofile = "desk"\n[profiles.desk.linux.apt]\nmanifest = "packages/apt.txt"\n[profiles.other.linux.apt]\nmanifest = "packages/other.txt"\n',
+  );
   const config = await loadConfig({ stateRoot });
   await syncByorSparseSource({ config, platform: "linux", ...remote });
   remote.requests.length = 0;
-  await writeByorProfile({
-    stateRoot,
-    name: "desk",
-    profile: { linux: { apt: { manifest: "missing.txt" } } },
-  });
   await syncByorSparseSource({ config, platform: "linux", ...remote, offline: true });
   expect(remote.requests).toEqual([]);
   expect(await readFile(join(sparseSourceRoot(stateRoot), "packages/apt.txt"), "utf8")).toBe(
     "curl\njq\n",
   );
+  await writeFile(
+    configFilePath(stateRoot),
+    'schema = 1\n[source]\nrepository = "https://github.com/org/machine-config"\nref = "feature/desk"\n[linux]\nprofile = "desk"\n[profiles.desk.linux.apt]\nmanifest = "packages/apt.txt"\n[profiles.other.linux.apt]\nmanifest = "changed.txt"\n',
+  );
+  await syncByorSparseSource({
+    config: await loadConfig({ stateRoot }),
+    platform: "linux",
+    ...remote,
+    offline: true,
+  });
+  await writeFile(
+    configFilePath(stateRoot),
+    'schema = 1\n[source]\nrepository = "https://github.com/org/machine-config"\nref = "feature/desk"\n[linux]\nprofile = "desk"\n[profiles.desk.linux.apt]\nmanifest = "missing.txt"\n[profiles.other.linux.apt]\nmanifest = "changed.txt"\n',
+  );
+  await expect(
+    syncByorSparseSource({
+      config: await loadConfig({ stateRoot }),
+      platform: "linux",
+      ...remote,
+      offline: true,
+    }),
+  ).rejects.toThrow(/cached source does not match/);
 });

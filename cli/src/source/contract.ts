@@ -782,11 +782,8 @@ async function validateOptionalSharedFile(options: {
   }
 }
 
-/**
- * Read and parse `outfitting.json`.
- * Missing file throws; invalid JSON or schema throws — never treated as legacy.
- */
-export async function readByorContract(root: string): Promise<ByorContract> {
+/** Read a legacy repository-owned contract for the one-shot config converter only. */
+export async function readLegacyByorContract(root: string): Promise<ByorContract> {
   let raw: string;
   try {
     raw = await readFile(join(root, BYOR_CONTRACT_PATH), "utf8");
@@ -811,7 +808,7 @@ export async function readByorContract(root: string): Promise<ByorContract> {
  * - missing `outfitting.json` → `undefined` (legacy layout)
  * - present but invalid → throw (do not fall through to legacy markers)
  */
-export async function tryReadByorContract(root: string): Promise<ByorContract | undefined> {
+export async function tryReadLegacyByorContract(root: string): Promise<ByorContract | undefined> {
   let raw: string;
   try {
     raw = await readFile(join(root, BYOR_CONTRACT_PATH), "utf8");
@@ -831,9 +828,9 @@ export async function tryReadByorContract(root: string): Promise<ByorContract | 
   return parseByorContract(parsed);
 }
 
-/** True when the root contains a parseable BYOR contract. Invalid files throw. */
-export async function hasByorContract(root: string): Promise<boolean> {
-  return (await tryReadByorContract(root)) !== undefined;
+/** True when a legacy repository contains a parseable contract. */
+export async function hasLegacyByorContract(root: string): Promise<boolean> {
+  return (await tryReadLegacyByorContract(root)) !== undefined;
 }
 
 async function resolveByorRoot(candidate: string): Promise<string> {
@@ -856,10 +853,11 @@ async function resolveByorRoot(candidate: string): Promise<string> {
 /** Validate a user-provided Linux BYOR repository without changing the host. */
 export async function validateLinuxByorSource(options: {
   root: string;
+  contract: ByorContract;
   profile?: string;
 }): Promise<ValidatedLinuxByorProfile> {
   const root = await resolveByorRoot(options.root);
-  const contract = await readByorContract(root);
+  const contract = options.contract;
   if (linuxProfileNames(contract).length === 0) {
     throw new Error(`${BYOR_CONTRACT_PATH} does not declare any Linux profiles.`);
   }
@@ -951,10 +949,11 @@ async function validateWindowsSharedArtifacts(
 /** Validate a user-provided Windows BYOR repository without changing the host. */
 export async function validateWindowsByorSource(options: {
   root: string;
+  contract: ByorContract;
   profiles?: string[];
 }): Promise<ValidatedWindowsByorSource> {
   const root = await resolveByorRoot(options.root);
-  const contract = await readByorContract(root);
+  const contract = options.contract;
   const selected = selectWindowsByorProfiles(contract, options.profiles);
 
   for (const name of selected.names) {
@@ -997,10 +996,11 @@ async function validateOptionalMacosFile(options: {
 /** Validate a user-provided macOS BYOR repository without changing the host. */
 export async function validateMacosByorSource(options: {
   root: string;
+  contract: ByorContract;
   profile?: string;
 }): Promise<ValidatedMacosByorProfile> {
   const root = await resolveByorRoot(options.root);
-  const contract = await readByorContract(root);
+  const contract = options.contract;
   if (macosProfileNames(contract).length === 0) {
     throw new Error(`${BYOR_CONTRACT_PATH} does not declare any macOS profiles.`);
   }

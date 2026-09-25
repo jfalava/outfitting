@@ -62,6 +62,7 @@ test("setup applies the local Brewfile without upgrading or cleaning extras", as
 
   const setupEffect = setupBrew({
     config: {
+      configPath: join(root, "config.toml"),
       stateRoot: root,
       machineId: "test:aarch64-darwin",
       machineIdOverridden: true,
@@ -85,6 +86,7 @@ test("update --no-push upgrades installed packages and still writes observed inv
   await Effect.runPromise(
     updateBrew({
       config: {
+        configPath: join(root, "config.toml"),
         stateRoot: root,
         machineId: "test:aarch64-darwin",
         machineIdOverridden: true,

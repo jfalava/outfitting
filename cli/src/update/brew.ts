@@ -3,11 +3,11 @@ import { join } from "node:path";
 
 import { Console, Effect } from "effect";
 
-import { loadConfig, resolveOutfittingRepo, type ManagerConfig } from "@/config";
+import { configuredProfile, loadConfig, resolveOutfittingRepo, type ManagerConfig } from "@/config";
 import { CliFailure } from "@/errors";
 import { tryPromise } from "@/lockfiles/effect";
 import { runCommand, which } from "@/process";
-import { readByorContract, selectMacosByorProfile } from "@/source/contract";
+import { selectMacosByorProfile } from "@/source/contract";
 import { ui } from "@/ui";
 import { pushHomebrewInventory } from "@/update/snapshot";
 
@@ -69,9 +69,9 @@ async function resolveBrewfile(
       text: await readFile(options.brewfilePath, "utf8"),
     };
   }
-  const repo = await resolveOutfittingRepo({ config, profile: options.profile });
-  const contract = await readByorContract(repo.root);
-  const selected = selectMacosByorProfile(contract, options.profile);
+  const profile = configuredProfile(config, "macos", options.profile);
+  const repo = await resolveOutfittingRepo({ config, profile, platform: "macos" });
+  const selected = selectMacosByorProfile(repo.contract, profile);
   if (selected.macos.brewfile === undefined) {
     throw new Error(`BYOR macOS profile \`${selected.name}\` does not declare a Brewfile.`);
   }

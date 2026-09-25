@@ -79,7 +79,7 @@ describe("macos CLI scaffold (process)", () => {
     expect(code).not.toBe(0);
     expect(text).not.toMatch(/not implemented yet/i);
     expect(text).toMatch(
-      /missing system\/macos\/flake\.nix|does not exist|not configured|not installed/i,
+      /missing system\/macos\/flake\.nix|does not exist|not configured|not installed|No Linux BYOR profile is selected/i,
     );
   });
 

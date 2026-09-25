@@ -1,10 +1,13 @@
 import { Console, Effect, Option } from "effect";
 import { Command, Flag } from "effect/unstable/cli";
 
+import { configuredProfile, loadConfig, sparseSourceRoot } from "@/config";
+import { CliFailure } from "@/errors";
 import { tryPromise } from "@/lockfiles/effect";
+import { envValue } from "@/secrets";
+import { syncByorSparseSource } from "@/setup/source";
 import {
   byorContractPlatforms,
-  readByorContract,
   validateLinuxByorSource,
   validateMacosByorSource,
   validateWindowsByorSource,
@@ -31,9 +34,7 @@ function requirePlatform(
   platform: ValidatePlatform,
 ): ValidatePlatform {
   if (!platforms[platform]) {
-    throw new Error(
-      `outfitting.json does not declare any ${platformLabel(platform)} profiles.`,
-    );
+    throw new Error(`config.toml does not declare any ${platformLabel(platform)} profiles.`);
   }
   return platform;
 }
@@ -67,27 +68,29 @@ function resolveValidatePlatform(
   const declared = declaredPlatforms(platforms);
   if (declared.length > 1) {
     throw new Error(
-      `outfitting.json declares multiple platforms (${declared.join(", ")}). Pass --platform ${declared.join("|")}.`,
+      `config.toml declares multiple platforms (${declared.join(", ")}). Pass --platform ${declared.join("|")}.`,
     );
   }
   if (declared.length === 1) {
     return declared[0]!;
   }
-  throw new Error("outfitting.json does not declare any Linux, Windows, or macOS profiles.");
+  throw new Error("config.toml does not declare any Linux, Windows, or macOS profiles.");
 }
 
 async function runValidate(options: {
   root: string;
+  contract: ByorContract;
   profile: string | undefined;
   platform: string | undefined;
 }): Promise<{ lines: string[] }> {
-  const contract = await readByorContract(options.root);
+  const contract = options.contract;
   const target = resolveValidatePlatform(contract, options.platform?.toLowerCase());
 
   if (target === "linux") {
     const result = await validateLinuxByorSource({
       root: options.root,
       profile: options.profile,
+      contract,
     });
     return {
       lines: [
@@ -103,6 +106,7 @@ async function runValidate(options: {
     const result = await validateMacosByorSource({
       root: options.root,
       profile: options.profile,
+      contract,
     });
     return {
       lines: [
@@ -118,6 +122,7 @@ async function runValidate(options: {
   const result = await validateWindowsByorSource({
     root: options.root,
     profiles: options.profile === undefined ? undefined : [options.profile],
+    contract,
   });
   return {
     lines: [
@@ -129,13 +134,50 @@ async function runValidate(options: {
   };
 }
 
-/** Validate a repository-owned BYOR contract without applying it. */
+async function validateConfiguredSource(options: {
+  repo: string | undefined;
+  profile: string | undefined;
+  platform: string | undefined;
+}): Promise<{ lines: string[] }> {
+  const config = await loadConfig();
+  const contract = config.declarations;
+  if (contract === undefined) {
+    throw new CliFailure({
+      message: `No profile declarations are configured in ${config.configPath}.`,
+    });
+  }
+  const target = resolveValidatePlatform(contract, options.platform?.toLowerCase());
+  const selectedProfile = configuredProfile(config, target, options.profile);
+  const localPath =
+    options.repo ??
+    envValue("OUTFITTING_REPO") ??
+    (config.source?.kind === "local" ? config.source.path : undefined);
+  if (localPath === undefined && config.source?.kind !== "remote") {
+    throw new CliFailure({ message: `No source is configured in ${config.configPath}.` });
+  }
+  if (localPath === undefined) {
+    await syncByorSparseSource({
+      config,
+      platform: target,
+      profile: selectedProfile,
+      offline: true,
+    });
+  }
+  return runValidate({
+    root: localPath ?? sparseSourceRoot(config.stateRoot),
+    contract,
+    profile: selectedProfile,
+    platform: target,
+  });
+}
+
+/** Validate the configured TOML declarations and selected source without applying them. */
 export const validateCommand = Command.make(
   "validate",
   {
     repo: Flag.String("repo").pipe(
       Flag.optional,
-      Flag.withDescription("Local BYOR repository (default: current directory)."),
+      Flag.withDescription("Local source path override (defaults to config.toml)."),
     ),
     profile: Flag.String("profile").pipe(
       Flag.optional,
@@ -153,8 +195,8 @@ export const validateCommand = Command.make(
   ({ repo, profile, platform }) =>
     Effect.gen(function* () {
       const result = yield* tryPromise(() =>
-        runValidate({
-          root: Option.getOrElse(repo, () => process.cwd()),
+        validateConfiguredSource({
+          repo: Option.getOrUndefined(repo),
           profile: Option.getOrUndefined(profile),
           platform: Option.getOrUndefined(platform),
         }),
@@ -165,6 +207,6 @@ export const validateCommand = Command.make(
     }),
 ).pipe(
   Command.withDescription(
-    "Validate a repository-owned BYOR profile without changing the system.",
+    "Validate config.toml declarations and the selected source without changing the system.",
   ),
 );

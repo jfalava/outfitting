@@ -5,7 +5,7 @@ sidebar:
   order: 4
 ---
 
-`diff` is read-only. It compares the live machine with the selected BYOR source and does not install, remove, activate, write lockfiles, or push remote state.
+`diff` is read-only. It compares the live machine with the configured source and does not install, remove, activate, write lockfiles, or push remote state.
 
 ## `diff`
 
@@ -18,13 +18,13 @@ outfitting-manager diff --offline --json
 
 ## Options
 
-| Option             | Purpose                                                                                    |
-| ------------------ | ------------------------------------------------------------------------------------------ |
-| `--manager <name>` | Compare one manager instead of the complete platform set.                                  |
-| `--profile <name>` | Select a profile using the [platform profile rules](/docs/source-configuration/#profiles). |
-| `--offline`        | Reuse only the validated local BYOR snapshot and skip remote comparisons.                  |
-| `--refresh`        | Linux only: refresh the selected BYOR source before comparing declarations.                |
-| `--json`           | Print the result as JSON.                                                                  |
+| Option             | Purpose                                                                            |
+| ------------------ | ---------------------------------------------------------------------------------- |
+| `--manager <name>` | Compare one manager instead of the complete platform set.                          |
+| `--profile <name>` | Select a profile using the [platform profile rules](/docs/source-configuration/).  |
+| `--offline`        | Reuse only the validated local remote-source snapshot and skip remote comparisons. |
+| `--refresh`        | Linux only: refresh the configured source before comparing declarations.           |
+| `--json`           | Print the result as JSON.                                                          |
 
 The command exits successfully when the compared state matches. It exits nonzero when differences are found or a required comparison is unavailable.
 

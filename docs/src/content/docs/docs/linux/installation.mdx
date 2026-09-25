@@ -1,6 +1,6 @@
 ---
 title: Installation
-description: Install Outfitting on Linux and configure a BYOR source.
+description: Install Outfitting on Linux and configure a TOML source.
 audience: linux
 sidebar:
   order: 1
@@ -22,24 +22,15 @@ curl -L linux.jfa.dev | bash
 The script detects `apt` or `pacman`. Manager state is stored under `~/.config/outfitting`.
 
 > [!WARNING]
-> The bootstrap still invokes the manager's retired implicit-source flow. The BYOR-only manager cannot complete package setup through this script until the installer is migrated. Installer scripts are unchanged by this migration.
+> The bootstrap may still invoke an older implicit-source flow. Configure `config.toml` before running manager setup manually.
 
 ## Configure a source
 
-The manager accepts either a local checkout with a root `outfitting.json` or a remote Git source explicitly declared in the state-root `byor.json`. It does not provide built-in Linux profiles.
-
-For a local checkout:
+Declare `[source] path` or remote `repository` and `ref`, plus `[linux] profile`, in the machine-local [config.toml](/docs/source-configuration/). There are no built-in Linux profiles.
 
 ```bash
-outfitting-manager validate --repo ~/src/my-machine-config --platform linux
-outfitting-manager setup --repo ~/src/my-machine-config --profile workstation
+outfitting-manager validate
+outfitting-manager setup
 ```
 
-For a remote repository, configure its source map with [`byor`](/docs/cli/byor/), then select one of its declared Linux profiles:
-
-```bash
-outfitting-manager byor
-outfitting-manager setup --profile workstation
-```
-
-See [BYOR for Linux](/docs/source-configuration/byor/linux/) for arbitrary contract paths and profile examples. For command workflows, see [init](/docs/cli/init/), [setup](/docs/cli/setup/), [validate](/docs/cli/validate/), and the [Linux CLI reference](/docs/cli/linux/).
+See [Linux configuration](/docs/source-configuration/byor/linux/) for profile examples. For command workflows, see [init](/docs/cli/init/), [setup](/docs/cli/setup/), [validate](/docs/cli/validate/), and the [Linux CLI reference](/docs/cli/linux/).

@@ -8,16 +8,16 @@ sidebar:
 
 The Windows installer provides the compiled `outfitting-manager.exe`; the PowerShell profile puts it on `PATH`. Its manager setup still uses the retired raw-route source flow and needs a separate installer migration.
 
-## BYOR
+## Configuration
 
-Local checkouts may declare arbitrary Windows profiles in `outfitting.json`. Remote Git repositories must be explicitly mapped in `byor.json`; only declared contract paths are fetched. See [BYOR for Windows](/docs/source-configuration/byor/windows/) and [validate](/docs/cli/validate/).
+Select `[windows] profiles` and a local or remote `[source]` in `config.toml`. See [Windows configuration](/docs/source-configuration/byor/windows/) and [validate](/docs/cli/validate/).
 
 ## Commands
 
 - [Init](/docs/cli/init/) - select and validate an explicit source.
 - [Setup](/docs/cli/setup/) - initialize and install declared components.
-- [Validate](/docs/cli/validate/) - check a repository-owned `outfitting.json` without applying it.
-- [BYOR](/docs/cli/byor/) — configure a remote Git repository profile map.
+- [Validate](/docs/cli/validate/) - check `config.toml` without applying it.
+- [Source configuration](/docs/source-configuration/) — configure a local or remote source.
 - [Apply](/docs/cli/apply/) - reconcile selected local profiles, optionally pruning Outfitting-owned packages.
 - [Diff](/docs/cli/diff/) - compare live WinGet and Scoop state with the repository.
 - [Sync](/docs/cli/sync/) - push, pull, and inspect remote state.
@@ -29,4 +29,4 @@ Local checkouts may declare arbitrary Windows profiles in `outfitting.json`. Rem
 - [Provision](/docs/cli/provision/) — deploy Outfitting infrastructure.
 - [Upgrade](/docs/cli/upgrade/) — update the installed manager.
 
-Windows combines comma-separated profile names declared by the selected BYOR source. Undeclared shared components are skipped. See [Profiles](/docs/source-configuration/#profiles) for selection and [source configuration](/docs/source-configuration/) rules.
+Windows combines the names in `[windows] profiles`. Undeclared shared components are skipped. See [source configuration](/docs/source-configuration/) for selection rules.

@@ -5,12 +5,13 @@ import { type LinuxPackageManager } from "@/platform/linux";
 import { isLinuxProfile, type LinuxProfile } from "@/update/linux";
 
 export const linuxProfileFlag = Flag.String("profile").pipe(
-  Flag.withDescription("Profile declared by the selected BYOR source."),
+  Flag.optional,
+  Flag.withDescription("Profile declared in config.toml (defaults to its Linux selection)."),
 );
 
 export const linuxOptionalProfileFlag = Flag.String("profile").pipe(
   Flag.optional,
-  Flag.withDescription("BYOR profile; defaults to the profile selected during init."),
+  Flag.withDescription("Linux profile; defaults to config.toml or OUTFITTING_PROFILE."),
 );
 
 export const linuxPackageManagerFlag = Flag.String("package-manager").pipe(
@@ -40,7 +41,10 @@ export function requestedLinuxPackageManager(
   return manager;
 }
 
-export function requireLinuxProfile(profile: string): LinuxProfile {
+export function requireLinuxProfile(profile: string | undefined): LinuxProfile | undefined {
+  if (profile === undefined) {
+    return undefined;
+  }
   if (!isLinuxProfile(profile)) {
     throw new Error(
       `Invalid Linux profile \`${profile}\`. Use letters, numbers, ., _, and - only.`,

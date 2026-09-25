@@ -57,12 +57,15 @@ port() {
 # Shell keeps session env (above) + Nix fallback paths + thin aliases.
 # ---------------------------------------------------------------------------
 
-# Nix fallback helper — reads the same repo-path file the manager uses.
+# Nix fallback helper — prefer an explicit source, otherwise ask the manager.
 get_outfitting_repo() {
-    local config_file="${OUTFITTING_STATE_ROOT:-$HOME/.config/outfitting}/repo-path"
-    if [ -f "$config_file" ]; then
-        cat "$config_file"
+    if [[ -n "${OUTFITTING_REPO:-}" ]]; then
+        print -r -- "$OUTFITTING_REPO"
         return 0
+    fi
+    if command -v outfitting-manager >/dev/null 2>&1; then
+        command outfitting-manager source path
+        return $?
     fi
     return 1
 }
@@ -72,8 +75,7 @@ hm-fallback-update-nix() {
     local action="${1:-switch}"
     local repo_path
     repo_path=$(get_outfitting_repo) || {
-        echo "Error: Repository location not configured."
-        echo "Run 'outfitting-manager setup --repo /path/to/outfitting' to configure."
+        echo "Error: Source unavailable. Set OUTFITTING_REPO or install and configure outfitting-manager (source path)."
         return 1
     }
     command -v nix >/dev/null 2>&1 || {

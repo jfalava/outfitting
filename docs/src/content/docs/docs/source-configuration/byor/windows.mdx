@@ -1,67 +1,30 @@
 ---
 title: Windows
-description: Declare Windows WinGet profiles and optional shared components with BYOR.
+description: Declare composable WinGet profiles and optional shared components in config.toml.
 sidebar:
   order: 3
 ---
 
-Windows configuration comes only from BYOR. Use a local checkout containing root `outfitting.json`, or configure a remote Git source with `outfitting-manager byor`. There are no raw routes or default repository paths.
+Select Windows profiles and optional shared components in the machine-local [configuration](/docs/source-configuration/):
 
-## Declare profiles and optional components
-
-```json
-{
-  "schema": 1,
-  "windows": {
-    "defaultProfiles": ["base", "dev"],
-    "scoop": { "manifest": "ops/windows/scoop.txt" },
-    "powershell": { "path": "shell/Microsoft.PowerShell_profile.ps1" },
-    "fonts": { "manifest": "ops/windows/fonts.txt" },
-    "registry": { "path": "ops/windows/registry" }
-  },
-  "profiles": {
-    "base": {
-      "windows": { "winget": { "manifest": "ops/windows/base.txt" } }
-    },
-    "dev": {
-      "windows": { "winget": { "manifest": "ops/windows/dev.txt" } }
-    }
-  }
-}
+```toml
+schema = 1
+[source]
+path = "../machine-config"
+[windows]
+profiles = ["base", "dev"]
+[windows.shared.scoop]
+manifest = "ops/windows/scoop.txt"
+[windows.shared.powershell]
+path = "shell/Microsoft.PowerShell_profile.ps1"
+[windows.shared.fonts]
+manifest = "ops/windows/fonts.txt"
+[windows.shared.registry]
+path = "ops/windows/registry.reg"
+[profiles.base.windows.winget]
+manifest = "ops/windows/base.txt"
+[profiles.dev.windows.winget]
+manifest = "ops/windows/dev.txt"
 ```
 
-- Each Windows profile declares one non-empty `winget.manifest`.
-- Windows profiles compose: select several with `--profile base,dev`.
-- `windows.defaultProfiles` is optional. If omitted, all Windows profiles in the contract are selected.
-- Top-level `windows.scoop`, `powershell`, `fonts`, and `registry` are optional. Undeclared components are skipped; Outfitting does not substitute built-in files or routes.
-- All paths are repository-relative and cannot escape the source root.
-
-## Use a local checkout
-
-```powershell
-outfitting-manager validate --repo C:\src\machine-config --platform windows --profile base,dev
-outfitting-manager init --repo C:\src\machine-config --profile base,dev
-outfitting-manager setup --profile base,dev
-```
-
-The checkout must contain a valid root `outfitting.json`. `OUTFITTING_REPO` can select the checkout instead of `--repo`.
-
-## Use a remote Git source
-
-Configure a repository and WinGet path in the local `byor.json` map:
-
-```powershell
-outfitting-manager byor `
-  --platform windows `
-  --repo git@code.example.com:team/machine-config.git `
-  --ref main `
-  --profile base `
-  --winget ops/windows/base.txt
-
-outfitting-manager init --profile base
-outfitting-manager setup --profile base
-```
-
-The map can also define top-level `windows` shared declarations for Scoop, PowerShell, fonts, and registry; these are fetched and used only when declared. GitHub remotes use commit-pinned reads. Other HTTPS and SSH remotes use Git and the current user's configured credentials. Refresh fetches only the selected profile and declared shared paths; failed refresh preserves the previous validated source.
-
-See [Source configuration](/docs/source-configuration/) and the [`byor` command](/docs/cli/byor/). The previous `outfitting-manager config` raw-route wizard is not used by the BYOR source model.
+Each selected profile declares its WinGet manifest. Shared declarations are optional and skipped when absent. All declaration paths are source-root-relative. For a remote Git source use `[source] repository` plus `ref` instead of `path`. Run `outfitting-manager validate` before `outfitting-manager setup`.

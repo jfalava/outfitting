@@ -146,7 +146,7 @@ function printProvisioned(apiBaseUrl: string, resolved: DeployConfig): void {
 export const provisionCommand = Command.make(
   "provision",
   {
-    config: Flag.String("config").pipe(
+    deployConfig: Flag.String("deploy-config").pipe(
       Flag.optional,
       Flag.withDescription(
         "Path to outfitting.deploy.json (see iac/outfitting.deploy.example.json).",
@@ -240,7 +240,7 @@ export const provisionCommand = Command.make(
       const resolved = yield* Effect.try({
         try: () =>
           loadDeployConfig({
-            configPath: optionalFlag(flags.config),
+            configPath: optionalFlag(flags.deployConfig),
             overrides,
           }),
         catch: (cause) => toCliFailure(cause, "Invalid provision configuration."),

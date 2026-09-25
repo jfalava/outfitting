@@ -1,6 +1,6 @@
 ---
 title: Installation
-description: Install Outfitting on Windows and configure a BYOR source.
+description: Install Outfitting on Windows and configure a TOML source.
 audience: windows
 sidebar:
   order: 1
@@ -27,26 +27,17 @@ irm win.jfa.dev | iex
 ```
 
 > [!WARNING]
-> The existing installer still uses the retired raw-route configuration flow when setting up manager-managed packages. It must be migrated before that part of installation can use the BYOR-only manager. Installer scripts are unchanged by this migration.
+> The existing installer may still use an older source flow. Configure `config.toml` before running manager setup manually.
 
 Once complete, open a regular (non-elevated) PowerShell session and run the [post-install script](/docs/windows/post-install/) to install Scoop and developer fonts.
 
 ## Configure a source
 
-The manager accepts a local checkout with a root `outfitting.json` or a remote Git repository explicitly mapped in the state-root `byor.json`.
-
-For a local checkout:
+Declare `[source] path` or remote `repository` and `ref`, plus `[windows] profiles`, in the machine-local [config.toml](/docs/source-configuration/).
 
 ```powershell
-outfitting-manager validate --repo C:\src\my-machine-config --platform windows
-outfitting-manager setup --repo C:\src\my-machine-config --profile base,dev
+outfitting-manager validate
+outfitting-manager setup
 ```
 
-For a remote source, configure its repository, ref, WinGet paths, and optional shared components with [`outfitting-manager byor`](/docs/cli/byor/), then select its profiles:
-
-```powershell
-outfitting-manager byor
-outfitting-manager setup --profile base,dev
-```
-
-See [BYOR for Windows](/docs/source-configuration/byor/windows/) for composable profiles and optional Scoop, PowerShell, fonts, and registry declarations. For command-level workflows, see the [Windows CLI reference](/docs/cli/windows/).
+See [Windows configuration](/docs/source-configuration/byor/windows/) for composable profiles and optional Scoop, PowerShell, fonts, and registry declarations. For command-level workflows, see the [Windows CLI reference](/docs/cli/windows/).

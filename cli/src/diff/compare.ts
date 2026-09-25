@@ -10,9 +10,10 @@ import {
   windowsWingetProfilePath,
 } from "@/commands/windows-apply";
 import {
+  configuredProfile,
   loadConfig,
-  readRepoPathFile,
   resolveOutfittingRepo,
+  sparseSourceRoot,
   type ManagerConfig,
   type OutfittingRepo,
 } from "@/config";
@@ -22,7 +23,7 @@ import { pullLockfile } from "@/lockfiles";
 import type { LinuxPackageManager } from "@/platform/linux";
 import { runCommand, which } from "@/process";
 import { envValue } from "@/secrets";
-import { readByorContract, selectMacosByorProfile } from "@/source/contract";
+import { selectByorProfile, selectMacosByorProfile } from "@/source/contract";
 import { parseBrewfileManifest } from "@/update/brew";
 import {
   isLinuxProfile,
@@ -71,6 +72,7 @@ interface NamedValue {
 
 interface DiffContext {
   config: ManagerConfig;
+  platform: DiffPlatform;
   run: typeof runCommand;
   which: typeof which;
   fetcher: ManifestFetcher | undefined;
@@ -328,9 +330,13 @@ async function compareBrewSection(
   if (profiles !== undefined && profiles.length !== 1) {
     throw new Error("macOS diff accepts one profile at a time.");
   }
-  const repo = await resolveOutfittingRepo({ config: context.config, profile: profiles?.[0] });
-  const contract = await readByorContract(repo.root);
-  const selected = selectMacosByorProfile(contract, profiles?.[0]);
+  const profile = configuredProfile(context.config, "macos", profiles?.[0]);
+  const repo = await resolveOutfittingRepo({
+    config: context.config,
+    profile,
+    platform: "macos",
+  });
+  const selected = selectMacosByorProfile(repo.contract, profile);
   if (selected.macos.brewfile === undefined) {
     return {
       manager: "brew",
@@ -420,10 +426,14 @@ function resolveLinuxDiffProfile(
   if (profiles !== undefined && profiles.length !== 1) {
     throw new Error("Linux diff accepts one profile at a time.");
   }
-  const profile = profiles?.[0] ?? config.linux?.profile;
+  const profile =
+    configuredProfile(config, "linux", profiles?.[0]) ??
+    (config.declarations === undefined
+      ? undefined
+      : selectByorProfile(config.declarations, undefined).name);
   if (profile === undefined) {
     throw new Error(
-      "No Linux BYOR profile is selected. Run init --profile <name> or pass --profile.",
+      "No Linux profile is selected. Set linux.profile in config.toml or pass --profile.",
     );
   }
   if (!isLinuxProfile(profile)) {
@@ -487,7 +497,11 @@ async function compareNixSection(
 
   let repo: OutfittingRepo;
   try {
-    repo = await resolveOutfittingRepo({ config: context.config, profile });
+    repo = await resolveOutfittingRepo({
+      config: context.config,
+      profile,
+      platform: context.platform,
+    });
   } catch (cause) {
     return unavailableSection("nix", errorMessage(cause));
   }
@@ -596,6 +610,7 @@ export async function collectDiff(options: CollectDiffOptions): Promise<Platform
   const linuxSource = await resolveLinuxDiffSource(options, config);
   const context: DiffContext = {
     config,
+    platform: options.platform,
     run: options.run ?? runCommand,
     which: options.which ?? which,
     fetcher: options.fetcher,
@@ -611,8 +626,11 @@ export async function collectDiff(options: CollectDiffOptions): Promise<Platform
     source:
       linuxSource?.root ??
       envValue("OUTFITTING_REPO") ??
-      (await readRepoPathFile(config)) ??
-      "BYOR source (not initialized)",
+      (config.source?.kind === "local"
+        ? config.source.path
+        : config.source?.kind === "remote"
+          ? sparseSourceRoot(config.stateRoot)
+          : "Source (not configured)"),
     sections,
     differences: sections.some((section) => section.status === "different"),
     unavailable: sections.some((section) => section.status === "unavailable"),

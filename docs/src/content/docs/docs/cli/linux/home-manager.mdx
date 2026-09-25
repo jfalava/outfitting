@@ -6,7 +6,7 @@ sidebar:
   order: 2
 ---
 
-Any Linux profile may declare a Nix flake in `outfitting.json`; `setup` and `update nix` apply its Home Manager configuration. `init` only selects and validates the configured source. Flake pins are owned by the BYOR checkout.
+Any Linux profile may declare a Nix flake in `config.toml`; `setup` and `update nix` apply its Home Manager configuration. `init` only selects and validates the configured source. Flake pins are owned by the source checkout.
 
 ## Manager
 
@@ -19,7 +19,7 @@ outfitting-manager update nix switch            # refresh source, build and acti
 outfitting-manager update nix switch --no-refresh  # use the local source
 ```
 
-Bare `update nix` only lists subcommands. Actions resolve the flake declared by the selected profile's BYOR contract. Linux uses the flake's checked-in `flake.lock`; actions refresh the selected source by default, while `--no-refresh` uses the validated published source already on disk. Refresh does not run `nix flake update`. `update all` runs `switch` when the selected profile declares a flake, then updates native packages.
+Bare `update nix` only lists subcommands. Actions resolve the flake declared by the selected profile in `config.toml`. Linux uses the flake's checked-in `flake.lock`; actions refresh the selected source by default, while `--no-refresh` uses the validated published source already on disk. Refresh does not run `nix flake update`. `update all` runs `switch` when the selected profile declares a flake, then updates native packages.
 
 ## Shell helpers
 
@@ -37,4 +37,4 @@ hm-clean     # remove old store paths
 
 When `outfitting-manager` is on `PATH`, helpers call `update nix <action>`. Otherwise they run native `nix build` / `home-manager switch` (or `nix run … home-manager`).
 
-For source selection, use a local checkout with root `outfitting.json` or a remote source declared in the state-root `byor.json`. See [BYOR](/docs/cli/byor/).
+For source selection, declare a local checkout or remote Git source in [config.toml](/docs/source-configuration/).

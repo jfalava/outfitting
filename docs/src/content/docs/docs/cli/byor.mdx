@@ -1,60 +1,10 @@
 ---
-title: BYOR
-description: Configure a remote Git source and repository paths for Outfitting.
+title: Configure a source
+description: Migration notes for the retired byor command.
 sidebar:
   order: 7
 ---
 
-`byor` stores a remote Git repository, ref, and selected profile paths in the local `byor.json` map. The remote repository does not need an `outfitting.json`; the map itself declares the files Outfitting may read. If you have a local checkout with `outfitting.json`, pass it to `init` or `setup` instead.
+The `byor` command has been retired. This route is retained for existing links. Configure a local checkout or remote Git repository in the single machine-local [`config.toml`](/docs/source-configuration/) instead. Remote sources use `[source] repository` and `ref`; local sources use `[source] path`.
 
-## Interactive setup
-
-```bash
-outfitting-manager byor
-```
-
-The wizard asks for a platform, Git repository, ref, profile name, and platform-specific paths. The repository, ref, and profile must be explicit; none defaults to Outfitting's own source or to `main`.
-
-## Scripted setup
-
-```bash
-outfitting-manager byor \
-  --platform linux \
-  --repo git@code.example.com:team/machine-config.git \
-  --ref stable \
-  --profile server \
-  --apt ops/linux/server.txt
-```
-
-| Flag                     | Description                                                                                                        |
-| ------------------------ | ------------------------------------------------------------------------------------------------------------------ |
-| `--platform`             | `linux`, `macos`, or `windows`.                                                                                    |
-| `--repo`                 | HTTPS, SSH, or other Git remote address.                                                                           |
-| `--ref`                  | Explicit branch, tag, or commit.                                                                                   |
-| `--profile`              | Arbitrary profile name to add or update in the local map.                                                          |
-| `--apt`, `--pacman`      | Linux package manifest paths.                                                                                      |
-| `--flake`, `--attribute` | Nix flake directory and output attribute.                                                                          |
-| `--brewfile`             | Optional macOS Brewfile path.                                                                                      |
-| `--winget`               | Windows WinGet manifest path.                                                                                      |
-| `--paths`                | Comma-separated extra Linux/macOS paths outside the flake directory. Use an empty value to confirm there are none. |
-
-To add a Windows shared Scoop, PowerShell, fonts, or registry declaration to a remote map, edit the optional top-level `windows` object in `byor.json`. Undeclared shared components are skipped.
-
-## Storage and fetching
-
-The map is stored in the state root (`~/.config/outfitting/byor.json` on macOS/Linux or `%LOCALAPPDATA%\outfitting\byor.json` on Windows). Each refresh reads the map and fetches only the selected profile's declared closure:
-
-- GitHub remotes resolve a commit and read selected files pinned to that revision.
-- Other HTTPS and SSH remotes use Git and the current user's Git authentication.
-- A Nix flake directory is fetched as a complete tree, plus any extra declared paths.
-- Files are staged and validated before publishing. A failed refresh keeps the previous source.
-- Offline source use is limited to a validated snapshot for the same repository and ref.
-
-After configuring a remote source, select its profile during initialization/setup where required:
-
-```bash
-outfitting-manager init --profile server
-outfitting-manager setup --profile server
-```
-
-See [Source configuration](/docs/source-configuration/) and the platform guides for [Linux](/docs/source-configuration/byor/linux/), [macOS](/docs/source-configuration/byor/macos/), and [Windows](/docs/source-configuration/byor/windows/).
+To convert legacy machine settings once, run `outfitting-manager config migrate`. Normal commands do not consult the old JSON files. Use `outfitting-manager source path` when a script needs the resolved source directory.

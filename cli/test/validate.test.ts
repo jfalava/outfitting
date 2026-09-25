@@ -6,14 +6,14 @@ import { afterEach, describe, expect, test } from "vitest";
 
 import { validateOutfittingRepo } from "@/config/repo";
 import {
-  hasByorContract,
+  hasLegacyByorContract,
   linuxPathsFromProfile,
   macosPathsFromProfile,
   parseByorContract,
   selectByorProfile,
   selectMacosByorProfile,
   selectWindowsByorProfiles,
-  tryReadByorContract,
+  tryReadLegacyByorContract,
   validateLinuxByorSource,
   validateMacosByorSource,
   validateWindowsByorSource,
@@ -36,6 +36,10 @@ async function repository(): Promise<string> {
 
 async function writeContract(root: string, value: unknown): Promise<void> {
   await writeFile(join(root, "outfitting.json"), `${JSON.stringify(value)}\n`, "utf8");
+}
+
+async function contractAt(root: string) {
+  return (await tryReadLegacyByorContract(root))!;
 }
 
 describe("BYOR contract", () => {
@@ -62,12 +66,18 @@ describe("BYOR contract", () => {
       },
     });
 
-    await expect(validateLinuxByorSource({ root, profile: "nix-server" })).resolves.toMatchObject({
+    await expect(
+      validateLinuxByorSource({ root, contract: await contractAt(root), profile: "nix-server" }),
+    ).resolves.toMatchObject({
       profile: "nix-server",
       backends: ["nix"],
     });
     await expect(
-      validateLinuxByorSource({ root, profile: "debian-minimal" }),
+      validateLinuxByorSource({
+        root,
+        contract: await contractAt(root),
+        profile: "debian-minimal",
+      }),
     ).resolves.toMatchObject({
       profile: "debian-minimal",
       backends: ["apt"],
@@ -84,7 +94,9 @@ describe("BYOR contract", () => {
       },
     });
 
-    await expect(validateLinuxByorSource({ root })).rejects.toThrow("Pass --profile (one, two)");
+    await expect(
+      validateLinuxByorSource({ root, contract: await contractAt(root) }),
+    ).rejects.toThrow("Pass --profile (one, two)");
   });
 
   test("rejects unsafe paths before reading outside the repository", () => {
@@ -110,9 +122,9 @@ describe("BYOR contract", () => {
     });
     await writeFile(join(root, "packages.txt"), "valid-package\ninvalid package\n", "utf8");
 
-    await expect(validateLinuxByorSource({ root, profile: "broken" })).rejects.toThrow(
-      /invalid pacman manifest/,
-    );
+    await expect(
+      validateLinuxByorSource({ root, contract: await contractAt(root), profile: "broken" }),
+    ).rejects.toThrow(/invalid pacman manifest/);
   });
 
   test("rejects a missing Nix flake", async () => {
@@ -128,28 +140,32 @@ describe("BYOR contract", () => {
       },
     });
 
-    await expect(validateLinuxByorSource({ root, profile: "broken" })).rejects.toThrow(
-      /flake.nix is missing/,
-    );
+    await expect(
+      validateLinuxByorSource({ root, contract: await contractAt(root), profile: "broken" }),
+    ).rejects.toThrow(/flake.nix is missing/);
   });
 
   test("rejects a missing or invalid local source contract", async () => {
     const missing = await repository();
-    await expect(tryReadByorContract(missing)).resolves.toBeUndefined();
-    await expect(hasByorContract(missing)).resolves.toBe(false);
+    await expect(tryReadLegacyByorContract(missing)).resolves.toBeUndefined();
+    await expect(hasLegacyByorContract(missing)).resolves.toBe(false);
 
     const invalid = await repository();
     await writeFile(join(invalid, "outfitting.json"), "{ not-a-contract: true }\n", "utf8");
-    await expect(tryReadByorContract(invalid)).rejects.toThrow(/not valid JSON/);
-    await expect(hasByorContract(invalid)).rejects.toThrow(/not valid JSON/);
-    await expect(validateOutfittingRepo(invalid)).rejects.toThrow(/not valid JSON/);
-
-    await expect(validateOutfittingRepo(missing)).rejects.toThrow(/outfitting.json/);
+    await expect(tryReadLegacyByorContract(invalid)).rejects.toThrow(/not valid JSON/);
+    await expect(hasLegacyByorContract(invalid)).rejects.toThrow(/not valid JSON/);
+    await expect(
+      validateOutfittingRepo(invalid, {
+        contract: parseByorContract({
+          schema: 1,
+          profiles: { base: { linux: { apt: { manifest: "packages.txt" } } } },
+        }),
+      }),
+    ).resolves.toMatchObject({ root: invalid });
 
     const wrongSchema = await repository();
     await writeContract(wrongSchema, { schema: 99, profiles: {} });
-    await expect(tryReadByorContract(wrongSchema)).rejects.toThrow(/outfitting\.json is invalid/);
-    await expect(validateOutfittingRepo(wrongSchema)).rejects.toThrow(
+    await expect(tryReadLegacyByorContract(wrongSchema)).rejects.toThrow(
       /outfitting\.json is invalid/,
     );
   });
@@ -179,9 +195,9 @@ describe("BYOR contract", () => {
       },
     });
     await writeFile(join(root, "packages.txt"), "# nothing installed\n\n", "utf8");
-    await expect(validateLinuxByorSource({ root, profile: "empty" })).rejects.toThrow(
-      /empty apt manifest/,
-    );
+    await expect(
+      validateLinuxByorSource({ root, contract: await contractAt(root), profile: "empty" }),
+    ).rejects.toThrow(/empty apt manifest/);
   });
 
   test("selectByorProfile is shared by validation and flake resolution", () => {
@@ -217,7 +233,9 @@ describe("BYOR contract", () => {
       },
     });
 
-    await expect(validateOutfittingRepo(root, { profile: "workstation" })).resolves.toMatchObject({
+    await expect(
+      validateOutfittingRepo(root, { contract: await contractAt(root), profile: "workstation" }),
+    ).resolves.toMatchObject({
       root,
       flakePath: join(root, "home"),
       flakeKind: "home-manager",
@@ -244,7 +262,9 @@ describe("BYOR contract", () => {
     });
     await writeFile(join(root, "packages", "custom", "scoop.txt"), 'package "fzf"\n');
 
-    await expect(validateWindowsByorSource({ root })).resolves.toMatchObject({
+    await expect(
+      validateWindowsByorSource({ root, contract: await contractAt(root) }),
+    ).resolves.toMatchObject({
       names: ["base", "dev"],
       wingetPaths: {
         base: "packages/custom/base-winget.txt",
@@ -280,7 +300,9 @@ describe("BYOR contract", () => {
         broken: { windows: { winget: { manifest: "missing.txt" } } },
       },
     });
-    await expect(validateWindowsByorSource({ root: missing })).rejects.toThrow(/file is missing/);
+    await expect(
+      validateWindowsByorSource({ root: missing, contract: await contractAt(missing) }),
+    ).rejects.toThrow(/file is missing/);
 
     const empty = await repository();
     await writeFile(join(empty, "empty.txt"), "# nothing\n", "utf8");
@@ -288,9 +310,9 @@ describe("BYOR contract", () => {
       schema: 1,
       profiles: { empty: { windows: { winget: { manifest: "empty.txt" } } } },
     });
-    await expect(validateWindowsByorSource({ root: empty })).rejects.toThrow(
-      /empty winget manifest/,
-    );
+    await expect(
+      validateWindowsByorSource({ root: empty, contract: await contractAt(empty) }),
+    ).rejects.toThrow(/empty winget manifest/);
 
     const invalid = await repository();
     await writeFile(join(invalid, "bad.txt"), "Git.Git --silent\n", "utf8");
@@ -298,9 +320,9 @@ describe("BYOR contract", () => {
       schema: 1,
       profiles: { bad: { windows: { winget: { manifest: "bad.txt" } } } },
     });
-    await expect(validateWindowsByorSource({ root: invalid })).rejects.toThrow(
-      /invalid winget manifest/,
-    );
+    await expect(
+      validateWindowsByorSource({ root: invalid, contract: await contractAt(invalid) }),
+    ).rejects.toThrow(/invalid winget manifest/);
   });
 
   test("rejects Windows path traversal in the contract", () => {
@@ -328,17 +350,29 @@ describe("BYOR contract", () => {
     });
 
     await expect(
-      validateLinuxByorSource({ root, profile: "debian-minimal" }),
+      validateLinuxByorSource({
+        root,
+        contract: await contractAt(root),
+        profile: "debian-minimal",
+      }),
     ).resolves.toMatchObject({ profile: "debian-minimal", backends: ["apt"] });
     await expect(
-      validateWindowsByorSource({ root, profiles: ["workstation"] }),
+      validateWindowsByorSource({
+        root,
+        contract: await contractAt(root),
+        profiles: ["workstation"],
+      }),
     ).resolves.toMatchObject({
       names: ["workstation"],
       wingetPaths: { workstation: "packages/winget.txt" },
     });
     // Selecting Windows must not require a Linux profile to exist on disk beyond the contract.
     await expect(
-      validateWindowsByorSource({ root, profiles: ["workstation"] }),
+      validateWindowsByorSource({
+        root,
+        contract: await contractAt(root),
+        profiles: ["workstation"],
+      }),
     ).resolves.toBeDefined();
   });
 });
@@ -373,7 +407,9 @@ test("accepts macos-only profiles with custom flake and brewfile paths", async (
     },
   });
 
-  await expect(validateMacosByorSource({ root })).resolves.toMatchObject({
+  await expect(
+    validateMacosByorSource({ root, contract: await contractAt(root) }),
+  ).resolves.toMatchObject({
     profile: "workstation",
     systemAttr: "darwinConfigurations.workstation.system",
     macos: {
@@ -395,9 +431,9 @@ test("rejects missing flake, missing darwinConfigurations, and path traversal fo
       },
     },
   });
-  await expect(validateMacosByorSource({ root: missingFlake })).rejects.toThrow(
-    /flake.nix is missing/,
-  );
+  await expect(
+    validateMacosByorSource({ root: missingFlake, contract: await contractAt(missingFlake) }),
+  ).rejects.toThrow(/flake.nix is missing/);
 
   const noDarwin = await repository();
   await mkdir(join(noDarwin, "system", "mac"), { recursive: true });
@@ -413,9 +449,9 @@ test("rejects missing flake, missing darwinConfigurations, and path traversal fo
       },
     },
   });
-  await expect(validateMacosByorSource({ root: noDarwin })).rejects.toThrow(
-    /darwinConfigurations is required/,
-  );
+  await expect(
+    validateMacosByorSource({ root: noDarwin, contract: await contractAt(noDarwin) }),
+  ).rejects.toThrow(/darwinConfigurations is required/);
 
   expect(() =>
     parseByorContract({
@@ -457,13 +493,15 @@ test("selects macos from mixed linux+macos contracts with an explicit profile", 
     },
   });
 
-  await expect(validateMacosByorSource({ root, profile: "desk" })).resolves.toMatchObject({
+  await expect(
+    validateMacosByorSource({ root, contract: await contractAt(root), profile: "desk" }),
+  ).resolves.toMatchObject({
     profile: "desk",
     systemAttr: "darwinConfigurations.desk.system",
   });
-  await expect(validateLinuxByorSource({ root, profile: "debian-minimal" })).resolves.toMatchObject(
-    { profile: "debian-minimal", backends: ["apt"] },
-  );
+  await expect(
+    validateLinuxByorSource({ root, contract: await contractAt(root), profile: "debian-minimal" }),
+  ).resolves.toMatchObject({ profile: "debian-minimal", backends: ["apt"] });
 
   const contract = parseByorContract({
     schema: 1,
@@ -553,7 +591,9 @@ test("validateOutfittingRepo returns flakeKind macos with custom systemAttr and 
     },
   });
 
-  await expect(validateOutfittingRepo(root)).resolves.toMatchObject({
+  await expect(
+    validateOutfittingRepo(root, { contract: await contractAt(root) }),
+  ).resolves.toMatchObject({
     root,
     flakePath: join(root, "system", "custom"),
     darwinNixPath: join(root, "system", "custom", "darwin-host.nix"),
@@ -569,7 +609,9 @@ test("windows-only and linux-only BYOR still resolve without macos", async () =>
     schema: 1,
     profiles: { base: { windows: { winget: { manifest: "winget.txt" } } } },
   });
-  await expect(validateOutfittingRepo(windowsOnly)).resolves.toMatchObject({
+  await expect(
+    validateOutfittingRepo(windowsOnly, { contract: await contractAt(windowsOnly) }),
+  ).resolves.toMatchObject({
     flakeKind: "none",
     systemAttr: "",
   });
@@ -590,7 +632,9 @@ test("windows-only and linux-only BYOR still resolve without macos", async () =>
       },
     },
   });
-  await expect(validateOutfittingRepo(linuxOnly)).resolves.toMatchObject({
+  await expect(
+    validateOutfittingRepo(linuxOnly, { contract: await contractAt(linuxOnly) }),
+  ).resolves.toMatchObject({
     flakeKind: "home-manager",
     systemAttr: "homeConfigurations.server.activationPackage",
   });

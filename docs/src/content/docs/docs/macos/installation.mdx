@@ -1,6 +1,6 @@
 ---
 title: Installation
-description: Install Outfitting on macOS and configure a BYOR source.
+description: Install Outfitting on macOS and configure a TOML source.
 audience: macos
 sidebar:
   order: 1
@@ -21,26 +21,17 @@ curl -L mac.jfa.dev | bash
 ```
 
 > [!WARNING]
-> The current bootstrap still invokes `init` and `setup` without an explicit BYOR source. Those manager steps cannot complete until the installer is migrated. Installer scripts are unchanged by this migration.
+> The current bootstrap may still invoke an older source flow. Configure `config.toml` before running manager setup manually.
 
 ## Configure a source
 
-The manager accepts either a local checkout with a root `outfitting.json` or a remote Git source explicitly declared in the state-root `byor.json`. It does not infer a repository, profile layout, or default ref.
-
-For a local checkout:
+Configure `[source] path` or remote `repository` and `ref`, plus `[macos] profile`, in the machine-local [config.toml](/docs/source-configuration/).
 
 ```bash
-outfitting-manager validate --repo ~/src/my-machine-config --platform macos
-outfitting-manager setup --repo ~/src/my-machine-config --profile personal-mac
+outfitting-manager validate
+outfitting-manager setup
 ```
 
-For a remote Git source, use [`outfitting-manager byor`](/docs/cli/byor/) to select the repository, ref, profile, and paths:
-
-```bash
-outfitting-manager byor
-outfitting-manager setup --profile personal-mac
-```
-
-GitHub, GitHub Enterprise, HTTPS Git, and SSH remotes are supported. See [BYOR for macOS](/docs/source-configuration/byor/macos/) for the contract, Brewfile paths, and fonts.
+GitHub, GitHub Enterprise, HTTPS Git, and SSH remotes are supported. See [macOS configuration](/docs/source-configuration/byor/macos/) for Nix, Brewfile, and font declarations.
 
 For macOS commands and shell helpers, see the [macOS CLI reference](/docs/cli/macos/).

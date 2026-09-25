@@ -6,7 +6,7 @@ sidebar:
   order: 2
 ---
 
-The Linux manager stores its state root under `~/.config/outfitting` by default. Machine configuration comes from a local checkout with root `outfitting.json` or a remote source in `byor.json`. Linux activates one declared profile at a time; see [BYOR for Linux](/docs/source-configuration/byor/linux/) for profile selection.
+The Linux manager stores its state root under `~/.config/outfitting` by default, with machine configuration in `config.toml`. Configure a local checkout or remote Git source there. Linux activates one declared profile at a time; see [Linux configuration](/docs/source-configuration/byor/linux/) for profile selection.
 
 ## Apply profile packages (`apply`)
 
@@ -55,7 +55,7 @@ outfitting-manager update nix switch
 outfitting-manager update nix switch --no-refresh
 ```
 
-Nix operations read the selected profile's checked-in `flake.lock`. Remote refresh stages and validates the declared BYOR source before publishing it. `--no-refresh` reuses the validated snapshot; a local checkout is read directly and never fetched. `--no-push` keeps lockfile changes local.
+Nix operations read the selected profile's checked-in `flake.lock`. Remote refresh stages and validates the declared source before publishing it. `--no-refresh` reuses the validated snapshot; a local checkout is read directly and never fetched. `--no-push` keeps lockfile changes local.
 
 ## Additional tools
 

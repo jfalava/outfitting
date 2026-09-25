@@ -4,8 +4,8 @@ import { join } from "node:path";
 
 import { Console, Effect } from "effect";
 
-import { loadConfig, type ManagerConfig } from "@/config";
-import { resolveOutfittingRepo, writeRepoPath, type OutfittingRepo } from "@/config/repo";
+import { configuredProfile, loadConfig, type ManagerConfig } from "@/config";
+import { resolveOutfittingRepo, type OutfittingRepo } from "@/config/repo";
 import { CliFailure } from "@/errors";
 import type { ManifestFetcher } from "@/fetch/github";
 import { pullLockfile, pushLockfile } from "@/lockfiles";
@@ -40,39 +40,41 @@ export interface UpdateNixOptions {
 
 function resolveMacosRepo(options: UpdateNixOptions, config: ManagerConfig) {
   return Effect.gen(function* () {
+    const profile = configuredProfile(config, "macos", options.profile);
     if (options.repo !== undefined) {
       yield* tryPromise(() =>
-        validateMacosByorSource({ root: options.repo!.root, profile: options.profile }),
+        validateMacosByorSource({
+          root: options.repo!.root,
+          profile,
+          contract: config.declarations!,
+        }),
       );
       return options.repo;
     }
-    const selected = yield* tryPromise(() =>
-      resolveSetupSource({ platform: "macos", stateRoot: config.stateRoot }),
-    );
+    const selected = yield* tryPromise(() => resolveSetupSource({ platform: "macos", config }));
     if (selected.repo !== undefined) {
       const repo = yield* tryPromise(() =>
-        resolveOutfittingRepo({ config, envRepo: selected.repo, profile: options.profile }),
+        resolveOutfittingRepo({ config, envRepo: selected.repo, profile, platform: "macos" }),
       );
       yield* tryPromise(() =>
-        validateMacosByorSource({ root: repo.root, profile: options.profile }),
+        validateMacosByorSource({ root: repo.root, profile, contract: config.declarations! }),
       );
       return repo;
     }
 
-    yield* Console.log(ui.heading("Refreshing remote macOS BYOR source…"));
+    yield* Console.log(ui.heading("Refreshing remote source…"));
     const source = yield* tryPromise(() =>
       syncByorSparseSource({
         config,
         platform: "macos",
-        profile: options.profile,
+        profile,
         fetcher: options.sourceFetcher,
         offline: options.offline === true || options.noRefresh === true,
       }),
     );
-    const written = yield* tryPromise(() =>
-      writeRepoPath(source.root, { stateRoot: config.stateRoot, profile: options.profile }),
+    return yield* tryPromise(() =>
+      resolveOutfittingRepo({ config, envRepo: source.root, profile, platform: "macos" }),
     );
-    return written.repo;
   });
 }
 
@@ -94,7 +96,7 @@ function requireLinuxFlakeRepo(
 
 function resolveLinuxNixRepo(options: UpdateNixOptions, config: ManagerConfig) {
   return Effect.gen(function* () {
-    const profile = options.profile ?? config.linux?.profile;
+    const profile = configuredProfile(config, "linux", options.profile);
     if (profile === undefined) {
       return yield* new CliFailure({
         message: "No Linux BYOR profile is selected. Run init --profile <name> or pass --profile.",
@@ -118,7 +120,7 @@ function resolveLinuxNixRepo(options: UpdateNixOptions, config: ManagerConfig) {
       return yield* missingLinuxFlake(profile);
     }
     const validated = yield* tryPromise(() =>
-      validateLinuxByorSource({ root: source.root, profile }),
+      validateLinuxByorSource({ root: source.root, profile, contract: config.declarations! }),
     );
     if (validated.linux.nix === undefined) {
       return yield* missingLinuxFlake(profile);
@@ -267,7 +269,7 @@ function validateLinuxNixProfile(
   if (process.platform === "darwin" || options.repo !== undefined) {
     return Effect.void;
   }
-  const profile = options.profile ?? config.linux?.profile;
+  const profile = configuredProfile(config, "linux", options.profile);
   if (profile === undefined) {
     return Effect.fail(
       new CliFailure({

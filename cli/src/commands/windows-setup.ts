@@ -18,11 +18,11 @@ export const windowsSetupCommand = Command.make(
     ),
     profile: Flag.String("profile").pipe(
       Flag.optional,
-      Flag.withDescription("Comma-separated profiles from outfitting.json or byor.json."),
+      Flag.withDescription("Comma-separated profiles declared in config.toml."),
     ),
     repo: Flag.String("repo").pipe(
       Flag.optional,
-      Flag.withDescription("Local BYOR checkout; takes precedence over the remote BYOR map."),
+      Flag.withDescription("Local source path override for this invocation."),
     ),
     wingetOnly: Flag.Boolean("winget-only").pipe(
       Flag.withDefault(false),
@@ -37,8 +37,10 @@ export const windowsSetupCommand = Command.make(
       refreshSource: !noRefresh,
       nextCommand: "Applying Windows desired state…",
     }).pipe(
-      Effect.flatMap(() =>
+      Effect.flatMap(({ config, repo: validatedRepo }) =>
         applyWindows({
+          config,
+          repo: validatedRepo.root,
           profiles: Option.isSome(profile) ? profile.value.split(",") : undefined,
           wingetOnly,
           yes: true,

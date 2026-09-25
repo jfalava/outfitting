@@ -37,6 +37,7 @@ async function fixture(
       home,
       repo: {
         root: repoRoot,
+        contract: { schema: 1, profiles: {} },
         flakePath,
         darwinNixPath: "",
         flakeKind: "home-manager",
@@ -53,6 +54,7 @@ async function fixture(
     home,
     repo: {
       root: repoRoot,
+      contract: { schema: 1, profiles: {} },
       flakePath,
       darwinNixPath,
       flakeKind: "macos",

@@ -4,8 +4,9 @@ import { dirname, join } from "node:path";
 
 import { afterEach, describe, expect, test, vi } from "vitest";
 
-import { writeRepoPath, type ManagerConfig } from "@/config";
+import { loadConfig, type ManagerConfig } from "@/config";
 import { collectDiff, parseWingetExport } from "@/diff/compare";
+import { parseByorContract } from "@/source/contract";
 import { parseBrewfileManifest } from "@/update/brew";
 
 const roots: string[] = [];
@@ -28,21 +29,19 @@ async function localSource(options: {
   profile: string;
 }): Promise<ManagerConfig> {
   await mkdir(options.repoRoot, { recursive: true });
-  await writeFile(
-    join(options.repoRoot, "outfitting.json"),
-    `${JSON.stringify(options.contract)}\n`,
-  );
   for (const [path, body] of Object.entries(options.files)) {
     const target = join(options.repoRoot, path);
     await mkdir(dirname(target), { recursive: true });
     await writeFile(target, body);
   }
-  await writeRepoPath(options.repoRoot, {
-    stateRoot: options.stateRoot,
-    profile: options.profile,
-  });
+  const loaded = await loadConfig({ stateRoot: options.stateRoot });
   return {
-    stateRoot: options.stateRoot,
+    ...loaded,
+    source: { kind: "local", path: options.repoRoot },
+    declarations: parseByorContract(options.contract as Parameters<typeof parseByorContract>[0]),
+    linux: { profile: options.profile },
+    macos: { profile: options.profile },
+    windows: { profiles: [options.profile] },
     machineId: "test:local",
     machineIdOverridden: true,
   };

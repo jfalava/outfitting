@@ -28,7 +28,7 @@ error() { echo -e "${RED}✗${NC} $1"; }
 ################################### Configuration
 MODE="server"   # server | desktop
 HOSTNAME=""
-REPO_PATH="${HOME}/.config/outfitting/repo"
+REPO_PATH="${OUTFITTING_REPO:-${HOME}/.config/outfitting/repo}"
 FLAKE_TARGET=""  # derived from MODE if empty
 ASSUME_YES=false
 SSH_KEY=""
@@ -184,10 +184,6 @@ configure_repo() {
         fi
     fi
 
-    local config_dir config_file
-    config_dir="$HOME/.config/outfitting"
-    config_file="$config_dir/repo-path"
-
     if [ -d "$REPO_PATH/.git" ]; then
         success "Repository exists at: $REPO_PATH"
         if command -v git &>/dev/null; then
@@ -208,10 +204,7 @@ configure_repo() {
         fi
     fi
 
-    mkdir -p "$config_dir"
-    echo "$REPO_PATH" > "$config_file"
-    chmod 600 "$config_file"
-    success "Repository location configured: $config_file → $REPO_PATH"
+    success "Repository ready at: $REPO_PATH"
 }
 #################################################
 

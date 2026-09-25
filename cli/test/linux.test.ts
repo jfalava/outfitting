@@ -32,7 +32,15 @@ async function createLinuxRepo(
   profiles: Record<string, { apt?: string; pacman?: string }>,
 ) {
   const repo = await mkdtemp(join(tmpdir(), "outfitting-linux-byor-repo-"));
-  const profileDeclarations: Record<string, { linux: Record<string, { manifest: string }> }> = {};
+  const toml = [
+    "schema = 1",
+    "",
+    "[source]",
+    `path = ${JSON.stringify(repo)}`,
+    "",
+    "[linux]",
+    `profile = ${JSON.stringify(Object.keys(profiles)[0])}`,
+  ];
 
   await mkdir(repo, { recursive: true });
   for (const [profile, declarations] of Object.entries(profiles)) {
@@ -44,15 +52,16 @@ async function createLinuxRepo(
       await writeFile(join(repo, manifest), content);
       linux[manager] = { manifest };
     }
-    profileDeclarations[profile] = { linux };
+    for (const [manager, declaration] of Object.entries(linux)) {
+      toml.push(
+        "",
+        `[profiles.${JSON.stringify(profile)}.linux.${manager}]`,
+        `manifest = ${JSON.stringify(declaration.manifest)}`,
+      );
+    }
   }
-
-  await writeFile(
-    join(repo, "outfitting.json"),
-    `${JSON.stringify({ schema: 1, profiles: profileDeclarations }, null, 2)}\n`,
-  );
   await mkdir(stateRoot, { recursive: true });
-  await writeFile(join(stateRoot, "repo-path"), `${repo}\n`);
+  await writeFile(join(stateRoot, "config.toml"), `${toml.join("\n")}\n`);
   return repo;
 }
 
@@ -100,8 +109,8 @@ test("Linux init requires a selected source and does not invent a default profil
   try {
     await expect(
       Effect.runPromise(runLinuxInit({ stateRoot, profile: "workstation" })),
-    ).rejects.toThrow(/No local outfitting\.json checkout or remote source is configured/);
-    await expect(readFile(join(stateRoot, "config.json"), "utf8")).rejects.toMatchObject({
+    ).rejects.toThrow(/No profile declarations are configured/);
+    await expect(readFile(join(stateRoot, "config.toml"), "utf8")).rejects.toMatchObject({
       code: "ENOENT",
     });
   } finally {
@@ -115,9 +124,9 @@ test("Linux init validates and persists a selected local BYOR checkout without a
   try {
     await Effect.runPromise(runLinuxInit({ stateRoot, repo, profile: "workstation-v2" }));
 
-    const config = JSON.parse(await readFile(join(stateRoot, "config.json"), "utf8"));
-    expect(config.linux.profile).toBe("workstation-v2");
-    expect(await readFile(join(stateRoot, "repo-path"), "utf8")).toBe(`${repo}\n`);
+    const config = await readFile(join(stateRoot, "config.toml"), "utf8");
+    expect(config).toContain('profile = "workstation-v2"');
+    expect(config).toContain(`path = ${JSON.stringify(repo)}`);
   } finally {
     await rm(stateRoot, { force: true, recursive: true });
     await rm(repo, { force: true, recursive: true });
@@ -199,6 +208,7 @@ describe("Linux package adapter", () => {
       await Effect.runPromise(
         updateLinux({
           config: {
+            configPath: join(stateRoot, "config.toml"),
             stateRoot,
             machineId: "test:x86_64-linux",
             machineIdOverridden: true,
@@ -228,12 +238,12 @@ describe("Linux package adapter", () => {
     });
     const calls: Array<{ command: string; args: ReadonlyArray<string> }> = [];
     let fetchCount = 0;
+    const configBefore = await readFile(join(stateRoot, "config.toml"), "utf8");
     try {
       await Effect.runPromise(
         runLinuxSetup({
           stateRoot,
           repo,
-          profile: "workstation-v2",
           ...managerTools(calls),
           fetcher: async () => {
             fetchCount += 1;
@@ -241,8 +251,7 @@ describe("Linux package adapter", () => {
           },
         }),
       );
-      const config = JSON.parse(await readFile(join(stateRoot, "config.json"), "utf8"));
-      expect(config.linux.profile).toBe("workstation-v2");
+      expect(await readFile(join(stateRoot, "config.toml"), "utf8")).toBe(configBefore);
     } finally {
       await rm(stateRoot, { force: true, recursive: true });
       await rm(repo, { force: true, recursive: true });
@@ -258,6 +267,36 @@ describe("Linux package adapter", () => {
       args: ["/usr/bin/apt", "install", "-y", "git"],
     });
     expect(calls.some(({ args }) => args.includes("vim"))).toBe(false);
+  });
+
+  test("a profile override applies only for the invocation and leaves TOML unchanged", async () => {
+    const stateRoot = await mkdtemp(join(tmpdir(), "outfitting-linux-profile-override-"));
+    const repo = await createLinuxRepo(stateRoot, {
+      "workstation-v2": { apt: "curl\n" },
+      "other-profile": { apt: "vim\n" },
+    });
+    const calls: Array<{ command: string; args: ReadonlyArray<string> }> = [];
+    const configBefore = await readFile(join(stateRoot, "config.toml"), "utf8");
+    try {
+      await Effect.runPromise(
+        runLinuxSetup({
+          stateRoot,
+          repo,
+          profile: "other-profile",
+          ...managerTools(calls),
+        }),
+      );
+      expect(await readFile(join(stateRoot, "config.toml"), "utf8")).toBe(configBefore);
+    } finally {
+      await rm(stateRoot, { force: true, recursive: true });
+      await rm(repo, { force: true, recursive: true });
+    }
+
+    expect(calls).toContainEqual({
+      command: "/usr/bin/sudo",
+      args: ["/usr/bin/apt", "install", "-y", "vim"],
+    });
+    expect(calls.some(({ args }) => args.includes("curl"))).toBe(false);
   });
 
   test("Linux prune removes only previously owned, unshared packages", async () => {
@@ -278,7 +317,16 @@ describe("Linux package adapter", () => {
       await Effect.runPromise(
         applyLinux({
           config: {
+            configPath: join(stateRoot, "config.toml"),
             stateRoot,
+            source: { kind: "local", path: repo },
+            declarations: {
+              schema: 1,
+              profiles: {
+                workstation: { linux: { apt: { manifest: "packages/workstation/apt.txt" } } },
+                server: { linux: { apt: { manifest: "packages/server/apt.txt" } } },
+              },
+            },
             machineId: "test:x86_64-linux",
             machineIdOverridden: true,
           },

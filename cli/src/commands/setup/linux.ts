@@ -5,7 +5,6 @@ import {
   linuxProfileFlag,
   optionalString,
   requestedLinuxPackageManager,
-  requireLinuxProfile,
 } from "@/commands/linux-flags";
 import { runLinuxInit, runLinuxSetup } from "@/setup/linux";
 
@@ -16,7 +15,7 @@ const machineIdFlag = Flag.String("machine-id").pipe(
 
 const repoFlag = Flag.String("repo").pipe(
   Flag.optional,
-  Flag.withDescription("Local BYOR checkout; takes precedence over the remote BYOR map."),
+  Flag.withDescription("Local source path override for this invocation."),
 );
 
 const noRefreshFlag = Flag.Boolean("no-refresh").pipe(
@@ -36,7 +35,7 @@ export const linuxInitCommand = Command.make(
   ({ profile, machineId, repo, noRefresh }) => {
     const repoPath = optionalString(repo);
     return runLinuxInit({
-      profile: requireLinuxProfile(profile),
+      profile: optionalString(profile),
       machineId: optionalString(machineId),
       repo: repoPath,
       refreshSource: !noRefresh,
@@ -61,7 +60,7 @@ export const linuxSetupCommand = Command.make(
   ({ profile, machineId, repo, noRefresh, packageManager }) => {
     const repoPath = optionalString(repo);
     return runLinuxSetup({
-      profile: requireLinuxProfile(profile),
+      profile: optionalString(profile),
       machineId: optionalString(machineId),
       repo: repoPath,
       refreshSource: !noRefresh,

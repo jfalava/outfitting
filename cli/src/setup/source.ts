@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import {
   chmod,
   copyFile,
@@ -14,24 +15,17 @@ import { dirname, join } from "node:path";
 import { Schema } from "effect";
 
 import { sparseSourceRoot } from "@/config/paths";
+import { configuredProfile } from "@/config/profile";
 import type { ManagerConfig } from "@/config/types";
 import { classifyGitHubRepository, readGitHubBlobs, type ManifestFetcher } from "@/fetch/github";
 import type { HostPlatform } from "@/platform";
 import { runCommand } from "@/process";
 import {
-  byorMapMissingError,
-  localMapAsSourceFile,
-  readByorMap,
-  type ByorMap,
-} from "@/source/byor-map";
-import {
-  BYOR_CONTRACT_PATH,
   linuxPathsFromProfile,
   macosPathsFromProfile,
   selectByorProfile,
   selectMacosByorProfile,
   selectWindowsByorProfiles,
-  readByorContract,
   windowsPathsFromContract,
   validateLinuxByorSource,
   validateMacosByorSource,
@@ -39,6 +33,7 @@ import {
   type ByorContract,
   relativeSourcePath,
 } from "@/source/contract";
+import { isReservedSourcePath } from "@/source/reserved";
 
 export interface ByorSourceFile {
   path: string;
@@ -119,16 +114,20 @@ interface GitSourceFile {
 }
 
 interface ByorSourceMetadata {
+  format: "outfitting-source-v1";
   repository: string;
   ref: string;
   revision: string;
+  declarationHash: string;
 }
 
 const SOURCE_METADATA_PATH = ".outfitting-source.json";
 const ByorSourceMetadataSchema = Schema.Struct({
+  format: Schema.Literal("outfitting-source-v1"),
   repository: Schema.String,
   ref: Schema.String,
   revision: Schema.String,
+  declarationHash: Schema.String,
 });
 const decodeByorSourceMetadata = Schema.decodeUnknownSync(ByorSourceMetadataSchema);
 
@@ -154,18 +153,20 @@ function byorClosure(
   }
 }
 
-async function readLocalByorMap(stateRoot: string): Promise<ByorMap> {
-  const map = await readByorMap(stateRoot);
-  if (map === undefined) {
-    throw new Error(byorMapMissingError());
+function requiredContract(config: ManagerConfig): ByorContract {
+  if (config.declarations === undefined) {
+    throw new Error(`No profile declarations are configured in ${config.configPath}.`);
   }
-  return map;
+  return config.declarations;
 }
 
-function byorMapContract(map: ByorMap): ByorContract {
-  return map.windows === undefined
-    ? { schema: map.schema, profiles: map.profiles }
-    : { schema: map.schema, windows: map.windows, profiles: map.profiles };
+function declarationHash(options: ByorSparseSourceOptions, contract: ByorContract): string {
+  const hashInput = JSON.stringify({
+    contract: selectedContract(contract, options),
+    platform: options.platform,
+    profile: configuredProfile(options.config, options.platform, options.profile),
+  });
+  return createHash("sha256").update(hashInput).digest("hex");
 }
 
 function withinPath(path: string, root: string): boolean {
@@ -214,12 +215,19 @@ function selectGitTreeEntries(
       throw new Error(`Git path \`${root}\` is missing or empty.`);
     }
   }
-  const selected = entries.filter((entry) => roots.some((root) => withinPath(entry.path, root)));
+  for (const root of roots) {
+    if (isReservedSourcePath(root)) {
+      throw new Error(
+        `Git path \`${root}\` is reserved for machine configuration and runtime state.`,
+      );
+    }
+  }
+  const selected = entries.filter(
+    (entry) =>
+      roots.some((root) => withinPath(entry.path, root)) && !isReservedSourcePath(entry.path),
+  );
   for (const entry of selected) {
     relativeSourcePath(entry.path, "Git tree path");
-    if (entry.path === SOURCE_METADATA_PATH) {
-      throw new Error(`Git path \`${SOURCE_METADATA_PATH}\` is reserved for source metadata.`);
-    }
     if (entry.type !== "blob" || !["100644", "100755"].includes(entry.mode)) {
       throw new Error(
         `Unsupported Git entry ${entry.path} (${entry.mode}). Remote BYOR sources cannot contain symlinks or submodules in selected paths.`,
@@ -287,16 +295,17 @@ function selectedContract(contract: ByorContract, options: ByorSparseSourceOptio
     }
     case "windows": {
       const selected = selectWindowsByorProfiles(contract, options.profile?.split(","));
-      const result: ByorContract = {
+      const { defaultProfiles: _defaultProfiles, ...shared } = contract.windows ?? {};
+      const narrowedContract: ByorContract = {
         schema: 1,
         profiles: Object.fromEntries(
           selected.names.map((name) => [name, { windows: contract.profiles[name]!.windows! }]),
         ),
       };
-      if (contract.windows !== undefined) {
-        result.windows = { ...contract.windows, defaultProfiles: selected.names };
+      if (Object.keys(shared).length > 0) {
+        narrowedContract.windows = shared;
       }
-      return result;
+      return narrowedContract;
     }
   }
 }
@@ -304,24 +313,27 @@ function selectedContract(contract: ByorContract, options: ByorSparseSourceOptio
 async function stageByorFiles(args: {
   staged: string;
   options: ByorSparseSourceOptions;
-  map: ByorMap;
   contract: ByorContract;
   paths: ReadonlyArray<string>;
 }): Promise<ByorSourceFile[]> {
-  const { staged, options, map, contract, paths } = args;
+  const { staged, options, contract, paths } = args;
+  if (options.config.source?.kind !== "remote") {
+    throw new Error("Remote source is not configured in config.toml.");
+  }
+  const { repository, ref } = options.config.source;
   const run = options.run ?? runCommand;
-  const repository = classifyGitHubRepository(map.repository);
+  const githubRepository = classifyGitHubRepository(repository);
   let files: GitSourceFile[];
-  if (repository !== undefined) {
+  if (githubRepository !== undefined) {
     const githubFiles = await readGitHubBlobs({
-      repository,
-      ref: map.ref,
+      repository: githubRepository,
+      ref,
       paths,
       run,
       fetcher: options.fetcher,
     });
     for (const file of githubFiles) {
-      if (file.path === BYOR_CONTRACT_PATH) {
+      if (isReservedSourcePath(file.path)) {
         continue;
       }
       const destination = join(staged, file.path);
@@ -334,25 +346,32 @@ async function stageByorFiles(args: {
       revision: file.revision,
     }));
   } else {
+    const source = options.config.source;
+    if (source?.kind !== "remote") {
+      throw new Error("Remote source is not configured in config.toml.");
+    }
     files = await copyGitSourceFiles({
-      repository: map.repository,
-      ref: map.ref,
+      repository: source.repository,
+      ref: source.ref,
       paths,
       run,
       staged,
     });
   }
-  const revision = files[0]?.revision;
+  const revision = files.find((file) => !isReservedSourcePath(file.path))?.revision;
   if (revision === undefined) {
-    throw new Error("The selected BYOR contract does not resolve to any repository files.");
+    throw new Error("The selected profile declarations do not resolve to any repository files.");
   }
-  // The local map owns profile selection, even when fetching a root flake.
-  const mapFile = localMapAsSourceFile(contract);
-  await writeFile(join(staged, mapFile.path), mapFile.body);
-  const metadata: ByorSourceMetadata = { repository: map.repository, ref: map.ref, revision };
+  const metadata: ByorSourceMetadata = {
+    format: "outfitting-source-v1",
+    repository,
+    ref,
+    revision,
+    declarationHash: declarationHash(options, contract),
+  };
   await writeFile(join(staged, SOURCE_METADATA_PATH), `${JSON.stringify(metadata, null, 2)}\n`);
   return files
-    .filter((file) => file.path !== BYOR_CONTRACT_PATH)
+    .filter((file) => !isReservedSourcePath(file.path))
     .map((file) => ({ path: file.path, source: "network" }));
 }
 
@@ -370,16 +389,21 @@ async function readSourceMetadata(root: string): Promise<ByorSourceMetadata> {
   }
 }
 
-async function validateByorSource(root: string, options: ByorSparseSourceOptions): Promise<void> {
+async function validateByorSource(
+  root: string,
+  options: ByorSparseSourceOptions,
+  contract: ByorContract,
+): Promise<void> {
+  const profile = configuredProfile(options.config, options.platform, options.profile);
   switch (options.platform) {
     case "linux":
-      await validateLinuxByorSource({ root, profile: options.profile });
+      await validateLinuxByorSource({ root, profile, contract });
       break;
     case "macos":
-      await validateMacosByorSource({ root, profile: options.profile });
+      await validateMacosByorSource({ root, profile, contract });
       break;
     case "windows":
-      await validateWindowsByorSource({ root, profiles: options.profile?.split(",") });
+      await validateWindowsByorSource({ root, profiles: profile?.split(","), contract });
       break;
   }
 }
@@ -392,25 +416,35 @@ export async function syncByorSparseSource(
   options: ByorSparseSourceOptions,
 ): Promise<ByorSourceResult> {
   const target = options.sourceRoot ?? sparseSourceRoot(options.config.stateRoot);
-  const map = await readLocalByorMap(options.config.stateRoot);
+  if (options.config.source?.kind !== "remote") {
+    throw new Error(`A remote [source] is required in ${options.config.configPath}.`);
+  }
+  const contract = requiredContract(options.config);
+  const profile = configuredProfile(options.config, options.platform, options.profile);
+  const selectedOptions = { ...options, profile };
+  const currentDeclarationHash = declarationHash(selectedOptions, contract);
   if (options.offline) {
     const metadata = await readSourceMetadata(target);
-    if (metadata.repository !== map.repository || metadata.ref !== map.ref) {
+    if (
+      metadata.repository !== options.config.source.repository ||
+      metadata.ref !== options.config.source.ref ||
+      metadata.declarationHash !== currentDeclarationHash
+    ) {
       throw new Error(
-        `The cached BYOR source belongs to ${metadata.repository}@${metadata.ref}, not ${map.repository}@${map.ref}.`,
+        `The cached source does not match the current repository, ref, and profile declarations in ${options.config.configPath}. Refresh it before using offline mode.`,
       );
     }
-    await validateByorSource(target, options);
-    const paths = byorClosure(await readByorContract(target), options.platform, options.profile);
+    await validateByorSource(target, selectedOptions, contract);
+    const paths = byorClosure(contract, options.platform, profile);
     return { root: target, files: paths.map((path) => ({ path, source: "cache" })) };
   }
-  const contract = selectedContract(byorMapContract(map), options);
-  const paths = byorClosure(contract, options.platform, options.profile);
+  const selected = selectedContract(contract, selectedOptions);
+  const paths = byorClosure(selected, options.platform, profile);
   await mkdir(dirname(target), { recursive: true });
   const staged = await mkdtemp(join(dirname(target), ".outfitting-source-"));
   try {
-    const files = await stageByorFiles({ staged, options, map, contract, paths });
-    await validateByorSource(staged, options);
+    const files = await stageByorFiles({ staged, options: selectedOptions, contract, paths });
+    await validateByorSource(staged, selectedOptions, contract);
     await replaceSourceTree(staged, target);
     return { root: target, files };
   } catch (cause) {

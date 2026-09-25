@@ -16,25 +16,6 @@ Write-Host "❖ Installing Windows registry tweaks..." -ForegroundColor Cyan
 
 $manifestBaseUrl = $env:OUTFITTING_MANIFEST_BASE_URL
 $manifestRef = $env:OUTFITTING_MANIFEST_REF
-$outfittingStateRoot = if ([string]::IsNullOrWhiteSpace($env:OUTFITTING_STATE_ROOT)) {
-    Join-Path $(if ($env:LOCALAPPDATA) { $env:LOCALAPPDATA } else { "$env:USERPROFILE/AppData/Local" }) "outfitting"
-} else {
-    $env:OUTFITTING_STATE_ROOT
-}
-$configPath = Join-Path $outfittingStateRoot "config.json"
-if (([string]::IsNullOrWhiteSpace($manifestBaseUrl) -or [string]::IsNullOrWhiteSpace($manifestRef)) -and (Test-Path -LiteralPath $configPath -PathType Leaf)) {
-    try {
-        $config = Get-Content -LiteralPath $configPath -Raw | ConvertFrom-Json
-        if ([string]::IsNullOrWhiteSpace($manifestBaseUrl)) {
-            $manifestBaseUrl = [string]$config.manifest.baseUrl
-        }
-        if ([string]::IsNullOrWhiteSpace($manifestRef)) {
-            $manifestRef = [string]$config.manifest.ref
-        }
-    } catch {
-        # Keep defaults; the manager reports invalid config files during init.
-    }
-}
 if ([string]::IsNullOrWhiteSpace($manifestBaseUrl)) {
     $manifestBaseUrl = "https://raw.githubusercontent.com/jfalava/outfitting"
 }
@@ -54,17 +35,6 @@ try {
     $githubApiUrl = $null
 }
 $registryRoute = "system/windows/registry"
-if (Test-Path -LiteralPath $configPath -PathType Leaf) {
-    try {
-        $config = Get-Content -LiteralPath $configPath -Raw | ConvertFrom-Json
-        $property = $config.windows.PSObject.Properties["registryPath"]
-        if ($null -ne $property -and -not [string]::IsNullOrWhiteSpace([string]$property.Value)) {
-            $registryRoute = ([string]$property.Value).Trim().Trim("/")
-        }
-    } catch {
-        # Keep the default registry route.
-    }
-}
 $regFilePaths = @()
 $validRegFiles = @()
 

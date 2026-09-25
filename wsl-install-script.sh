@@ -23,6 +23,7 @@ error() { echo -e "${RED}✗${NC} $1"; }
 
 ################################### Configuration
 MODE="nix"  # nix (default), full, apt-only
+REPO_PATH="${OUTFITTING_REPO:-$HOME/.config/outfitting/repo}"
 #################################################
 
 ########## Parse arguments for the install script
@@ -152,19 +153,15 @@ configure_repo() {
         }
     fi
 
-    local repo_path="$HOME/.config/outfitting/repo"
-    local config_dir="$HOME/.config/outfitting"
-    local config_file="$config_dir/repo-path"
-
-    if [ -d "$repo_path/.git" ]; then
-        success "Repository exists at: $repo_path"
-    elif [ -d "$repo_path" ]; then
-        error "Directory exists but is not a git repo: $repo_path"
+    if [ -d "$REPO_PATH/.git" ]; then
+        success "Repository exists at: $REPO_PATH"
+    elif [ -d "$REPO_PATH" ]; then
+        error "Directory exists but is not a git repo: $REPO_PATH"
         return 1
     else
         info "Cloning repository..."
-        mkdir -p "$(dirname "$repo_path")"
-        if git clone https://github.com/jfalava/outfitting.git "$repo_path"; then
+        mkdir -p "$(dirname "$REPO_PATH")"
+        if git clone https://github.com/jfalava/outfitting.git "$REPO_PATH"; then
             success "Repository cloned"
         else
             error "Failed to clone repository"
@@ -172,11 +169,7 @@ configure_repo() {
         fi
     fi
 
-    mkdir -p "$config_dir"
-    echo "$repo_path" > "$config_file"
-    chmod 600 "$config_file"
-
-    echo "✓ Repository location configured successfully!"
+    echo "✓ Repository ready at $REPO_PATH"
     return 0
 }
 #################################################
@@ -187,14 +180,12 @@ echo ""
 setup_symlinks() {
     echo "❖ Setting up Home Manager configuration symlinks and backing up existing dotfiles..."
 
-    config_file="$HOME/.config/outfitting/repo-path"
-    if [ ! -f "$config_file" ]; then
-        echo "❖ Error: Repository not configured. Cannot create symlinks."
+    if [ ! -d "$REPO_PATH/system/ubuntu-wsl" ]; then
+        echo "❖ Error: WSL source unavailable at $REPO_PATH/system/ubuntu-wsl (set OUTFITTING_REPO)."
         return 1
     fi
 
-    repo_path=$(cat "$config_file")
-    hm_target="$repo_path/system/ubuntu-wsl"
+    hm_target="$REPO_PATH/system/ubuntu-wsl"
 
     # Create ~/.config directory if it doesn't exist
     mkdir -p "$HOME/.config"
@@ -279,15 +270,12 @@ install_home_manager() {
         return 1
     fi
 
-    local config_file="$HOME/.config/outfitting/repo-path"
-    if [ ! -f "$config_file" ]; then
-        error "Repository not configured"
+    if [ ! -d "$REPO_PATH/system/ubuntu-wsl" ]; then
+        error "WSL source unavailable at $REPO_PATH/system/ubuntu-wsl (set OUTFITTING_REPO)"
         return 1
     fi
 
-    local repo_path flake_path
-    repo_path=$(cat "$config_file")
-    flake_path="$repo_path/system/ubuntu-wsl"
+    local flake_path="$REPO_PATH/system/ubuntu-wsl"
 
     info "Installing Home Manager..."
 
