@@ -1,0 +1,21 @@
+---
+title: scoop
+description: Install or remove packages through Scoop and track the operations.
+audience: windows
+sidebar:
+  order: 170
+---
+
+`scoop` is available in the Windows manager build. Operations are recorded in `windows.lock.json` and pushed by default. `--no-push` keeps the updated lock local.
+
+## `install`
+
+**Syntax:** `outfitting-manager scoop install <package...> [--no-push]`
+
+Installs and tracks one or more Scoop package names.
+
+## `uninstall`
+
+**Syntax:** `outfitting-manager scoop uninstall <package...> [--no-push]`
+
+Removes and tracks one or more Scoop package names.

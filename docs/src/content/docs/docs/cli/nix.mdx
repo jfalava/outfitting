@@ -1,19 +1,33 @@
 ---
-title: Nix
-description: Build, test, dry-run, or activate configured Nix profiles.
+title: nix
+description: Build, test, dry-run, or activate the configured Nix profile.
 sidebar:
-  order: 7
+  order: 60
 ---
 
-`nix` owns Nix build and activation actions on macOS and Linux. It is separate from native package [`update`](/docs/cli/update/) and declaration [`apply`](/docs/cli/apply/). A bare `nix` command lists actions and does not run one.
+`nix` is available on macOS and Linux. It operates on the selected `config.toml` profile. A bare `nix` command lists actions without running one. Successful actions publish related Nix lock state unless `--no-push` is set.
 
-```bash
-outfitting-manager nix build
-outfitting-manager nix test
-outfitting-manager nix dry-run
-outfitting-manager nix switch
-```
+## `build`
 
-Each action accepts `--profile <profile>`, `--no-refresh`, and `--no-push`. Linux actions also accept `--if-configured`, which skips when the selected profile has no Nix flake; Linux bootstrap scripts use it because Nix is optional. The profile defaults to the selection in `config.toml`. `--no-refresh` reuses the configured local source or previously validated remote snapshot. Successful actions publish related Nix lock state by default; `--no-push` keeps it local.
+Builds the configured system without activating it. On Linux, builds the Home Manager activation package; on macOS, builds the nix-darwin system.
 
-On macOS, `switch` builds and activates nix-darwin. On Linux, it builds and activates the selected Home Manager profile. Linux Nix profiles use their checked-in `flake.lock`; source refresh does not run `nix flake update`.
+## `switch`
+
+Builds and activates the selected Home Manager profile on Linux or nix-darwin system on macOS.
+
+## `test`
+
+Test-builds the configured system without activating it.
+
+## `dry-run`
+
+Runs the Nix dry-run build without activating the configured system.
+
+## Options
+
+| Option | Availability | Description |
+| --- | --- | --- |
+| `--profile <profile>` | macOS, Linux | Override the platform profile selected in `config.toml`. |
+| `--no-refresh` | macOS, Linux | Use the local source without fetching remote changes. |
+| `--no-push` | macOS, Linux | Keep successful Nix lock changes local. |
+| `--if-configured` | Linux | Skip when the selected profile declares no Nix flake. |

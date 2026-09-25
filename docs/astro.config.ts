@@ -8,37 +8,16 @@ import { defineConfig } from "astro/config";
 
 const nimbusConfig = defineNimbusConfig({
   site: "https://outfitting.jfa.dev",
-  title: "Outfitting by JFA",
-  description:
-    "Automated setup scripts, dotfiles, and Cloudflare Workers for provisioning development environments.",
+  title: "Outfitting CLI Reference",
+  description: "Command-line reference for the outfitting-manager CLI.",
   locale: "en",
   github: "https://github.com/jfalava/outfitting",
   socialImageAlt: "Outfitting documentation",
   sidebar: {
     items: [
       {
-        label: "Windows",
-        items: [{ autogenerate: { directory: "docs/windows" } }],
-      },
-      {
-        label: "Linux",
-        items: [{ autogenerate: { directory: "docs/linux" } }],
-      },
-      {
-        label: "macOS",
-        items: [{ autogenerate: { directory: "docs/macos" } }],
-      },
-      {
         label: "CLI",
-        items: [{ autogenerate: { directory: "docs/cli" }, collapsed: true }],
-      },
-      {
-        label: "Source configuration",
-        items: [{ autogenerate: { directory: "docs/source-configuration" } }],
-      },
-      {
-        label: "Architecture",
-        items: [{ autogenerate: { directory: "docs/architecture" } }],
+        items: [{ autogenerate: { directory: "docs/cli" } }],
       },
     ],
   },

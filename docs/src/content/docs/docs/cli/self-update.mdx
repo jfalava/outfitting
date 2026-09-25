@@ -1,28 +1,16 @@
 ---
-title: Self-update
-description: Install the latest compiled outfitting-manager release.
+title: self-update
+description: Update the installed outfitting-manager executable.
 sidebar:
-  order: 13
+  order: 100
 ---
 
-`self-update` checks the latest GitHub release for the current platform, verifies its checksum, and replaces the installed compiled binary. It updates the manager itself, not packages managed by Outfitting.
+**Syntax:** `outfitting-manager self-update`
 
-## `self-update`
+Checks the latest GitHub release for the current platform, verifies its checksum, and replaces the installed compiled manager binary. It does not update packages managed by Outfitting.
 
-```bash
-outfitting-manager self-update
-```
-
-Run this from the installed release binary, not from Bun source. Verify the new version afterward:
-
-```bash
-outfitting-manager --version
-```
-
-## Platform differences
-
-| Platform | Replacement behavior                                                                                         | Notes                                                                                                      |
-| -------- | ------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------- |
-| macOS    | Replaces the current executable and restores its executable bit.                                             | If macOS reports a quarantine warning, remove the browser quarantine attribute from the downloaded binary. |
-| Windows  | Writes a temporary `.exe` and uses a hidden PowerShell process to replace the running executable after exit. | Run a new PowerShell session before checking `outfitting-manager --version`.                               |
-| Linux    | Replaces the current executable and restores its executable bit.                                             | The release archive is selected for Linux x64 or arm64.                                                    |
+| Platform | Replacement behavior |
+| --- | --- |
+| macOS | Replaces the executable and restores its executable bit. |
+| Linux | Replaces the executable and restores its executable bit; release assets target x64 and arm64. |
+| Windows | Writes a temporary executable and replaces the running executable after the process exits. |

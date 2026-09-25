@@ -1,15 +1,25 @@
 ---
-title: Init
-description: Prepare local state and refresh the configured source.
+title: init
+description: Prepare local state and validate the selected source.
 sidebar:
-  order: 9
+  order: 50
 ---
 
-`init` prepares runtime state, refreshes a configured remote source by default, and validates the selected source declared in [config.toml](/docs/source-configuration/). It does not install, upgrade, remove, or activate packages. Use [`validate`](/docs/cli/validate/) later to check config and the cached source without refreshing it.
+**Syntax:** `outfitting-manager init [flags]`
 
-```bash
-outfitting-manager init
-outfitting-manager --config ~/machine/config.toml init
-```
+`init` prepares runtime state and validates the selected source. It refreshes a configured remote source by default. It does not install, upgrade, remove, or activate packages.
 
-Set `[source] path` for a local checkout, or `repository` and `ref` for remote Git. The selected platform profile comes from `[linux] profile`, `[macos] profile`, or `[windows] profiles`. Remote `--no-refresh` reuses an existing validated `source/` snapshot; local sources are read directly.
+| Option | Description |
+| --- | --- |
+| `--machine-id <id>` | Override the machine ID. The default is derived from user, architecture, and OS. |
+| `--repo <path>` | Override the local source path for this invocation. |
+| `--profile <profile>` | Select the platform profile; Windows accepts a comma-separated list. Defaults to the configured selection. |
+| `--no-refresh` | Validate and use the existing source snapshot without refreshing it. |
+
+## Platform behavior
+
+| Platform | State prepared |
+| --- | --- |
+| macOS | State root and selected source; no Nix activation or Homebrew changes. |
+| Linux | State root and selected source; no native package or Home Manager changes. |
+| Windows | State root and selected source. |

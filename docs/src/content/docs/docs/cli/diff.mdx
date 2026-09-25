@@ -1,0 +1,26 @@
+---
+title: diff
+description: Compare live platform package state with configured declarations.
+sidebar:
+  order: 30
+---
+
+**Syntax:** `outfitting-manager diff [flags]`
+
+`diff` is read-only. It compares platform state with the configured source and returns a nonzero status when differences are found or a required comparison is unavailable.
+
+| Option | Description |
+| --- | --- |
+| `--manager <name>` | Compare one package manager instead of all managers for the platform. |
+| `--profile <profile>` | Select a profile; Windows accepts comma-separated profiles and Linux accepts one. |
+| `--offline` | Use the validated local source snapshot and skip the remote Nix comparison. |
+| `--refresh` | Linux only: refresh the selected source before comparing. |
+| `--json` | Print the comparison result as JSON. |
+
+## Platform comparison scope
+
+| Platform | Compared state |
+| --- | --- |
+| macOS | Homebrew and Nix system state. |
+| Linux | Declared apt or pacman packages; unrelated installed packages are ignored. |
+| Windows | WinGet and Scoop state. |

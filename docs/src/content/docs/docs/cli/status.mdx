@@ -1,24 +1,16 @@
 ---
-title: Status
-description: Show effective Outfitting configuration without changing anything.
+title: status
+description: Inspect platform, profile, configuration paths, and source state.
 sidebar:
-  order: 4
+  order: 130
 ---
 
-`status` is read-only. It reports the platform, active [profile selection](/docs/source-configuration/), config path, [machine ID](/docs/source-configuration/#machine-id), and source checkout state. It does not fetch declarations, inspect for package upgrades, write configuration, or contact the lockfile Worker.
+**Syntax:** `outfitting-manager status`
 
-```bash
-outfitting-manager status
-```
+Read-only inspection of the platform, active profile, configuration path, machine ID, source selection, source checkout state, and remote-source cache validity. It does not fetch a source, inspect package upgrades, write configuration, or contact the lockfiles Worker.
 
-Run `status` before `apply` to verify your active profile, machine ID, and source configuration.
-
-`status` checks the configured local checkout or validated remote snapshot. For a local checkout with Git metadata, it reports the current branch and whether the working tree is clean or dirty. For a remote source, it reports the configured repository/ref selection. The manager does not infer a built-in source.
-
-## Platform differences
-
-| Platform | Profile field                  | Source state                                         |
-| -------- | ------------------------------ | ---------------------------------------------------- |
-| macOS    | Selected macOS profile         | Local checkout or explicitly mapped remote snapshot. |
-| Windows  | Comma-composed profile bundles | Local checkout or explicitly mapped remote snapshot. |
-| Linux    | One active Linux profile       | Local checkout or explicitly mapped remote snapshot. |
+| Platform | Profile selection |
+| --- | --- |
+| Linux | One active Linux profile. |
+| macOS | One active macOS profile. |
+| Windows | Comma-composed Windows profiles. |

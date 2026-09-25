@@ -1,73 +1,60 @@
 ---
-title: Fonts
-description: Manage the private font archive.
+title: fonts
+description: Manage private fonts stored in the R2 archive.
 sidebar:
-  order: 11
+  order: 40
 ---
 
-`fonts` lists, publishes, and removes licensed fonts stored in the private R2 archive. Incoming files must be OpenType (`.otf`, `.ttf`, or `.ttc`).
+`fonts` configures access to the private R2 font archive, reads its inventory, and publishes or removes OpenType font faces.
 
-## `fonts configure-endpoint`
+## `configure-endpoint`
 
-Store an R2 S3 HTTPS endpoint or Cloudflare account id:
+**Syntax:** `outfitting-manager fonts configure-endpoint [<endpoint>]`
 
-```bash
-outfitting-manager fonts configure-endpoint
-outfitting-manager fonts configure-endpoint <account-id-or-endpoint>
-```
+Stores the R2 S3 endpoint in the OS keychain. The optional endpoint is an HTTPS endpoint or a 32-character Cloudflare account ID.
 
-## `fonts configure-credentials`
+## `configure-credentials`
 
-Prompt for and store the R2 access key and secret:
+**Syntax:** `outfitting-manager fonts configure-credentials`
 
-```bash
-outfitting-manager fonts configure-credentials
-```
+Prompts for and stores R2 S3 access keys in the OS keychain.
 
-## `fonts list`
+## `list`
 
-List published font faces. Use `--repopulate` to rebuild the inventory from the live archive first:
+**Syntax:** `outfitting-manager fonts list [--repopulate]`
 
-```bash
-outfitting-manager fonts list
-outfitting-manager fonts list --repopulate
-```
+Lists private font faces from the lockfiles inventory. `--repopulate` rebuilds that inventory from the live R2 archive before listing.
 
-## `fonts repopulate`
+## `repopulate`
 
-Rebuild the lockfiles inventory from the live R2 archive. Use `--dry-run` to compare without writing:
+**Syntax:** `outfitting-manager fonts repopulate [--dry-run]`
 
-```bash
-outfitting-manager fonts repopulate --dry-run
-outfitting-manager fonts repopulate
-```
+Rebuilds the lockfiles inventory from the live R2 font archive. `--dry-run` compares archive and inventory without writing.
 
-## `fonts publish`
+## `publish`
 
-Merge fonts from a directory into the archive:
+**Syntax:** `outfitting-manager fonts publish <dir> [flags]`
 
-```bash
-outfitting-manager fonts publish ~/Downloads/ibm-plex-sans --dry-run
-outfitting-manager fonts publish ~/Downloads/ibm-plex-sans --yes
-```
+Merges OpenType fonts from a directory into the private archive.
 
-Use `--replace` to overwrite an existing archive path, `--keep-names` to keep sanitized filenames, `--allow-system-names` for reserved families, and `--repopulate` to refresh inventory first.
+| Option | Description |
+| --- | --- |
+| `--dry-run` | Print the planned face changes without writing the archive or lockfiles. |
+| `--yes` | Skip the confirmation prompt. |
+| `--replace` | Allow overwriting an existing archive path. |
+| `--keep-names` | Sanitize source filenames instead of using OpenType family/style paths. |
+| `--allow-system-names` | Allow reserved system family names. |
+| `--repopulate` | Rebuild the inventory from the live archive before publishing. |
 
-## `fonts remove`
+## `remove`
 
-Remove faces by family, archive path, or PostScript name:
+**Syntax:** `outfitting-manager fonts remove <name...> [flags]`
 
-```bash
-outfitting-manager fonts remove ibm-plex-sans --family --dry-run
-outfitting-manager fonts remove ibm-plex-sans --family --yes
-```
+Removes faces identified by family slug, archive path, or PostScript name.
 
-Use `--family` to remove whole families. `--dry-run`, `--yes`, and `--repopulate` have the same meaning as for `publish`.
-
-## Platform differences
-
-| Platform | Availability | Difference                                                                         |
-| -------- | ------------ | ---------------------------------------------------------------------------------- |
-| macOS    | Available    | Fonts can be installed by the macOS post-install workflow after publishing.        |
-| Windows  | Available    | Fonts can be extracted by the Windows post-install workflow after publishing.      |
-| Linux    | Available    | The archive operations are the same; installation is outside this command's scope. |
+| Option | Description |
+| --- | --- |
+| `--family` | Treat each name as a whole family to remove. |
+| `--dry-run` | Print the planned face changes without writing the archive or lockfiles. |
+| `--yes` | Skip the confirmation prompt. |
+| `--repopulate` | Rebuild the inventory from the live archive before removing faces. |

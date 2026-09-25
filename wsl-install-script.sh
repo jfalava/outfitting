@@ -3,7 +3,7 @@
 #############################################
 ########################## WSL Install Script
 #############################################
-# Modes: refer to https://outfitting.jfa.dev/docs/wsl
+# Manager commands: https://outfitting.jfa.dev/docs/cli/
 #############################################
 
 set -euo pipefail

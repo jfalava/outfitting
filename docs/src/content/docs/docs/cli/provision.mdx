@@ -1,33 +1,29 @@
 ---
-title: Provision
+title: provision
 description: Deploy the Outfitting infrastructure stack.
 sidebar:
-  order: 12
+  order: 70
 ---
 
-`provision` runs the Alchemy deployment from the monorepo's `iac/` directory, then stores the sync Worker URL and token in the OS keychain unless asked not to.
+**Syntax:** `outfitting-manager provision [flags]`
 
-## `provision`
+Deploys the Outfitting Alchemy stack. Unless `--skip-configure` is set, stores the lockfiles Worker URL and token in the OS keychain after deployment. CLI flags override environment variables and deployment configuration values. `--docs` and `--no-docs` are mutually exclusive.
 
-Run it from the repository root:
-
-```bash
-outfitting-manager provision
-outfitting-manager provision --no-docs --stack-name OutfittingDev
-```
-
-Copy `iac/outfitting.deploy.example.json` to `outfitting.deploy.json` when you need a repeatable configuration:
-
-```bash
-outfitting-manager provision --config ./outfitting.deploy.json
-```
-
-CLI flags override environment variables, which override the config file, which overrides defaults. Important flags include `--domain`, `--docs`/`--no-docs`, `--stack-name`, `--api-name`, `--router-name`, `--docs-name`, `--installer-name`, `--database-name`, `--kv-title`, `--private-fonts`, `--installer-hosts`, `--token`, and `--skip-configure`.
-
-## Platform differences
-
-| Platform | Invocation                     | Difference                                                                                                                                     |
-| -------- | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| macOS    | `outfitting-manager provision` | Uses the macOS keychain when storing credentials.                                                                                              |
-| Windows  | `outfitting-manager provision` | Uses the Windows credential store through Bun secrets.                                                                                         |
-| Linux    | `outfitting-manager provision` | Keychain storage may require `libsecret`; use `OUTFITTING_LOCKFILES_URL` and `OUTFITTING_LOCKFILES_TOKEN` when no Secret Service is available. |
+| Option | Description |
+| --- | --- |
+| `--deploy-config <path>` | Select the deployment JSON configuration file. |
+| `--domain <hostname>` | Set the router apex hostname; an empty value clears the configured default. |
+| `--docs` | Force deployment of the docs StaticSite and worker. |
+| `--no-docs` | Omit the docs StaticSite and worker. |
+| `--stack-name <name>` | Set the Alchemy stack name. |
+| `--api-name <name>` | Set the API Worker name. |
+| `--router-name <name>` | Set the router Worker name. |
+| `--docs-name <name>` | Set the docs Worker name. |
+| `--docs-assets-name <name>` | Set the docs StaticSite name. |
+| `--installer-name <name>` | Set the installer Worker name. |
+| `--database-name <name>` | Set the D1 database name. |
+| `--kv-title <title>` | Set the KV namespace title. |
+| `--private-fonts <bucket>` | Set the R2 private-fonts bucket name. |
+| `--installer-hosts <hosts>` | Set comma-separated installer host aliases. |
+| `--token <value>` | Set the lockfiles API token; defaults to the environment value or a generated token. |
+| `--skip-configure` | Do not store the Worker URL or token in the OS keychain. |

@@ -1,0 +1,21 @@
+---
+title: winget
+description: Install or remove packages through WinGet and track the operations.
+audience: windows
+sidebar:
+  order: 180
+---
+
+`winget` is available in the Windows manager build. Operations are recorded in `windows.lock.json` and pushed by default. `--no-push` keeps the updated lock local.
+
+## `install`
+
+**Syntax:** `outfitting-manager winget install <package...> [--no-push]`
+
+Installs and tracks one or more WinGet package IDs.
+
+## `uninstall`
+
+**Syntax:** `outfitting-manager winget uninstall <package...> [--no-push]`
+
+Removes and tracks one or more WinGet package IDs.

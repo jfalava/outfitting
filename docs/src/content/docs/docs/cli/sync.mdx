@@ -1,85 +1,50 @@
 ---
-title: Sync
-description: Push, pull, and inspect remote machine state.
+title: sync
+description: Push, pull, and inspect remote lock snapshots.
 sidebar:
-  order: 3
+  order: 140
 ---
 
-`sync` is the same remote-state transport on macOS, Windows, and Linux. It never installs, upgrades, or removes packages. There is no top-level `lockfiles` alias.
+`sync` transports remote lock snapshots on all platforms. It does not install, upgrade, or remove packages. The machine ID is resolved from configuration and environment; it is not a positional argument.
 
-## Invoke `sync`
+## `configure-worker`
 
-```bash
-outfitting-manager sync <subcommand> [flags]
-```
+**Syntax:** `outfitting-manager sync configure-worker [<url>]`
 
-Sync uses the configured [machine ID](/docs/source-configuration/#machine-id); it is not a positional argument.
+Stores the lockfiles Worker URL in the OS keychain. The optional URL is the deployed Worker endpoint. `OUTFITTING_LOCKFILES_URL` may be used when keychain storage is unavailable and takes precedence over the stored value.
 
-All subcommands below are available on every platform. Configure the Worker and token once before pushing or pulling.
+## `configure-token`
 
-### `sync configure-worker`
+**Syntax:** `outfitting-manager sync configure-token`
 
-Store the lockfiles Worker URL.
+Prompts for and stores the Worker API token in the OS keychain. `OUTFITTING_LOCKFILES_TOKEN` may be used when keychain storage is unavailable and takes precedence over the stored value.
 
-```bash
-outfitting-manager sync configure-worker https://example.com/api
-```
+## `push`
 
-### `sync configure-token`
+**Syntax:** `outfitting-manager sync push [<kind>] [<path>] [--if-match <sha256>]`
 
-Prompt for and store the Worker API token.
+Uploads and promotes one lock snapshot or scans known local lock paths and uploads those that exist. A path is required when one kind is selected and omitted when kind is `all`.
 
-```bash
-outfitting-manager sync configure-token
-```
+| Argument or option | Description |
+| --- | --- |
+| `<kind>` | Lockfile kind; omitted or `all` selects all known local lock paths. |
+| `<path>` | Source file for a single kind. |
+| `--if-match <sha256>` | Promote only if the current remote hash matches the expected SHA-256. |
 
-On headless Linux systems without `libsecret` and a running Secret Service, use environment variables instead:
+## `pull`
 
-```bash
-export OUTFITTING_LOCKFILES_URL="https://outfitting.jfa.dev/api"
-export OUTFITTING_LOCKFILES_TOKEN="..."
-```
+**Syntax:** `outfitting-manager sync pull [<kind>] [<out-path>]`
 
-Environment values take precedence over keychain values.
+Downloads one lock snapshot or all tracked kinds. Known kinds use their default output path when no path is supplied. An explicit output path is not valid with kind `all`.
 
-### `sync push`
+## `list`
 
-Upload a local lockfile. An explicit kind requires a file path. Omit the kind, or pass `all`, to scan known lock paths relative to the current working directory, not the Outfitting state root.
+**Syntax:** `outfitting-manager sync list`
 
-```bash
-outfitting-manager sync push nix updated-flake.lock
-outfitting-manager sync push homebrew-inventory ~/.config/outfitting/homebrew-inventory.txt
-```
+Lists lockfile kinds tracked for the resolved machine.
 
-Use `--if-match <sha256>` for an optimistic-concurrency check. A stale expected hash is rejected without advancing the remote head.
+## `history`
 
-### `sync pull`
+**Syntax:** `outfitting-manager sync history [<kind>]`
 
-Download one lockfile or all tracked kinds. Known kinds get a default output path; pass an explicit path when needed.
-
-```bash
-outfitting-manager sync pull nix
-outfitting-manager sync pull windows restored-windows.lock.json
-outfitting-manager sync pull
-```
-
-### `sync list`
-
-List lockfile kinds tracked for the inferred machine.
-
-### `sync history`
-
-Show version history for one kind or, when omitted, every tracked kind.
-
-```bash
-outfitting-manager sync history nix
-outfitting-manager sync history
-```
-
-## Platform differences
-
-| Platform | Meaning of `sync`                                                      | Invocation                                                                              |
-| -------- | ---------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| macOS    | Remote push, pull, list, history, and credential configuration.        | `outfitting-manager sync push nix updated-flake.lock`                                   |
-| Windows  | Identical remote transport; package reconciliation belongs to `apply`. | `outfitting-manager sync push windows "$env:LOCALAPPDATA\outfitting\windows.lock.json"` |
-| Linux    | Identical remote transport; package reconciliation belongs to `apply`. | `outfitting-manager sync list`                                                          |
+Displays version history for one kind. An omitted kind or `all` selects every tracked kind.

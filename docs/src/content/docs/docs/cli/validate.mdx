@@ -1,15 +1,16 @@
 ---
-title: Validate
-description: Validate config.toml and its declared source paths without applying changes.
+title: validate
+description: Validate config.toml declarations and the selected source.
 sidebar:
-  order: 8
+  order: 160
 ---
 
-`validate` checks the single machine-local [config.toml](/docs/source-configuration/) and the selected profile's declared manifests and paths without applying packages or refreshing the source. For a remote source, it checks the existing cached snapshot; run [`init`](/docs/cli/init/) first on a new machine to fetch and validate that source.
+**Syntax:** `outfitting-manager validate [flags]`
 
-```bash
-outfitting-manager validate
-outfitting-manager --config ~/machine/config.toml validate
-```
+Validates the machine-local `config.toml`, selected profile declarations, and source paths without applying packages or refreshing the source. A remote source must already have a validated local snapshot. If configuration declares multiple platforms, `--platform` selects the target.
 
-The configuration selects `[source] path` or remote `repository` plus `ref`, and `[linux] profile`, `[macos] profile`, or `[windows] profiles`. Declaration paths must remain inside the source root. Linux supports apt, pacman, and Nix; macOS supports Nix, Brewfile, and fonts; Windows supports WinGet and optional shared components. For details see [Linux](/docs/source-configuration/byor/linux/), [macOS](/docs/source-configuration/byor/macos/), and [Windows](/docs/source-configuration/byor/windows/).
+| Option | Description |
+| --- | --- |
+| `--repo <path>` | Override the source with a local path; defaults to the configured source. |
+| `--profile <profile>` | Select a profile. Windows accepts comma-separated profiles; required when multiple exclusive profiles exist. |
+| `--platform` | Select `linux`, `windows`, or `macos` when declarations include more than one. |

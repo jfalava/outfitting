@@ -1,54 +1,51 @@
 ---
-title: Apply
-description: Reconcile configured package declarations without upgrading unrelated software.
+title: apply
+description: Reconcile package declarations for the current platform.
 sidebar:
-  order: 2
+  order: 10
 ---
 
-`apply` reconciles configured package declarations. It installs missing declared packages; with `--prune`, it may remove only packages that Outfitting can prove it owns for the active profile. It does not upgrade unrelated installed software. Run [`init`](/docs/cli/init/) first to prepare and validate the configured source.
-
-Without `--prune`, apply only installs missing declared packages. Manually installed packages and packages owned by inactive profiles are protected.
-
-Legacy inventory without installation ownership is never enough evidence to prune. Linux previews the package manager's removal plan and refuses unexpected removals; it uses plain `apt remove` or `pacman -R`, never dependency autoremove.
+`apply` installs missing declared packages. It does not upgrade unrelated installed software. Pruning is opt-in and limited to packages whose Outfitting ownership can be established. Changes are local; publishing state is a separate operation.
 
 ## macOS
 
-```bash
-outfitting-manager apply
-outfitting-manager apply --profile workstation --no-refresh
-```
+**Syntax:** `outfitting-manager apply [flags]`
 
-macOS applies only the selected Brewfile. It does not activate Nix; use [`nix switch`](/docs/cli/nix/) for nix-darwin.
+Applies the selected profile's Brewfile. Nix activation is handled by [`nix`](/docs/cli/nix/).
 
-## Windows
-
-```powershell
-outfitting-manager apply
-outfitting-manager apply --profile base,dev --winget-only
-outfitting-manager apply --prune --yes
-```
-
-Windows options are `--profile <profiles>`, `--winget-only`, `--prune`, and `--yes`. `--yes` accepts the displayed installation and removal plan without prompting. See [source configuration](/docs/source-configuration/) for bundle composition. Apply changes local machine state only; it does not upload state. Run [`sync push`](/docs/cli/sync/#sync-push) explicitly when you want to publish it.
+| Option | Description |
+| --- | --- |
+| `--machine-id <id>` | Override the machine ID. The default is derived from user, architecture, and OS. |
+| `--repo <path>` | Override the local source path for this invocation. |
+| `--profile <profile>` | Select a declared macOS profile; defaults to the configured selection. |
+| `--no-refresh` | Use the previously validated source without refreshing it. |
 
 ## Linux
 
-```bash
-outfitting-manager apply
-outfitting-manager apply --no-refresh
-outfitting-manager apply --package-manager apt --profile debian-minimal
-outfitting-manager apply --package-manager pacman --prune --yes
-outfitting-manager apply --offline
-outfitting-manager apply --if-configured
-```
+**Syntax:** `outfitting-manager apply [flags]`
 
-Linux detects apt or pacman from the host by default. Select one explicitly with `--package-manager apt|pacman`. Other options are `--profile <profile>`, `--prune`, `--offline`, `--yes`, and `--no-refresh`. `--if-configured` skips the operation only when the selected profile declares neither native package manager; it is useful in bootstrap scripts for profiles that declare only Nix. Linux refreshes the configured source by default. `--no-refresh` and `--offline` require a previously validated remote snapshot; use `init` to populate one before running them.
+Reconciles the selected profile's apt or pacman declarations. The package manager is detected from the host unless explicitly selected.
 
-Offline apt installs require cached package payloads. Offline pacman refuses missing-package installs; it can inspect already-satisfied declarations and perform a safe prune without downloads.
+| Option | Description |
+| --- | --- |
+| `--profile <profile>` | Select a Linux profile; defaults to `config.toml` or `OUTFITTING_PROFILE`. |
+| `--package-manager` | Override package-manager detection with `apt` or `pacman`. |
+| `--prune` | Remove stale packages proven to have been installed for the active profile. |
+| `--offline` | Use the cached Linux package manifest without a network request. |
+| `--yes` | Apply the displayed installation/removal plan without prompting. |
+| `--no-refresh` | Use the local Linux source without fetching remote changes. |
+| `--if-configured` | Skip when the selected profile declares neither apt nor pacman packages. |
 
-## Platform differences
+## Windows
 
-| Platform | Forms                                                                                 | Difference                                                                |
-| -------- | ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| macOS    | `apply [--profile <profile>] [--no-refresh]`                                          | Reconciles the Brewfile only; Nix activation is `nix switch`.              |
-| Windows  | `apply [--profile <profiles>] [--winget-only] [--prune] [--yes]`                     | Profiles are comma-composable; apply never uploads state.                 |
-| Linux    | `apply [--package-manager <manager>] [--profile <profile>] [--prune] [--offline]` | One profile is active at a time; `--offline` prevents package downloads. |
+**Syntax:** `outfitting-manager apply [flags]`
+
+Reconciles the selected comma-separated profiles' WinGet and optional Scoop declarations. Applied state remains local.
+
+| Option | Description |
+| --- | --- |
+| `--profile <profiles>` | Select comma-separated profiles from the configured source. |
+| `--repo <path>` | Override the local source path for this invocation. |
+| `--winget-only` | Apply WinGet declarations only; skip Scoop. |
+| `--prune` | Remove only provably Outfitting-installed packages no longer declared by active profiles. |
+| `--yes` | Apply the displayed plan without prompting. |

@@ -1,55 +1,36 @@
 ---
-title: Update
+title: update
 description: Upgrade installed packages through one native package manager.
 sidebar:
-  order: 6
+  order: 150
 ---
 
-`update` upgrades software already installed through one native package manager. It does not install missing declared packages or prune anything; use [`apply`](/docs/cli/apply/) for package presence. Nix has its own top-level command, [`nix`](/docs/cli/nix/), and manager-binary replacement is [`self-update`](/docs/cli/self-update/).
-
-```bash
-outfitting-manager update [--package-manager <manager>] [flags]
-```
-
-There is no aggregate `update all`: run each operation you intend explicitly. Successful Windows package operations and the macOS Homebrew inventory are published by default; `--no-push` keeps the related state local.
-
-Update global Bun packages directly:
-
-```bash
-bun update -g
-```
+`update` upgrades already-installed packages through one native package manager. It does not install missing declarations or prune packages. Use [`apply`](/docs/cli/apply/) for declared package presence and [`nix`](/docs/cli/nix/) for Nix builds and activation.
 
 ## macOS
 
-### macOS: Homebrew
+**Syntax:** `outfitting-manager update [--no-push]`
 
-Upgrade installed Homebrew packages and record the observed inventory. It does not install missing Brewfile entries.
+Upgrades installed Homebrew packages and publishes the observed Homebrew inventory unless `--no-push` is set.
 
-```bash
-outfitting-manager update
-outfitting-manager update --no-push
-```
+## Linux
 
-On macOS, `update` upgrades Homebrew packages only. It does not install missing Brewfile entries; use [`apply`](/docs/cli/apply/) for that.
+**Syntax:** `outfitting-manager update [--package-manager <apt|pacman>] [--offline]`
 
-### Linux: apt or pacman
+Upgrades installed native packages. The manager is detected from the host unless selected explicitly. `--offline` refuses to run because network-free package resolution cannot be guaranteed.
 
-```bash
-outfitting-manager update
-outfitting-manager update --package-manager apt
-outfitting-manager update --package-manager pacman
-outfitting-manager update --package-manager apt --offline
-```
+| Option | Description |
+| --- | --- |
+| `--package-manager` | Override package-manager detection with `apt` or `pacman`. |
+| `--offline` | Refuse the update because network-free package resolution cannot be guaranteed. |
 
-Linux detects the native package manager by default. `--package-manager apt|pacman` selects one explicitly. `--offline` refuses the update because a network-free system upgrade cannot be guaranteed.
+## Windows
 
-### Windows: WinGet or Scoop
+**Syntax:** `outfitting-manager update --package-manager <winget|scoop> [--no-push]`
 
-Windows requires an explicit package manager. Each invocation upgrades through exactly one of WinGet or Scoop.
+Upgrades installed packages through exactly one selected manager. A package manager must be specified. Successful package operations are recorded; `--no-push` keeps the update state local.
 
-```powershell
-outfitting-manager update --package-manager winget
-outfitting-manager update --package-manager scoop --no-push
-```
-
-Missing declarations belong to [`apply`](/docs/cli/apply/). To upgrade both Windows managers, run two separate commands. Each successful operation records its own state; `--no-push` skips publishing it.
+| Option | Description |
+| --- | --- |
+| `--package-manager` | Select `winget` or `scoop`. Required. |
+| `--no-push` | Write local update state without uploading `windows.lock.json`. |

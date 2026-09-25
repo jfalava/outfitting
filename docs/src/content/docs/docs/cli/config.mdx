@@ -1,0 +1,18 @@
+---
+title: config
+description: Manage the authoritative machine-local configuration.
+sidebar:
+  order: 20
+---
+
+`config` operates on the machine-local `config.toml`, selected by the global `--config` option or `OUTFITTING_CONFIG` when set.
+
+## `migrate`
+
+**Syntax:** `outfitting-manager config migrate [--repo <path>]`
+
+Converts legacy `config.json`, `byor.json`, `repo-path`, or a local `outfitting.json` into `config.toml`. Existing legacy files are not deleted.
+
+| Option | Description |
+| --- | --- |
+| `--repo <path>` | Select the legacy local checkout containing the root `outfitting.json`. |

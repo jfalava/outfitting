@@ -4,4 +4,4 @@ Cloudflare Worker that stores generated, machine-local lock state for `outfittin
 
 Deployed via the monorepo `iac/` Alchemy stack behind the edge router at `https://outfitting.jfa.dev/api`.
 
-[Read the API documentation](https://outfitting.jfa.dev/docs/cli/lockfiles).
+See the [`outfitting-manager sync` reference](https://outfitting.jfa.dev/docs/cli/sync/) for CLI lockfile operations.
