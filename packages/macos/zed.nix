@@ -121,7 +121,7 @@ in
     ];
 
     userSettings = {
-      "disable_ai"= true;
+      "disable_ai" = true;
       "cli_default_open_behavior" = "existing_window";
       "git" = {
         "inline_blame" = {
