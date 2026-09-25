@@ -31,7 +31,7 @@ interface Props {
 const { collection, showSidebar = true } = Astro.props;
 const homeHref = import.meta.env.BASE_URL;
 const brandTitle = config.title;
-const brandSubtitle = "Command Line Reference";
+const brandSubtitle = "CLI and Source Lifecycle";
 
 // Normalize trailing slash so isActive matches sidebar hrefs.
 const currentSlug = Astro.url.pathname.replace(/\/$/, "") || "/";

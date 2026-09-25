@@ -21,7 +21,8 @@
     "/docs/cli/sync",
     "/docs/cli/update",
     "/docs/cli/validate",
-    "/docs/cli/winget"
+    "/docs/cli/winget",
+    "/docs/source"
   ],
   "opaqueNamespaces": []
 }

@@ -20,12 +20,21 @@ const prevNext = await getPrevNext("/", { sidebarTree: sidebar });
   breadcrumbs={breadcrumbs}
   prevNext={prevNext}
 >
-  <h2 id="cli-reference">CLI reference</h2>
+  <h2 id="cli-reference">CLI</h2>
   <p>
-    Reference for the <code>outfitting-manager</code> command-line interface on
-    Windows, Linux, and macOS.
+    Command reference for <code>outfitting-manager</code> on Windows, Linux,
+    and macOS.
   </p>
   <p>
     <a href="/docs/cli/">Browse commands, options, and subcommands.</a>
+  </p>
+
+  <h2 id="source-lifecycle">Source lifecycle</h2>
+  <p>
+    How local checkouts are resolved and remote source artifacts are selected,
+    pulled, refreshed, and removed.
+  </p>
+  <p>
+    <a href="/docs/source/">Explore local sources and sparse artifact pulls.</a>
   </p>
 </DocsLayout>
