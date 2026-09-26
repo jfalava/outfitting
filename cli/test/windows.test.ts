@@ -54,6 +54,7 @@ describe("Windows CLI entrypoint", () => {
   test("registers distinct init, apply, native update, and self-update commands", async () => {
     const root = await runWindowsCli(["--help"]);
     const config = await runWindowsCli(["config", "--help"]);
+    const configMigrate = await runWindowsCli(["config", "migrate"]);
     const source = await runWindowsCli(["source", "--help"]);
     const init = await runWindowsCli(["init", "--help"]);
     const apply = await runWindowsCli(["apply", "--help"]);
@@ -69,7 +70,9 @@ describe("Windows CLI entrypoint", () => {
     expect(root.text).toMatch(/\bself-update\b/);
     expect(root.text).toMatch(/self-update.*upgrade/);
     expect(root.text).not.toMatch(/^\s+setup\s/m);
-    expect(config.text).toMatch(/migrate|show/i);
+    expect(config.text).toMatch(/\bwizard\b/i);
+    expect(config.text).not.toMatch(/\bmigrate\b/i);
+    expect(configMigrate.code).not.toBe(0);
     expect(source.text).toMatch(/path/i);
     expect(init.text).toMatch(/source/i);
     expect(init.text).toMatch(/--no-refresh/);

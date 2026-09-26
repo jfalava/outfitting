@@ -56,7 +56,7 @@ function gitHubHost(hostname: string): string | undefined {
 
 /**
  * Classify a GitHub web or raw URL.
- * Public github.com uses anonymous raw content. Every other host uses `gh`.
+ * github.com starts with anonymous access and retries with `gh` on 404; Enterprise hosts use `gh`.
  * Returns undefined for non-GitHub URLs.
  */
 export function classifyGitHubRepository(value: string): GitHubRepository | undefined {
@@ -123,6 +123,16 @@ export interface GitHubSourceFile {
   revision: string;
 }
 
+class GitHubHttpError extends Error {
+  constructor(
+    url: string,
+    readonly status: number,
+  ) {
+    super(`Failed to fetch ${url}: HTTP ${status}.`);
+    this.name = "GitHubHttpError";
+  }
+}
+
 async function ghApi(host: string, apiPath: string, run: typeof runCommand): Promise<string> {
   let result: RunCommandResult;
   try {
@@ -156,7 +166,7 @@ async function publicResponse(url: string, fetcher: ManifestFetcher = fetch): Pr
     signal: AbortSignal.timeout(30_000),
   });
   if (!response.ok) {
-    throw new Error(`Failed to fetch ${url}: HTTP ${response.status}.`);
+    throw new GitHubHttpError(url, response.status);
   }
   return response;
 }
@@ -244,14 +254,39 @@ async function readSourceFile(
 async function readGitHubTree(options: GitHubReadOptions): Promise<{
   commit: string;
   entries: readonly GitHubTreeEntry[];
+  repository: GitHubRepository;
 }> {
-  const endpoint = repositoryEndpoint(options.repository);
-  const commit = decodeCommit(
-    await repositoryJson(options, `${endpoint}/commits/${encodeURIComponent(options.ref)}`),
-  );
+  let repository = options.repository;
+  const endpoint = repositoryEndpoint(repository);
+  const commitPath = `${endpoint}/commits/${encodeURIComponent(options.ref)}`;
+  let commitResponse: unknown;
+  try {
+    commitResponse = await repositoryJson(options, commitPath);
+  } catch (cause) {
+    if (
+      repository.transport !== "raw" ||
+      !(cause instanceof GitHubHttpError) ||
+      cause.status !== 404
+    ) {
+      throw cause;
+    }
+
+    repository = { ...repository, transport: "gh" };
+    try {
+      commitResponse = await repositoryJson({ ...options, repository }, commitPath);
+    } catch (authCause) {
+      const detail = authCause instanceof Error ? authCause.message : String(authCause);
+      throw new Error(
+        `GitHub returned HTTP 404 for ${repository.owner}/${repository.name}@${options.ref} without authentication, and the authenticated lookup failed. Check that the repository and ref exist, and authenticate with \`${gitHubAuthHint(repository.host)}\`: ${detail}`,
+        { cause: authCause },
+      );
+    }
+  }
+
+  const commit = decodeCommit(commitResponse);
   const tree = decodeTree(
     await repositoryJson(
-      options,
+      { ...options, repository },
       `${endpoint}/git/trees/${encodeURIComponent(commit.sha)}?recursive=1`,
     ),
   );
@@ -260,13 +295,13 @@ async function readGitHubTree(options: GitHubReadOptions): Promise<{
       "GitHub returned a truncated repository tree. Use a local checkout rather than publishing an incomplete source.",
     );
   }
-  return { commit: commit.sha, entries: tree.tree };
+  return { commit: commit.sha, entries: tree.tree, repository };
 }
 
 /** Read one repository file for setup metadata without adding it to the managed source snapshot. */
 export async function readGitHubFile(options: GitHubFileReadOptions): Promise<GitHubSourceFile> {
   const path = relativeSourcePath(options.path, "GitHub path");
-  const { commit, entries } = await readGitHubTree({ ...options, paths: [path] });
+  const { commit, entries, repository } = await readGitHubTree({ ...options, paths: [path] });
   const entry = entries.find((candidate) => candidate.path === path && candidate.type === "blob");
   if (entry === undefined) {
     throw new Error(`GitHub file \`${path}\` is missing.`);
@@ -276,16 +311,16 @@ export async function readGitHubFile(options: GitHubFileReadOptions): Promise<Gi
       `Unsupported GitHub entry ${entry.path} (${entry.mode}). Use a local checkout for symlinks or submodules.`,
     );
   }
-  return readSourceFile({ ...options, paths: [path] }, entry, commit);
+  return readSourceFile({ ...options, repository, paths: [path] }, entry, commit);
 }
 
 /** Fetch the selected files/directories once, from one immutable repository revision. */
 export async function readGitHubBlobs(options: GitHubReadOptions): Promise<GitHubSourceFile[]> {
-  const { commit, entries } = await readGitHubTree(options);
+  const { commit, entries, repository } = await readGitHubTree(options);
   const selected = selectSourceEntries(entries, options.paths);
   const files: GitHubSourceFile[] = [];
   for (const entry of selected) {
-    files.push(await readSourceFile(options, entry, commit));
+    files.push(await readSourceFile({ ...options, repository }, entry, commit));
   }
   return files;
 }

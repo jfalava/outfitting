@@ -141,6 +141,38 @@ function remoteFixture(host: string) {
   return { bodies, tree, requests, fetcher, run };
 }
 
+function privateGitHubFixture() {
+  const files = [{ path: "packages/apt.txt", type: "blob", mode: "100644", sha: "blob-private" }];
+  const endpoints: string[] = [];
+  const fetcher: ManifestFetcher = async (url) => {
+    expect(url).toBe("https://api.github.com/repos/org/private-config/commits/main");
+    return Response.json({ message: "Not Found" }, { status: 404 });
+  };
+  const run: typeof runCommand = async (command, args) => {
+    expect(command).toBe("gh");
+    expect(args.slice(0, 3)).toEqual(["api", "--hostname", "github.com"]);
+    const endpoint = args.at(-1)!;
+    endpoints.push(endpoint);
+    const responses: Record<string, unknown> = {
+      "/repos/org/private-config/commits/main": { sha: "private-revision" },
+      "/repos/org/private-config/git/trees/private-revision?recursive=1": {
+        truncated: false,
+        tree: files,
+      },
+      "/repos/org/private-config/git/blobs/blob-private": {
+        encoding: "base64",
+        content: Buffer.from("curl\n").toString("base64"),
+      },
+    };
+    const response = responses[endpoint];
+    if (response === undefined) {
+      return { code: 1, stderr: `Unexpected API request: ${endpoint}`, stdout: "" };
+    }
+    return { code: 0, stderr: "", stdout: JSON.stringify(response) };
+  };
+  return { endpoints, fetcher, run };
+}
+
 describe.each(["github.com", "pepito.ghe.com"])("remote BYOR on %s", (host) => {
   test("reads the reserved root contract without materializing it as a source file", async () => {
     const remote = remoteFixture(host);
@@ -182,6 +214,11 @@ describe.each(["github.com", "pepito.ghe.com"])("remote BYOR on %s", (host) => {
     expect(new TextDecoder().decode(files[0]!.body)).toBe("curl\njq\n");
     expect(files.at(-1)!.mode).toBe(0o755);
     expect(remote.requests).toHaveLength(8);
+    expect(
+      remote.requests.every((request) =>
+        host === "github.com" ? request.startsWith("https://") : request.startsWith("/repos/"),
+      ),
+    ).toBe(true);
   });
 
   test.each(["linux", "macos", "windows"] as const)(
@@ -252,6 +289,89 @@ describe.each(["github.com", "pepito.ghe.com"])("remote BYOR on %s", (host) => {
       expect(await readFile(join(source, manifest), "utf8")).toBe(remote.bodies.get(manifest));
     },
   );
+});
+
+test("private github.com sources retry with gh for commit, tree, and blobs at one revision", async () => {
+  const remote = privateGitHubFixture();
+  const files = await readGitHubBlobs({
+    ...remote,
+    repository: classifyGitHubRepository("https://github.com/org/private-config")!,
+    ref: "main",
+    paths: ["packages/apt.txt"],
+  });
+
+  expect(remote.endpoints).toEqual([
+    "/repos/org/private-config/commits/main",
+    "/repos/org/private-config/git/trees/private-revision?recursive=1",
+    "/repos/org/private-config/git/blobs/blob-private",
+  ]);
+  expect(files).toHaveLength(1);
+  expect({
+    path: files[0]!.path,
+    body: new TextDecoder().decode(files[0]!.body),
+    mode: files[0]!.mode,
+    revision: files[0]!.revision,
+  }).toEqual({
+    path: "packages/apt.txt",
+    body: "curl\n",
+    mode: 0o644,
+    revision: "private-revision",
+  });
+});
+
+test("private GitHub single-file reads use gh for the blob after the authenticated retry", async () => {
+  const remote = privateGitHubFixture();
+  const file = await readGitHubFile({
+    ...remote,
+    repository: classifyGitHubRepository("https://github.com/org/private-config")!,
+    ref: "main",
+    path: "packages/apt.txt",
+  });
+
+  expect(remote.endpoints.at(-1)).toBe("/repos/org/private-config/git/blobs/blob-private");
+  expect(new TextDecoder().decode(file.body)).toBe("curl\n");
+  expect(file.revision).toBe("private-revision");
+});
+
+test("private GitHub auth failure preserves the previous sparse source", async () => {
+  const stateRoot = await tempRoot();
+  const sourceRoot = sparseSourceRoot(stateRoot);
+  await mkdir(sourceRoot);
+  await writeFile(join(sourceRoot, "keep.txt"), "previous\n");
+  await writeFile(
+    configFilePath(stateRoot),
+    'schema = 1\n[source]\nrepository = "https://github.com/org/private-config"\nref = "main"\n[linux]\nprofile = "desk"\n[profiles.desk.linux.apt]\nmanifest = "packages/apt.txt"\n',
+  );
+  const remote = privateGitHubFixture();
+  remote.run = async () => ({ code: 1, stderr: "HTTP 401: Bad credentials", stdout: "" });
+
+  await expect(
+    syncByorSparseSource({
+      config: await loadConfig({ stateRoot }),
+      platform: "linux",
+      profile: "desk",
+      ...remote,
+    }),
+  ).rejects.toThrow(/gh auth login --hostname github\.com.*401/);
+  expect(await readFile(join(sourceRoot, "keep.txt"), "utf8")).toBe("previous\n");
+  expect(await readdir(sourceRoot)).toEqual(["keep.txt"]);
+});
+
+test("github.com non-404 anonymous errors do not trigger authenticated retries", async () => {
+  const run = vi.fn<typeof runCommand>();
+  const fetcher: ManifestFetcher = async () =>
+    Response.json({ message: "API rate limit exceeded" }, { status: 403 });
+
+  await expect(
+    readGitHubBlobs({
+      repository: classifyGitHubRepository("https://github.com/org/public-config")!,
+      ref: "main",
+      paths: ["packages"],
+      fetcher,
+      run,
+    }),
+  ).rejects.toThrow(/HTTP 403/);
+  expect(run).not.toHaveBeenCalled();
 });
 
 test("BYOR accepts Git repository URLs without converting them into raw-content URLs", () => {

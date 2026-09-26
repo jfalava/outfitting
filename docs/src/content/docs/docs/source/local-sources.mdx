@@ -17,6 +17,6 @@ Local checkouts can contain Git symlinks or submodules that remote sparse select
 
 The default config is `<stateRoot>/config.toml`. The default state root is `~/.config/outfitting` on Unix and `%LOCALAPPDATA%/outfitting` on Windows. `OUTFITTING_STATE_ROOT` changes the state root; `OUTFITTING_CONFIG` selects a config file.
 
-`OUTFITTING_REPO` selects a local checkout for the current process. Commands that accept `--repo` use it as a single-invocation override. Neither changes the config or refreshes a remote snapshot. [`config migrate`](/docs/cli/config/) writes TOML from supported legacy configuration.
+`OUTFITTING_REPO` selects a local checkout for the current process. Commands that accept `--repo` use it as a single-invocation override. Neither changes the config or refreshes a remote snapshot.
 
 Changing a remote configuration to a local checkout leaves any existing sparse snapshot in place; see [Sparse artifact lifecycle](/docs/source/sparse-artifacts/) for its cleanup rules.

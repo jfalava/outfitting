@@ -19,6 +19,10 @@ Selections include declared files, recursively included directories, and configu
 
 The configured ref resolves to one immutable revision per pull. Remote selections accept regular files; symlinks and submodules are rejected.
 
+## GitHub authentication
+
+Public `github.com` repositories are fetched anonymously. If the repository lookup returns HTTP 404, Outfitting retries through the GitHub CLI (`gh api`), allowing private repositories when `gh` is installed and authenticated for `github.com`. Run `gh auth login --hostname github.com` and ensure the authenticated account can read the repository. A missing repository or ref can also return 404, so verify both if the authenticated retry fails. GitHub Enterprise hosts use `gh` directly; other Git remotes use Git's configured credentials.
+
 ## Create, refresh, and replace
 
 A refresh stages selected files beside the current snapshot, records repository, ref, revision, and declaration hash in `.outfitting-source.json`, then validates and publishes the result.

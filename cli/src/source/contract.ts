@@ -788,27 +788,6 @@ async function validateOptionalSharedFile(options: {
   }
 }
 
-/** Read a legacy repository-owned contract for the one-shot config converter only. */
-export async function readLegacyByorContract(root: string): Promise<ByorContract> {
-  let raw: string;
-  try {
-    raw = await readFile(join(root, BYOR_CONTRACT_PATH), "utf8");
-  } catch (cause) {
-    throw new Error(
-      `BYOR repository is missing ${BYOR_CONTRACT_PATH}; create it at the repository root.`,
-      { cause },
-    );
-  }
-
-  let parsed: JsonValue;
-  try {
-    parsed = JSON.parse(raw) as JsonValue;
-  } catch (cause) {
-    throw new Error(`${BYOR_CONTRACT_PATH} is not valid JSON.`, { cause });
-  }
-  return parseByorContract(parsed);
-}
-
 /**
  * Load a BYOR contract when present.
  * - missing `outfitting.json` → `undefined` (legacy layout)
