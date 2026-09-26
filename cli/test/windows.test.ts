@@ -67,8 +67,8 @@ describe("Windows CLI entrypoint", () => {
     expect(root.text).toMatch(/\binit\b/);
     expect(root.text).toMatch(/\bapply\b/);
     expect(root.text).toMatch(/\bself-update\b/);
+    expect(root.text).toMatch(/self-update.*upgrade/);
     expect(root.text).not.toMatch(/^\s+setup\s/m);
-    expect(root.text).not.toMatch(/^\s+upgrade\s/m);
     expect(config.text).toMatch(/migrate|show/i);
     expect(source.text).toMatch(/path/i);
     expect(init.text).toMatch(/source/i);

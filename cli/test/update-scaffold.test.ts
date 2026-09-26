@@ -41,14 +41,21 @@ describe("macOS CLI command boundaries", () => {
     expect(text).toMatch(/\bnix\b/);
     expect(text).toMatch(/\bupdate\b/);
     expect(text).toMatch(/\bself-update\b/);
+    expect(text).toMatch(/self-update.*upgrade/);
     expect(text).not.toMatch(/^\s+setup\s/m);
-    expect(text).not.toMatch(/^\s+upgrade\s/m);
     expect(text).toMatch(/\bdiff\b/);
     expect(text).toMatch(/\bsync\b/);
     expect(text).not.toMatch(/^\s+lockfiles\s/m);
     expect(text).toMatch(/^\s+status\s/m);
     expect(text).toMatch(/\bsnapshot\b/);
     expect(text).toMatch(/\brecover\b/);
+  });
+
+  test("upgrade resolves to the self-update command help", async () => {
+    const { code, stdout, stderr } = await runCli(["upgrade", "--help"]);
+    const text = `${stdout}\n${stderr}`;
+    expect(code).toBe(0);
+    expect(text).toMatch(/Check for and install the latest outfitting-manager release/);
   });
 
   test("update help describes native Homebrew upgrades, not an aggregate command", async () => {

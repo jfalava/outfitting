@@ -1,6 +1,6 @@
 {
   "name": "@outfitting/cli",
-  "version": "0.40.0",
+  "version": "0.41.0",
   "private": true,
   "bin": {
     "outfitting-manager": "index.ts"

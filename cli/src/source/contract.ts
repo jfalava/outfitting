@@ -139,6 +139,12 @@ export interface ValidatedWindowsByorSource {
 
 type JsonPrimitive = string | number | boolean | null;
 type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue };
+type ByorContractInput = {
+  schema: typeof BYOR_CONTRACT_SCHEMA;
+  windows?: ByorWindowsShared;
+  profiles: Readonly<Record<string, ByorProfileDeclaration>>;
+};
+type ByorContractValue = JsonValue | ByorContractInput;
 
 const PackageDeclarationSchema = Schema.Struct({
   manifest: Schema.String,
@@ -393,7 +399,7 @@ function parseWindowsShared(value: DecodedWindowsShared): ByorWindowsShared {
   return shared;
 }
 
-function decodeContractRoot(value: JsonValue): DecodedContract {
+function decodeContractRoot(value: ByorContractValue): DecodedContract {
   const decoded = decodeByorContract(value);
   if (Result.isFailure(decoded)) {
     const detail = decoded.failure.message.trim();
@@ -453,8 +459,8 @@ function parseOptionalWindowsShared(
   return windows;
 }
 
-/** Parse and validate the repository-owned BYOR contract. */
-export function parseByorContract(value: JsonValue): ByorContract {
+/** Parse and validate profile declarations and shared Windows paths. */
+export function parseByorContract(value: ByorContractValue): ByorContract {
   const contract = decodeContractRoot(value);
   const profiles: Record<string, ByorProfileDeclaration> = {};
   for (const [rawName, valueForProfile] of Object.entries(contract.profiles)) {

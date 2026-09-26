@@ -1,7 +1,6 @@
 import { existsSync } from "node:fs";
-import { mkdtemp, realpath, rm, stat, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { realpath, stat } from "node:fs/promises";
+import { resolve } from "node:path";
 
 import { Console, Effect } from "effect";
 import { Command, Prompt } from "effect/unstable/cli";
@@ -12,20 +11,20 @@ import { normalizeGitRepository, validateGitRef } from "@/config/git";
 import { loadConfig } from "@/config/load";
 import { configFilePath, stateRoot } from "@/config/paths";
 import { publishValidatedConfig } from "@/config/write";
-import { classifyGitHubRepository, readGitHubFile } from "@/fetch/github";
 import { tryPromise } from "@/lockfiles/effect";
 import type { HostPlatform } from "@/platform";
-import { runCommand } from "@/process";
 import { envValue } from "@/secrets";
 import { runSetup } from "@/setup/run";
 import {
   parseByorContract,
-  readLegacyByorContract,
   validateLinuxByorSource,
   validateMacosByorSource,
   validateWindowsByorSource,
   type ByorContract,
+  type ByorProfileDeclaration,
   type ByorWindowsShared,
+  type LinuxProfileDeclaration,
+  type MacosProfileDeclaration,
 } from "@/source/contract";
 import { ui } from "@/ui";
 import { applyBrew } from "@/update/brew";
@@ -63,42 +62,6 @@ function hostPlatform(): HostPlatform {
   return process.platform === "win32" ? "windows" : "linux";
 }
 
-function profileNames(contract: ByorContract, platform: HostPlatform): string[] {
-  return Object.entries(contract.profiles)
-    .filter(([, declaration]) => declaration[platform] !== undefined)
-    .map(([name]) => name);
-}
-
-function profilePrompt(contract: ByorContract, platform: HostPlatform) {
-  const names = profileNames(contract, platform);
-  if (names.length === 0) {
-    throw new Error(`The source contract does not declare any ${platform} profiles.`);
-  }
-
-  if (platform !== "windows") {
-    return Prompt.run(
-      Prompt.Select({
-        message: `Choose the ${platform} profile for this machine`,
-        choices: names.map((name) => ({
-          title: name,
-          value: name,
-          selected: names.length === 1,
-        })),
-      }),
-    ).pipe(Effect.map((profile) => [profile]));
-  }
-
-  const configured = contract.windows?.defaultProfiles;
-  const selected = new Set(configured !== undefined && configured.length > 0 ? configured : names);
-  return Prompt.run(
-    Prompt.MultiSelect({
-      message: "Choose the Windows profiles for this machine",
-      min: 1,
-      choices: names.map((name) => ({ title: name, value: name, selected: selected.has(name) })),
-    }),
-  );
-}
-
 function targetPathPrompt(defaultPath: string) {
   return Prompt.run(
     Prompt.String({
@@ -124,7 +87,7 @@ function targetPathPrompt(defaultPath: string) {
 function localSourcePathPrompt() {
   return Prompt.run(
     Prompt.String({
-      message: "Path to the local source checkout containing outfitting.json",
+      message: "Path to the local source checkout containing your declared package or Nix files",
       default: process.cwd(),
       validate: (value) =>
         Effect.tryPromise({
@@ -166,39 +129,157 @@ function normalizedTextPrompt(
   return Prompt.run(prompt);
 }
 
-async function runGit(cwd: string, args: ReadonlyArray<string>): Promise<string> {
-  const result = await runCommand("git", args, { cwd, inherit: false });
-  if (result.code !== 0) {
-    const detail = (result.stderr || result.stdout).trim();
-    throw new Error(
-      `git ${args.join(" ")} failed (exit ${result.code})${detail.length > 0 ? `: ${detail}` : "."}`,
-    );
-  }
-  return result.stdout;
+function optionalTextPrompt(message: string) {
+  return Prompt.run(Prompt.String({ message, default: "" })).pipe(
+    Effect.map((value) => value.trim() || undefined),
+  );
 }
 
-async function readRemoteContract(repository: string, ref: string): Promise<ByorContract> {
-  const githubRepository = classifyGitHubRepository(repository);
-  if (githubRepository !== undefined) {
-    const file = await readGitHubFile({
-      repository: githubRepository,
-      ref,
-      path: "outfitting.json",
-    });
-    const parsed: unknown = JSON.parse(new TextDecoder().decode(file.body));
-    return parseByorContract(parsed as Parameters<typeof parseByorContract>[0]);
-  }
+function commaSeparatedPaths(value: string | undefined): string[] {
+  return value === undefined
+    ? []
+    : value
+        .split(",")
+        .map((path) => path.trim())
+        .filter(Boolean);
+}
 
-  const directory = await mkdtemp(join(tmpdir(), "outfitting-config-wizard-"));
-  try {
-    await runGit(directory, ["init", "--quiet"]);
-    await runGit(directory, ["remote", "add", "origin", repository]);
-    await runGit(directory, ["fetch", "--depth=1", "--no-tags", "origin", ref]);
-    const contractJson = await runGit(directory, ["show", "FETCH_HEAD:outfitting.json"]);
-    await writeFile(join(directory, "outfitting.json"), contractJson, "utf8");
-    return await readLegacyByorContract(directory);
-  } finally {
-    await rm(directory, { force: true, recursive: true });
+function requiredProfileNames(value: string): string {
+  const names = value.split(",").map((name) => name.trim());
+  if (names.some((name) => name.length === 0)) {
+    throw new Error("Enter one or more comma-separated profile names.");
+  }
+  return [...new Set(names)].join(",");
+}
+
+function collectLinuxProfile() {
+  return Effect.gen(function* () {
+    const name = yield* normalizedTextPrompt("Linux profile name", (value) => value);
+    const backends = yield* Prompt.run(
+      Prompt.MultiSelect({
+        message: "Choose the package sources this Linux profile declares",
+        min: 1,
+        choices: [
+          { title: "APT manifest", value: "apt", selected: false },
+          { title: "pacman manifest", value: "pacman", selected: false },
+          { title: "Nix flake", value: "nix", selected: false },
+        ],
+      }),
+    );
+
+    const linux: LinuxProfileDeclaration = {};
+    if (backends.includes("apt")) {
+      linux.apt = {
+        manifest: yield* normalizedTextPrompt("APT manifest path", (value) => value),
+      };
+    }
+    if (backends.includes("pacman")) {
+      linux.pacman = {
+        manifest: yield* normalizedTextPrompt("pacman manifest path", (value) => value),
+      };
+    }
+    if (backends.includes("nix")) {
+      linux.nix = {
+        flake: yield* normalizedTextPrompt("Nix flake directory", (value) => value),
+        attribute: yield* normalizedTextPrompt("Nix output attribute", (value) => value),
+      };
+      const paths = commaSeparatedPaths(
+        yield* optionalTextPrompt(
+          "Extra repository paths read by this flake (comma-separated, blank if none)",
+        ),
+      );
+      if (paths.length > 0) {
+        linux.paths = paths;
+      }
+    }
+
+    const contract = parseByorContract({ schema: 1, profiles: { [name]: { linux } } });
+    return { contract, profiles: [name] };
+  });
+}
+
+function collectMacosProfile() {
+  return Effect.gen(function* () {
+    const name = yield* normalizedTextPrompt("macOS profile name", (value) => value);
+    const nix: MacosProfileDeclaration["nix"] = {
+      flake: yield* normalizedTextPrompt("Nix flake directory", (value) => value),
+      attribute: yield* normalizedTextPrompt("Nix output attribute", (value) => value),
+    };
+    const darwin = yield* optionalTextPrompt(
+      `Darwin configuration path (blank for ${nix.flake}/darwin.nix)`,
+    );
+    if (darwin !== undefined) {
+      nix.darwin = darwin;
+    }
+
+    const macos: MacosProfileDeclaration = { nix };
+    const brewfile = yield* optionalTextPrompt("Homebrew Brewfile path (blank to skip)");
+    if (brewfile !== undefined) {
+      macos.brewfile = brewfile;
+    }
+    const fonts = yield* optionalTextPrompt("Fonts manifest path (blank to skip)");
+    if (fonts !== undefined) {
+      macos.fonts = { manifest: fonts };
+    }
+    const paths = commaSeparatedPaths(
+      yield* optionalTextPrompt("Extra repository paths (comma-separated, blank if none)"),
+    );
+    if (paths.length > 0) {
+      macos.paths = paths;
+    }
+
+    const contract = parseByorContract({ schema: 1, profiles: { [name]: { macos } } });
+    return { contract, profiles: [name] };
+  });
+}
+
+function collectWindowsProfiles() {
+  return Effect.gen(function* () {
+    const namesInput = yield* normalizedTextPrompt(
+      "Windows profile names (comma-separated)",
+      requiredProfileNames,
+    );
+    const names = namesInput.split(",");
+    const profiles: Record<string, ByorProfileDeclaration> = {};
+    for (const name of names) {
+      const manifest = yield* normalizedTextPrompt(
+        `WinGet manifest path for ${name}`,
+        (value) => value,
+      );
+      profiles[name] = { windows: { winget: { manifest } } };
+    }
+
+    const windows: ByorWindowsShared = { defaultProfiles: names };
+    const scoop = yield* optionalTextPrompt("Scoop manifest path (blank to skip)");
+    if (scoop !== undefined) {
+      windows.scoop = { manifest: scoop };
+    }
+    const powershell = yield* optionalTextPrompt("PowerShell script path (blank to skip)");
+    if (powershell !== undefined) {
+      windows.powershell = { path: powershell };
+    }
+    const fonts = yield* optionalTextPrompt("Windows fonts manifest path (blank to skip)");
+    if (fonts !== undefined) {
+      windows.fonts = { manifest: fonts };
+    }
+    const registry = yield* optionalTextPrompt("Registry file path (blank to skip)");
+    if (registry !== undefined) {
+      windows.registry = { path: registry };
+    }
+
+    const contract = parseByorContract({ schema: 1, windows, profiles });
+    return { contract, profiles: names };
+  });
+}
+
+function profileSetupPrompt(platform: HostPlatform) {
+  switch (platform) {
+    case "linux":
+      return collectLinuxProfile();
+    case "macos":
+      return collectMacosProfile();
+    case "windows":
+      return collectWindowsProfiles();
   }
 }
 
@@ -274,22 +355,18 @@ function interview(platform: HostPlatform) {
       }),
     );
 
-    let contract: ByorContract;
     let source: WizardSource;
     let localRoot: string | undefined;
     if (sourceKind === "local") {
       localRoot = yield* localSourcePathPrompt();
-      contract = yield* tryPromise(() => readLegacyByorContract(localRoot!));
       source = { path: localRoot };
     } else {
       const repository = yield* normalizedTextPrompt("Git repository URL", normalizeGitRepository);
       const ref = yield* normalizedTextPrompt("Git branch, tag, or ref", validateGitRef, "main");
-      yield* Console.log(ui.muted(`Reading outfitting.json from ${repository}@${ref}…`));
-      contract = yield* tryPromise(() => readRemoteContract(repository, ref));
       source = { repository, ref };
     }
 
-    const profiles = yield* profilePrompt(contract, platform);
+    const { contract, profiles } = yield* profileSetupPrompt(platform);
     return { configPath, contract, platform, profiles, source, localRoot } satisfies WizardAnswers;
   }).pipe(
     Effect.catchTag("QuitError", () =>

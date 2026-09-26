@@ -11,7 +11,7 @@ sidebar:
 
 **Syntax:** `outfitting-manager config wizard`
 
-Guides first-time setup for the current platform. It asks where to save the config (pre-filled with the resolved default), selects a local checkout or remote Git source, reads its root `outfitting.json`, and lets you choose the profile or profiles for this machine. It previews and validates the generated `config.toml` without overwriting an existing file, then runs the equivalent of `init` to prepare state and validate or refresh the selected source.
+Guides first-time setup for the current platform. It asks where to save the config (pre-filled with the resolved default), selects a local checkout or remote Git source, and collects the profile name(s) and repository-relative manifest or Nix paths for this machine. No root `outfitting.json` is required; the declarations are written into the machine-local `config.toml`. The wizard previews and validates the config without overwriting an existing file, then runs the equivalent of `init` to prepare state and validate or refresh the selected source.
 
 After initialization, the wizard offers to apply declared packages and activate a declared Nix profile. Each operation requires its own confirmation; Nix lock publishing is disabled during the wizard. Declining an operation prints the command to run later. If source initialization fails, the generated config remains so it can be corrected and retried.
 

@@ -93,6 +93,7 @@ test("Linux commands expose init, apply, Nix, and native update as distinct oper
   expect(rootHelp).toMatch(/^\s+apply\s/m);
   expect(rootHelp).toMatch(/^\s+nix\s/m);
   expect(rootHelp).toMatch(/^\s+update\s/m);
+  expect(rootHelp).toMatch(/self-update.*upgrade/);
   expect(rootHelp).not.toMatch(/^\s+setup\s/m);
 
   const init = await execFileAsync("bun", [linuxEntry, "init", "--help"], {
